@@ -1,4 +1,4 @@
-#include "tech-stringlib-001.h"
+#include "i001.h"
 
 namespace string_bench{
   int test_compare1(){
