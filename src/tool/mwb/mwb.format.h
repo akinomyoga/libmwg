@@ -8,7 +8,7 @@
 #include <mwg/std/memory>
 #include <mwg/bio/defs.h>
 #include <mwg/bio/tape.h>
-#include <mwg/bio/mwb.header.h>
+#include <mwg/bio/mwb_header.h>
 namespace mwg{
 namespace bio{
 namespace mwb1{
