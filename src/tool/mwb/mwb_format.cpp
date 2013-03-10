@@ -69,6 +69,7 @@ namespace mwb1{
         data.push_back(b);
       }
       stk.push(new QuotedDataFormatNode(stdm::move(data)));
+      return true;
     }
   public:
     stdm::unique_ptr<IFormatNode> read_format(){
