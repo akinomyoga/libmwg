@@ -1,0 +1,486 @@
+# -*- mode:sh; mode:sh-bash -*-
+
+P '#pragma once'
+P '#ifndef MWGCONF_MWG_CONFIG_H'
+P '#define MWGCONF_MWG_CONFIG_H'
+P
+
+source ../mmake/vars.sh
+
+fname_swc="$CFGDIR/include/mwg_config_common.h"
+msg_commonConfigName=mwg/config.h
+exec 7>"$fname_swc"; fdbase=7
+cat<<EOF >&$fdbase
+#pragma once
+#ifndef MWGCONF_MWG_CONFIG_COMMON_H
+#define MWGCONF_MWG_CONFIG_COMMON_H
+
+#ifdef __GNUC__
+# define MWG_GNUC_VER (__GNUC__*10000+__GNUC_MINOR__*100+__GNUC_PATCHLEVEL__)
+# ifdef __GXX_EXPERIMENTAL_CXX0X__
+#   define MWG_GNU_STD11 MWG_GNUC_VER
+# else
+#   define MWG_GNU_STD11 0
+# endif
+#else
+# define MWG_GNUC_VER  0
+# define MWG_GNU_STD11 0
+#endif
+
+EOF
+
+#******************************************************************************
+#
+#  Library Features
+#
+#******************************************************************************
+
+# H cstdio
+# H stdio.h
+# H unistd.h
+
+#------------------------------------------------------------------------------
+# header collections
+
+# C++TR1 Headers
+H tr1/memory
+if test -n "$MWGCONF_HEADER_TR1_MEMORY"; then
+  D MWGCONF_HEADER_TR1 1
+  H tr1/random
+else
+  D MWGCONF_HEADER_TR1
+fi
+
+# Boost Library Headers
+H boost/config.hpp
+
+# C++11 Headers
+H chrono
+
+# C99 Features
+X trunc       cmath            "::trunc(0.5);"                             
+X round       cmath            "::round(0.5);"                             
+
+#------------------------------------------------------------------------------
+# <mwg/except.h>
+
+# C99
+X snprintf    cstdio           'char b[9];::snprintf(b,9,"");'             
+X vsnprintf   'cstdio cstdarg' 'char b[9];va_list a;::vsnprintf(b,9,"",a);'
+
+#------------------------------------------------------------------------------
+# <mwg/std/cstdint>
+
+# C99 Headers
+H cstdint
+H stdint.h
+
+#------------------------------------------------------------------------------
+# <mwg/std/limits>
+
+X std.numeric_limits.lowest       limits "int a=std::numeric_limits<double>::lowest();"
+X std.numeric_limits.max_digits10 limits "int a=std::numeric_limits<double>::max_digits10;"
+
+#------------------------------------------------------------------------------
+# <mwg/std/memory>
+
+# C++Tr1
+H tr1/memory
+X shared_ptr  memory           "std::shared_ptr<int> a;"
+
+# C++11
+X unique_ptr  memory           "std::unique_ptr<int> a;"
+
+# Boost Library Headers
+if test -n "$MWGCONF_HEADER_BOOST_CONFIG_HPP"; then
+  H boost/tr1/memory.hpp
+  H boost/shared_ptr.hpp
+fi
+
+#------------------------------------------------------------------------------
+# <mwg/std/ratio>
+
+H ratio
+if test -n "$MWGCONF_HEADER_RATIO"; then
+  X std.ratio.type ratio     "sizeof(std::ratio<2,4>::type);"
+fi
+
+#------------------------------------------------------------------------------
+# <mwg/cast.h>
+
+X longlong  ''         'long long value=0;'
+
+X int64     ''         '__int64 value=0;'
+if test -n "$MWGCONF_HAS_INT64"; then
+  S 'int64 is long'     '' 'template<typename T> struct A{};template<> struct A<long>{static const int v=0;};int f(){return A<__int64>::v;}'
+  
+  if test -n "$MWGCONF_HAS_LONGLONG"; then
+    # S 'isdifferent int64 longlong' '' 'void f(__int64){}void f(long long){}'
+    S 'int64 is longlong' '' 'template<typename T> struct A{};template<> struct A<long long>{static const int v=0;};int f(){return A<__int64>::v;}'
+  fi
+fi
+if test -z "$MWGCONF_INT64_IS_LONGLONG$MWGCONF_INT64_IS_LONG"; then
+  D MWGCONF_HAS_DISTINCT_INT64 $MWGCONF_HAS_INT64
+else
+  D MWGCONF_HAS_DISTINCT_INT64
+fi
+
+X atoll     'stdlib.h' '::atoll("0")'
+X strtoll   'stdlib.h' '::strtoll("0",NULL,10)'
+X _atoi64   'stdlib.h' '::_atoi64("0")'
+X _strtoi64 'stdlib.h' '::_strtoi64("0",NULL,10)'
+
+#------------------------------------------------------------------------------
+# Standard Library Version
+
+cat<<EOF >&$fdbase
+/*
+ * MWGCONF_HEADER_STD==2011 C++11
+ * MWGCONF_HEADER_STD==2005 TR1
+ * MWGCONF_HEADER_STD==2003 C++03, C++98
+ * 
+ * MWGCONF_HEADER_TR1       TR1 headers in tr1/ directory
+ */
+#ifndef MWGCONF_HEADER_STD
+# ifdef __GNUC__
+#  if (__GNUC__*10000+__GNUC_MINOR__*100)>=40300 /* gcc 4.3 */
+#   define MWGCONF_HEADER_STD 2011 /* C++11 */
+#  elif __GNUC__>=4                              /* gcc 4.3 */
+#   define MWGCONF_HEADER_STD 2003 /* C++03 */
+#   define MWGCONF_HEADER_TR1
+#  else
+#   define MWGCONF_HEADER_STD 2003 /* C++03 */
+#  endif
+# elif defined(_MSC_VER)
+#  if _MSC_VER>=1600                             /* VS2010 VC10 */
+#   define MWGCONF_HEADER_STD 2011 /* C++11 */
+#  elif _MSC_FULL_VER>=150030729                 /* VS2008 VC9 SP1 */
+#   define MWGCONF_HEADER_STD 2005 /* TR1 */
+#  else
+#   define MWGCONF_HEADER_STD 2003 /* C++03 */
+#  endif
+# else
+#  define MWGCONF_HEADER_STD 2003 /* C++03 */
+# endif
+#endif
+
+EOF
+
+if test -n "$MWGCONF_HAS_UNIQUE_PTR"; then
+  D MWGCONF_HEADER_STD 2011
+elif test -n "$MWGCONF_HAS_SHARED_PTR"; then
+  D MWGCONF_HEADER_STD 2005
+else
+  D MWGCONF_HEADER_STD 2003
+fi
+
+#******************************************************************************
+#
+#  Compiler
+#
+#******************************************************************************
+# compiler identification
+
+cat<<EOF >&$fdbase
+#if (__cplusplus>=201103L)||defined(__GXX_EXPERIMENTAL_CXX0X__)||(_MSC_VER>=1600)
+# define MWGCONF_STD11
+#endif
+
+#ifdef __INTEL_COMPILER
+//# define MWGCONF_ICC_VER __INTEL_COMPILER_BUILD_DATE
+# define MWGCONF_ICC_VER __INTEL_COMPILER
+# ifdef __GXX_EXPERIMENTAL_CXX0X__
+#  define MWGCONF_ICC_STD11 MWGCONF_ICC_VER
+# else
+#  define MWGCONF_ICC_STD11 0
+# endif
+#elif defined(__clang__)
+# define MWGCONF_CLANG_VER (__clang_major__*10000+__clang_minor__*100+__clang_patchlevel__)
+# ifdef __GXX_EXPERIMENTAL_CXX0X__
+#  define MWGCONF_CLANG_STD11 MWGCONF_CLANG_VER
+# else
+#  define MWGCONF_CLANG_STD11 0
+# endif
+#elif defined(__GNUC__)
+# if __GNUC__>=3
+#  define MWGCONF_GCC_VER (__GNUC__*10000+__GNUC_MINOR__*100+__GNUC_PATCHLEVEL__)
+# else
+#  define MWGCONF_GCC_VER (__GNUC__*10000+__GNUC_MINOR__*100)
+# endif
+# ifdef __GXX_EXPERIMENTAL_CXX0X__
+#  define MWGCONF_GCC_STD11 MWGCONF_GCC_VER
+# else
+#  define MWGCONF_GCC_STD11 0
+# endif
+#elif defined(_MSC_VER)
+# define MWGCONF_MSC_VER _MSC_FULL_VER
+#else
+# define MWGCONF_GCC_VER   0
+# define MWGCONF_GCC_STD11 0
+#endif
+
+EOF
+
+# C++11 Features
+#   http://wiki.apache.org/stdcxx/C%2B%2B0xCompilerSupport
+
+if M compiler_icc   '' __INTEL_COMPILER; then
+  # MWGCONF_ICC_VER
+  #   MWGCONF_ICC_VER  500 : icc 5.0.0
+  #   MWGCONF_ICC_VER  600 : icc 6.0.0
+  #   MWGCONF_ICC_VER  800 : icc 8.0.0
+  #   MWGCONF_ICC_VER  900 : icc 9.0.0
+  #   MWGCONF_ICC_VER 1100 : icc 11.0.0
+  #   MWGCONF_ICC_VER 1200 : icc 12.0.0
+  #   MWGCONF_ICC_VER 1300 : icc 13.0.0
+  #
+  # C++11 Features
+  #   http://software.intel.com/en-us/articles/c0x-features-supported-by-intel-c-compiler/
+  # 
+  c_icc=1
+elif M compiler_clang '' __clang__; then
+  # C++11 Features
+  #   http://clang.llvm.org/cxx_status.html
+  # __has_feature macros
+  #   http://clang.llvm.org/docs/LanguageExtensions.html
+  c_clang=1
+elif M compiler_gcc   '' __GNUC__; then
+  # C++11 Features
+  #   http://gcc.gnu.org/projects/cxx0x.html
+  c_gcc=1
+elif M compiler_vc    '' _MSC_VER; then
+  # _MSC_FULL_VER
+  #   VC6.0         SP6? SP5? :  12008804
+  #   VC7.0  VS2002           :  13009466
+  #   VC7.1  VS2003           :  13103077
+  #   VC8.0  VS2005 ???       : 140050125
+  #                 Release   : 140050320
+  #                 SP1       : 140050727
+  #   VC9.0  VS2008 Release   : 150021022
+  #                 SP1       : 150030729
+  #   VC10.0 VS2010 Beta1     : 160020506
+  #                 Beta2     : 160021003
+  #                 Release   : 160030319
+  #                 SP1       : 160040219
+  #   VC11.0 VS2012 RTM       : 170050727
+  #                 NovCTP    : 170051025
+  #   VC12.0 VS2013 Preview   : 180020617
+  #                 RC        : 180020827
+  #                 Release   : 180021005
+  #                 NovCTP    : 180021114
+  #                 SP2 RC    : 180030324
+  #   
+  # C++11 Features
+  #   http://blogs.msdn.com/b/vcblog/archive/2011/09/12/10209291.aspx
+  #   http://msdn.microsoft.com/ja-jp/library/hh567368.aspx
+  # References
+  #   http://d.hatena.ne.jp/yohhoy/20121106/p1
+  #   http://sourceforge.net/p/predef/wiki/Compilers/
+  c_vc=1
+fi
+
+# TODO: Preprocessor __VA_ARGS__ / MWG_STD_VA_ARGS
+#------------------------------------------------------------------------------
+# definitions
+
+declare_feature() {
+  # env
+  #   cond_msc
+  #   cond_gcc
+  #   cond_clang
+  #   cond_expression
+
+  local name="$1"
+  local defname; mwg.uppercase.set defname "MWGCONF_STD_$name"
+  local m_cond_gcc="${cond_gcc}"
+  local m_cond_icc="${cond_icc}"
+  local m_cond_msc="${cond_msc}"
+  case "x${cond_clang}" in
+  x-a)
+      local m_cond_clang="__has_feature(cxx_$name)" ;;
+  x*)
+      local m_cond_clang="${cond_clang:-__has_feature(cxx_$name)}" ;;
+  esac
+  local x_cond_expr="${cond_expression}"
+  
+  cat <<EOF >&$fdbase
+//-----------------------------------------------------------------------------
+//  $defname: $name
+//-----------------------------------------------------------------------------
+#ifndef $defname
+# if (${m_cond_gcc})||(${m_cond_icc})||(${m_cond_msc})
+#  define $defname
+# elif defined(MWGCONF_CLANG_VER)
+#  if $m_cond_clang
+#   define $defname
+#  endif
+# endif
+#endif
+
+EOF
+
+  if test -n "$c_gcc$c_icc$c_vc$c_clang"; then
+    P "/* $defname will be defined in $msg_commonConfigName */"
+    P
+  else
+    if cat <<EOF | test_source_cached S-mwg%c++11%$name "C++11 feature $name" "C++11 feature ${t_sgr35}${name}${t_sgr0}"; then
+void f(){
+  $x_cond_expr;
+}
+EOF
+      D $defname 1
+    else
+      D $defname
+    fi
+  fi
+}
+
+#------------------------------------------------------------------------------
+# c++11 auto_type
+
+cond_gcc='MWGCONF_GCC_STD11>=40400'
+cond_icc='MWGCONF_ICC_STD11>=1200'
+cond_msc='_MSC_VER>=1600'
+cond_clang='-a'
+cond_expression='auto p=new int;'
+declare_feature auto_type
+
+#------------------------------------------------------------------------------
+# c++11 lambdas
+
+cond_gcc='MWGCONF_GCC_STD11>=40500'
+cond_icc='MWGCONF_ICC_STD11>=1200'
+cond_msc='_MSC_VER>=1600'
+cond_clang='-a'
+cond_expression='([](int n) -> int {return n+1;})(10);'
+declare_feature lambdas
+
+#------------------------------------------------------------------------------
+# c++11 decltype
+
+cond_gcc='MWGCONF_GCC_STD11>=40300'
+cond_icc='MWGCONF_ICC_STD11>=1200'
+cond_msc='_MSC_VER>=1600'
+cond_clang='-a'
+cond_expression='int a=0;decltype(a) b=a;'
+declare_feature decltype
+
+#------------------------------------------------------------------------------
+# c++11 nullptr
+
+cond_gcc='MWGCONF_GCC_STD11>=40600'
+cond_icc='MWGCONF_ICC_STD11>=1206' # with /Qoption,cpp,"--nullptr" ?
+cond_msc='_MSC_VER>=1600'
+cond_clang='-a'
+cond_expression='int* a=nullptr;'
+declare_feature nullptr
+
+#------------------------------------------------------------------------------
+# c++11 rvalue_references
+
+cond_gcc='MWGCONF_GCC_STD11>=40300'
+cond_icc='MWGCONF_ICC_STD11>=1200'
+cond_msc='_MSC_VER>=1600'
+cond_clang='-a'
+cond_expression='int&& a=1;'
+declare_feature rvalue_references
+
+#------------------------------------------------------------------------------
+# c++11 variadic_templates
+
+cond_gcc='MWGCONF_GCC_STD11>=40300'
+cond_icc='MWGCONF_ICC_STD11>=1206'
+cond_msc='0'
+cond_clang='-a'
+cond_expression='int&& a=1;'
+declare_feature variadic_templates
+
+#------------------------------------------------------------------------------
+# c++11 defaulted_functions/deleted_functions
+
+cond_gcc='MWGCONF_GCC_STD11>=40400'
+cond_icc='MWGCONF_ICC_STD11>=1200'
+cond_msc='0'
+cond_clang='-a'
+cond_expression='struct test_type{test_type() =default;};'
+declare_feature defaulted_functions
+cond_expression='struct test_type{test_type() =delete;};'
+declare_feature deleted_functions
+
+#------------------------------------------------------------------------------
+# c++11 explicit_conversions
+
+cond_gcc='MWGCONF_GCC_STD11>=40500'
+cond_icc='MWGCONF_ICC_STD11>=1300'
+cond_msc='_MSC_VER>=1600'
+cond_clang='-a'
+cond_expression='struct test_type{explicit operator int() const{return 1;}};'
+declare_feature explicit_conversions
+
+#------------------------------------------------------------------------------
+# c++11 constexpr
+
+cond_gcc='MWGCONF_GCC_STD11>=40600'
+cond_icc='MWGCONF_ICC_STD11>=1300'
+cond_msc='0'
+cond_clang='-a'
+cond_expression='struct test_type{constexpr int test_member_function(){return 1;}};'
+declare_feature constexpr
+
+#------------------------------------------------------------------------------
+# c++11 alias_templates
+
+cond_gcc='MWGCONF_GCC_STD11>=40700'
+cond_icc='MWGCONF_ICC_STD11>=1206'
+cond_msc='0'
+cond_clang='-a'
+cond_expression='struct test_type{constexpr int test_member_function(){return 1;}};'
+declare_feature alias_templates
+
+#------------------------------------------------------------------------------
+# c++11 static_assert
+
+cond_gcc='MWGCONF_GCC_STD11>=40300'
+cond_icc='MWGCONF_ICC_STD11>=1110'
+cond_msc='_MSC_VER>=1600'
+cond_clang='-a'
+cond_expression='static_assert(1,"test");'
+declare_feature static_assert
+
+#------------------------------------------------------------------------------
+# c++11 unicode_literals
+
+cond_gcc='MWGCONF_GCC_STD11>=40500'
+cond_icc='0' # 1110 with /Qoptions,cpp,"--uliterals" ?
+cond_msc='0'
+cond_clang='-a'
+cond_expression='char* x=u8"aiueo";'
+declare_feature unicode_literals
+
+#------------------------------------------------------------------------------
+# c++11 char16_t/char32_t
+
+cond_gcc='MWGCONF_GCC_STD11>=40400'
+cond_icc='MWGCONF_ICC_STD11>=1206'
+cond_msc='0'
+cond_clang='MWGCONF_CLANG_STD11>=20900'
+cond_expression='char16_t* x=0;'
+declare_feature char16_t
+cond_expression='char32_t* x=0;'
+declare_feature char32_t
+
+#------------------------------------------------------------------------------
+# c++1y concept
+
+# undef
+D MWGCONF_STD_CONCEPT
+
+#******************************************************************************
+
+cat<<EOF >&$fdbase
+#include <mwg_config.h>
+#endif /* MWGCONF_MWG_CONFIG_COMMON_H */
+EOF
+
+P '#%include mwg_config.2.h'
+P '#endif'

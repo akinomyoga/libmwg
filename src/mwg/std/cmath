@@ -1,0 +1,347 @@
+// -*- mode:C++;coding:utf-8 -*-
+#pragma once
+#ifndef MWG_STDM_CMATH
+#define MWG_STDM_CMATH
+#ifdef _MSC_VER
+# define _USE_MATH_DEFINES
+#endif
+#include <mwg/defs.h>
+#include <cmath>
+//HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+//  extended basic functions
+//=============================================================================
+
+namespace mwg{
+namespace stdm{
+
+  //?mconf X MWGCONF_HAS_STD_ASINH cmath 'std::asinh(2.0)'
+  //?mconf X MWGCONF_HAS_STD_ACOSH cmath 'std::acosh(2.0)'
+  //?mconf X MWGCONF_HAS_STD_ATANH cmath 'std::atanh(0.5)'
+
+#if !defined(MWGCONF_HAS_STD_ASINH)
+  template<typename T>
+  inline T asinh(T value){
+    return std::log(value+std::sqrt(value*value+1));
+  }
+#endif
+
+#if !defined(MWGCONF_HAS_STD_ACOSH)
+  template<typename T>
+  inline T acosh(T value){
+    return std::log(value+std::sqrt(value*value-1));
+  }
+#endif
+
+#if !defined(MWGCONF_HAS_STD_ATANH)
+  template<typename T>
+  inline T atanh(T value){
+    return 0.5*std::log((1+value)/(1-value));
+  }
+#endif
+}
+}
+
+//HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+//  fpclassify
+//=============================================================================
+#ifdef _MSC_VER
+# include <float.h>
+namespace mwg{
+namespace stdm{
+  template<typename T>
+  inline static bool isnan(const T& value){
+    return ::_isnan((double)value);
+  }
+  template<typename T>
+  inline static bool isinf(const T& value){
+    return (::_fpclass((double)value)&(_FPCLASS_PINF|_FPCLASS_NINF))!=0;
+  }
+  template<typename T>
+  inline static bool isfinite(const T& value){
+    return ::_finite((double)value);
+  }
+  template<typename T>
+  inline static bool isnormal(const T& value){
+    return (::_fpclass((double)value)&(_FPCLASS_PN|_FPCLASS_NN|_FPCLASS_PZ|_FPCLASS_NZ))!=0;
+  }
+
+  enum _FPCLASSIFY{
+    FP_NAN       =0x01,
+    FP_INFINITE  =0x02,
+    FP_NORMAL    =0x04,
+    FP_SUBNORMAL =0x08,
+    FP_ZERO      =0x10,
+  };
+
+  template<typename T>
+  inline static int fpclassify(const T& value){
+    switch(::_fpclass((double)value)){
+    case _FPCLASS_SNAN:
+    case _FPCLASS_QNAN:
+      return FP_NAN;
+    case _FPCLASS_PINF:
+    case _FPCLASS_NINF:
+      return FP_INFINITE;
+    case _FPCLASS_PN:
+    case _FPCLASS_NN:
+      return FP_NORMAL;
+    case _FPCLASS_PD:
+    case _FPCLASS_ND:
+      return FP_SUBNORMAL;
+    case _FPCLASS_PZ:
+    case _FPCLASS_NZ:
+      return FP_ZERO;
+    default:
+      return FP_NORMAL;
+    }
+  }
+}
+}
+//=============================================================================
+#else /* !defined(_MSC_VER) */
+# include <cfloat>
+namespace mwg{
+namespace stdm_detail{
+
+#if isnan
+  inline static bool isnan_impl(double value){return isnan(value)!=0;}
+  inline static bool isnan_impl(long double value){return isnan(value)!=0;}
+  inline static bool isnan_impl(float value){return isnan(value)!=0;}
+# undef isnan
+# define MWG_STDM_CMATH__isnan_undefined
+#else
+  template<typename T>
+  inline static bool isnan_impl(const T& value){
+    return !(value>=0)&&!(value<=0);
+  }
+#endif
+
+#ifdef isinf
+  inline static bool isinf_impl(float value){return isinf(value)!=0;}
+  inline static bool isinf_impl(double value){return isinf(value)!=0;}
+  inline static bool isinf_impl(long double value){return isinf(value)!=0;}
+# undef isinf
+# define MWG_STDM_CMATH__isinf_undefined
+#else
+  template<typename T>
+  inline static bool isinf_impl(const T& value){
+    return value==HUGE_VAL||value==-HUGE_VAL;
+  }
+#endif
+
+#ifdef isfinite
+  inline static bool isfinite_impl(float value){return isfinite(value)!=0;}
+  inline static bool isfinite_impl(double value){return isfinite(value)!=0;}
+  inline static bool isfinite_impl(long double value){return isfinite(value)!=0;}
+# undef isfinite
+# define MWG_STDM_CMATH__isfinite_undefined
+#else
+  template<typename T>
+  inline static bool isfinite_impl(const T& value){
+    return !(mwg::stdm_detail::isnan_impl(value)||mwg::stdm_detail::isinf_impl(value));
+  }
+#endif
+
+#ifdef isnormal
+  inline static bool isnormal_impl(float value){return isnormal(value)!=0;}
+  inline static bool isnormal_impl(double value){return isnormal(value)!=0;}
+  inline static bool isnormal_impl(long double value){return isnormal(value)!=0;}
+# undef isnormal
+# define MWG_STDM_CMATH__isnormal_undefined
+#else
+  inline static bool isnormal_impl(const float& value){
+    if(!mwg::stdm_detail::isfinite_impl(value))return false;
+    return value>=FLT_MIN||-FLT_MIN>=value;
+  }
+  inline static bool isnormal_impl(const double& value){
+    if(!mwg::stdm_detail::isfinite_impl(value))return false;
+    return value>=DBL_MIN||-DBL_MIN>=value;
+  }
+  inline static bool isnormal_impl(const long double& value){
+    if(!mwg::stdm_detail::isfinite_impl(value))return false;
+    return value>=LDBL_MIN||-LDBL_MIN>=value;
+  }
+#endif
+
+  enum _FPCLASSIFY{
+#ifdef FP_NAN
+    FP_NAN_impl       =FP_NAN,
+    FP_INFINITE_impl  =FP_INFINITE,
+    FP_NORMAL_impl    =FP_NORMAL,
+    FP_SUBNORMAL_impl =FP_SUBNORMAL,
+    FP_ZERO_impl      =FP_ZERO,
+# undef FP_NAN
+# undef FP_INFINITE
+# undef FP_NORMAL
+# undef FP_SUBNORMAL
+# undef FP_ZERO
+# define MWG_STDM_CMATH__FP_NAN_undefined
+#else
+    FP_NAN_impl       =0x01,
+    FP_INFINITE_impl  =0x02,
+    FP_NORMAL_impl    =0x04,
+    FP_SUBNORMAL_impl =0x08,
+    FP_ZERO_impl      =0x10,
+#endif
+  };
+
+#ifdef fpclassify
+  inline static int fpclassify_impl(float value){return fpclassify(value);}
+  inline static int fpclassify_impl(double value){return fpclassify(value);}
+  inline static int fpclassify_impl(long double value){return fpclassify(value);}
+# undef fpclassify
+# define MWG_STDM_CMATH__fpclassify_undefined
+#else
+  template<typename T>
+  inline static int fpclassify_impl(const T& x){
+    if(x==0){
+      return mwg::stdm_detail::FP_ZERO_impl;
+    }else if(mwg::stdm_detail::isnan_impl(x)){
+      return mwg::stdm_detail::FP_NAN_impl;
+    }else if(mwg::stdm_detail::isinf_impl(x)){
+      return mwg::stdm_detail::FP_INFINITE_impl;
+    }else if(!mwg::stdm_detail::isnormal_impl(x)){
+      return mwg::stdm_detail::FP_SUBNORMAL_impl;
+    }else{
+      return mwg::stdm_detail::FP_NORMAL_impl;
+    }
+  }
+#endif
+}
+}
+
+namespace mwg{
+namespace stdm{
+
+  enum _FPCLASSIFY{
+    FP_NAN       =mwg::stdm_detail::FP_NAN_impl,
+    FP_INFINITE  =mwg::stdm_detail::FP_INFINITE_impl,
+    FP_NORMAL    =mwg::stdm_detail::FP_NORMAL_impl,
+    FP_SUBNORMAL =mwg::stdm_detail::FP_SUBNORMAL_impl,
+    FP_ZERO      =mwg::stdm_detail::FP_ZERO_impl,
+  };
+
+  template<typename T>
+  inline static bool isnan(const T& x){
+    return mwg::stdm_detail::isnan_impl(x);
+  }
+  template<typename T>
+  inline static bool isinf(const T& x){
+    return mwg::stdm_detail::isinf_impl(x);
+  }
+  template<typename T>
+  inline static bool isfinite(const T& x){
+    return mwg::stdm_detail::isfinite_impl(x);
+  }
+  template<typename T>
+  inline static bool isnormal(const T& x){
+    return mwg::stdm_detail::isnormal_impl(x);
+  }
+  template<typename T>
+  inline static int fpclassify(const T& x){
+    return mwg::stdm_detail::fpclassify_impl(x);
+  }
+
+}
+}
+/*-----------------------------------------------------------------------------
+ * 元々マクロで定義されていてかつ ::FP_NAN が存在しない場合、上記のコードによ
+ * って (名前空間を指定せずに) FP_NAN を使う事ができたのができなくなる。既存
+ * のコードが #include <mwg/std/cmath> する事によってコンパイルできなくなるの
+ * を防ぐ為、この場合に限ってグローバル名前空間に FP_NAN の定義を引き出す。
+ * その他の fpclassify マクロも同様
+ */
+/*?mconf
+ * # floating-point classification macros
+ * #   C99 に従えばマクロで定義されるので ifdef で判定可能だが、
+ * #   C++ では関数として定義されている事があるので個別にチェックする必要がある。
+ * X global::isnan      cmath '
+ * #undef isnan
+ * isnan(0.0);'
+ * X global::isinf      cmath '
+ * #undef isinf
+ * isinf(0.0);'
+ * X global::isfinite   cmath '
+ * #undef isfinite
+ * isfinite(0.0);'
+ * X global::isnormal   cmath '
+ * #undef isnormal
+ * isnormal(0.0);'
+ * X global::fpclassify cmath '
+ * #undef fpclassify
+ * fpclassify(0.0);'
+ * # FP_NAN, FP_INFINITE, FP_NORMAL, FP_NORMAL, FP_SUBNORMAL, FP_ZERO
+ * X global::FP_NAN     cmath '
+ * #undef FP_NAN
+ * int a=FP_NAN;'
+ */
+#if defined(MWG_STDM_CMATH__isnan_undefined)&&!defined(MWGCONF_HAS_GLOBAL__FP_NAN)
+using mwg::stdm::FP_NAN;
+using mwg::stdm::FP_INFINITE;
+using mwg::stdm::FP_NORMAL;
+using mwg::stdm::FP_SUBNORMAL;
+using mwg::stdm::FP_ZERO;
+#endif
+#if defined(MWG_STDM_CMATH__isnan_undefined)&&!defined(MWGCONF_HAS_GLOBAL__ISNAN)
+using mwg::stdm::isnan;
+#endif
+#if defined(MWG_STDM_CMATH__isinf_undefined)&&!defined(MWGCONF_HAS_GLOBAL__ISINF)
+using mwg::stdm::isinf;
+#endif
+#if defined(MWG_STDM_CMATH__isfinite_undefined)&&!defined(MWGCONF_HAS_GLOBAL__ISFINITE)
+using mwg::stdm::isfinite;
+#endif
+#if defined(MWG_STDM_CMATH__isnormal_undefined)&&!defined(MWGCONF_HAS_GLOBAL__ISNORMAL)
+using mwg::stdm::isnormal;
+#endif
+#if defined(MWG_STDM_CMATH__fpclassify_undefined)&&!defined(MWGCONF_HAS_GLOBAL__FPCLASSIFY)
+using mwg::stdm::fpclassify;
+#endif
+
+#endif /* end of !defined(_MSC_VER) */
+//HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+#endif /* end of MWG_STDM_CMATH */
+#pragma%x begin_check
+#include <cstdio>
+#include <mwg/std/cmath>
+#include <mwg/except.h>
+int main(){
+  mwg_check(mwg::stdm::asinh(0.0)==0.0);
+  mwg_check(mwg::stdm::acosh(1.0)==0.0);
+  mwg_check(mwg::stdm::atanh(0.0)==0.0);
+
+  double const inf=1.0/0.0;
+  double const qnan=std::sqrt(-1);
+  mwg_check(!mwg::stdm::isnan(0.0));
+  mwg_check(!mwg::stdm::isnan(1.0));
+  mwg_check(!mwg::stdm::isnan(inf));
+  mwg_check(!mwg::stdm::isnan(-inf));
+  mwg_check( mwg::stdm::isnan(qnan));
+
+  mwg_check(!mwg::stdm::isinf(0.0));
+  mwg_check(!mwg::stdm::isinf(1.0));
+  mwg_check( mwg::stdm::isinf(inf));
+  mwg_check( mwg::stdm::isinf(-inf));
+  mwg_check(!mwg::stdm::isinf(qnan));
+
+  mwg_check( mwg::stdm::isfinite(0.0));
+  mwg_check( mwg::stdm::isfinite(1.0));
+  mwg_check(!mwg::stdm::isfinite(inf));
+  mwg_check(!mwg::stdm::isfinite(-inf));
+  mwg_check(!mwg::stdm::isfinite(qnan));
+
+  mwg_check(!mwg::stdm::isnormal(0.0));
+  mwg_check( mwg::stdm::isnormal(1.0));
+  mwg_check(!mwg::stdm::isnormal(inf));
+  mwg_check(!mwg::stdm::isnormal(-inf));
+  mwg_check(!mwg::stdm::isnormal(qnan));
+
+  mwg_check(mwg::stdm::fpclassify(0.0) ==mwg::stdm::FP_ZERO);
+  mwg_check(mwg::stdm::fpclassify(1.0) ==mwg::stdm::FP_NORMAL);
+  mwg_check(mwg::stdm::fpclassify(inf) ==mwg::stdm::FP_INFINITE);
+  mwg_check(mwg::stdm::fpclassify(-inf)==mwg::stdm::FP_INFINITE);
+  mwg_check(mwg::stdm::fpclassify(qnan)==mwg::stdm::FP_NAN);
+
+  return 0;
+}
+#pragma%x end_check

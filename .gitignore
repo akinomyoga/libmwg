@@ -1,0 +1,6 @@
+/dist
+/out
+/test
+.clang-completion-error
+/mmake/test
+/src/Makefile

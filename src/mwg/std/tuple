@@ -1,0 +1,39 @@
+// -*- mode:C++;coding:utf-8 -*-
+#pragma once
+#ifndef MWG_STDM_TUPLE
+#define MWG_STDM_TUPLE
+#include <mwg/defs.h>
+//HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+
+
+#------------------------------------------------------------------------------
+# <mwg/std/tuple>
+
+/*?mconf
+ * # g++-4.4.1: std::tuple_size<const std::tuple<...> > などが実装されていない
+ * # # X std_tuple_cv_support tuple "int a=std::tuple_size<const std::tuple<> >::value;"
+ * # # X std.tuple_size.cv_qualifiers tuple 'int a=std::tuple_size<const std::tuple<int> >::value;';
+ * S std_tuple_is_sane tuple '
+ * void test(){
+ * std::tuple_size<const std::tuple<> >::value;
+ * std::tuple_size<const std::tuple<int> >::value;
+ * std::tuple_element<0,const std::tuple<int> >::type b=1;
+ * std::tuple_cat();
+ * std::tuple_cat(std::tuple<int>(1));
+ * std::tuple_cat(std::tuple<int>(1),std::tuple<int>(2),std::tuple<int>(3));
+ * }
+ * '
+ */
+
+#if MWGCONF_HEADER_STD>=2011&&MWGCONF_STD_TUPLE_IS_SANE
+# include <tuple>
+// #elif MWGCONF_HEADER_STD>=2005
+// # include <tuple>
+// #elif defined(MWGCONF_HEADER_TR1)
+// # include <tr1/tuple>
+
+#else
+# include "tuple.nonvariadic_tuple.inl"
+#endif
+//HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+#endif

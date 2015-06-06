@@ -1,0 +1,379 @@
+// -*- mode:C++;coding:utf-8 -*-
+#pragma once
+#ifndef MWG_STDM_CHRONO
+#define MWG_STDM_CHRONO
+#include <mwg/defs.h>
+//HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+//#if MWGCONF_HEADER_STD>=2011
+#if defined(MWGCONF_HEADER_CHRONO)
+# include <chrono>
+#else
+# define MWG_STDM_CHRONO__EMULATED
+# include <limits>
+# include "ratio"
+# include "type_traits"
+# include "limits"
+# include <mwg/mpl.h>
+//-----------------------------------------------------------------------------
+// declarations
+namespace mwg{
+namespace stdm{
+namespace chrono{
+  template<typename R,typename Period=mwg::stdm::ratio<1> >
+  class duration;
+  template<typename Clock,typename Duration=typename Clock::duration >
+  class time_point;
+}
+}
+}
+//-----------------------------------------------------------------------------
+// specializations
+#ifdef MWG_STD_COMMON_TYPE__EMULATED
+namespace mwg{
+namespace stdm{
+  // Specialization of <type_traits>/std::common_type
+  template<typename R1,typename P1,typename R2,typename P2>
+  struct common_type<chrono::duration<R1,P1>,chrono::duration<R2,P2> >{
+    typedef chrono::duration<
+      typename common_type<R1,R2>::type,
+      typename mwg::stdm::ratio<
+        mwg::mpl::integral_gcd<mwg::stdm::intmax_t,P1::num,P2::num>::value,
+        mwg::mpl::integral_lcm<mwg::stdm::intmax_t,P1::den,P2::den>::value>::type> type;
+  };
+}
+}
+#else
+namespace std{
+  // Specialization of <type_traits>/std::common_type
+  template<typename R1,typename P1,typename R2,typename P2>
+  struct common_type<mwg::stdm::chrono::duration<R1,P1>,mwg::stdm::chrono::duration<R2,P2> >{
+    typedef mwg::stdm::chrono::duration<
+      typename common_type<R1,R2>::type,
+      typename mwg::stdm::ratio<
+        mwg::mpl::integral_gcd<mwg::stdm::intmax_t,P1::num,P2::num>::value,
+        mwg::mpl::integral_lcm<mwg::stdm::intmax_t,P1::den,P2::den>::value>::type> type;
+  };
+}
+#endif
+
+//-----------------------------------------------------------------------------
+// implementations
+namespace mwg{
+namespace stdm{
+namespace chrono{
+
+  // Traits
+  template<typename R>
+  struct treat_as_floating_point:mwg::stdm::is_floating_point<R>{};
+
+  template<typename R>
+  struct duration_values{
+    static mwg_constexpr R zero(){return R(0);}
+    static mwg_constexpr R min(){return stdm::numeric_limits<R>::lowest();}
+    static mwg_constexpr R max(){return stdm::numeric_limits<R>::max();}
+  };
+
+namespace chrono_detail{
+
+  template<typename D1>
+  struct is_duration:mwg::stdm::false_type{};
+  template<typename R1,typename P1>
+  struct is_duration<duration<R1,P1> >:mwg::stdm::true_type{};
+
+  template<typename D1,typename D2>
+  struct is_duration_promotable:mwg::stdm::integral_constant<
+    bool,
+    treat_as_floating_point<typename D1::rep>::value
+    ||treat_as_floating_point<typename D2::rep>::value&&mwg::stdm::ratio_divide<typename D1::period,typename D2::period>::type::den==1
+    >{};
+
+  template<typename D1,typename D2>
+  struct is_duration_explicit:mwg::stdm::false_type{};
+
+  template<typename R1,typename P1,typename R2>
+  struct is_duration_explicit<duration<R1,P1>,R2>:mwg::stdm::integral_constant<
+    bool,
+    mwg::stdm::is_convertible<R2,R1>::value
+    &&(treat_as_floating_point<R1>::value||!treat_as_floating_point<R2>::value)
+    >{};
+
+  template<typename D1,typename D2>
+  struct is_duration_castable:mwg::stdm::false_type{};
+  
+  template<typename R1,typename P1,typename R2,typename P2>
+  struct is_duration_castable<duration<R1,P1>,duration<R2,P2> >
+    :mwg::stdm::is_convertible<R2,R1>{};
+
+}
+
+  //---------------------------------------------------------------------------
+  // template<typename R,typename P> class duration
+  template<typename R,typename P >
+  class duration{
+    R value;
+  public:
+    typedef R rep;
+    typedef P period;
+  public:
+    mwg_constexpr duration():rep(duration_values<R>::zero()){}
+
+    duration(duration const& rhs)
+      :value(rhs.value){}
+    duration& operator=(duration const& rhs){
+      this->value=rhs.value;
+      return *this;
+    }
+
+    template<typename R2,typename P2>
+    duration(duration<R2,P2> const& rhs,typename mwg::stdm::enable_if<chrono_detail::is_duration_promotable<duration,duration<R2,P2> >::value,int>::type=0)
+      :value(rhs.value*mwg::stdm::ratio_divide<P2,P>::type::num/mwg::stdm::ratio_divide<P2,P>::type::den){}
+    template<typename R2,typename P2>
+    typename mwg::stdm::enable_if<chrono_detail::is_duration_promotable<duration,duration<R2,P2> >::value,duration&>::type
+    operator=(duration<R2,P2> const& rhs){
+      this->value=R(rhs.value*mwg::stdm::ratio_divide<P2,P>::type::num/mwg::stdm::ratio_divide<typename P2::period,P>::type::den);
+      return *this;
+    }
+
+    // template<typename R2,typename P2>
+    // mwg_constexpr explicit duration(duration<R2,P2> const& rhs,typename mwg::stdm::enable_if<!chrono_detail::is_duration_promotable<duration,duration<R2,P2> >::value,int>::type=0)
+    //   :value(R(rhs.value*mwg::stdm::ratio_divide<D2::period,D1::period>::type::num/mwg::stdm::ratio_divide<D2::period,D1::period>::type::den)){}
+    template<typename R2>
+    mwg_constexpr explicit duration(R2 const& rhs,typename mwg::stdm::enable_if<chrono_detail::is_duration_explicit<duration,R2>::value,int>::type=0)
+      :value(rhs){}
+
+    R count() const{return this->value;}
+  public:
+    mwg_constexpr duration operator+() const{return *this;}
+    mwg_constexpr duration operator-() const{return duration(-this->value);}
+    duration& operator++(){this->value++;return *this;}
+    duration  operator++(int){return duration(this->value++);}
+    duration& operator--(){this->value--;return *this;}
+    duration  operator--(int){return duration(this->value--);}
+    duration& operator+=(duration const& rhs){this->value+=rhs.value;return *this;}
+    duration& operator-=(duration const& rhs){this->value-=rhs.value;return *this;}
+    duration& operator*=(R const& rhs){this->value*=rhs;return *this;}
+    duration& operator/=(R const& rhs){this->value/=rhs;return *this;}
+    duration& operator%=(R const& rhs){this->value%=rhs;return *this;}
+    duration& operator%=(duration const& rhs){this->value%=rhs.value;return *this;}
+  public:
+    static mwg_constexpr duration zero(){return duration(duration_values<R>::zero());}
+    static mwg_constexpr duration min(){return duration(duration_values<R>::min());}
+    static mwg_constexpr duration max(){return duration(duration_values<R>::max());}
+  };
+
+  template<typename Dd,typename Ds>
+  typename mwg::stdm::enable_if<
+    chrono_detail::is_duration<Dd>::value
+    &&chrono_detail::is_duration<Ds>::value
+    &&chrono_detail::is_duration_castable<Dd,Ds>::value,Dd>::type
+  duration_cast(Ds const& d){
+    typedef typename Ds::rep Rs;
+    typedef typename Dd::rep Rd;
+    typedef typename mwg::stdm::ratio_divide<typename Ds::period,typename Dd::period>::type ratio;
+    return Dd(Rd(d.count()*ratio::num/ratio::den));
+    //std::printf("dbg: %lld/%lld\n",ratio::num,ratio::den);std::fflush(stdout);
+    // if(treat_as_floating_point<Rs>::value&&!treat_as_floating_point<Rd>::value)
+    //   return Dd(Rd(d.count()*ratio::num/ratio::den+0.5));
+    // else
+    //   return Dd(Rd(d.count()*ratio::num/ratio::den));
+  }
+
+  typedef duration<mwg::i8t,mwg::stdm::nano>         nanoseconds;
+  typedef duration<mwg::i8t,mwg::stdm::micro>        microseconds;
+  typedef duration<mwg::i8t,mwg::stdm::milli>        milliseconds;
+  typedef duration<mwg::i8t,mwg::stdm::ratio<1> >    seconds;
+  typedef duration<mwg::i4t,mwg::stdm::ratio<60> >   minutes;
+  typedef duration<mwg::i4t,mwg::stdm::ratio<3600> > hours;
+
+  template<typename R1,typename P1,typename R2,typename P2>
+  typename mwg::stdm::common_type<duration<R1,P1>,duration<R2,P2> >::type
+  mwg_constexpr operator+(duration<R1,P1> const& lhs,duration<R2,P2> const& rhs){
+    typedef typename mwg::stdm::common_type<duration<R1,P1>,duration<R2,P2> >::type return_type;
+    return return_type(return_type(lhs).count()+return_type(rhs).count());
+  }
+
+  template<typename R1,typename P1,typename R2,typename P2>
+  typename mwg::stdm::common_type<duration<R1,P1>,duration<R2,P2> >::type
+  mwg_constexpr operator-(duration<R1,P1> const& lhs,duration<R2,P2> const& rhs){
+    typedef typename mwg::stdm::common_type<duration<R1,P1>,duration<R2,P2> >::type return_type;
+    return return_type(return_type(lhs).count()-return_type(rhs).count());
+  }
+
+  template<typename R1,typename P1,typename R2>
+  duration<typename mwg::stdm::common_type<R1,R2>::type,P1>
+  mwg_constexpr operator*(duration<R1,P1> const& lhs,R2 const& rhs){
+    typedef duration<typename mwg::stdm::common_type<R1,R2>::type,P1> return_type;
+    return return_type(return_type(lhs).count()*rhs);
+  }
+
+  template<typename R1,typename P1,typename R2>
+  duration<typename mwg::stdm::common_type<R1,R2>::type,P1>
+  mwg_constexpr operator*(R2 const& rhs,duration<R1,P1> const& lhs){
+    typedef duration<typename mwg::stdm::common_type<R1,R2>::type,P1> return_type;
+    return return_type(return_type(lhs).count()*rhs);
+  }
+
+  template<typename R1,typename P1,typename R2>
+  duration<typename mwg::stdm::common_type<R1,R2>::type,P1>
+  mwg_constexpr operator/(duration<R1,P1> const& lhs,R2 const& rhs){
+    typedef duration<typename mwg::stdm::common_type<R1,R2>::type,P1> return_type;
+    return return_type(return_type(lhs).count()/rhs);
+  }
+
+  template<typename R1,typename P1,typename R2,typename P2>
+  typename mwg::stdm::common_type<duration<R1,P1>,duration<R2,P2> >::type
+  mwg_constexpr operator/(duration<R1,P1> const& lhs,duration<R2,P2> const& rhs){
+    typedef typename mwg::stdm::common_type<duration<R1,P1>,duration<R2,P2> >::type return_type;
+    return return_type(return_type(lhs).count()/return_type(rhs).count());
+  }
+
+  template<typename R1,typename P1,typename R2>
+  duration<typename mwg::stdm::common_type<R1,R2>::type,P1>
+  mwg_constexpr operator%(duration<R1,P1> const& lhs,R2 const& rhs){
+    typedef duration<typename mwg::stdm::common_type<R1,R2>::type,P1> return_type;
+    return return_type(return_type(lhs).count()%rhs);
+  }
+
+  template<typename R1,typename P1,typename R2,typename P2>
+  typename mwg::stdm::common_type<duration<R1,P1>,duration<R2,P2> >::type
+  mwg_constexpr operator%(duration<R1,P1> const& lhs,duration<R2,P2> const& rhs){
+    typedef typename mwg::stdm::common_type<duration<R1,P1>,duration<R2,P2> >::type return_type;
+    return return_type(return_type(lhs).count()%return_type(rhs).count());
+  }
+
+
+  template<typename R1,typename P1,typename R2,typename P2>
+  mwg_constexpr bool operator==(duration<R1,P1> const& lhs,duration<R2,P2> const& rhs){
+    typedef typename mwg::stdm::common_type<duration<R1,P1>,duration<R2,P2> >::type common_t;
+    return common_t(lhs).count()==common_t(rhs).count();
+  }
+
+  template<typename R1,typename P1,typename R2,typename P2>
+  mwg_constexpr bool operator!=(duration<R1,P1> const& lhs,duration<R2,P2> const& rhs){
+    typedef typename mwg::stdm::common_type<duration<R1,P1>,duration<R2,P2> >::type common_t;
+    return common_t(lhs).count()!=common_t(rhs).count();
+  }
+
+  template<typename R1,typename P1,typename R2,typename P2>
+  mwg_constexpr bool operator< (duration<R1,P1> const& lhs,duration<R2,P2> const& rhs){
+    typedef typename mwg::stdm::common_type<duration<R1,P1>,duration<R2,P2> >::type common_t;
+    return common_t(lhs).count()< common_t(rhs).count();
+  }
+
+  template<typename R1,typename P1,typename R2,typename P2>
+  mwg_constexpr bool operator<=(duration<R1,P1> const& lhs,duration<R2,P2> const& rhs){
+    typedef typename mwg::stdm::common_type<duration<R1,P1>,duration<R2,P2> >::type common_t;
+    return common_t(lhs).count()<=common_t(rhs).count();
+  }
+
+  template<typename R1,typename P1,typename R2,typename P2>
+  mwg_constexpr bool operator> (duration<R1,P1> const& lhs,duration<R2,P2> const& rhs){
+    typedef typename mwg::stdm::common_type<duration<R1,P1>,duration<R2,P2> >::type common_t;
+    return common_t(lhs).count()> common_t(rhs).count();
+  }
+
+  template<typename R1,typename P1,typename R2,typename P2>
+  mwg_constexpr bool operator>=(duration<R1,P1> const& lhs,duration<R2,P2> const& rhs){
+    typedef typename mwg::stdm::common_type<duration<R1,P1>,duration<R2,P2> >::type common_t;
+    return common_t(lhs).count()>=common_t(rhs).count();
+  }
+
+  //---------------------------------------------------------------------------
+  // template<typename Clock,typename Duration> class time_point
+
+  template<typename Clock,typename Duration>
+  class time_point{
+  public:
+    typedef Clock clock;
+    typedef Duration duration;
+    typedef typename Duration::rep rep;
+    typedef typename Duration::period period;
+  private:
+    duration value;
+  public:
+    time_point():value(duration::zero()){}
+    explicit time_point(duration const& d):value(d){}
+    template<typename D2>
+    time_point(time_point<clock,D2> const& tp,typename mwg::stdm::enable_if<chrono_detail::is_duration_promotable<duration,D2>::value,int>::type=0):value(tp.value){}
+    // template<typename D2>
+    // explicit time_point(time_point<clock,D2> const& tp,typename mwg::stdm::enable_if<!chrono_detail::is_duration_promotable<duration,D2>::value,int>::type=0):value(tp.value){}
+    
+    duration time_since_epoch() const{return this->value;}
+    time_point& operator+=(duration const& rhs){this->value+=rhs;return *this;}
+    time_point& operator-=(duration const& rhs){this->value-=rhs;return *this;}
+  };
+
+  template<typename Dd,typename Cs,typename Ds>
+  typename mwg::stdm::enable_if<
+    chrono_detail::is_duration<Dd>::value
+    &&chrono_detail::is_duration<Ds>::value
+    &&chrono_detail::is_duration_castable<Dd,Ds>::value,time_point<Cs,Dd> >::type
+  time_point_cast(time_point<Cs,Ds> const& t){
+    return time_point<Cs,Dd>(duration_cast<Dd>(t.time_since_epoch()));
+  }
+
+  template<typename R1,typename P1,typename R2,typename P2,typename C1>
+  typename mwg::stdm::common_type<duration<R1,P1>,duration<R2,P2> >::type
+  operator+(time_point<C1,duration<R1,P1> > const& lhs,duration<R2,P2> const& rhs){
+    typedef time_point<C1,typename mwg::stdm::common_type<duration<R1,P1>,duration<R2,P2> >::type> return_type;
+    return_type t(lhs);
+    return t+=rhs;
+  }
+
+  template<typename R1,typename P1,typename R2,typename P2,typename C2>
+  typename mwg::stdm::common_type<duration<R1,P1>,duration<R2,P2> >::type
+  operator+(duration<R1,P1> const& lhs,time_point<C2,duration<R2,P2> > const& rhs){
+    return rhs+lhs;
+  }
+
+  template<typename R1,typename P1,typename R2,typename P2,typename C1>
+  typename mwg::stdm::common_type<duration<R1,P1>,duration<R2,P2> >::type
+  operator-(time_point<C1,duration<R1,P1> > const& lhs,duration<R2,P2> const& rhs){
+    typedef time_point<C1,typename mwg::stdm::common_type<duration<R1,P1>,duration<R2,P2> >::type> return_type;
+    return_type t(lhs);
+    return t-=rhs;
+  }
+
+  template<typename R1,typename P1,typename R2,typename P2,typename C2>
+  typename mwg::stdm::common_type<duration<R1,P1>,duration<R2,P2> >::type
+  operator-(duration<R1,P1> const& lhs,time_point<C2,duration<R2,P2> > const& rhs){
+    return rhs-lhs;
+  }
+
+
+  template<typename C,typename D1,typename D2>
+  bool operator==(time_point<C,D1> const& lhs,time_point<C,D2> const& rhs){
+    return lhs.time_since_epoch()==rhs.time_since_epoch();
+  }
+
+  template<typename C,typename D1,typename D2>
+  bool operator!=(time_point<C,D1> const& lhs,time_point<C,D2> const& rhs){
+    return lhs.time_since_epoch()!=rhs.time_since_epoch();
+  }
+
+  template<typename C,typename D1,typename D2>
+  bool operator< (time_point<C,D1> const& lhs,time_point<C,D2> const& rhs){
+    return lhs.time_since_epoch()< rhs.time_since_epoch();
+  }
+
+  template<typename C,typename D1,typename D2>
+  bool operator<=(time_point<C,D1> const& lhs,time_point<C,D2> const& rhs){
+    return lhs.time_since_epoch()<=rhs.time_since_epoch();
+  }
+
+  template<typename C,typename D1,typename D2>
+  bool operator> (time_point<C,D1> const& lhs,time_point<C,D2> const& rhs){
+    return lhs.time_since_epoch()> rhs.time_since_epoch();
+  }
+
+  template<typename C,typename D1,typename D2>
+  bool operator>=(time_point<C,D1> const& lhs,time_point<C,D2> const& rhs){
+    return lhs.time_since_epoch()>=rhs.time_since_epoch();
+  }
+}
+
+}
+}
+#endif
+//HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+#endif

@@ -1,0 +1,118 @@
+// -*- mode:C++;coding:utf-8 -*-
+#pragma once
+#ifndef MWG_STDM_RATIO
+#define MWG_STDM_RATIO
+#include <mwg/defs.h>
+//HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+#if defined(MWGCONF_HEADER_RATIO)&&defined(MWGCONF_HAS_STD_RATIO_TYPE)
+# include <ratio>
+#else
+# define MWG_STDM_RATIO__EMULATED
+# include "cstdint"
+# include "type_traits"
+# include <mwg/mpl.h>
+namespace mwg{
+namespace stdm{
+namespace ratio_detail{
+  template<mwg::stdm::intmax_t Z1>
+  struct intmax_abs:mwg::mpl::integral_abs<mwg::stdm::intmax_t,Z1>{};
+  template<mwg::stdm::intmax_t Z1>
+  struct intmax_sgn:mwg::mpl::integral_sgn<mwg::stdm::intmax_t,Z1>{};
+  template<mwg::stdm::intmax_t Z1,mwg::stdm::intmax_t Z2>
+  struct intmax_gcd:mwg::mpl::integral_gcd<mwg::stdm::intmax_t,Z1,Z2>{};
+  template<mwg::stdm::intmax_t Z1,mwg::stdm::intmax_t Z2>
+  struct intmax_lcm:mwg::mpl::integral_lcm<mwg::stdm::intmax_t,Z1,Z2>{};
+}
+  template<mwg::stdm::intmax_t Num,mwg::stdm::intmax_t Den=1>
+  struct ratio{
+    static const mwg::stdm::intmax_t num=
+      ratio_detail::intmax_sgn<Num>::value*ratio_detail::intmax_sgn<Den>::value*ratio_detail::intmax_abs<Num>::value/ratio_detail::intmax_gcd<Num,Den>::value;
+    static const mwg::stdm::intmax_t den=
+      ratio_detail::intmax_abs<Den>::value/ratio_detail::intmax_gcd<Num,Den>::value;
+    typedef mwg::stdm::ratio<num,den> type;
+  };
+  
+  typedef ratio<1,10> deci;
+  typedef ratio<1,100> centi;
+  typedef ratio<1,1000> milli;
+  typedef ratio<1,1000000LL> micro;
+  typedef ratio<1,1000000000LL> nano;
+  typedef ratio<1,1000000000000LL> pico;
+  typedef ratio<1,1000000000000000LL> femto;
+  typedef ratio<1,1000000000000000000LL> atto;
+  typedef ratio<10> deca;
+  typedef ratio<100> hecto;
+  typedef ratio<1000> kilo;
+  typedef ratio<1000000LL> mega;
+  typedef ratio<1000000000LL> giga;
+  typedef ratio<1000000000000LL> tera;
+  typedef ratio<1000000000000000LL> peta;
+  typedef ratio<1000000000000000000LL> exa;
+
+#ifdef MWG_STD_ALIAS_TEMPLATE
+  template<typename R1,typename R2>
+  using ratio_add=ratio<
+    R1::num*(R2::den/ratio_detail::intmax_gcd<R1::den,R2::den>::value)+
+    R2::num*(R1::den/ratio_detail::intmax_gcd<R1::den,R2::den>::value),
+    (R1::den/ratio_detail::intmax_gcd<R1::den,R2::den>::value)*R2::den
+  >;
+  template<typename R1,typename R2>
+  using ratio_subtract=ratio<
+    R1::num*(R2::den/ratio_detail::intmax_gcd<R1::den,R2::den>::value)-
+    R2::num*(R1::den/ratio_detail::intmax_gcd<R1::den,R2::den>::value),
+    (R1::den/ratio_detail::intmax_gcd<R1::den,R2::den>::value)*R2::den
+  >;
+  template<typename R1,typename R2>
+  using ratio_multiply=ratio<
+    (R1::num/ratio_detail::intmax_gcd<R1::num,R2::den>::value)*
+    (R2::num/ratio_detail::intmax_gcd<R1::den,R2::num>::value),
+    (R1::den/ratio_detail::intmax_gcd<R1::den,R2::num>::value)*
+    (R2::den/ratio_detail::intmax_gcd<R1::num,R2::den>::value)
+  >;
+  template<typename R1,typename R2>
+  using ratio_divide=ratio_multiply<
+    R1,ratio<R2::den,R2::num>
+  >;
+#else
+  template<typename R1,typename R2>
+  struct ratio_add:ratio<
+    R1::num*(R2::den/ratio_detail::intmax_gcd<R1::den,R2::den>::value)+
+    R2::num*(R1::den/ratio_detail::intmax_gcd<R1::den,R2::den>::value),
+    (R1::den/ratio_detail::intmax_gcd<R1::den,R2::den>::value)*R2::den
+  >{};
+  template<typename R1,typename R2>
+  struct ratio_subtract:ratio<
+    R1::num*(R2::den/ratio_detail::intmax_gcd<R1::den,R2::den>::value)-
+    R2::num*(R1::den/ratio_detail::intmax_gcd<R1::den,R2::den>::value),
+    (R1::den/ratio_detail::intmax_gcd<R1::den,R2::den>::value)*R2::den
+  >{};
+  template<typename R1,typename R2>
+  struct ratio_multiply:ratio<
+    (R1::num/ratio_detail::intmax_gcd<R1::num,R2::den>::value)*
+    (R2::num/ratio_detail::intmax_gcd<R1::den,R2::num>::value),
+    (R1::den/ratio_detail::intmax_gcd<R1::den,R2::num>::value)*
+    (R2::den/ratio_detail::intmax_gcd<R1::num,R2::den>::value)
+  >{};
+  template<typename R1,typename R2>
+  struct ratio_divide:ratio_multiply<
+    R1,ratio<R2::den,R2::num>
+  >{};
+#endif
+
+  template<typename R1,typename R2>
+  struct ratio_equal:mwg::stdm::integral_constant<bool,(ratio_subtract<R1,R2>::num==0)>{};
+  template<typename R1,typename R2>
+  struct ratio_not_equal:mwg::stdm::integral_constant<bool,(ratio_subtract<R1,R2>::num!=0)>{};
+  template<typename R1,typename R2>
+  struct ratio_less:mwg::stdm::integral_constant<bool,(ratio_subtract<R1,R2>::num<0)>{};
+  template<typename R1,typename R2>
+  struct ratio_less_equal:mwg::stdm::integral_constant<bool,(ratio_subtract<R1,R2>::num<=0)>{};
+  template<typename R1,typename R2>
+  struct ratio_greater:mwg::stdm::integral_constant<bool,(ratio_subtract<R1,R2>::num>0)>{};
+  template<typename R1,typename R2>
+  struct ratio_greater_equal:mwg::stdm::integral_constant<bool,(ratio_subtract<R1,R2>::num>=0)>{};
+}
+}
+#endif
+//HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+#endif

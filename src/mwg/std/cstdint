@@ -1,0 +1,160 @@
+// -*- mode:C++;coding:utf-8 -*-
+#ifndef MWG_STDEMU_CSTDINT_H
+#define MWG_STDEMU_CSTDINT_H
+#include <mwg/conf/conf.h>
+#if defined(MWGCONF_HEADER_CSTDINT)
+#  include <cstdint>
+#elif defined(MWGCONF_HEADER_STDINT_H)
+#  include <stdint.h>
+namespace mwg{
+namespace stdm{
+  using ::int8_t;
+  using ::int16_t;
+  using ::int32_t;
+  using ::int64_t;
+  using ::uint8_t;
+  using ::uint16_t;
+  using ::uint32_t;
+  using ::uint64_t;
+
+  using ::int_least8_t;
+  using ::int_least16_t;
+  using ::int_least32_t;
+  using ::uint_least8_t;
+  using ::uint_least16_t;
+  using ::uint_least32_t;
+
+  using ::int_fast8_t;
+  using ::int_fast16_t;
+  using ::int_fast32_t;
+  using ::uint_fast8_t;
+  using ::uint_fast16_t;
+  using ::uint_fast32_t;
+
+  using ::intmax_t;
+  using ::uintmax_t;
+
+  using ::intptr_t;
+  using ::uintptr_t;
+}
+}
+#elif defined(MWGCONF_HEADER_BOOST_CSTDINT_HPP)
+#  include <boost/cstdint.hpp>
+#elif defined(MWGCONF_HEADER_BOOST_STDINT_HPP)
+#  include <boost/stdint.hpp>
+namespace mwg{
+namespace stdm{
+  using ::int8_t;
+  using ::int16_t;
+  using ::int32_t;
+  using ::int64_t;
+  using ::uint8_t;
+  using ::uint16_t;
+  using ::uint32_t;
+  using ::uint64_t;
+
+  using ::int_least8_t;
+  using ::int_least16_t;
+  using ::int_least32_t;
+  using ::uint_least8_t;
+  using ::uint_least16_t;
+  using ::uint_least32_t;
+
+  using ::int_fast8_t;
+  using ::int_fast16_t;
+  using ::int_fast32_t;
+  using ::uint_fast8_t;
+  using ::uint_fast16_t;
+  using ::uint_fast32_t;
+
+  using ::intmax_t;
+  using ::uintmax_t;
+
+  using ::intptr_t;
+  using ::uintptr_t;
+}
+}
+#else
+namespace mwg{
+namespace stdm{
+//  typedef   signed char      int8_t;
+//  typedef          short     int16_t;
+//  typedef          int       int32_t;
+//  typedef          long long int64_t;
+//  typedef unsigned char      uint8_t;
+//  typedef unsigned short     uint16_t;
+//  typedef unsigned int       uint32_t;
+//  typedef unsigned long long uint64_t;
+//
+////#pragma GCC diagnostic push
+////#pragma GCC diagnostic ignored "-Wunused"
+////#pragma GCC diagnostic ignored "-Wunused-function"
+////#pragma GCC diagnostic ignored "-Wunused-variable"
+//  static_assert(sizeof(int8_t)==1&&sizeof(int16_t)==2&&sizeof(int32_t)==4&&sizeof(int64_t)==8);
+////#pragma GCC diagnostic pop
+
+namespace cstdint_detail{
+  template<typename T,typename U> struct type_and_size{
+    static const int size=sizeof(T);
+    typedef T int_t;
+    typedef U uint_t;
+  };
+  template<int I> struct integral_types{};
+  template<> struct integral_types<0>:type_and_size<signed char,unsigned char>{};
+  template<> struct integral_types<1>:type_and_size<short,unsigned short>{};
+  template<> struct integral_types<2>:type_and_size<int,unsigned int>{};
+  template<> struct integral_types<3>:type_and_size<long,unsigned long>{};
+#if !defined(MWGCONF_HAS_LONGLONG)
+  template<> struct integral_types<4>:type_and_size<long,unsigned long>{static const int size=0;};
+#else
+  template<> struct integral_types<4>:type_and_size<long long,unsigned long long>{};
+# if !defined(MWGCONF_HAS_DISTINCT_INT64)
+  template<> struct integral_types<5>:type_and_size<long long,unsigned long long>{static const int size=0;};
+# else
+  template<> struct integral_types<5>:type_and_size<__int64,unsigned __int64>{};
+  template<> struct integral_types<5>:type_and_size<__int64,unsigned __int64>{static const int size=0;};
+# endif
+#endif
+
+  template<bool C,typename T,typename F> struct conditional{};
+  template<typename T,typename F> struct conditional<true,T,F>:mwg::identity<T>{};
+  template<typename T,typename F> struct conditional<false,T,F>:mwg::identity<F>{};
+
+  template<int I,int J=0>
+  struct integer_switch:conditional<
+    (integral_types<J>::size>=I||integral_types<J>::size==0),
+    integral_types<J>,integer_switch<I,J+1>
+  >::type{};
+}
+  typedef cstdint_detail::integer_switch<1>::int_t  int8_t;
+  typedef cstdint_detail::integer_switch<2>::int_t  int16_t;
+  typedef cstdint_detail::integer_switch<4>::int_t  int32_t;
+  typedef cstdint_detail::integer_switch<8>::int_t  int64_t;
+  typedef cstdint_detail::integer_switch<1>::uint_t uint8_t;
+  typedef cstdint_detail::integer_switch<2>::uint_t uint16_t;
+  typedef cstdint_detail::integer_switch<4>::uint_t uint32_t;
+  typedef cstdint_detail::integer_switch<8>::uint_t uint64_t;
+
+  typedef long long int intmax_t;
+  typedef unsigned long long int uintmax_t;
+
+  typedef cstdint_detail::integer_switch<sizeof(void*)>::int_t intptr_t;
+  typedef cstdint_detail::integer_switch<sizeof(void*)>::uint_t uintptr_t;
+
+  // todo
+  typedef int8_t  int_fast8_t;
+  typedef int16_t int_fast16_t;
+  typedef int32_t int_fast32_t;
+  typedef uint8_t  uint_fast8_t;
+  typedef uint16_t uint_fast16_t;
+  typedef uint32_t uint_fast32_t;
+  typedef int8_t  int_least8_t;
+  typedef int16_t int_least16_t;
+  typedef int32_t int_least32_t;
+  typedef uint8_t  uint_least8_t;
+  typedef uint16_t uint_least16_t;
+  typedef uint32_t uint_least32_t;
+}
+}
+#endif
+#endif /* end of include guard */

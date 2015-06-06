@@ -1,0 +1,48 @@
+// -*- mode:c++;coding:utf-8 -*-
+#pragma once
+#ifndef MWG_STDM_ITERATOR
+#define MWG_STDM_ITERATOR
+#include <mwg/defs.h>
+//#include <mwg/concept.h>
+#include <iterator>
+
+namespace mwg{
+namespace stdm{
+  // move_iterator, reverse_iterator
+  // next, prev
+  // std::r?c?(begin|end) for obj.c?r?(begin|end)()
+
+  /*?mconf
+   * X std_begin_for_array iterator \
+   *   'int arr[1];std::begin(arr);std::end(arr);'
+   * X std_rbegin_for_array iterator \
+   *   'int arr[1];std::rbegin(arr);std::rend(arr);std::cbegin(arr);std::cend(arr);std::crbegin(arr);std::crend(arr);'
+   */
+#ifndef MWGCONF_HAS_STD_BEGIN_FOR_ARRAY
+  // C++11
+  template<typename T,std::size_t N>
+  mwg_constexpr T* begin(T arr[N]){return arr;}
+  template<typename T,std::size_t N>
+  mwg_constexpr T* end(T arr[N]){return arr+N;}
+#endif
+
+#ifndef MWGCONF_HAS_STD_RBEGIN_FOR_ARRAY
+  // C++14
+  template<typename T,std::size_t N>
+  mwg_constexpr reverse_iterator<T*> rbegin(T arr[N]){return reverse_iterator<T*>(arr+N);}
+  template<typename T,std::size_t N>
+  mwg_constexpr reverse_iterator<T*> rend(T arr[N]){return reverse_iterator<T*>(arr);}
+  template<typename T,std::size_t N>
+  mwg_constexpr T const* cbegin(T arr[N]){return arr;}
+  template<typename T,std::size_t N>
+  mwg_constexpr T const* cend(T arr[N]){return arr+N;}
+  template<typename T,std::size_t N>
+  mwg_constexpr reverse_iterator<T const*> crbegin(T arr[N]){return reverse_iterator<T const*>(arr+N);}
+  template<typename T,std::size_t N>
+  mwg_constexpr reverse_iterator<T const*> crend(T arr[N]){return reverse_iterator<T const*>(arr);}
+#endif
+
+}
+}
+
+#endif
