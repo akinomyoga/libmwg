@@ -5,15 +5,11 @@
 #include <mwg/defs.h>
 //HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 
-
-#------------------------------------------------------------------------------
-# <mwg/std/tuple>
-
 /*?mconf
  * # g++-4.4.1: std::tuple_size<const std::tuple<...> > などが実装されていない
  * # # X std_tuple_cv_support tuple "int a=std::tuple_size<const std::tuple<> >::value;"
  * # # X std.tuple_size.cv_qualifiers tuple 'int a=std::tuple_size<const std::tuple<int> >::value;';
- * S std_tuple_is_sane tuple '
+ * S -t'std::tuple<T> "sane?"' STD_TUPLE_IS_SANE tuple '
  * void test(){
  * std::tuple_size<const std::tuple<> >::value;
  * std::tuple_size<const std::tuple<int> >::value;

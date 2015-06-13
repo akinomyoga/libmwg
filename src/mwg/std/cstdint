@@ -1,6 +1,7 @@
 // -*- mode:C++;coding:utf-8 -*-
-#ifndef MWG_STDEMU_CSTDINT_H
-#define MWG_STDEMU_CSTDINT_H
+#pragma once
+#ifndef MWG_STDM_CSTDINT_H
+#define MWG_STDM_CSTDINT_H
 #include <mwg_config.h>
 /*?mconf
  * # check C99 Headers
