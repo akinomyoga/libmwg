@@ -1,7 +1,7 @@
 // -*- mode:C++;coding:utf-8 -*-
 #pragma once
-#ifndef LIBMWG_STAT_ACCUMULATOR_H
-#define LIBMWG_STAT_ACCUMULATOR_H
+#ifndef MWG_STAT_ACCUMULATOR_H
+#define MWG_STAT_ACCUMULATOR_H
 #include <cmath>
 #include <mwg/std/type_traits>
 #include "errored.h"

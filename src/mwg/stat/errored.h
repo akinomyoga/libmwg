@@ -1,7 +1,7 @@
 // -*- mode:C++;coding:utf-8 -*-
 #pragma once
-#ifndef LIBMWG_STAT_ERRORED_VALUE_H
-#define LIBMWG_STAT_ERRORED_VALUE_H
+#ifndef MWG_STAT_ERRORED_VALUE_H
+#define MWG_STAT_ERRORED_VALUE_H
 #include <cstdio>
 #include <cmath>
 #include <mwg/range.h>

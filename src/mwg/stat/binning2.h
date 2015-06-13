@@ -1,7 +1,7 @@
 // -*- mode:C++;coding:utf-8 -*-
 #pragma once
-#ifndef LIBMWG_STAT_BINNING2_H
-#define LIBMWG_STAT_BINNING2_H
+#ifndef MWG_STAT_BINNING2_H
+#define MWG_STAT_BINNING2_H
 #include <cstdlib>
 #include <vector>
 #include <mwg/std/type_traits>

@@ -1,7 +1,7 @@
 // -*- mode:C++;coding:utf-8 -*-
 #pragma once
-#ifndef LIBMWG_STAT_HISTOGRAM_IMPL2_H
-#define LIBMWG_STAT_HISTOGRAM_IMPL2_H
+#ifndef MWG_STAT_HISTOGRAM_IMPL2_H
+#define MWG_STAT_HISTOGRAM_IMPL2_H
 #include <cmath>
 #include <mwg/std/memory>
 #include <mwg/std/type_traits>
