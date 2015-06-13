@@ -1,4 +1,5 @@
 // -*- mode:C++;coding:utf-8 -*-
+#pragma once
 #ifndef MWG_FUNCTOR_PROTO_H
 #define MWG_FUNCTOR_PROTO_H
 namespace mwg{

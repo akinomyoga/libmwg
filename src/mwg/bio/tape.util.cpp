@@ -1,4 +1,5 @@
 // -*- mode:C++;coding:utf-8 -*-
+#pragma once
 #include <mwg/bio/tape.h>
 namespace mwg{
 namespace bio{

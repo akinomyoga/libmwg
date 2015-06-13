@@ -1,4 +1,5 @@
 // -*- mode:C++;coding:utf-8 -*-
+#pragma once
 #ifndef MWG_BIO_DEFS_H
 #define MWG_BIO_DEFS_H
 #include <cstdio>

@@ -1,6 +1,7 @@
 // -*- mode:C++;coding:utf-8 -*-
-#ifndef MWG_CAST
-#define MWG_CAST
+#pragma once
+#ifndef MWG_CAST_H
+#define MWG_CAST_H
 #include <cstdlib>
 #include <sstream>
 #include <string>

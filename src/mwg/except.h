@@ -1,4 +1,5 @@
 // -*- mode:C++;coding:utf-8 -*-
+#pragma once
 #ifndef MWG_EXCEPT_H
 #define MWG_EXCEPT_H
 #include <cstdio>
@@ -385,7 +386,7 @@ static mwg_noinline void mwg_vcheckft(bool condition,const char* expr,const char
 #ifdef MWGCONF_HAS_VSNPRINTF
     // C99 vsnprintf
     /*?mconf
-     * # X snprintf    cstdio           'char b[9];::snprintf(b,9,"");'             
+     * # X snprintf    cstdio           'char b[9];::snprintf(b,9,"");'
      * X vsnprintf -h'cstdio' -h'cstdarg' 'char b[9];va_list a;::vsnprintf(b,9,"",a);'
      */
     ::vsnprintf(message,sizeof message,fmt,arg);

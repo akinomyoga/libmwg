@@ -1,4 +1,5 @@
 // -*- mode:C++;coding:utf-8 -*-
+#pragma once
 #ifndef MWG_EXP_IPRINT_H
 #define MWG_EXP_IPRINT_H
 #include <cstdlib>

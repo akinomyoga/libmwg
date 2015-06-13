@@ -1,4 +1,5 @@
 // -*- mode:C++;coding:utf-8 -*-
+#pragma once
 #ifndef MWG_BIO_TAPE_H_stream
 #define MWG_BIO_TAPE_H_stream
 #include <iostream>

@@ -1,4 +1,5 @@
 // -*- mode:C++;coding:utf-8 -*-
+#pragma once
 #define TTX_CPP__EnableComment
 
 #include <mwg/std/utility>
