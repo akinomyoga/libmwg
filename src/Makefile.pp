@@ -77,3 +77,5 @@ $(CFGDIR)/libmwg.a: $(object_files)
 
 all: $(source_files) $(CFGDIR)/libmwg.a
 check: $(check_files)
+
+#%x epilogue

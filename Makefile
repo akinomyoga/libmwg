@@ -12,13 +12,14 @@ configure $(CFGSTAMP):
 	stamp=$(CFGSTAMP); mkdir -p "$${stamp%/*}" && touch "$$stamp"
 .PHONY: configure
 
-mmake/mcxx/local: configure
+.NOTPARALLEL:
+MAKEFLAGS += --no-print-directory -O
 
 all: | $(CFGSTAMP)
-	make -C src
+	+make -C src
 
 clean:
-	make -C src clean
+	+make -C src clean
 
 distclean:
 	-rm -rf out
@@ -32,4 +33,4 @@ dist-excludes = \
 	--exclude=?*.2[0-9][0-9][0-9][0-1][0-9][0-3][0-9]
 
 dist:
-	test -d dist || mkdir dist; tar cJf dist/libmwg-$(date +%Y%m%d).tar.xz ./ $(dist-excludes) --transform='s|^\./|libmwg/|'
+	test -d dist || mkdir dist; tar cJf dist/libmwg-$$(date +'%Y%m%d').tar.xz ./ $(dist-excludes) --transform='s|^\./|libmwg/|'

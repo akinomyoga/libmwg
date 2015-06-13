@@ -49,6 +49,11 @@ clean-cache:
 clean-all: clean-src clean-obj clean-lib clean-cache
 .PHONY: clean clean-src clean-obj clean-lib clean-cache clean-all
 #%end
+#%m epilogue
+source_files: $(source_files)
+config_files: $(config_files)
+.PHONY: source_files config_files
+#%end
 
 #%m _preprocess_file
 source_files+=$(CPPDIR)/${file}
@@ -83,7 +88,7 @@ $(CFGDIR)/check/${name}.stamp: $(CPPDIR)/check/${name}$(CXXEXT)
 #%%x
 object_files+=$(CFGDIR)/obj/${name}.o
 -include $(CFGDIR)/obj/${name}.dep
-$(CFGDIR)/obj/${name}.o: $(CPPDIR)/${file}
+$(CFGDIR)/obj/${name}.o: $(CPPDIR)/${file} | source_files
 	$(BASE)/mmake/make_command.sh compile ${file}
 #%%end.i
 
