@@ -46,24 +46,13 @@ EOF
 H -t'"C++ TR1 Library"' tr1/memory
 if test -n "$MWGCONF_HEADER_TR1_MEMORY"; then
   D MWGCONF_HEADER_TR1 1
-  H tr1/random
+  # H tr1/random # 誰も使っていない気がする
 else
   D MWGCONF_HEADER_TR1
 fi
 
 # Boost Library Headers
 H -t'"Boost Library"' boost/config.hpp
-
-# C++11 Headers
-H chrono
-
-#------------------------------------------------------------------------------
-# <mwg/std/ratio>
-
-H ratio
-if test -n "$MWGCONF_HEADER_RATIO"; then
-  X std.ratio.type ratio     "sizeof(std::ratio<2,4>::type);"
-fi
 
 #------------------------------------------------------------------------------
 # integral types

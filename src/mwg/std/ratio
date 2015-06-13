@@ -4,6 +4,12 @@
 #define MWG_STDM_RATIO
 #include <mwg/defs.h>
 //HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+/*?mconf
+ * H ratio
+ * if test -n "$MWGCONF_HEADER_RATIO"; then
+ *   X -t'std::ratio<I,J>::type' STD_RATIO_TYPE ratio     "sizeof(std::ratio<2,4>::type);"
+ * fi
+ */
 #if defined(MWGCONF_HEADER_RATIO)&&defined(MWGCONF_HAS_STD_RATIO_TYPE)
 # include <ratio>
 #else

@@ -97,6 +97,7 @@ function proc/check {
   local chkexe="$CFGDIR/check/$name.exe"
   local chkstm="$CFGDIR/check/$name.stamp"
   local chkdep="$CFGDIR/check/$name.dep"
+  mkdf "$chkstm"
   if [[ -s "$fcheck" ]]; then
     "$MWGCXX" -MD -MF "$chkdep" -I "$CFGDIR/include" -I "$CPPDIR" -o "$chkexe" "$fcheck" && "$chkexe"
   fi && touch "$chkstm"
