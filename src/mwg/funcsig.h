@@ -1,5 +1,5 @@
 // -*- mode:C++;coding:utf-8 -*-
-#prgma once
+#pragma once
 #ifndef MWG_FUNCSIG_H
 #define MWG_FUNCSIG_H
 namespace mwg{
