@@ -14,6 +14,7 @@ source "$BASE"/mmake/vars.sh
 function mkd { [[ -d "$1" ]] || mkdir -p "$1"; }
 function mkdf { mkd "${1%/*}"; }
 
+generate_filenames_vars=(fsrc fsource fcheck fmconf flwiki fconfig fdep fobj name)
 function generate_filenames {
   # usage
   #   local fsrc fsource fcheck fmconf flwiki fconfig
@@ -43,13 +44,12 @@ function generate_filenames {
 }
 
 function proc/copy-pp {
-  local fsrc fsource fcheck fmconf flwiki fconfig
-  local fdep fobj name
+  local "${generate_filenames_vars[@]}"
   generate_filenames "$1"
 
   mkdf "$fcheck"
   mkdf "$fsource"
-  PPLINENO=1 PPC_PRAGMA=1 PPC_CPP=1 "$CXXPP" <<EOF > "$fsource"
+  PPLINENO=1 PPC_PRAGMA=1 PPC_CPP=1 "$MWGPP" <<EOF > "$fsource"
 #%\$> $fcheck
 #%\$>
 #%m begin_check
@@ -82,8 +82,7 @@ EOF
 }
 
 function proc/compile {
-  local fsrc fsource fcheck fmconf flwiki fconfig
-  local fdep fobj name
+  local "${generate_filenames_vars[@]}"
   generate_filenames "$1"
 
   mkdf "$fdep"
@@ -92,16 +91,21 @@ function proc/compile {
 }
 
 function proc/check {
-  local fsrc fsource fcheck fmconf flwiki fconfig
-  local fdep fobj name
+  local "${generate_filenames_vars[@]}"
   generate_filenames "$1"
 
   local chkexe="$CFGDIR/check/$name.exe"
   local chkstm="$CFGDIR/check/$name.stamp"
   local chkdep="$CFGDIR/check/$name.dep"
   if [[ -s "$fcheck" ]]; then
-    cxx -MD -MF "$chkdep" -I "$CFGDIR/include" -I "$CPPDIR" -o "$chkexe" "$fcheck" && "$chkexe"
+    "$MWGCXX" -MD -MF "$chkdep" -I "$CFGDIR/include" -I "$CPPDIR" -o "$chkexe" "$fcheck" && "$chkexe"
   fi && touch "$chkstm"
+}
+
+function proc/config {
+  local "${generate_filenames_vars[@]}"
+  generate_filenames "$1"
+  "$MWGCXX" +config -o "$fconfig" --cache="$CFGDIR/cache" "$fmconf"
 }
 
 type="$1"; shift

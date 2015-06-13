@@ -26,21 +26,9 @@ SHELL:=/bin/bash
 #%%error mmake/src.mk: BASE is empty!
 #%else
 BASE:=${BASE}
+include ${BASE}/mmake/vars.mk
 Makefile: ${BASE}/mmake/src.mk
 #%end.i
-
-SRCENC=utf-8
-
-MWGCXX:=cxx
-CXXPREFIX:=$(shell $(MWGCXX) +prefix)
-CXXENC:=utf-8
-CXXCFG:=default
-CXXEXT:=.cpp
-
-CPPDIR:=$(BASE)/out/src.$(CXXENC)
-CFGDIR:=$(BASE)/out/$(CXXPREFIX)+$(CXXCFG)
-
-MWGPP:=$(BASE)/mmake/mwg_pp.awk
 
 directories+=$(CFGDIR)
 directories+=$(CFGDIR)/include
@@ -58,21 +46,23 @@ clean-lib:
 	-rm -rf $(CFGDIR)/lib $(CFGDIR)/bin
 clean-cache:
 	-rm -rf $(CFGDIR)/cache
+clean-all: clean-src clean-obj clean-lib clean-cache
+.PHONY: clean clean-src clean-obj clean-lib clean-cache clean-all
 #%end
 
 #%m _preprocess_file
 source_files+=$(CPPDIR)/${file}
 $(CPPDIR)/${file}: ${file}
-	$(BASE)/mmake/make_file.sh copy-pp ${file}
+	$(BASE)/mmake/make_command.sh copy-pp ${file}
 $(CPPDIR)/${filex}.mconf: $(CPPDIR)/${file}
 $(CPPDIR)/${filex}.lwiki: $(CPPDIR)/${file}
 config_files+=$(CFGDIR)/config/${name}.h
 $(CFGDIR)/config/${name}.h: $(CPPDIR)/${filex}.mconf | $(CFGDIR)/config
-	$(MWGCXX) +config -o "$@" --cache="$(CFGDIR)/cache" $<
+	$(BASE)/mmake/make_command.sh config ${file}
 check_files+=$(CFGDIR)/check/${name}.stamp
 $(CPPDIR)/check/${name}$(CXXEXT): $(CPPDIR)/${file}
 $(CFGDIR)/check/${name}.stamp: $(CPPDIR)/check/${name}$(CXXEXT)
-	$(BASE)/mmake/make_file.sh check ${file}
+	$(BASE)/mmake/make_command.sh check ${file}
 #%end
 
 #%m _check_duplicates
@@ -94,7 +84,7 @@ $(CFGDIR)/check/${name}.stamp: $(CPPDIR)/check/${name}$(CXXEXT)
 object_files+=$(CFGDIR)/obj/${name}.o
 -include $(CFGDIR)/obj/${name}.dep
 $(CFGDIR)/obj/${name}.o: $(CPPDIR)/${file}
-	$(BASE)/mmake/make_file.sh compile ${file}
+	$(BASE)/mmake/make_command.sh compile ${file}
 #%%end.i
 
 #%end

@@ -210,6 +210,7 @@ namespace mwg{
 //TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
 //  文字型の定義
 
+  // defined in <mwg/char.h>
   template<typename T,int CP=0>
   struct char_data;
 

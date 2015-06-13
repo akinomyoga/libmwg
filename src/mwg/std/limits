@@ -4,6 +4,11 @@
 #define MWG_STDM_LIMITS
 #include <limits>
 #include <mwg/defs.h>
+
+/*?mconf
+ * X -t'std::numeric_limits<T>::lowest()'     -oMWGCONF_HAS_STD_NUMERIC_LIMITS_LOWEST        -h'limits' "int a=std::numeric_limits<double>::lowest();"
+ * X -t'std::numeric_limits<T>::max_digits10' -oMWGCONF_HAS_STD_NUMERIC_LIMITS_MAX_DIGITS10  -h'limits' "int a=std::numeric_limits<double>::max_digits10;"
+ */
 #if !defined(MWGCONF_HAS_STD_NUMERIC_LIMITS_LOWEST)|| \
   !defined(MWGCONF_HAS_STD_NUMERIC_LIMITS_MAX_DIGITS10)
 # include <climits>

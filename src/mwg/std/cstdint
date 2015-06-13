@@ -1,7 +1,12 @@
 // -*- mode:C++;coding:utf-8 -*-
 #ifndef MWG_STDEMU_CSTDINT_H
 #define MWG_STDEMU_CSTDINT_H
-#include <mwg/conf/conf.h>
+#include <mwg_config.h>
+/*?mconf
+ * # check C99 Headers
+ * H cstdint
+ * H stdint.h
+ */
 #if defined(MWGCONF_HEADER_CSTDINT)
 #  include <cstdint>
 #elif defined(MWGCONF_HEADER_STDINT_H)

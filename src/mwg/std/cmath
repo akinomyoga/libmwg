@@ -5,8 +5,9 @@
 #ifdef _MSC_VER
 # define _USE_MATH_DEFINES
 #endif
-#include <mwg/defs.h>
 #include <cmath>
+#include <mwg/defs.h>
+#include <mwg/std/type_traits>
 //HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 //  extended basic functions
 //=============================================================================
@@ -14,9 +15,12 @@
 namespace mwg{
 namespace stdm{
 
-  //?mconf X MWGCONF_HAS_STD_ASINH cmath 'std::asinh(2.0)'
-  //?mconf X MWGCONF_HAS_STD_ACOSH cmath 'std::acosh(2.0)'
-  //?mconf X MWGCONF_HAS_STD_ATANH cmath 'std::atanh(0.5)'
+  // C99 Features
+  //?mconf X -t'std::asinh(x)' -oMWGCONF_HAS_STD_ASINH cmath 'std::asinh(2.0)'
+  //?mconf X -t'std::acosh(x)' -oMWGCONF_HAS_STD_ACOSH cmath 'std::acosh(2.0)'
+  //?mconf X -t'std::atanh(x)' -oMWGCONF_HAS_STD_ATANH cmath 'std::atanh(0.5)'
+  //?mconf X -t'std::trunc(x)' -oMWGCONF_HAS_STD_TRUNC cmath 'std::trunc(0.5)'
+  //?mconf X -t'std::round(x)' -oMWGCONF_HAS_STD_ROUND cmath 'std::round(0.5)'
 
 #if !defined(MWGCONF_HAS_STD_ASINH)
   template<typename T>
@@ -38,6 +42,35 @@ namespace stdm{
     return 0.5*std::log((1+value)/(1-value));
   }
 #endif
+
+#if !defined(MWGCONF_HAS_STD_TRUNC)
+  template<typename T>
+  typename mwg::stdm::enable_if<mwg::stdm::is_floating_point<T>::value,T>::type
+  trunc(T value){return value>=0?std::floor(value):std::ceil(value);}
+
+  template<typename T>
+  typename mwg::stdm::enable_if<mwg::stdm::is_integral<T>::value,double>::type
+  trunc(T value){return trunc(double(value));}
+#endif
+
+#if !defined(MWGCONF_HAS_STD_ROUND)
+  template<typename T>
+  typename mwg::stdm::enable_if<mwg::stdm::is_floating_point<T>::value,T>::type
+  round(T value){return value>=0?std::floor(value+0.5):std::ceil(value-0.5);}
+
+  template<typename T>
+  typename mwg::stdm::enable_if<mwg::stdm::is_integral<T>::value,double>::type
+  round(T value){return round(double(value));}
+
+  template<typename T>
+  long lround(T value){return round(value);}
+
+# ifdef MWGCONF_HAS_LONGLONG
+  template<typename T>
+  long long llround(T value){return round(value);}
+# endif
+#endif
+
 }
 }
 
@@ -255,46 +288,46 @@ namespace stdm{
  * # floating-point classification macros
  * #   C99 に従えばマクロで定義されるので ifdef で判定可能だが、
  * #   C++ では関数として定義されている事があるので個別にチェックする必要がある。
- * X global::isnan      cmath '
+ * X -t'::isnan' -oMWGCONF_HAS_GLOBAL_ISNAN cmath '
  * #undef isnan
  * isnan(0.0);'
- * X global::isinf      cmath '
+ * X -t'::isinf' -oMWGCONF_HAS_GLOBAL_ISINF cmath '
  * #undef isinf
  * isinf(0.0);'
- * X global::isfinite   cmath '
+ * X -t'::isfinite' -oMWGCONF_HAS_GLOBAL_ISFINITE cmath '
  * #undef isfinite
  * isfinite(0.0);'
- * X global::isnormal   cmath '
+ * X -t'::isnormal' -oMWGCONF_HAS_GLOBAL_ISNORMAL cmath '
  * #undef isnormal
  * isnormal(0.0);'
- * X global::fpclassify cmath '
+ * X -t'::fpclassify' -oMWGCONF_HAS_GLOBAL_FPCLASSIFY cmath '
  * #undef fpclassify
  * fpclassify(0.0);'
  * # FP_NAN, FP_INFINITE, FP_NORMAL, FP_NORMAL, FP_SUBNORMAL, FP_ZERO
- * X global::FP_NAN     cmath '
+ * X -t '::FP_NAN' -oMWGCONF_HAS_GLOBAL_FP_NAN cmath '
  * #undef FP_NAN
  * int a=FP_NAN;'
  */
-#if defined(MWG_STDM_CMATH__isnan_undefined)&&!defined(MWGCONF_HAS_GLOBAL__FP_NAN)
+#if defined(MWG_STDM_CMATH__isnan_undefined)&&!defined(MWGCONF_HAS_GLOBAL_FP_NAN)
 using mwg::stdm::FP_NAN;
 using mwg::stdm::FP_INFINITE;
 using mwg::stdm::FP_NORMAL;
 using mwg::stdm::FP_SUBNORMAL;
 using mwg::stdm::FP_ZERO;
 #endif
-#if defined(MWG_STDM_CMATH__isnan_undefined)&&!defined(MWGCONF_HAS_GLOBAL__ISNAN)
+#if defined(MWG_STDM_CMATH__isnan_undefined)&&!defined(MWGCONF_HAS_GLOBAL_ISNAN)
 using mwg::stdm::isnan;
 #endif
-#if defined(MWG_STDM_CMATH__isinf_undefined)&&!defined(MWGCONF_HAS_GLOBAL__ISINF)
+#if defined(MWG_STDM_CMATH__isinf_undefined)&&!defined(MWGCONF_HAS_GLOBAL_ISINF)
 using mwg::stdm::isinf;
 #endif
-#if defined(MWG_STDM_CMATH__isfinite_undefined)&&!defined(MWGCONF_HAS_GLOBAL__ISFINITE)
+#if defined(MWG_STDM_CMATH__isfinite_undefined)&&!defined(MWGCONF_HAS_GLOBAL_ISFINITE)
 using mwg::stdm::isfinite;
 #endif
-#if defined(MWG_STDM_CMATH__isnormal_undefined)&&!defined(MWGCONF_HAS_GLOBAL__ISNORMAL)
+#if defined(MWG_STDM_CMATH__isnormal_undefined)&&!defined(MWGCONF_HAS_GLOBAL_ISNORMAL)
 using mwg::stdm::isnormal;
 #endif
-#if defined(MWG_STDM_CMATH__fpclassify_undefined)&&!defined(MWGCONF_HAS_GLOBAL__FPCLASSIFY)
+#if defined(MWG_STDM_CMATH__fpclassify_undefined)&&!defined(MWGCONF_HAS_GLOBAL_FPCLASSIFY)
 using mwg::stdm::fpclassify;
 #endif
 

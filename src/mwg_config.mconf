@@ -43,7 +43,7 @@ EOF
 # header collections
 
 # C++TR1 Headers
-H tr1/memory
+H -t'"C++ TR1 Library"' tr1/memory
 if test -n "$MWGCONF_HEADER_TR1_MEMORY"; then
   D MWGCONF_HEADER_TR1 1
   H tr1/random
@@ -52,50 +52,10 @@ else
 fi
 
 # Boost Library Headers
-H boost/config.hpp
+H -t'"Boost Library"' boost/config.hpp
 
 # C++11 Headers
 H chrono
-
-# C99 Features
-X trunc       cmath            "::trunc(0.5);"                             
-X round       cmath            "::round(0.5);"                             
-
-#------------------------------------------------------------------------------
-# <mwg/except.h>
-
-# C99
-X snprintf    cstdio           'char b[9];::snprintf(b,9,"");'             
-X vsnprintf   'cstdio cstdarg' 'char b[9];va_list a;::vsnprintf(b,9,"",a);'
-
-#------------------------------------------------------------------------------
-# <mwg/std/cstdint>
-
-# C99 Headers
-H cstdint
-H stdint.h
-
-#------------------------------------------------------------------------------
-# <mwg/std/limits>
-
-X std.numeric_limits.lowest       limits "int a=std::numeric_limits<double>::lowest();"
-X std.numeric_limits.max_digits10 limits "int a=std::numeric_limits<double>::max_digits10;"
-
-#------------------------------------------------------------------------------
-# <mwg/std/memory>
-
-# C++Tr1
-H tr1/memory
-X shared_ptr  memory           "std::shared_ptr<int> a;"
-
-# C++11
-X unique_ptr  memory           "std::unique_ptr<int> a;"
-
-# Boost Library Headers
-if test -n "$MWGCONF_HEADER_BOOST_CONFIG_HPP"; then
-  H boost/tr1/memory.hpp
-  H boost/shared_ptr.hpp
-fi
 
 #------------------------------------------------------------------------------
 # <mwg/std/ratio>
@@ -106,17 +66,16 @@ if test -n "$MWGCONF_HEADER_RATIO"; then
 fi
 
 #------------------------------------------------------------------------------
-# <mwg/cast.h>
+# integral types
 
-X longlong  ''         'long long value=0;'
+X -t'long long' longlong '' 'long long value=0;'
 
-X int64     ''         '__int64 value=0;'
+X -t'__int64'   int64    '' '__int64 value=0;'
 if test -n "$MWGCONF_HAS_INT64"; then
-  S 'int64 is long'     '' 'template<typename T> struct A{};template<> struct A<long>{static const int v=0;};int f(){return A<__int64>::v;}'
+  S -t'"__int64 is long"' INT64_IS_LONG '' 'template<typename T> struct A{};template<> struct A<long>{static const int v=0;};int f(){return A<__int64>::v;}'
   
   if test -n "$MWGCONF_HAS_LONGLONG"; then
-    # S 'isdifferent int64 longlong' '' 'void f(__int64){}void f(long long){}'
-    S 'int64 is longlong' '' 'template<typename T> struct A{};template<> struct A<long long>{static const int v=0;};int f(){return A<__int64>::v;}'
+    S -t'"__int64 is long long"' INT64_IS_LONGLONG '' 'template<typename T> struct A{};template<> struct A<long long>{static const int v=0;};int f(){return A<__int64>::v;}'
   fi
 fi
 if test -z "$MWGCONF_INT64_IS_LONGLONG$MWGCONF_INT64_IS_LONG"; then
@@ -124,11 +83,6 @@ if test -z "$MWGCONF_INT64_IS_LONGLONG$MWGCONF_INT64_IS_LONG"; then
 else
   D MWGCONF_HAS_DISTINCT_INT64
 fi
-
-X atoll     'stdlib.h' '::atoll("0")'
-X strtoll   'stdlib.h' '::strtoll("0",NULL,10)'
-X _atoi64   'stdlib.h' '::_atoi64("0")'
-X _strtoi64 'stdlib.h' '::_strtoi64("0",NULL,10)'
 
 #------------------------------------------------------------------------------
 # Standard Library Version

@@ -45,6 +45,57 @@ namespace mpl{
     (I%256==0&&is_power_of_2<I/256>::value)
   >{};
 
+#pragma%x begin_check
+#include <cstdio>
+#include <mwg/mpl.h>
+#include <mwg/except.h>
+
+void test_is_power_of_2(){
+  mwg_assert(( mwg::mpl::is_power_of_2<1>::value));
+  mwg_assert(( mwg::mpl::is_power_of_2<2>::value));
+  mwg_assert(( mwg::mpl::is_power_of_2<4>::value));
+  mwg_assert(( mwg::mpl::is_power_of_2<8>::value));
+  mwg_assert((!mwg::mpl::is_power_of_2<0>::value));
+  mwg_assert((!mwg::mpl::is_power_of_2<3>::value));
+  mwg_assert((!mwg::mpl::is_power_of_2<5>::value));
+  mwg_assert((!mwg::mpl::is_power_of_2<6>::value));
+  mwg_assert((!mwg::mpl::is_power_of_2<7>::value));
+  mwg_assert((!mwg::mpl::is_power_of_2<9>::value));
+
+  mwg_assert(( mwg::mpl::is_power_of_2<16>::value));
+  mwg_assert(( mwg::mpl::is_power_of_2<32>::value));
+  mwg_assert(( mwg::mpl::is_power_of_2<64>::value));
+  mwg_assert((!mwg::mpl::is_power_of_2<23>::value));
+  mwg_assert((!mwg::mpl::is_power_of_2<43>::value));
+  mwg_assert((!mwg::mpl::is_power_of_2<61>::value));
+  mwg_assert((!mwg::mpl::is_power_of_2<23>::value));
+  mwg_assert((!mwg::mpl::is_power_of_2<98>::value));
+
+  mwg_assert(( mwg::mpl::is_power_of_2<128>::value));
+  mwg_assert(( mwg::mpl::is_power_of_2<256>::value));
+  mwg_assert(( mwg::mpl::is_power_of_2<512>::value));
+  mwg_assert((!mwg::mpl::is_power_of_2<122>::value));
+  mwg_assert((!mwg::mpl::is_power_of_2<132>::value));
+  mwg_assert((!mwg::mpl::is_power_of_2<432>::value));
+  mwg_assert((!mwg::mpl::is_power_of_2<327>::value));
+  mwg_assert((!mwg::mpl::is_power_of_2<243>::value));
+
+  mwg_assert(( mwg::mpl::is_power_of_2<1024>::value));
+  mwg_assert(( mwg::mpl::is_power_of_2<2048>::value));
+  mwg_assert(( mwg::mpl::is_power_of_2<4096>::value));
+  mwg_assert(( mwg::mpl::is_power_of_2<8192>::value));
+  mwg_assert((!mwg::mpl::is_power_of_2<1536>::value));
+  mwg_assert((!mwg::mpl::is_power_of_2<9999>::value));
+  mwg_assert((!mwg::mpl::is_power_of_2<2134>::value));
+  mwg_assert((!mwg::mpl::is_power_of_2<4321>::value));
+  mwg_assert((!mwg::mpl::is_power_of_2<3192>::value));
+  mwg_assert((!mwg::mpl::is_power_of_2<3928>::value));
+  mwg_assert((!mwg::mpl::is_power_of_2<4329>::value));
+  mwg_assert((!mwg::mpl::is_power_of_2<3412>::value));
+  mwg_assert((!mwg::mpl::is_power_of_2<8888>::value));
+}
+#pragma%x end_check
+
   namespace integral_detail{
 #ifdef _MSC_VER
     template<typename I,I Z1>
@@ -55,24 +106,6 @@ namespace mpl{
 #endif
     template<typename I,I Z1>
     struct integral_sgn:mwg::stdm::integral_constant<I,(Z1<0?-1:1)>{};
-
-    template<typename I,I Z1,I Z2>
-    struct integral_gcd_impl;
-    template<typename I,I Z1,I Z2,int S>
-    struct integral_gcd_impl2;
-
-    template<typename I,I Z1,I Z2,int S>
-    struct integral_gcd_impl2:integral_gcd_impl<I,Z2,Z1-(Z1/Z2)*Z2>{};
-    template<typename I,I Z1,I Z2>
-    struct integral_gcd_impl2<I,Z1,Z2,1>:integral_gcd_impl<I,Z2,Z1>{};
-    template<typename I,I Z1,I Z2>
-    struct integral_gcd_impl2<I,Z1,Z2,2>:mwg::stdm::integral_constant<I,Z1>{};
-    template<typename I,I Z1,I Z2>
-    struct integral_gcd_impl:integral_gcd_impl2<I,Z1,Z2,(Z1<Z2?1:Z2==0?2:0)>{};
-    template<typename I,I Z1,I Z2>
-    struct integral_gcd:integral_gcd_impl<I,integral_abs<I,Z1>::value,integral_abs<I,Z2>::value>{};
-    template<typename I,I Z1,I Z2>
-    struct integral_lcm:mwg::stdm::integral_constant<I,(Z1/integral_gcd<I,Z1,Z2>::value)*Z2>{};
 
     template<typename I,I ZMin,I ZMax>
     struct integral_limits_impl{
@@ -113,6 +146,59 @@ namespace mpl{
 #endif
     template<> struct integral_limits<bool>
       :integral_limits_impl<bool,false,true>{};
+
+
+
+    template<typename I,I Z1,I Z2>
+    struct integral_gcd_impl;
+    template<typename I,I Z1,I Z2,int S>
+    struct integral_gcd_impl2;
+
+    template<typename I,I Z1,I Z2,int S>
+    struct integral_gcd_impl2:integral_gcd_impl<I,Z2,Z1-(Z1/Z2)*Z2>{};
+    template<typename I,I Z1,I Z2>
+    struct integral_gcd_impl2<I,Z1,Z2,1>:integral_gcd_impl<I,Z2,Z1>{};
+    template<typename I,I Z1,I Z2>
+    struct integral_gcd_impl2<I,Z1,Z2,2>:mwg::stdm::integral_constant<I,Z1>{};
+    template<typename I,I Z1,I Z2>
+    struct integral_gcd_impl:integral_gcd_impl2<I,Z1,Z2,(Z1<Z2?1:Z2==0?2:0)>{};
+
+#ifdef MWGCONF_STD_VARIADIC_TEMPLATES
+    template<typename I,I... Zs>
+    struct integral_gcd{};
+    template<typename I>
+    struct integral_gcd<I>
+      :mwg::stdm::integral_constant<I,1>{};
+    template<typename I,I Z1>
+    struct integral_gcd<I,Z1>
+      :mwg::stdm::integral_constant<I,Z1>{};
+    template<typename I,I Z0,I Z1>
+    struct integral_gcd<I,Z0,Z1>
+      :integral_gcd_impl<I,integral_abs<I,Z0>::value,integral_abs<I,Z1>::value>{};
+    template<typename I,I Z0,I Z1,I... Zs>
+    struct integral_gcd<I,Z0,Z1,Zs...>
+      :integral_gcd<I,integral_gcd<I,Z0,Z1>::value,Zs...>{};
+
+    template<typename I,I... Zs>
+    struct integral_lcm{};
+    template<typename I>
+    struct integral_lcm<I>
+      :mwg::stdm::integral_constant<I,1>{};
+    template<typename I,I Z1>
+    struct integral_lcm<I,Z1>
+      :mwg::stdm::integral_constant<I,Z1>{};
+    template<typename I,I Z0,I Z1>
+    struct integral_lcm<I,Z0,Z1>
+      :mwg::stdm::integral_constant<I,(Z0/integral_gcd<I,Z0,Z1>::value)*Z1>{};
+    template<typename I,I Z0,I Z1,I... Zs>
+    struct integral_lcm<I,Z0,Z1,Zs...>
+      :integral_lcm<I,integral_lcm<I,Z0,Z1>::value,Zs...>{};
+#else
+    template<typename I,I Z1,I Z2>
+    struct integral_gcd:integral_gcd_impl<I,integral_abs<I,Z1>::value,integral_abs<I,Z2>::value>{};
+    template<typename I,I Z1,I Z2>
+    struct integral_lcm:mwg::stdm::integral_constant<I,(Z1/integral_gcd<I,Z1,Z2>::value)*Z2>{};
+#endif
 
 #ifdef MWGCONF_STD_VARIADIC_TEMPLATES
     template<typename I,I... Zs>
@@ -216,6 +302,17 @@ template<type Z0> struct integral_min<type,Z0>:mwg::stdm::integral_constant<type
   using integral_detail::integral_min;
   using integral_detail::integral_limits;
 
+#pragma%x begin_check
+void test_integral_minmax(){
+  mwg_assert(( mwg::mpl::integral_min<int,-1,22,3,34,15>::value==-1));
+  mwg_assert(( mwg::mpl::integral_max<int,-1,22,3,34,15>::value==34));
+  mwg_assert(( mwg::mpl::integral_min<int, 1,22,3,34,15>::value== 1));
+  mwg_assert(( mwg::mpl::integral_max<int, 1,22,3,34,15>::value==34));
+  mwg_assert(( mwg::mpl::integral_min<int,-1,-22,-3,-34,-15>::value==-34));
+  mwg_assert(( mwg::mpl::integral_max<int,-1,-22,-3,-34,-15>::value==-1));
+}
+#pragma%x end_check
+
 //*****************************************************************************
 //  型に関する判定
 // //-----------------------------------------------------------------------------
@@ -255,3 +352,15 @@ template<type Z0> struct integral_min<type,Z0>:mwg::stdm::integral_constant<type
 } /* endof namespace mpl */
 } /* endof namespace mwg */
 #endif
+
+
+#pragma%x begin_check
+
+
+
+int main(){
+  test_is_power_of_2();
+  test_integral_minmax();
+  return 0;
+}
+#pragma%x end_check

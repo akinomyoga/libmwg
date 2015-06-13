@@ -7,6 +7,21 @@
 #if MWGCONF_HEADER_STD>=2011
 # include <memory>
 
+/* 以下は現在は使っていない config check である:
+ * # C++Tr1
+ * H tr1/memory
+ * X -t'std::shared_ptr<T>' shared_ptr memory "std::shared_ptr<int> a;"
+ * 
+ * # C++11
+ * X -t'std::unique_ptr<T>' unique_ptr memory "std::unique_ptr<int> a;"
+ * 
+ * # Boost Library Headers
+ * if test -n "$MWGCONF_HEADER_BOOST_CONFIG_HPP"; then
+ *   H boost/tr1/memory.hpp
+ *   H boost/shared_ptr.hpp
+ * fi
+ */
+
 // ↓ std::tr1::shared_ptr ... c++11 shared_ptr と interface が異なるので使わない (unique_ptr で初期化できない)
 // #elif MWGCONF_HEADER_STD>=2005||defined(MWGCONF_HEADER_TR1)
 // # if MWGCONF_HEADER_STD>=2005

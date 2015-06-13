@@ -10,16 +10,17 @@ else
   exit 1
 fi
 
-# project settings
-MWGCXX=cxx
-CXXPP="$BASE/mmake/mwg_pp.awk"
-SRCENC=utf-8
+# external tools
+MWGCXX="$BASE/mmake/mcxx/cxx"
+MWGPP="$BASE/mmake/mwg_pp.awk"
 
 # compiler settings
 CXXPREFIX="$("$MWGCXX" +prefix)"
 CXXENC=utf-8
-CXXEXT=.cpp
 CXXCFG=default
+CXXEXT=.cpp
 
+# project settings
+SRCENC=utf-8
 CPPDIR="$BASE/out/src.$CXXENC"
 CFGDIR="$BASE/out/$CXXPREFIX+$CXXCFG"

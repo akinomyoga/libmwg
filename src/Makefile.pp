@@ -28,9 +28,33 @@ Makefile: Makefile.pp
 #%x AddCxxHeader.r|%file%|mwg/std/type_traits.is_constructible.h|
 #%x AddCxxHeader.r|%file%|mwg/std/type_traits.is_convertible.inl|
 #%x AddCxxHeader.r|%file%|mwg/std/utility|
-#%x AddCxxHeader.r|%file%|mwg/impl/header_begin.inl|
-#%x AddCxxHeader.r|%file%|mwg/impl/header_end.inl|
-#%x AddCxxHeader.r|%file%|mwg/impl/DeclareVariadicFunction.h|
+#%x AddCxxHeader.r|%file%|mwg/impl/warning_push.inl|
+#%x AddCxxHeader.r|%file%|mwg/impl/warning_pop.inl|
+#%x AddCxxHeader.r|%file%|mwg/impl/DeclareVariadicFunction.inl|
+
+#%x AddCxxHeader.r|%file%|mwg/char.h|
+#%x AddCxxHeader.r|%file%|mwg/cast.h|
+#%x AddCxxHeader.r|%file%|mwg/exp/utils.h|
+#%x AddCxxHeader.r|%file%|mwg/exp/iprint.h|
+
+#%x AddCxxHeader.r|%file%|mwg/stat/errored.h|
+#%x AddCxxHeader.r|%file%|mwg/stat/bindex.h|
+#%x AddCxxHeader.r|%file%|mwg/stat/accumulator.h|
+#%x AddCxxHeader.r|%file%|mwg/stat/histogram2.h|
+#%x AddCxxHeader.r|%file%|mwg/stat/binning2.h|
+
+#%x AddCxxHeader.r|%file%|mwg/bio/defs.h|
+#%x AddCxxHeader.r|%file%|mwg/bio/tape.h|
+#%x AddCxxHeader.r|%file%|mwg/bio/tape.util.inl|
+#%x AddCxxHeader.r|%file%|mwg/bio/tape.stdio.inl|
+#%x AddCxxHeader.r|%file%|mwg/bio/tape.stream.inl|
+#%x AddCxxHeader.r|%file%|mwg/bio/ttx2.h|
+#%x AddCxxSource.r|%file%|mwg/bio/tape.util.cpp|
+#%x AddCxxSource.r|%file%|mwg/bio/ttx2.cpp|
+
+#%x AddCxxHeader.r|%file%|mwg/funcsig.h|
+#%x AddCxxHeader.r|%file%|mwg/functor.h|
+#%x AddCxxHeader.r|%file%|mwg/functor.proto.h|
 
 #%x AddConfigHeader.r|%file%|mwg_config.2.h|
 
@@ -39,7 +63,7 @@ $(CPPDIR)/mwg:
 $(CFGDIR)/include/mwg_config.1.h: mwg_config.mconf
 	$(MWGCXX) +config -o "$@" --cache="$(CFGDIR)/cache" $<
 $(CFGDIR)/include/mwg_config.stamp: $(CFGDIR)/include/mwg_config.1.h $(CFGDIR)/include/mwg_config.2.h
-	mv $(CFGDIR)/include/mwg_config.h $@
+	mv $(CFGDIR)/include/mwg_config.h $@ || touch $@
 	$(MWGPP) $< > $(CFGDIR)/include/mwg_config.h
 	touch -r $@ $(CFGDIR)/include/mwg_config.h
 	touch $@
@@ -48,5 +72,8 @@ $(CPPDIR)/mwg/config.h: mwg_config.mconf | $(CFGDIR)/include/mwg_config_common.h
 	cp $(CFGDIR)/include/mwg_config_common.h $@
 source_files+=$(CFGDIR)/include/mwg_config.stamp $(CPPDIR)/mwg/config.h
 
-all: $(source_files)
+$(CFGDIR)/libmwg.a: $(object_files)
+	$(MWGCXXAR) $@ $^
+
+all: $(source_files) $(CFGDIR)/libmwg.a
 check: $(check_files)

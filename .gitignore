@@ -1,6 +1,10 @@
+# will be generated
 /dist
 /out
+/mmake/mcxx
+/src/Makefile
+
+# tests/temporaries
 /test
 .clang-completion-error
 /mmake/test
-/src/Makefile

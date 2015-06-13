@@ -52,6 +52,7 @@ sub file_print {
 
 my $fwiki="$fbase.lwiki";
 open(my $hwiki,"> $fwiki");
+print $hwiki "*$filename\n";
 
 while($content =~ m/'(?:[^\\']|\\.)*'|"(?:[^"\\]|\\.)*"|\/\/(?:\?([[:alnum:]_]+)\b[[:space:]]*(.+?)|.*?)(?:[\r\n]|$)|\/\*(?:\?([[:alnum:]_]+)[[:space:]]*([\s\S]+?)|[\s\S]*?)\*\//g) {
   my ($type,$value);
@@ -63,7 +64,7 @@ while($content =~ m/'(?:[^\\']|\\.)*'|"(?:[^"\\]|\\.)*"|\/\/(?:\?([[:alnum:]_]+)
     # print 'multiline comment -> ',$3,"\n";
     $type=$3;
     $value=$4;
-    $value =~ s/^[[:space:]]*\* ?//gm;
+    $value =~ s/^[[:space:]]*\* ?|\r$//gm;
     $value =~ s/[[:space:]]+$//;
   }
 

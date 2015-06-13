@@ -3,12 +3,25 @@
 all:
 .PHONY: all clean dist
 
+CFGSTAMP=out/configure.stamp
 
-all:
+configure $(CFGSTAMP):
+	test -d mmake/mcxx || (cd mmake && tar xJf mmake/mcxx.tar.xz)
+	-rm -rf mmake/mcxx/local
+	mmake/mcxx/cxx +prefix auto -q
+	stamp=$(CFGSTAMP); mkdir -p "$${stamp%/*}" && touch "$$stamp"
+.PHONY: configure
+
+mmake/mcxx/local: configure
+
+all: | $(CFGSTAMP)
 	make -C src
 
 clean:
-	make -C clean
+	make -C src clean
+
+distclean:
+	-rm -rf out
 
 dist-excludes = \
   --exclude=./dist \

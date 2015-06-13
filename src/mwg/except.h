@@ -262,7 +262,7 @@ mwg_check/mwg_assert
 
 #include <cstdarg>
 #include <string>
-#include <mwg_conf.h>
+#include <mwg_config.h>
 
 #if defined(__unix__)
 # include <unistd.h>
@@ -383,6 +383,11 @@ static mwg_noinline void mwg_vcheckft(bool condition,const char* expr,const char
   if(fmt&&*fmt){
     char message[1024];
 #ifdef MWGCONF_HAS_VSNPRINTF
+    // C99 vsnprintf
+    /*?mconf
+     * # X snprintf    cstdio           'char b[9];::snprintf(b,9,"");'             
+     * X vsnprintf -h'cstdio' -h'cstdarg' 'char b[9];va_list a;::vsnprintf(b,9,"",a);'
+     */
     ::vsnprintf(message,sizeof message,fmt,arg);
 #else
     std::vsprintf(message,fmt,arg);
