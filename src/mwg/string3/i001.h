@@ -896,7 +896,7 @@ struct string_policy{
     const_iterator end() const{
       return ptr->data+ptr->len;
     }
-    
+
     const char_type* get_ptr() const{
       return ptr->data;
     }
@@ -1135,7 +1135,7 @@ struct _strtmp_cat_policy{
 
   static const bool has_get_ptr=false;
   typedef default_const_iterator<policy_type> const_iterator;
-  
+
   struct buffer_type{
     Str1 str1;
     Str2 str2;
@@ -1186,7 +1186,7 @@ struct _strtmp_cat_policy<Str1,Str2>{
   static const bool has_get_ptr=false;
 
   typedef default_const_iterator<policy_type> const_iterator;
-  
+
   struct buffer_type{
     Str1 str1;
     Str2 str2;

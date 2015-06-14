@@ -59,7 +59,7 @@ void test_slice(){
 
   mwg_assert((_a("hello").remove(3)=="hel"));
   mwg_assert((_a("hello").remove(1,-2)=="hlo"));
-  mwg_assert((_a("hello").remove(mwg::range(-4,-1))=="ho"));
+  mwg_assert((_a("hello").remove(mwg::make_range(-4,-1))=="ho"));
 }
 void test_trim(){
   typedef mwg::stradp<char> _a;
@@ -123,7 +123,7 @@ void test_replace(){
 
   mwg_assert((_a("hello").replace(1,-3,"icon")=="hiconllo"));
   mwg_assert((_a("hello").replace(1,-3,_a("icon"))=="hiconllo"));
-  mwg_assert((_a("hello").replace(mwg::range(1,-3),"icon")=="hiconllo"));
+  mwg_assert((_a("hello").replace(mwg::make_range(1,-3),"icon")=="hiconllo"));
   mwg_assert((_a("hello").insert(1,"icon")=="hiconello"));
   mwg_assert((_a("hello").insert(1,_a("icon"))=="hiconello"));
 }
