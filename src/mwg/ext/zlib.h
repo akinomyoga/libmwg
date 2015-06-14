@@ -1,0 +1,13 @@
+// -*- mode:C++;coding:utf-8 -*-
+#pragma once
+#ifndef MWG_EXT_ZLIB_H
+#define MWG_EXT_ZLIB_H
+#include <mwg/defs.h>
+#include <mwg/bio/tape.h>
+namespace mwg{
+namespace bio{
+  mwg::bio::filter_function_type zlib_decode;
+  mwg::bio::filter_function_type zlib_encode;
+}
+}
+#endif

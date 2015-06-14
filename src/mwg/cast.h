@@ -6,6 +6,7 @@
 #include <sstream>
 #include <string>
 #include <complex>
+#include <mwg_config.h>
 namespace mwg{
 namespace detail{
   // TODO: struct lexical_bad_cast:bad_cat{};

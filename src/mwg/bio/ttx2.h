@@ -188,7 +188,7 @@ namespace bio{
     ttx_node* add_node(ttx_node* _node){
       if(_node->m_parent!=nullptr)
         _node->m_parent->release_node(_node);
-      
+
       _node->m_parent=this;
       _node->m_index=m_nodes.size();
       m_nodes.push_back(_node);

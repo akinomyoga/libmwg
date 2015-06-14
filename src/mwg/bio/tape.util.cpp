@@ -1,15 +1,15 @@
 // -*- mode:C++;coding:utf-8 -*-
-#pragma once
 #include <mwg/bio/tape.h>
+//NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN
 namespace mwg{
 namespace bio{
-//NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN
+namespace{
 
 int HexEncode(const byte*& src0,const byte*const srcN,byte*& dst0,byte*const dstN,void*& state_){
   static const char* const TABLE="0123456789abcdef";
   const byte* src=src0;
   byte*       dst=dst0;
-  
+
   int n=std::min(srcN-src0,(dstN-dst0)/2);
   for(int i=0;i<n;i++,src++){
     *dst++=TABLE[*src>>4];
@@ -31,7 +31,7 @@ int HexDecode(const byte*& src0,const byte*const srcN,byte*& dst0,byte*const dst
 
   const byte* src=src0;
   byte*       dst=dst0;
-  
+
   while(src<srcN){
     byte b=*src++;
     if('0'<=b&&b<='9')
@@ -66,7 +66,7 @@ struct base64encode_state{
   byte count;
   byte c[3];
 };
-int Base64Encode(const byte*& src0,const byte*const srcN,byte*& dst0,byte*const dstN,void*& state_){
+int Base64Encode(const byte*& src0,const byte* srcN,byte*& dst0,byte* dstN,void*& state_){
   //                                    0123456789_123456789_123456789_123456789_123456789_123456789_123456789
   static const char* const BASE64TABLE="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
@@ -101,34 +101,6 @@ int Base64Encode(const byte*& src0,const byte*const srcN,byte*& dst0,byte*const 
         if(dst+4>dstN)break;
       }
     }while(src<srcN);
-#if 0
-    // 以下: 関数突入時に state->count==3 の場合でも OK
-
-    //while(dst+4<dstN){
-    //  while(src<srcN&&state->count<3)
-    //    state->c[state->count++]=*src++;
-    //  if(state->count==3){
-    //    *dst++=BASE64TABLE[state->c[0]>>2];
-    //    *dst++=BASE64TABLE[(state->c[0]&0x3)<<4|(state->c[1]&0xF0)>>4];
-    //    *dst++=BASE64TABLE[(state->c[1]&0xF)<<2|(state->c[2]&0xC0)>>6];
-    //    *dst++=BASE64TABLE[state->c[2]&0x3F];
-    //    state->count=0;
-    //  }else break;
-    //}
-    for(;;){
-      if(state->count==3){
-        *dst++=BASE64TABLE[state->c[0]>>2];
-        *dst++=BASE64TABLE[(state->c[0]&0x3)<<4|(state->c[1]&0xF0)>>4];
-        *dst++=BASE64TABLE[(state->c[1]&0xF)<<2|(state->c[2]&0xC0)>>6];
-        *dst++=BASE64TABLE[state->c[2]&0x3F];
-        state->count=0;
-        if(dst+4>=dstN)break;
-      }
-
-      if(src>=srcN)break;
-      state->c[state->count++]=*src++;
-    }
-#endif
   }else{
     // 終端
     if(state!=nullptr){
@@ -177,7 +149,7 @@ int Base64Encode(const byte*& src0,const byte*const srcN,byte*& dst0,byte*const 
         case 0:
           consume_checkdst;
           consume_readbyte;
-          
+
           *dst++=Base64EncodeTable[s>>2];
           buff=s<<4;
           stat=1;
@@ -266,20 +238,6 @@ int Base64Encode(const byte*& src0,const byte*const srcN,byte*& dst0,byte*const 
     byte buff;
     byte stat;
     int consume(const byte*& src0,const byte*const srcN,byte*& dst0,byte*const dstN){
-      // do{
-      //   byte s=*src0++;
-      //   byte v=s>0x7F?0xFF:Base64DecodeTable[s];
-      //   if(v==0xFF)continue;
-
-      //   buff|=s<<stat;
-      //   stat+=6;
-      //   if(stat>=8){
-      //     stat-=8;
-      //     *dst0++=buff&0xFF;
-      //     buff>>=8;
-      //   }
-      // }while(dst0<dstN&&src0<srcN);
-
       const byte* src=src0;
       byte* dst=dst0;
 
@@ -342,58 +300,21 @@ int Base64Encode(const byte*& src0,const byte*const srcN,byte*& dst0,byte*const 
 
     return 0;
   }
+}
 
-//   int Base64Decode(const byte*& src0,const byte*const srcN,byte*& dst0,byte*const dstN,void*& state_){
-//     static_assert(sizeof(void*)>=2,"the size of the void* pointer is assumed to be larger than 2 bytes.");
-//     if(src0<srcN){
-//       const byte* src=src0;
-//       byte* dst=dst0;
-//       byte& buff=(&reinterpret_cast<byte&>(state_))[0];
-//       byte& stat=(&reinterpret_cast<byte&>(state_))[1];
+int hex_encode(const byte*& src0,const byte* srcN,byte*& dst0,byte* dstN,void*& state_){
+  return HexEncode(src0,srcN,dst0,dstN,state_);
+}
+int hex_decode(const byte*& src0,const byte* srcN,byte*& dst0,byte* dstN,void*& state_){
+  return HexDecode(src0,srcN,dst0,dstN,state_);
+}
+int base64_encode(const byte*& src0,const byte* srcN,byte*& dst0,byte* dstN,void*& state_){
+  return Base64Encode(src0,srcN,dst0,dstN,state_);
+}
+int base64_decode(const byte*& src0,const byte* srcN,byte*& dst0,byte* dstN,void*& state_){
+  return Base64Decode(src0,srcN,dst0,dstN,state_);
+}
 
-//       byte s;
-// #define consume_readbyte                                          \
-//       do if(src>=srcN)goto end;                                   \
-//       while((s=*src++)>0x7F||(s=Base64DecodeTable[s])==0xFF) /**/
-// #define consume_checkdst                        \
-//       if(dst>=dstN)goto end /**/
-
-//       switch(stat)for(;;){
-//         default:
-//         case 0:
-//           consume_readbyte;
-//           buff=s<<2;
-//           stat=1;
-//         case 1:
-//           consume_checkdst;
-//           consume_readbyte;
-//           *dst++=buff|s>>4;
-//           buff=s<<4;
-//           stat=2;
-//         case 2:
-//           consume_checkdst;
-//           consume_readbyte;
-//           *dst++=buff|s>>2;
-//           buff=s<<6;
-//           stat=3;
-//         case 3:
-//           consume_checkdst;
-//           consume_readbyte;
-//           *dst++=buff|s;
-//           stat=0;
-//         }
-// #undef consume_readbyte
-// #undef consume_checkdst
-//     end:
-//       src0=src;
-//       dst0=dst;
-//       return 0;
-//     }else{
-//       state_=nullptr;
-//       return 0;
-//     }
-//   }
-
+}
+}
 //NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN
-}
-}

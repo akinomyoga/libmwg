@@ -52,7 +52,7 @@ namespace mwg{
     static const ecode_t EImpl    =EOperation|ENull;    // 未実装
     static const ecode_t EInvalid =EOperation|ESupport; // 禁止操作・無効操作
     //--------------------------------------------------------------------------
-    
+
     static const ecode_t io=0x00020000;
   };
 
@@ -68,7 +68,7 @@ namespace mwg{
   // std::bad_exception
   // std::ios_base::failure
   //
-  // 恐らく投げるべきはこれ。 
+  // 恐らく投げるべきはこれ。
   // std::logic_error
   //   std::out_of_range
   //   std::invalid_argument

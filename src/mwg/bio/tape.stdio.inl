@@ -255,7 +255,7 @@ public:
 //    throw mwg::bio::nosupport_error("readonly file.");
 //  }
 //  int seek(i8t offset,int whence) const{
-//    
+//
 //  }
 //};
 

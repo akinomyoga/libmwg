@@ -89,7 +89,7 @@ namespace stat{
         >::value
       >{};
 //%).i
-  
+
     template<typename TT1,typename TT2>
     struct is_bindex_pack
       :is_bindex_pack_impl<TT1,TT2,TT1::size==TT2::size>
@@ -152,7 +152,7 @@ namespace stat{
     typedef mwg::stdm::tuple<$".for/K/0/ArN/
       typename detail::binning_get_domain_type<TBK>::type/,"
     > domain_type;
-    
+
     product_binning(){}
 //%x (
     template<$".for/K/0/_AR_/typename UBK/,">
@@ -183,7 +183,7 @@ namespace stat{
 //%).f/_AR_/1/ArN+1/
   };
 //%).i
-  
+
 #pragma%x (
   template<$".for/K/0/_AR_/typename BK/,"> typename mwg::stdm::enable_if<
     ($".for/K/0/_AR_/binning_concept<BK>::value/&&"),

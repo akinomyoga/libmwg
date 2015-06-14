@@ -49,12 +49,18 @@ Makefile: Makefile.pp
 #%x AddCxxHeader.r|%file%|mwg/bio/tape.stdio.inl|
 #%x AddCxxHeader.r|%file%|mwg/bio/tape.stream.inl|
 #%x AddCxxHeader.r|%file%|mwg/bio/ttx2.h|
+#%x AddCxxHeader.r|%file%|mwg/bio/filter.inl|
 #%x AddCxxSource.r|%file%|mwg/bio/tape.util.cpp|
 #%x AddCxxSource.r|%file%|mwg/bio/ttx2.cpp|
 
 #%x AddCxxHeader.r|%file%|mwg/funcsig.h|
 #%x AddCxxHeader.r|%file%|mwg/functor.h|
 #%x AddCxxHeader.r|%file%|mwg/functor.proto.h|
+
+#%x AddCxxHeader.r|%file%|mwg/ext/zlib.h|
+#%x AddCxxSource.r|%file%|mwg/ext/zlib.cpp|
+#%x AddCxxHeader.r|%file%|mwg/ext/xz.h|
+#%x AddCxxSource.r|%file%|mwg/ext/xz.cpp|
 
 #%x AddConfigHeader.r|%file%|mwg_config.2.h|
 

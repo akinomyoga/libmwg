@@ -397,7 +397,7 @@ namespace detail{
   }
 //%).f/%Ar%/1/ArN+1/
 #endif
-  
+
   // tie
   inline tuple<> tie(){return tuple<>();}
 //%expand (
@@ -435,7 +435,7 @@ namespace detail{
       return tuple_size<TTL>::value<tuple_size<TTR>::value;
     }
   };
-}  
+}
 
   template<
     $".for/K/0/ArN/typename TLK/,",
@@ -451,7 +451,7 @@ namespace detail{
     $".for/K/0/ArN/typename TRK/,"
   > bool operator!=(const tuple<$".for/K/0/ArN/TLK/,">& left,const tuple<$".for/K/0/ArN/TRK/,">& right){
     return !operator==(left,right);
-  }  
+  }
   template<
     $".for/K/0/ArN/typename TLK/,",
     $".for/K/0/ArN/typename TRK/,"
@@ -466,19 +466,19 @@ namespace detail{
     $".for/K/0/ArN/typename TRK/,"
   > bool operator>(const tuple<$".for/K/0/ArN/TLK/,">& left,const tuple<$".for/K/0/ArN/TRK/,">& right){
     return operator<(right,left);
-  }  
+  }
   template<
     $".for/K/0/ArN/typename TLK/,",
     $".for/K/0/ArN/typename TRK/,"
   > bool operator<=(const tuple<$".for/K/0/ArN/TLK/,">& left,const tuple<$".for/K/0/ArN/TRK/,">& right){
     return !operator<(right,left);
-  }  
+  }
   template<
     $".for/K/0/ArN/typename TLK/,",
     $".for/K/0/ArN/typename TRK/,"
   > bool operator>=(const tuple<$".for/K/0/ArN/TLK/,">& left,const tuple<$".for/K/0/ArN/TRK/,">& right){
     return !operator<(left,right);
-  }  
+  }
 //fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 // tuple_cat
 

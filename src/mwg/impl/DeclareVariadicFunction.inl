@@ -39,7 +39,7 @@
 #else
 //%x (
 //%%if _AR_==0 (
-#  define mwg_impl_variadic__template_decl     
+#  define mwg_impl_variadic__template_decl
 //%%else
 #  define mwg_impl_variadic__template_decl     template<$".for/K/0/_AR_/typename AK/,">
 //%%)

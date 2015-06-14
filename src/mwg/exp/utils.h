@@ -62,7 +62,7 @@ namespace exp{
   bool operator!=(const typename T::enum_t& r,const enum_class_base<T,I>& l){
     return !enum_class_base<T,I>::equals(l,(I)r);
   }
-  
+
 //TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
 //  static_flags
 //-----------------------------------------------------------------------------

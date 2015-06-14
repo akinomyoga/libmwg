@@ -1,5 +1,4 @@
 // -*- mode:C++;coding:utf-8 -*-
-#pragma once
 #define TTX_CPP__EnableComment
 
 #include <mwg/std/utility>
@@ -585,7 +584,7 @@ bool getnode(mwg::bio::itape& ttx,ttx_node& node,bool untilIsolatedClosingBrace)
 //  <!DOCTYPE root [ ..., <!HOGE >, %param; ]>
 //  <![CDATA[ data ]]> # ref <a href="http://bakera.jp/yomoyama/markedsection">マーク区間とは | 鳩丸よもやま話</a>
 //  <element attr="value"></element>
-//  &entity; 
+//  &entity;
 //  <!-- comment -->
 //
 // xml_scan    : entity, CDATA など全て解決する。DTD など省略。

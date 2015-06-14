@@ -115,7 +115,7 @@ protected:
     return EOF;
   }
   virtual std::streampos seekpos(
-    std::streampos pos, 
+    std::streampos pos,
     int nMode=std::ios::in|std::ios::out
   ){
     this->sync();

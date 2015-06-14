@@ -57,7 +57,7 @@ struct %TConcept%Wrapper{
   struct holder_base{
     virtual ~holder_base(){}
     virtual holder_base* clone() const=0;
-    
+
 //%%define f (
     virtual %decl%=0;
 //%%)
@@ -65,7 +65,7 @@ struct %TConcept%Wrapper{
 //%%[C=""]
 //%%expand ARG_FOR_MEMBER
   };
-  
+
   template<typename T_>
   struct holder:holder_base{
     T_ inst;
@@ -81,9 +81,9 @@ struct %TConcept%Wrapper{
 //%%)
 //%%expand ARG_FOR_MEMBER
   };
-  
+
   holder_base* h;
-  
+
   %TConcept%Wrapper(const %TConcept%Wrapper& bin):h(bin.h->clone()){}
   %TConcept%Wrapper& operator=(const %TConcept%Wrapper& bin){
     delete h;

@@ -28,7 +28,7 @@ namespace functor_detail{
     static const bool is_functor;
     static const int arity;
     static const bool has_varargs;
-    
+
 
     typedef auto ret_t;
     typedef auto sgn_t;
@@ -60,7 +60,7 @@ namespace functor_detail{
     static const bool is_functor=false;
     static const int arity=0;
     static const bool has_varargs=false;
-    
+
     typedef void fct_t;
     typedef void sgn_t;
     typedef void ret_t;

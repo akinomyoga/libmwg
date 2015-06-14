@@ -63,7 +63,7 @@ namespace detail{
       hold_pointer<T*>
     >::type::pointer pointer;
     typedef D deleter_type;
-    
+
     unique_ptr_base(pointer p,D d):ptr(p),del(d){}
     template<typename P2,typename D2>
     unique_ptr_base(P2 p,D2 d):ptr(p),del(d){}
@@ -71,7 +71,7 @@ namespace detail{
   public:
     D_noreference& get_deleter(){return this->del;}
     const D_noreference& get_deleter() const{return this->del;}
-    
+
   protected:
     pointer ptr;
     deleter_type del;
@@ -86,7 +86,7 @@ namespace detail{
       D_noreference,
       hold_pointer<T*>
     >::type::pointer pointer;
-    
+
     unique_ptr_base(pointer p,D d):D(d),ptr(p){}
     template<typename P2,typename D2>
     unique_ptr_base(P2 p,D2 d):D(d),ptr(p){}
@@ -94,7 +94,7 @@ namespace detail{
   public:
     D_noreference& get_deleter(){return *this;}
     const D_noreference& get_deleter() const{return *this;}
-    
+
   protected:
     pointer ptr;
   };

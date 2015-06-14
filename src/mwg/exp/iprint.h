@@ -125,11 +125,11 @@ operator<<(std::ostream& ostr,Fmt*){
  *   c.print(std::cout);
  *   c.print(std::cout,sfmt::xml);
  *   c.print(std::cout,sfmt::json);
- * 
+ *
  *   iprint& p(c);
  *   p.print(std::cout,sfmt::xml_t());
  *   p.print(std::cout,sfmt::json_t());
- * 
+ *
  *   std::ostr<<c<<std::endl;
  *   std::ostr<<sfmt::xml<<c<<std::endl; // as sfmt_tag*
  *   std::ostr<<sfmt::xml_t()<<c<<std::endl; // as iformat

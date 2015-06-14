@@ -168,7 +168,7 @@ class filtered_rtape:public itape{
       if(state!=nullptr)
         filter(const_cast<const byte*&>(s),s,dN,dN,state); // free
     }
-  private: 
+  private:
     void throw_filter_error(int r){
       char buff[100];
       std::sprintf(buff,"filtered_rtape::read: error_code %d from filter function",r);
@@ -280,7 +280,7 @@ class filtered_wtape:public itape{
         if(r!=0)throw_filter_error(r);
 
         if(p==p0)break;
-        
+
         if(p==pbuf+BSIZE)
           this->flush();
       }
@@ -290,7 +290,7 @@ class filtered_wtape:public itape{
       filter(const_cast<const byte*&>(p),p,p,p,state); // free
       state=nullptr;
     }
-  private: 
+  private:
     void throw_filter_error(int r){
       char buff[100];
       std::sprintf(buff,"filtered_wtape::write: error_code %d from filter function",r);
@@ -312,7 +312,7 @@ class filtered_wtape:public itape{
 
         if(p==pbuf+BSIZE)
           this->flush();
-        
+
         if(wret==0)
           return 0;
 
@@ -401,7 +401,7 @@ filtered_wtape<T,F>) operator|(const F& filter,const T& wtape){
 //  放して良いし、再度確保しても良い。或いは state をメモリブロックへのポイン
 //  タとしてではなく、整数として状態保持に使用しても良い。使い方は完全に自由
 //  である。
-//  
+//
 //  s<sN
 //    関数は入力からデータを読み取って、出力に書込を行う事。
 //    state==nullptr の時、必要が在れば state にメモリを確保して良い。
@@ -434,18 +434,20 @@ public:
 # pragma warning(pop)
 #endif
 
-template<typename F> mwg_requires(
-  (mwg::be_functor<F,int(const byte*&,const byte*,byte*&,byte*,void*&)>::value),
-filter_impl1<F>) filter(const F& filterFunction){
+typedef int filter_function_type(const byte*&,const byte*,byte*&,byte*,void*&);
+
+template<typename F>
+typename mwg::stdm::enable_if<mwg::be_functor<F,filter_function_type>::value,filter_impl1<F> >::type
+filter(const F& filterFunction){
   return filter_impl1<F>(filterFunction);
 }
 
 //-----------------------------------------------------------------------------
 
-int HexEncode(const byte*& src0,const byte*const srcN,byte*& dst0,byte*const dstN,void*& state_);
-int HexDecode(const byte*& src0,const byte*const srcN,byte*& dst0,byte*const dstN,void*& state_);
-int Base64Encode(const byte*& src0,const byte*const srcN,byte*& dst0,byte*const dstN,void*& state_);
-int Base64Decode(const byte*& src0,const byte*const srcN,byte*& dst0,byte*const dstN,void*& state_);
+filter_function_type hex_encode;
+filter_function_type hex_decode;
+filter_function_type base64_encode;
+filter_function_type base64_decode;
 
 //NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN
 }

@@ -154,7 +154,7 @@ namespace concept_detail{
    * @def mwg_concept_is_valid_expression_vc2010A(name,T,X,...)
    * vc2010 用の mwg_concept_is_valid_expression(name,T,X,...) の代替実装です。
    * 一部の形式の式に対してのみ正しく動作する事が確認されています。
-   * 
+   *
    * 正しく判定できる式とできない式の一覧は以下になります。
    * - OK T() + U(),            vc2010
    * - OK T().operator()(A1()), vc2010
@@ -181,7 +181,7 @@ namespace concept_detail{
    * @def mwg_concept_is_valid_expression_vc2008s(name,T,X,...)
    * vc2008 用の mwg_concept_is_valid_expression(name,T,X,...) の代替実装です。
    * 一部の形式の式に対してのみ正しく動作する事が確認されています。
-   * 
+   *
    * 正しく判定できる式とできない式の一覧は以下になります。
    * - OK T() + U(),            vc2008-2010
    * - OK T().operator()(A1()), vc2008-2010

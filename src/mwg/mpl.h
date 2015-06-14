@@ -26,7 +26,7 @@ namespace mpl{
 //*****************************************************************************
 //  整数テンプレート
 //-----------------------------------------------------------------------------
-  
+
   // template<unsigned I> struct impl_add_bytes:mwg::std::integral_constant<int,(I&0xff)+(I>>8&0xff)+(I>>16&0xff)+(I>>24&0xff)>{};
   // template<unsigned I> struct impl_add_nibbles:impl_add_bytes<(I&0x0f0f0f0f)+(I>>4&0x0f0f0f0f)>{};
   // template<unsigned I> struct count_bits:impl_add_nibbles<(I&0x11111111)+(I>>1&0x11111111)+(I>>2&0x11111111)+(I>>3&0x11111111)>{};
@@ -355,9 +355,6 @@ void test_integral_minmax(){
 
 
 #pragma%x begin_check
-
-
-
 int main(){
   test_is_power_of_2();
   test_integral_minmax();
