@@ -1,7 +1,7 @@
 // -*- mode:C++;coding:utf-8 -*-
 #pragma once
-#ifndef MWG_BIO_TAPE_H_util
-#define MWG_BIO_TAPE_H_util
+#ifndef MWG_BIO_TAPE_UTIL_H
+#define MWG_BIO_TAPE_UTIL_H
 #include <climits>
 #include <mwg/concept.h>
 #include <mwg/functor.h>
@@ -420,6 +420,7 @@ operator|(const F& filter,const T& wtape){
 //  s==sN&&d==dN
 //    関数は state のメモリ解放を行い nullptr を代入する事。
 //    処理が終了した後に state!=nullptr の時に呼び出される。
+//
 //-----------------------------------------------------------------------------
 
 #ifdef _MSC_VER
@@ -481,22 +482,58 @@ void>::type operator|(const F& writer,const T& tape){
 #include <mwg/bio/tape.util.inl>
 #include <mwg/bio/tape.stream.inl>
 
-int main(){
-  std::istringstream src("hello");
+void test_filters(){
+  static struct{
+    const char* text;
+    const char* base64;
+    const char* hex;
+  } data[]={
+    {"hello","aGVsbG8=","68656c6c6f"},
+    {"world","d29ybGQ=","776f726c64"},
+    {
+      "17:23:45 up 27 days, 6:28, 3 users, load average: 0.14, 0.30, 0.37",
+      "MTc6MjM6NDUgdXAgMjcgZGF5cywgNjoyOCwgMyB1c2VycywgbG9hZCBhdmVyYWdlOiAwLjE0LCAwLjMwLCAwLjM3",
+      "31373a32333a343520757020323720646179732c20363a32382c203320757365"
+      "72732c206c6f616420617665726167653a20302e31342c20302e33302c20302e3337"
+    },
+  };
+
   std::ostringstream dst;
+  for(int i=0;i<sizeof data/sizeof*data;i++){
+    std::istringstream src1(data[i].text);
+    mwg::bio::istream_tape(src1)
+      |mwg::bio::filtered(mwg::bio::base64_encode)
+      |mwg::bio::ostream_tape(dst);
+    mwg_assert(dst.str()==data[i].base64);
+    dst.str("");dst.clear();
 
-  mwg::bio::istream_tape(src)
-    |mwg::bio::filtered(mwg::bio::base64_encode)
-    |mwg::bio::ostream_tape(dst);
-  mwg_assert(dst.str()=="aGVsbG8=");
+    std::istringstream src2(data[i].base64);
+    mwg::bio::istream_tape(src2)
+      |mwg::bio::filtered(mwg::bio::base64_decode)
+      |mwg::bio::ostream_tape(dst);
+    mwg_assert(dst.str()==data[i].text);
+    dst.str("");dst.clear();
 
-  dst.str("");
-  dst.clear();
-  
+    std::istringstream src3(data[i].text);
+    mwg::bio::istream_tape(src3)
+      |mwg::bio::filtered(mwg::bio::hex_encode)
+      |mwg::bio::ostream_tape(dst);
+    mwg_assert(dst.str()==data[i].hex);
+    dst.str("");dst.clear();
 
-  //| mwg::bio::ftape("hello.txt","w");
+    std::istringstream src4(data[i].hex);
+    mwg::bio::istream_tape(src4)
+      |mwg::bio::filtered(mwg::bio::hex_decode)
+      |mwg::bio::ostream_tape(dst);
+    mwg_assert(dst.str()==data[i].text);
+    dst.str("");dst.clear();
+  }
+}
 
-  //mwg::bio::ostream_tape tape(dst);
+int main(){
+  test_filters();
+
+  // mwg::bio::ostream_tape tape(dst);
   // mwg::bio::tape_head<> head(tape);
   
   return 0;
