@@ -6,8 +6,8 @@ all:
 CFGSTAMP=out/configure.stamp
 
 configure $(CFGSTAMP):
-	test -s src/Makefile || mmake/mwg_pp.awk < src/Makefile.pp > src/Makefile
-	test -d mmake/mcxx || (cd mmake && tar xJf mmake/mcxx.tar.xz)
+	test -s src/Makefile || (cd src; ../mmake/mwg_pp.awk < Makefile.pp > Makefile)
+	test -d mmake/mcxx || (cd mmake && tar xJf mcxx.tar.xz)
 	-rm -rf mmake/mcxx/local
 	mmake/mcxx/cxx +prefix auto -q
 	stamp=$(CFGSTAMP); mkdir -p "$${stamp%/*}" && touch "$$stamp"
