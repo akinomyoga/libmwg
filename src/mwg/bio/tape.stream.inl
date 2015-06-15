@@ -52,9 +52,11 @@ namespace detail{
 
     virtual int read(void* buff,int size,int n=1) const{
       mwg_assert(self::can_read(),"not supported operation.");
+      return 0;
     }
     virtual int write(const void* buff,int size,int n=1) const{
       mwg_assert(self::can_write(),"not supported operation.");
+      return 0;
     }
     virtual int flush() const{return EOF;}
 
@@ -74,7 +76,6 @@ namespace detail{
     }
 
     virtual bool is_alive() const{return !str.eof();}
-
     // virtual int seek(i8t offset,int whence=SEEK_SET) const
     // virtual i8t tell() const
   };
