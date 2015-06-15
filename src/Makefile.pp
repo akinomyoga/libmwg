@@ -3,6 +3,10 @@
 all:
 .PHONY: all
 
+# disable implicit rules (they makes the dependency resolution slow)
+MAKEFLAGS += --no-builtin-rules
+.SUFFIXES:
+
 #%[BASE=".."]
 #%include ../mmake/src.mk
 #%x prologue
@@ -10,9 +14,9 @@ all:
 Makefile: Makefile.pp
 	$(BASE)/mmake/mwg_pp.awk $< > $@ || mv $@ $@.error
 
-# disable implicit rules (they makes the dependency resolution slow)
-MAKEFLAGS += --no-builtin-rules
-.SUFFIXES:
+ifeq ($(CXXCFG),default)
+  CXXFLAGS := -Wall -Wextra -O3
+endif
 
 #%x AddCxxHeader.r|%file%|mwg/defs.h|
 #%x AddCxxHeader.r|%file%|mwg/concept.h|
