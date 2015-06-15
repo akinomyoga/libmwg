@@ -3,21 +3,21 @@
 
 # 使い方の例
 #
-# |	# -*- mode:makefile-gmake -*-
+# | # -*- mode:makefile-gmake -*-
 # |
-# |	all:
-# |	.PHONY: all
+# | all:
+# | .PHONY: all
 # |
-# |	#%[BASE=".."]
-# |	#%include ../mmake/src.mk
+# | #%[BASE=".."]
+# | #%include ../mmake/src.mk
 # |
-# |	Makefile: Makefile.pp
-# |		$(BASE)/mmake/mwg_pp.awk $< > $@ || mv $@ $@.error
+# | Makefile: Makefile.pp
+# | 	$(BASE)/mmake/mwg_pp.awk $< > $@ || mv $@ $@.error
 # |
-# |	#%x AddCxxSource.r|%file%|file1.cpp|
-# |	#%x AddCxxSource.r|%file%|subdir/file2.cpp|
+# | #%x AddCxxSource.r|%file%|file1.cpp|
+# | #%x AddCxxSource.r|%file%|subdir/file2.cpp|
 # |
-# |	all: $(object_files)
+# | all: $(object_files)
 
 #%m prologue
 SHELL:=/bin/bash
@@ -57,7 +57,7 @@ config_files: $(config_files)
 
 #%m _preprocess_file
 source_files+=$(CPPDIR)/${file}
-$(CPPDIR)/${file}: ${file}
+$(CPPDIR)/${file}: ${file} ${ppdeps}
 	$(BASE)/mmake/make_command.sh copy-pp ${file}
 $(CPPDIR)/${filex}.mconf: $(CPPDIR)/${file}
 $(CPPDIR)/${filex}.lwiki: $(CPPDIR)/${file}
@@ -66,6 +66,7 @@ $(CFGDIR)/config/${name}.h: $(CPPDIR)/${filex}.mconf | $(CFGDIR)/config
 	$(BASE)/mmake/make_command.sh config ${file}
 check_files+=$(CFGDIR)/check/${name}.stamp
 $(CPPDIR)/check/${name}$(CXXEXT): $(CPPDIR)/${file}
+-include $(CFGDIR)/check/${name}.dep
 $(CFGDIR)/check/${name}.stamp: $(CPPDIR)/check/${name}$(CXXEXT)
 	$(BASE)/mmake/make_command.sh check ${file}
 #%end
@@ -91,6 +92,7 @@ object_files+=$(CFGDIR)/obj/${name}.o
 $(CFGDIR)/obj/${name}.o: $(CPPDIR)/${file} | source_files
 	$(BASE)/mmake/make_command.sh compile ${file}
 #%%end.i
+#%%[ppdeps=""]
 
 #%end
 
@@ -101,6 +103,7 @@ $(CFGDIR)/obj/${name}.o: $(CPPDIR)/${file} | source_files
 #%%[name=file.replace("\\.(cpp|c|C|cxx)$","").replace("/","+").replace("\\.","_")]
 #%%x _check_duplicates.i
 #%%x _preprocess_file.i
+#%%[ppdeps=""]
 
 #%end
 
@@ -113,4 +116,3 @@ $(CFGDIR)/include/%file%: $(config_files) | $(CFGDIR)/include
 #%end
 
 #%end
-#%x prologue

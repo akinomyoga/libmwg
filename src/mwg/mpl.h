@@ -352,8 +352,6 @@ void test_integral_minmax(){
 } /* endof namespace mpl */
 } /* endof namespace mwg */
 #endif
-
-
 #pragma%x begin_check
 int main(){
   test_is_power_of_2();

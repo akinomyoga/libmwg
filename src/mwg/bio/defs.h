@@ -32,6 +32,7 @@ class idisk;
 class iview;
 
 #ifndef MWG_SYS_BIGENDIAN
+// ※ちゃんと括弧で括らないと誤解釈するコンパイラが存在するようだ。
 # if ( \
     defined(__BYTE_ORDER)&&defined(__BIG_ENDIAN)&&defined(__LITTLE_ENDIAN)? \
     defined(__BYTE_ORDER)&&(__BYTE_ORDER==__BIG_ENDIAN):(               \
@@ -43,17 +44,6 @@ class iview;
             0 /* defaultly little endian */)))))
 #   define MWG_SYS_BIGENDIAN
 # endif
-// # if ( \
-//     defined(__BYTE_ORDER)&&defined(__BIG_ENDIAN)&&defined(__LITTLE_ENDIAN)? \
-//     defined(__BYTE_ORDER)&&(__BYTE_ORDER==__BIG_ENDIAN):                  \
-//     defined(__BYTE_ORDER__)&&defined(__ORDER_BIG_ENDIAN__)&&defined(__ORDER_LITTLE_ENDIAN__)? \
-//     defined(__BYTE_ORDER__)&&(__BYTE_ORDER__==__ORDER_BIG_ENDIAN__): \
-//     defined(_BIG_ENDIAN)!=defined(_LITTLE_ENDIAN)?defined(_BIG_ENDIAN): \
-//     defined(__BIG_ENDIAN)!=defined(__LITTLE_ENDIAN)?defined(__BIG_ENDIAN): \
-//     defined(__BIG_ENDIAN__)!=defined(__LITTLE_ENDIAN__)?defined(__BIG_ENDIAN__): \
-//     0 /* defaultly little endian */)
-// #   define MWG_SYS_BIGENDIAN
-// # endif
 #endif
 
 namespace detail{

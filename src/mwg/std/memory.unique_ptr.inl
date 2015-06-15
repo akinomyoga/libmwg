@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <utility>
 #include <mwg/defs.h>
+#include <mwg/except.h>
 #include "type_traits"
 namespace mwg{
 namespace stdm{
@@ -116,13 +117,13 @@ namespace detail{
   // 初期化
   public:
     unique_ptr():base(pointer(),D()){
-      static_assert(!is_pointer<D>::value,"unique_ptr constructed with null deleter pointer");
+      mwg_check(!is_pointer<D>::value,"unique_ptr constructed with null deleter pointer");
     }
     unique_ptr(stdm::nullptr_t):base(pointer(),D()){
-      static_assert(!is_pointer<D>::value,"unique_ptr constructed with null deleter pointer");
+      mwg_check(!is_pointer<D>::value,"unique_ptr constructed with null deleter pointer");
     }
     explicit unique_ptr(pointer p):base(p,D()){
-      static_assert(!is_pointer<D>::value,"unique_ptr constructed with null deleter pointer");
+      mwg_check(!is_pointer<D>::value,"unique_ptr constructed with null deleter pointer");
     }
     unique_ptr(pointer p,typename stdm::add_lvalue_reference<D>::type d):base(p,d){
     }
@@ -251,15 +252,15 @@ namespace detail{
   // 初期化
   public:
     unique_ptr():base(pointer(),D()){
-      static_assert(!is_pointer<D>::value,"unique_ptr constructed with null deleter pointer");
+      mwg_check(!is_pointer<D>::value,"unique_ptr constructed with null deleter pointer");
     }
     explicit unique_ptr(pointer p):base(p,D()){
-      static_assert(!is_pointer<D>::value,"unique_ptr constructed with null deleter pointer");
+      mwg_check(!is_pointer<D>::value,"unique_ptr constructed with null deleter pointer");
     }
     unique_ptr(pointer p,typename stdm::add_lvalue_reference<D>::type d):base(p,d){}
 
     unique_ptr(stdm::nullptr_t):base(pointer(),D()){
-      static_assert(!is_pointer<D>::value,"unique_ptr constructed with null deleter pointer");
+      mwg_check(!is_pointer<D>::value,"unique_ptr constructed with null deleter pointer");
     }
     unique_ptr& operator=(stdm::nullptr_t){
       this->reset();

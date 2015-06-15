@@ -5,9 +5,14 @@ all:
 
 #%[BASE=".."]
 #%include ../mmake/src.mk
+#%x prologue
 
 Makefile: Makefile.pp
 	$(BASE)/mmake/mwg_pp.awk $< > $@ || mv $@ $@.error
+
+# disable implicit rules (they makes the dependency resolution slow)
+MAKEFLAGS += --no-builtin-rules
+.SUFFIXES:
 
 #%x AddCxxHeader.r|%file%|mwg/defs.h|
 #%x AddCxxHeader.r|%file%|mwg/concept.h|
@@ -22,8 +27,13 @@ Makefile: Makefile.pp
 #%x AddCxxHeader.r|%file%|mwg/std/memory|
 #%x AddCxxHeader.r|%file%|mwg/std/memory.unique_ptr.inl|
 #%x AddCxxHeader.r|%file%|mwg/std/ratio|
+
 #%x AddCxxHeader.r|%file%|mwg/std/tuple|
-#%x AddCxxHeader.r|%file%|mwg/std/tuple.nonvariadic_tuple.h|
+#%[ppdeps="mwg/std/tuple.nonvariadic_tuple.hpp"]
+#%x AddCxxHeader.r|%file%|mwg/std/tuple.nonvariadic_tuple.inl|
+#%[ppdeps="mwg/std/tuple.nonvariadic_tuple.hpp"]
+#%x AddCxxHeader.r|%file%|mwg/std/tuple.variadic_tuple.inl|
+
 #%x AddCxxHeader.r|%file%|mwg/std/type_traits|
 #%x AddCxxHeader.r|%file%|mwg/std/type_traits.is_constructible.h|
 #%x AddCxxHeader.r|%file%|mwg/std/type_traits.is_convertible.inl|

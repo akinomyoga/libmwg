@@ -122,3 +122,76 @@ namespace ratio_detail{
 #endif
 //HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 #endif
+#pragma%x begin_check
+#include <mwg/except.h>
+#include <mwg/std/type_traits>
+#include <mwg/std/ratio>
+
+int main(){
+  namespace ns=mwg::stdm;
+
+  // check of gcd
+  mwg_assert((!ns::is_same<ns::ratio<2,4>      ,ns::ratio<1,2>      >::value));
+  mwg_assert((!ns::is_same<ns::ratio<0,9>      ,ns::ratio<0,5>      >::value));
+  mwg_assert(( ns::is_same<ns::ratio<2,4>::type,ns::ratio<1,2>::type>::value));
+  mwg_assert(( ns::is_same<ns::ratio<0,9>::type,ns::ratio<0,5>::type>::value));
+
+  mwg_assert((ns::ratio<6,8>::num==3));
+  mwg_assert((ns::ratio<6,8>::den==4));
+
+  // comparison
+  mwg_assert((!ns::ratio_equal<ns::ratio<1,2>,ns::ratio<2,1> >::value));
+  mwg_assert(( ns::ratio_equal<ns::ratio<2  >,ns::ratio<2,1> >::value));
+  mwg_assert(( ns::ratio_equal<ns::ratio<1,2>,ns::ratio<2,4> >::value));
+  mwg_assert(( ns::ratio_equal<ns::ratio<0,2>,ns::ratio<0> >::value));
+  mwg_assert(( ns::ratio_not_equal<ns::ratio<1,2>,ns::ratio<2,1> >::value));
+  mwg_assert((!ns::ratio_not_equal<ns::ratio<2  >,ns::ratio<2,1> >::value));
+  mwg_assert((!ns::ratio_not_equal<ns::ratio<1,2>,ns::ratio<2,4> >::value));
+  mwg_assert((!ns::ratio_less<ns::ratio<3,4>,ns::ratio<2,3> >::value));
+  mwg_assert((!ns::ratio_less<ns::ratio<6,8>,ns::ratio<4,6> >::value));
+  mwg_assert((!ns::ratio_less<ns::ratio<2,4>,ns::ratio<1,2> >::value));
+  mwg_assert(( ns::ratio_less<ns::ratio<2,3>,ns::ratio<3,4> >::value));
+  mwg_assert(( ns::ratio_less<ns::ratio<4,6>,ns::ratio<6,8> >::value));
+  mwg_assert((!ns::ratio_less_equal<ns::ratio<3,4>,ns::ratio<2,3> >::value));
+  mwg_assert((!ns::ratio_less_equal<ns::ratio<6,8>,ns::ratio<4,6> >::value));
+  mwg_assert(( ns::ratio_less_equal<ns::ratio<2,4>,ns::ratio<1,2> >::value));
+  mwg_assert(( ns::ratio_less_equal<ns::ratio<2,3>,ns::ratio<3,4> >::value));
+  mwg_assert(( ns::ratio_less_equal<ns::ratio<4,6>,ns::ratio<6,8> >::value));
+  mwg_assert(( ns::ratio_greater<ns::ratio<3,4>,ns::ratio<2,3> >::value));
+  mwg_assert(( ns::ratio_greater<ns::ratio<6,8>,ns::ratio<4,6> >::value));
+  mwg_assert((!ns::ratio_greater<ns::ratio<2,4>,ns::ratio<1,2> >::value));
+  mwg_assert((!ns::ratio_greater<ns::ratio<2,3>,ns::ratio<3,4> >::value));
+  mwg_assert((!ns::ratio_greater<ns::ratio<4,6>,ns::ratio<6,8> >::value));
+  mwg_assert(( ns::ratio_greater_equal<ns::ratio<3,4>,ns::ratio<2,3> >::value));
+  mwg_assert(( ns::ratio_greater_equal<ns::ratio<6,8>,ns::ratio<4,6> >::value));
+  mwg_assert(( ns::ratio_greater_equal<ns::ratio<2,4>,ns::ratio<1,2> >::value));
+  mwg_assert((!ns::ratio_greater_equal<ns::ratio<2,3>,ns::ratio<3,4> >::value));
+  mwg_assert((!ns::ratio_greater_equal<ns::ratio<4,6>,ns::ratio<6,8> >::value));
+
+  // comparison
+  mwg_assert(( ns::ratio_equal<ns::ratio_add<ns::ratio<1,3>,ns::ratio<1,4> >,ns::ratio<7,12> >::value));
+  mwg_assert(( ns::ratio_equal<ns::ratio_subtract<ns::ratio<2,3>,ns::ratio<1,4> >,ns::ratio<5,12> >::value));
+  mwg_assert(( ns::ratio_equal<ns::ratio_multiply<ns::ratio<2,3>,ns::ratio<3,4> >,ns::ratio<1,2> >::value));
+  mwg_assert(( ns::ratio_equal<ns::ratio_divide<ns::ratio<1,3>,ns::ratio<1,4> >,ns::ratio<4,3> >::value));
+
+  // SI prefices
+  mwg_assert(( ns::ratio_equal<ns::deca,ns::ratio<10> >::value));
+  mwg_assert(( ns::ratio_equal<ns::hecto,ns::ratio<100> >::value));
+  mwg_assert(( ns::ratio_equal<ns::kilo,ns::ratio<1000> >::value));
+  mwg_assert(( ns::ratio_equal<ns::mega,ns::ratio_multiply<ns::kilo,ns::kilo> >::value));
+  mwg_assert(( ns::ratio_equal<ns::giga,ns::ratio_multiply<ns::mega,ns::kilo> >::value));
+  mwg_assert(( ns::ratio_equal<ns::tera,ns::ratio_multiply<ns::giga,ns::kilo> >::value));
+  mwg_assert(( ns::ratio_equal<ns::peta,ns::ratio_multiply<ns::tera,ns::kilo> >::value));
+  mwg_assert(( ns::ratio_equal<ns::exa,ns::ratio_multiply<ns::peta,ns::kilo> >::value));
+  mwg_assert(( ns::ratio_equal<ns::ratio_multiply<ns::deci,ns::deca>,ns::ratio<1> >::value));
+  mwg_assert(( ns::ratio_equal<ns::ratio_multiply<ns::centi,ns::hecto>,ns::ratio<1> >::value));
+  mwg_assert(( ns::ratio_equal<ns::ratio_multiply<ns::milli,ns::kilo>,ns::ratio<1> >::value));
+  mwg_assert(( ns::ratio_equal<ns::ratio_multiply<ns::micro,ns::mega>,ns::ratio<1> >::value));
+  mwg_assert(( ns::ratio_equal<ns::ratio_multiply<ns::nano,ns::giga>,ns::ratio<1> >::value));
+  mwg_assert(( ns::ratio_equal<ns::ratio_multiply<ns::pico,ns::tera>,ns::ratio<1> >::value));
+  mwg_assert(( ns::ratio_equal<ns::ratio_multiply<ns::femto,ns::peta>,ns::ratio<1> >::value));
+  mwg_assert(( ns::ratio_equal<ns::ratio_multiply<ns::atto,ns::exa>,ns::ratio<1> >::value));
+
+  return 0;
+}
+#pragma%x end_check

@@ -116,9 +116,12 @@ namespace mwg{
 //     struct static_assert_line##__LINE__{                          \
 //       typename mwg::detail::static_assert_tester<C>::type value; \
 //     }
-# define static_assert(C,Message)                                 \
-  static mwg::detail::static_assert_tester<C,__LINE__>            \
-    MWG_PREPROC_ADDLINE(static_assert_at_line_)=(Message);
+
+// 注意
+// - static const ...::type になっているのは static const int でないとクラス内でエラーになるから
+# define static_assert(C,Message)                                       \
+  static const mwg::detail::static_assert_tester<C,__LINE__>::type      \
+    MWG_PREPROC_ADDLINE(static_assert_at_line_)=(Message,0);
 #endif
 //------------------------------------------------------------------------------
 //  __VA_ARGS__

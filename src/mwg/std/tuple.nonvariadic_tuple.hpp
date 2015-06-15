@@ -1,5 +1,3 @@
-//%# -*- mode:C++;coding:utf-8 -*-
-//%m file (
 // -*- mode:C++;coding:utf-8 -*-
 #pragma once
 #ifndef MWG_STDM_TUPLE__NONVARIADIC_TUPLE_INL
@@ -8,19 +6,20 @@
 #include <mwg/defs.h>
 #include <mwg/std/type_traits>
 #include <mwg/std/utility>
+#pragma%expand
 namespace mwg{
 namespace stdm{
 namespace detail{
   template<std::size_t I,typename R,typename TT>
   struct tuple_get_impl;
 }
-//%%if MWGCONF_STD_VARIADIC (
+#pragma%if MWGCONF_STD_VARIADIC
   template<typename... Ts>
   class tuple;
-//%%else
+#pragma%else
   template<$".for/K/0/ArN/typename TK=void/,">
   class tuple;
-//%%)
+#pragma%end
 
 //fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
   template<typename TT>
@@ -31,18 +30,18 @@ namespace detail{
   class tuple_size<TT volatile>:public tuple_size<TT>{};
   template<typename TT>
   class tuple_size<TT const volatile>:public tuple_size<TT>{};
-//%%if MWGCONF_STD_VARIADIC (
+#pragma%if MWGCONF_STD_VARIADIC
   template<typename... Ts>
   class tuple_size<tuple<Ts...> >
     :public mwg::stdm::integral_constant<std::size_t,sizeof...(Ts)>{};
-//%%else
+#pragma%else
   template<$".for:K:0:ArN:typename TK:,">
   class tuple_size<tuple<$".for:K:0:ArN:TK:,"> >
     :public mwg::stdm::integral_constant<std::size_t,1+tuple_size<tuple<$".for:K:1:ArN:TK:,"> >::value>{};
   template<>
   class tuple_size<tuple<> >
     :public mwg::stdm::integral_constant<std::size_t,0>{};
-//%%)
+#pragma%end
   template<typename A0,typename A1>
   class tuple_size<stdm::pair<A0,A1> >
     :public mwg::stdm::integral_constant<std::size_t,2>{};
@@ -50,29 +49,35 @@ namespace detail{
   namespace detail{
     template<typename TT>
     struct is_tuple:stdm::false_type{static const int size=0;};
-//%%if MWGCONF_STD_VARIADIC (
+#pragma%if MWGCONF_STD_VARIADIC
     template<typename... Ts>
     struct is_tuple<tuple<Ts...> >:stdm::true_type{
       static const int size=tuple_size<tuple<Ts...> >::value;
     };
-//%%else
+#pragma%else
     template<$".for:K:0:ArN:typename TK:,">
     struct is_tuple<tuple<$".for:K:0:ArN:TK:,"> >:stdm::true_type{
       static const int size=tuple_size<tuple<$".for:K:0:ArN:TK:,"> >::value;
     };
-//%%)
+#pragma%end
 
     template<std::size_t I,typename TT>
     struct tuple_element_impl:mwg::identity<void>{};
-//%%if MWGCONF_STD_VARIADIC (
+#pragma%if MWGCONF_STD_VARIADIC
     template<typename T0,typename... T1s>
     struct tuple_element_impl<0,tuple<T0,T1s...> >
       :mwg::identity<T0>{};
-//%%else
+    template<std::size_t I,typename T0,typename... T1s>
+    struct tuple_element_impl<I,tuple<T0,T1s...> >
+      :tuple_element_impl<I-1,tuple<T1s...> >{};
+#pragma%else
+    template<$".for:K:0:ArN:typename TK:,">
+    struct tuple_element_impl<0,tuple<$".for:K:0:ArN:TK:,"> >
+      :mwg::identity<T0>{};
     template<std::size_t I$".for:K:0:ArN:,typename TK:">
     struct tuple_element_impl<I,tuple<$".for:K:0:ArN:TK:,"> >
       :tuple_element_impl<I-1,tuple<$".for:K:1:ArN:TK:,"> >{};
-//%%)
+#pragma%end
     template<>
     struct tuple_element_impl<0,tuple<> >:mwg::identity<void>{};
     template<std::size_t I>
@@ -117,13 +122,13 @@ namespace detail{
   /* you can define a specialization for your type */
   template<typename TT,typename Alloc>
   struct uses_allocator{};
-//%%if MWGCONF_STD_VARIADIC (
+#pragma%if MWGCONF_STD_VARIADIC
   template<typename Alloc,typename... Ts>
   struct uses_allocator<tuple<Ts...>,Alloc>:mwg::stdm::true_type{};
-//%%else
+#pragma%else
   template<typename Alloc$".for:K:0:ArN:,typename TK:">
   struct uses_allocator<tuple<$".for:K:0:ArN:TK:,">,Alloc>:mwg::stdm::true_type{};
-//%%)
+#pragma%end
 
 //fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 // get
@@ -132,12 +137,12 @@ namespace detail{
   // template<std::size_t I,typename R,typename TT> struct tuple_get_impl;
   //   R には右辺値参照または左辺値参照が指定される。
   template<std::size_t I,typename R,typename TT> struct tuple_get_impl{};
-//%x (
+#pragma%expand
   template<typename R,typename TT>
   struct tuple_get_impl<K,R,TT>{
     static R _get(TT t){return mwg::stdm::forward<R>(t.m_valueK);}
   };
-//%).f/K/0/ArN/
+#pragma%end.f/K/0/ArN/
   template<typename R,typename A0,typename A1>
   struct tuple_get_impl<0,R,pair<A0,A1>&>{
     static R _get(pair<A0,A1>& p){return reinterpret_cast<R>(p.first);}
@@ -198,7 +203,7 @@ namespace detail{
 //ttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt
 // T: class tuple;
 //-----------------------------------------------------------------------------
-//%%if MWGCONF_STD_VARIADIC (
+#pragma%if MWGCONF_STD_VARIADIC
   template<>
   class tuple<>{
     template<typename... Us> friend class tuple;
@@ -254,7 +259,7 @@ namespace detail{
     // operator=(const pair&)
 
   };
-//%%else
+#pragma%else
   template<>
   class tuple<>{
     template<$".for/K/0/ArN/typename UK/,"> friend class tuple;
@@ -264,8 +269,8 @@ namespace detail{
     tuple& operator=(const tuple& other){return *this;}
     void swap(tuple& other){}
   };
-//%%)
-//%expand (
+#pragma%end
+#pragma%expand
   template<$".for/K/0/%Ar%/typename TK/,">
   class tuple<$".for/K/0/%Ar%/TK/,">{$".for/K/0/%Ar%/
     TK m_valueK;/"
@@ -344,7 +349,7 @@ namespace detail{
     // TODO: swap(tuple<...>&&)
     // TODO: swap(pair&&)
   };
-//%).f/%Ar%/1/ArN/
+#pragma%end.f/%Ar%/1/ArN/
   // TODO: copy above and modify
   template<$".for/K/0/ArN/typename TK/,">
   class tuple{$".for/K/0/ArN/
@@ -370,7 +375,7 @@ namespace detail{
   inline tuple<> make_tuple(){return tuple<>();}
   inline tuple<> forward_as_tuple(){return tuple<>();}
 #if defined(MWGCONF_STD_RVALUE_REFERENCES)
-//%expand (
+#pragma%expand
   template<$".for/K/0/%Ar%/typename TK/,">
   tuple<$".for/K/0/%Ar%/typename decay<TK>::type/,">
   make_tuple($".for/K/0/%Ar%/TK&& argK/,"){
@@ -383,9 +388,9 @@ namespace detail{
     typedef tuple<$".for/K/0/%Ar%/TK&&/,"> return_type;
     return return_type($".for/K/0/%Ar%/forward<TK>(argK)/,");
   }
-//%).f/%Ar%/1/ArN+1/
+#pragma%end.f/%Ar%/1/ArN+1/
 #else
-//%expand (
+#pragma%expand
   template<$".for/K/0/%Ar%/typename TK/,">
   tuple<$".for/K/0/%Ar%/typename decay<TK const&>::type/,"> make_tuple($".for/K/0/%Ar%/TK const& argK/,"){
     typedef tuple<$".for/K/0/%Ar%/typename decay<TK const&>::type/,"> return_type;
@@ -395,17 +400,17 @@ namespace detail{
   tuple<$".for/K/0/%Ar%/const TK&/,"> forward_as_tuple($".for/K/0/%Ar%/const TK& argK/,"){
     return tuple<$".for/K/0/%Ar%/const TK&/,">($".for/K/0/%Ar%/argK/,");
   }
-//%).f/%Ar%/1/ArN+1/
+#pragma%end.f/%Ar%/1/ArN+1/
 #endif
 
   // tie
   inline tuple<> tie(){return tuple<>();}
-//%expand (
+#pragma%expand
   template<$".for/K/0/%Ar%/typename TK/,">
   tuple<$".for/K/0/%Ar%/TK&/,"> tie($".for/K/0/%Ar%/TK& argK/,"){
     return tuple<$".for/K/0/%Ar%/TK&/,">($".for/K/0/%Ar%/argK/,");
   }
-//%).f/%Ar%/1/ArN+1/
+#pragma%end.f/%Ar%/1/ArN+1/
 
   static struct ignore_type{
     ignore_type(){}
@@ -490,12 +495,12 @@ namespace detail{
   template<$".for/K/0/ArN/typename TK/,">
   struct tuple_unshift_type<tuple<$".for/K/0/ArN/TK/,"> >
     :mwg::identity<tuple<$".for/K/1/ArN/TK/,"> >{};
-//%x (
+#pragma%expand
   template<$".for/K/0/%Ar%/typename TK/,">
   tuple<$".for/K/1/%Ar%/TK/,"> tuple_unshift(const tuple<$".for/K/0/%Ar%/TK/,">& tuplet){
     return tuple<$".for/K/1/%Ar%/TK/,">($".for/K/1/%Ar%/get<K>(tuplet)/,");
   }
-//%).f/%Ar%/1/ArN+1/
+#pragma%end.f/%Ar%/1/ArN+1/
   template<typename A0,typename A1>
   struct tuple_unshift_type<pair<A0,A1> >
     :mwg::identity<tuple<A1> >{};
@@ -506,7 +511,7 @@ namespace detail{
   // tuple_push
   template<typename TT,typename T>
   struct tuple_push_type{};
-//%x (
+#pragma%expand
   template<$".for/K/0/%Ar%/typename TK/,">
   struct tuple_push_type<tuple<$".for/K/0/%Ar%-1/TK/,">,T$".eval:m=%Ar%-1">
     :mwg::identity<tuple<$".for/K/0/%Ar%/TK/,"> >{};
@@ -514,7 +519,7 @@ namespace detail{
   tuple<$".for/K/0/%Ar%/TK/,"> tuple_push(const tuple<$".for/K/0/%Ar%-1/TK/,">& tuplet,T$"m" arg$"m"){
     return tuple<$".for/K/0/%Ar%/TK/,">($".for/K/0/%Ar%-1/get<K>(tuplet),/"arg$"m");
   }
-//%).f/%Ar%/1/ArN+1/
+#pragma%end.f/%Ar%/1/ArN+1/
 
   //---------------------------------------------------------------------------
   // tuple_cat2
@@ -556,13 +561,13 @@ namespace detail{
   template<>
   struct tuple_cat_type<>:mwg::identity<tuple<> >{};
   inline tuple<> tuple_cat(){return tuple<>();}
-//%expand (
+#pragma%expand
   template<$".for/K/0/%Ar%/typename TTK/,">
   typename tuple_cat_type<$".for/K/0/%Ar%/TTK/,">::type tuple_cat($".for/K/0/%Ar%/const TTK& tupletK/,"){
     typedef typename tuple_cat_type<$".for/K/0/%Ar%/TTK/,">::type return_type;
     return return_type(tuple_cat2(tuple_cat($".for/K/0/%Ar%-1/tupletK/,"),tuple_reference(tuplet$".eval:%Ar%-1")));
   }
-//%).f/%Ar%/1/ArN+1/
+#pragma%end.f/%Ar%/1/ArN+1/
   //---------------------------------------------------------------------------
 }
   using mwg::stdm::detail::tuple_cat;
@@ -578,13 +583,5 @@ namespace std{
     left.swap(right);
   }
 }
+#pragma%end.i
 #endif
-//%)
-//%[ArN=10]
-//%[MWGCONF_STD_VARIADIC=0]
-//%x file.i
-//%(
-//%%[MWGCONF_STD_VARIADIC=1]
-//%%$> tuple.variadic_tuple.inl
-//%%x file.i
-//%)

@@ -31,12 +31,11 @@ class cstd_file_tape;
 typedef cstd_file_tape ftape;
 
 class cstd_file_tape:public itape{
-  std_::shared_ptr<FILE> _file;
-  FILE* file;
+  stdm::shared_ptr<FILE> _file;
+  std::FILE* file;
   bool f_read;
   bool f_write;
   bool f_seek;
-  //bool toclose;
 //------------------------------------------------------------------------------
 //  Initialization
 //------------------------------------------------------------------------------
@@ -57,7 +56,6 @@ public:
     if(nullptr!=strchr(mode,'b'))
       setmode(fileno(file), O_BINARY);
 #endif
-    //toclose=false;
   }
   // ディスク上のファイルから
   cstd_file_tape(const char* filepath,const char* mode){
@@ -73,7 +71,6 @@ public:
 #endif
     if(file!=nullptr)
       _file.reset(file,std::fclose);
-    //toclose=true;
 
     bool is_a=nullptr!=strchr(mode,'a');
     bool is_r=nullptr!=strchr(mode,'r');
@@ -87,12 +84,6 @@ public:
     //std::printf("dbg: +: %d\n",is_p);
     //std::printf("dbg: f_write: %d\n",this->f_write);
   }
-  //~cstd_file_tape(){
-  //  if(toclose&&file!=nullptr){
-  //    std::fclose(file);
-  //    this->file=nullptr;
-  //  }
-  //}
 public:
   bool is_alive() const{
     return file!=nullptr;
@@ -104,57 +95,6 @@ public:
       this->file=nullptr;
     }
   }
-
-//#if defined(_MSC_VER)
-//  static FILE* impl_fopen(const char* filepath,const char* mode){
-//    return std::fopen(filepath,mode);
-//  }
-//  static int impl_filelength(int fd){
-//    return ::_filelengthi64(fd);
-//  }
-//  static int impl_ftruncate(int fd,u8t size){
-//    return ::_chsize_s(fd,size);
-//  }
-//#elif defined(__MINGW32__)
-//  static FILE* impl_fopen(const char* filepath,const char* mode){
-//    return ::fopen64(filepath,mode);
-//  }
-//  static int impl_filelength(int fd){
-//    struct _stati64 st;
-//    ::_fstati64(fd,&st);
-//    return st.st_size;
-//  }
-//  static int impl_ftruncate(int fd,u8t size){
-//    // 何故か MinGW では _chsize_s にも ftruncate64 にも対応していない...??
-//    if(size>0x100000000L)return errno=EFBIG;
-//    return ::_chsize(fd,size);
-//  }
-//#elif defined(__GNUC__)&&(defined(__USE_FILE_OFFSET64)||defined(__USE_LARGEFILE64))
-//  // ↑条件分岐が之で正しいのかは不明 (何も宣言しなくても使える環境も多い)
-//  static FILE* impl_fopen(const char* filepath,const char* mode){
-//    return ::fopen64(filepath,mode);
-//  }
-//  static int impl_filelength(int fd){
-//    struct stat64 st;
-//    ::fstat64(fd,&st);
-//    return st.st_size;
-//  }
-//  static int impl_ftruncate(int fd,u8t size){
-//    return ::ftruncate64(fd,size);
-//  }
-//#else
-//  static FILE* impl_fopen(const char* filepath,const char* mode){
-//    return std::fopen(filepath,mode);
-//  }
-//  static int impl_filelength(int fd){
-//    struct stat st;
-//    ::stat(fd,&st);
-//    return st.st_size;
-//  }
-//  static int impl_ftruncate(int fd,u8t size){
-//    return ::ftruncate(fd,size);
-//  }
-//#endif
 
 //------------------------------------------------------------------------------
 //  itape implementation
@@ -238,26 +178,6 @@ public:
 #endif
   }
 };
-
-
-//class cstd_file_rtape:public itape{
-//  FILE* file;
-//public:
-//  bool can_read() const{return true;}
-//  bool can_write() const{return false;}
-//  bool can_seek() const{return true;}
-//  bool can_trunc() const{return false;}
-//
-//  int read(void* buff,int size,int n=1) const{
-//    return std::fread(buff,size,n,file);
-//  }
-//  int write(void* buff,int size,int n=1) const{
-//    throw mwg::bio::nosupport_error("readonly file.");
-//  }
-//  int seek(i8t offset,int whence) const{
-//
-//  }
-//};
 
 //NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN
 }

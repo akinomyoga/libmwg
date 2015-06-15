@@ -441,3 +441,11 @@ namespace rwflags_detail{
 #include "tape.stream.inl"
 #include <mwg/impl/warning_pop.inl>
 #endif
+// #pragma%x begin_check
+// #include <mwg/except.h>
+// #include <mwg/bio/tape.h>
+
+// int main(){
+//   return 0;
+// }
+// #pragma%x end_check

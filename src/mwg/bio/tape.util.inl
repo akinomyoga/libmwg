@@ -3,17 +3,18 @@
 #ifndef MWG_BIO_TAPE_H_util
 #define MWG_BIO_TAPE_H_util
 #include <climits>
-#include "defs.h"
-#include "tape.h"
 #include <mwg/concept.h>
 #include <mwg/functor.h>
+#include <mwg/std/type_traits>
 #include <mwg/std/memory>
+#include "defs.h"
+#include "tape.h"
 namespace mwg{
 namespace bio{
 //NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN
 
 //FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
-//  operators
+//  tapes
 //-----------------------------------------------------------------------------
 template<typename BaseTape=itape>
 class subsequence_tape;
@@ -113,9 +114,9 @@ public:
 #ifdef MWG_CONCEPT_OVERLOAD_FAIL
 inline const itape& operator|(const itape& left,const itape& right)
 #else
-template<typename T,typename U> mwg_requires(
-  (stdm::is_base_of<itape,T>::value&&stdm::is_base_of<itape,U>::value),
-const U&) operator|(const T& left,const U& right)
+template<typename T,typename U>
+typename stdm::enable_if<stdm::is_base_of<itape,T>::value&&stdm::is_base_of<itape,U>::value,const U&>::type
+operator|(const T& left,const U& right)
 #endif
 {
   if(!left.can_read())
@@ -371,20 +372,25 @@ filtered_wtape<itape,tag_filter_type> operator|(const tag_filter_type& filter,co
 #else
 struct tag_filter_type{};
 
-template<typename T,typename F> mwg_requires(
-  (stdm::is_base_of<itape,T>::value&&stdm::is_base_of<tag_filter_type,F>::value),
-filtered_rtape<T,F>) operator|(const T& rtape,const F& filter){
+template<typename T,typename F>
+typename stdm::enable_if<
+  stdm::is_base_of<itape,T>::value&&stdm::is_base_of<tag_filter_type,F>::value,
+  filtered_rtape<T,F> >::type
+operator|(const T& rtape,const F& filter){
   if(!rtape.can_read())
     throw std::invalid_argument("operator|(rtape,filter)! rtape.can_read()");
 
   return filtered_rtape<T,F>(rtape,filter);
 }
-template<typename T,typename F> mwg_requires(
-  (stdm::is_base_of<itape,T>::value&&stdm::is_base_of<tag_filter_type,F>::value),
-filtered_wtape<T,F>) operator|(const F& filter,const T& wtape){
+
+template<typename T,typename F>
+typename stdm::enable_if<
+  stdm::is_base_of<itape,T>::value&&stdm::is_base_of<tag_filter_type,F>::value,
+  filtered_wtape<T,F> >::type
+operator|(const F& filter,const T& wtape){
   if(!wtape.can_write())
     throw std::invalid_argument("operator|(filter,wtape)! wtape.can_write()");
-
+  
   return filtered_wtape<T,F>(wtape,filter);
 }
 #endif
@@ -421,11 +427,11 @@ filtered_wtape<T,F>) operator|(const F& filter,const T& wtape){
 # pragma warning(disable:4180) /* `const' modifier to function reference */
 #endif
 template<typename F>
-class filter_impl1:public tag_filter_type{
+class filter_function_filter:public tag_filter_type{
   const F& filter_function;
   typedef int(sgn_t)(const byte*&,const byte*,byte*&,byte*,void*&);
 public:
-  filter_impl1(const F& func):filter_function(func){}
+  filter_function_filter(const F& func):filter_function(func){}
   int operator()(const byte*& s,const byte* sN,byte*& d,byte* dN,void*& state) const{
     return mwg::functor_traits<F,sgn_t>::invoke(filter_function,s,sN,d,dN,state);
   }
@@ -437,9 +443,9 @@ public:
 typedef int filter_function_type(const byte*&,const byte*,byte*&,byte*,void*&);
 
 template<typename F>
-typename mwg::stdm::enable_if<mwg::be_functor<F,filter_function_type>::value,filter_impl1<F> >::type
-filter(const F& filterFunction){
-  return filter_impl1<F>(filterFunction);
+typename mwg::stdm::enable_if<mwg::be_functor<F,filter_function_type>::value,filter_function_filter<F> >::type
+filtered(const F& filterFunction){
+  return filter_function_filter<F>(filterFunction);
 }
 
 //-----------------------------------------------------------------------------
@@ -464,3 +470,35 @@ void>::type operator|(const F& writer,const T& tape){
 #endif
 
 #endif
+#pragma%x begin_check
+// mmake_check_flags: -L "$CFGDIR" -lmwg
+
+#include <sstream>
+#include <mwg/except.h>
+#include <mwg/bio/tape.util.inl>
+
+#include <cstring>
+#include <mwg/bio/tape.util.inl>
+#include <mwg/bio/tape.stream.inl>
+
+int main(){
+  std::istringstream src("hello");
+  std::ostringstream dst;
+
+  mwg::bio::istream_tape(src)
+    |mwg::bio::filtered(mwg::bio::base64_encode)
+    |mwg::bio::ostream_tape(dst);
+  mwg_assert(dst.str()=="aGVsbG8=");
+
+  dst.str("");
+  dst.clear();
+  
+
+  //| mwg::bio::ftape("hello.txt","w");
+
+  //mwg::bio::ostream_tape tape(dst);
+  // mwg::bio::tape_head<> head(tape);
+  
+  return 0;
+}
+#pragma%x end_check

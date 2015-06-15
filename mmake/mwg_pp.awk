@@ -1469,7 +1469,7 @@ function include_file(file, _line,_lines,_i,_n,_dir,_originalFile,_originalLine)
   while((_r = getline _line < file) >0)
     _lines[_n++]=_line;
   if(_r<0)
-    print_error("could not open the include file '" file "' dir=" awk_getfiledir());
+    print_error("could not open the include file '" file "'");
   close(file);
 
   _originalFile=m_lineno_cfile;
@@ -1611,7 +1611,8 @@ function process_multiline(txt,clines,cfiles,  _s,_l,_f,_len,_i){
 function process_line(line,_line,_text,_ind,_len,_directive, _cap){
   _line=line;
 
-  sub(/^[ \t]*/,"",_line);
+  sub(/^[ \t]+/,"",_line);
+  sub(/[ \t\r]+$/,"",_line);
   if(m_comment_cpp)
     sub(/^\/\//,"#",_line);
   if(m_comment_pragma)
@@ -1701,7 +1702,6 @@ BEGIN{
     else
       m_rfile=FILENAME;
   }
-
   m_lineno_cfile=m_rfile;
   m_lineno_cline=NR;
   process_line($1);

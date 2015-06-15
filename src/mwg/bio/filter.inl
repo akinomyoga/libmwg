@@ -11,7 +11,7 @@ namespace bio{
   //   int Coder::flush(byte*& dst0,byte*const dstN);
 
   template<typename Coder>
-  int filter_with_encoder(const byte*& src0,const byte* srcN,byte*& dst0,byte* dstN,void*& state_){
+  int filter_with_encoder(const byte*& src0,const byte*const srcN,byte*& dst0,byte*const dstN,void*& state_){
     Coder*& state=reinterpret_cast<Coder*&>(state_);
 
     if(src0<srcN){

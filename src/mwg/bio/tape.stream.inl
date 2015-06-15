@@ -1,9 +1,28 @@
 // -*- mode:C++;coding:utf-8 -*-
 #pragma once
-#ifndef MWG_BIO_TAPE_H_stream
-#define MWG_BIO_TAPE_H_stream
-#include <iostream>
+#ifndef MWG_BIO_TAPE_STREAM_INL
+#define MWG_BIO_TAPE_STREAM_INL
+#include <string>
+namespace mwg{
+namespace bio{
 
+  class istream_tape;
+  class ostream_tape;
+
+  template<typename ITape=const itape&,typename Tr=std::char_traits<char> > class basic_tape_streambuf;
+  template<typename ITape=const itape&,typename Tr=std::char_traits<char> > class basic_tape_stream;
+  template<typename ITape=const itape&,typename Tr=std::char_traits<char> > class basic_tape_istream;
+  template<typename ITape=const itape&,typename Tr=std::char_traits<char> > class basic_tape_ostream;
+
+  typedef basic_tape_streambuf<>  taperef_streambuf;
+  typedef basic_tape_stream<>     taperef_stream;
+  typedef basic_tape_istream<>    taperef_istream;
+  typedef basic_tape_ostream<>    taperef_ostream;
+}
+}
+//NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN
+#include <cstring>
+#include <iostream>
 #include <mwg/concept.h>
 #include <mwg/std/type_traits>
 #include <mwg/std/memory>
@@ -11,19 +30,127 @@
 #include "tape.h"
 namespace mwg{
 namespace bio{
-//NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN
-template<typename ITape=const itape&,typename Tr=std::char_traits<char> >
-class basic_tape_streambuf;
-template<typename ITape=const itape&,typename Tr=std::char_traits<char> > class basic_tape_stream;
-template<typename ITape=const itape&,typename Tr=std::char_traits<char> > class basic_tape_istream;
-template<typename ITape=const itape&,typename Tr=std::char_traits<char> > class basic_tape_ostream;
+//-----------------------------------------------------------------------------
+//  class istream_tape, ostream_tape
+//-----------------------------------------------------------------------------
+namespace detail{
+  template<typename Stream>
+  class stream_tape_base:public itape{
+    typedef stream_tape_base self;
+  protected:
+    Stream& str;
+    bool flag_seek;
+    stream_tape_base(Stream& str,const char* mode=""):str(str){
+      flag_seek=std::strchr(mode,'s')!=nullptr;
+    }
 
-typedef basic_tape_streambuf<>  taperef_streambuf;
-typedef basic_tape_stream<>     taperef_stream;
-typedef basic_tape_istream<>    taperef_istream;
-typedef basic_tape_ostream<>    taperef_ostream;
+  public:
+    virtual bool can_read() const {return false;}
+    virtual bool can_write() const{return false;}
+    virtual bool can_seek() const {return this->flag_seek;}
+    virtual bool can_trunc() const{return false;}
 
-//TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
+    virtual int read(void* buff,int size,int n=1) const{
+      mwg_assert(self::can_read(),"not supported operation.");
+    }
+    virtual int write(const void* buff,int size,int n=1) const{
+      mwg_assert(self::can_write(),"not supported operation.");
+    }
+    virtual int flush() const{return EOF;}
+
+    virtual u8t size() const{
+      mwg_assert(this->can_seek());
+
+      i8t pos=this->tell();
+      mwg_assert(pos!=-1,"unable to tell.");
+      mwg_verify(this->seek(0,SEEK_END)==0,"failed to seek the end position.");
+      i8t ret=this->tell();
+      mwg_verify(this->seek(pos)==0,"failed to restore the position.");
+      return ret!=-1?ret:0;
+    }
+    virtual int trunc(u8t size) const{
+      mwg_assert(false);
+      return -1;
+    }
+
+    virtual bool is_alive() const{return !str.eof();}
+
+    // virtual int seek(i8t offset,int whence=SEEK_SET) const
+    // virtual i8t tell() const
+  };
+
+}
+
+  class istream_tape:public detail::stream_tape_base<std::istream>{
+    typedef detail::stream_tape_base<std::istream> base;
+
+  public:
+    istream_tape(std::istream& str,const char* mode=""):base(str,mode){}
+
+  public:
+    virtual bool can_read() const {return true;}
+
+  public:
+    virtual int read(void* buff,int size,int n=1) const{
+      str.read(reinterpret_cast<char*>(buff),size*n);
+      return str?n:str.gcount()/size;
+    }
+    virtual int seek(i8t offset,int whence=SEEK_SET) const{
+      mwg_assert(this->can_seek());
+      if(whence==SEEK_END)
+        str.seekg((std::streamoff)offset,std::ios_base::end);
+      else if(whence==SEEK_CUR)
+        str.seekg((std::streamoff)offset,std::ios_base::cur);
+      else
+        str.seekg((std::streampos)offset);
+      return str.fail()?1:0;
+    }
+    virtual i8t tell() const{
+      mwg_assert(this->can_seek());
+      return str.tellg();
+    }
+  };
+
+  class ostream_tape:public detail::stream_tape_base<std::ostream>{
+    typedef detail::stream_tape_base<std::ostream> base;
+  public:
+    ostream_tape(std::ostream& str,const char* mode=""):base(str,mode){}
+
+  public:
+    virtual bool can_write() const{return true;}
+
+  public:
+    virtual int write(const void* buff,int size,int n=1) const{
+      // std::ostream::write に失敗した時、実際に書き込まれた量を取得する方法はない様だ
+      // (あるいは put を1文字ずつ実行するしかないのだろうか)。
+      //
+      // c.f. http://stackoverflow.com/questions/14238572/how-many-bytes-actually-written-by-ostreamwrite
+      //   特に書き込み先がファイルシステムやネットワークの場合、実際に書き込まれたか・相手が受信したかどうかはその場では分からない。
+      //   (書き込み先がメモリ等の場合など、書き込まれた量を原理的に把握できるケースも存在するが、特殊ケース扱いなのだろう。)
+      str.write(reinterpret_cast<const char*>(buff),size*n);
+      return str?n:0;
+    }
+    virtual int seek(i8t offset,int whence=SEEK_SET) const{
+      mwg_assert(this->can_seek());
+      if(whence==SEEK_END)
+        str.seekp((std::streamoff)offset,std::ios_base::end);
+      else if(whence==SEEK_CUR)
+        str.seekp((std::streamoff)offset,std::ios_base::cur);
+      else
+        str.seekp((std::streampos)offset);
+      return str.fail()?1:0;
+    }
+    virtual i8t tell() const{
+      mwg_assert(this->can_seek());
+      return str.tellp();
+    }
+    virtual int flush() const{
+      str.flush();
+      return str.fail()?EOF:0;
+    }
+  };
+
+//-----------------------------------------------------------------------------
 //  class basic_tape_streambuf
 //-----------------------------------------------------------------------------
 template<typename ITape,typename Tr>
@@ -165,6 +292,10 @@ protected:
     }
   }
 };
+
+//-----------------------------------------------------------------------------
+//  class basic_tape_stream
+//-----------------------------------------------------------------------------
 
 template<typename ITape,typename Tr>
 class basic_tape_stream:public std::basic_iostream<char,Tr>{

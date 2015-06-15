@@ -378,3 +378,113 @@ namespace chrono_detail{
 #endif
 //HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 #endif
+#pragma%x begin_check
+#include <mwg/except.h>
+#include <mwg/std/chrono>
+
+void debug_duration(){
+  namespace ns=mwg::stdm;
+
+#ifdef MWG_STDM_CHRONO__EMULATED
+  // chrono_detail::is_duration_castable
+  mwg_assert((ns::chrono::chrono_detail::is_duration_castable<ns::chrono::milliseconds,int>::value));
+  mwg_assert((ns::chrono::chrono_detail::is_duration_explicit<ns::chrono::milliseconds,int>::value));
+  static_assert((ns::chrono::chrono_detail::is_duration_explicit<ns::chrono::milliseconds,int>::value),"err");
+  static_assert((ns::is_convertible<int,mwg::i8t>::value),"err");
+#endif
+
+  ns::chrono::milliseconds s(12300);
+
+  mwg_assert((ns::is_convertible<double,long long>::value));
+
+  mwg_assert((1234==int((double)1.234*1000)));
+  mwg_assert((1234==int((double)1.234*1000LL/1LL)));
+  mwg_assert((1234==(long long)((double)1.234*1000LL/1LL)));
+  double a=1.234;
+  mwg_assert((1234==int(a*1000)));
+  mwg_assert((1234==int(a*1000LL/1LL)));
+  mwg_assert((1234==(long long)(a*1000LL/1LL)));
+}
+
+int test(){
+  namespace ns=mwg::stdm;
+
+  // treat_as_floating_point
+  mwg_assert(( ns::chrono::treat_as_floating_point<double>::value));
+  mwg_assert(( ns::chrono::treat_as_floating_point<float>::value));
+  mwg_assert((!ns::chrono::treat_as_floating_point<mwg::i4t>::value));
+  mwg_assert((!ns::chrono::treat_as_floating_point<mwg::u4t>::value));
+  mwg_assert((!ns::chrono::treat_as_floating_point<mwg::i8t>::value));
+  mwg_assert((!ns::chrono::treat_as_floating_point<mwg::u8t>::value));
+
+  //---------------------------------------------------------------------------
+  // duration_values
+  mwg_assert(( ns::chrono::duration_values<double>::zero()==0));
+  mwg_assert_nothrow(( ns::chrono::duration_values<double>::min()==ns::numeric_limits<double>::lowest()),
+    "%lg,%lg",ns::chrono::duration_values<double>::min(),ns::numeric_limits<double>::lowest());
+  mwg_assert(( ns::chrono::duration_values<double>::max()==ns::numeric_limits<double>::max()));
+  mwg_assert(( ns::chrono::duration_values<float>::zero()==0));
+  mwg_assert_nothrow(( ns::chrono::duration_values<float>::min()==ns::numeric_limits<float>::lowest()));
+  mwg_assert(( ns::chrono::duration_values<float>::max()==ns::numeric_limits<float>::max()));
+  mwg_assert(( ns::chrono::duration_values<mwg::byte>::zero()==0));
+  mwg_assert(( ns::chrono::duration_values<mwg::byte>::min()==ns::numeric_limits<mwg::byte>::lowest()));
+  mwg_assert(( ns::chrono::duration_values<mwg::byte>::max()==ns::numeric_limits<mwg::byte>::max()));
+  mwg_assert(( ns::chrono::duration_values<short>::zero()==0));
+  mwg_assert(( ns::chrono::duration_values<short>::min()==ns::numeric_limits<short>::lowest()));
+  mwg_assert(( ns::chrono::duration_values<short>::max()==ns::numeric_limits<short>::max()));
+  mwg_assert(( ns::chrono::duration_values<long long>::zero()==0));
+  mwg_assert(( ns::chrono::duration_values<long long>::min()==ns::numeric_limits<long long>::lowest()));
+  mwg_assert(( ns::chrono::duration_values<long long>::max()==ns::numeric_limits<long long>::max()));
+
+  //---------------------------------------------------------------------------
+  // duration, duration_cast
+  ns::chrono::milliseconds s(12300);
+  mwg_assert((s.count()==12300));
+  mwg_assert((ns::chrono::duration_cast<ns::chrono::seconds>(s).count()==12));
+
+  ns::chrono::seconds s1(1);
+  mwg_assert((s1.count()==1));
+  mwg_assert((ns::chrono::duration_cast<ns::chrono::milliseconds>(s1).count()==1000));
+
+  ns::chrono::duration<double,ns::ratio<1> > s2(1.234);
+  double a=1.234;
+  mwg_assert((s2.count()==1.234));
+  mwg_assert((ns::chrono::duration_cast<ns::chrono::milliseconds>(s2).count()==int(a*1000)));
+
+  //---------------------------------------------------------------------------
+  // nanoseconds - hours
+  mwg_assert((ns::chrono::duration_cast<ns::chrono::minutes>(ns::chrono::hours(1)).count()==60));
+  mwg_assert((ns::chrono::duration_cast<ns::chrono::seconds>(ns::chrono::minutes(1)).count()==60));
+  mwg_assert((ns::chrono::duration_cast<ns::chrono::milliseconds>(ns::chrono::seconds(1)).count()==1000));
+  mwg_assert((ns::chrono::duration_cast<ns::chrono::microseconds>(ns::chrono::milliseconds(1)).count()==1000));
+  mwg_assert((ns::chrono::duration_cast<ns::chrono::nanoseconds>(ns::chrono::microseconds(1)).count()==1000));
+
+  //---------------------------------------------------------------------------
+  // operators
+  ns::chrono::milliseconds s3(100);
+  mwg_assert((s3+=ns::chrono::milliseconds(200)).count()==300);
+  mwg_assert((s3-=ns::chrono::milliseconds(100)).count()==200);
+  mwg_assert(s3++.count()==200);
+  mwg_assert(s3--.count()==201);
+  mwg_assert((--s3).count()==199);
+  mwg_assert((++s3).count()==200);
+  mwg_assert((s3*=100).count()==20000);
+  mwg_assert((s3/=200).count()==100);
+  mwg_assert((s3%=30).count()==10);
+
+  //---------------------------------------------------------------------------
+  // time_point, time_point_cast
+
+  //---------------------------------------------------------------------------
+  // clocks
+  // TODO system_clock
+  // TODO stready_clock
+  // TODO high_resolution_clock
+
+  return 0;
+}
+
+int main(){
+  return test();
+}
+#pragma%x end_check

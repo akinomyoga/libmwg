@@ -54,10 +54,10 @@ function proc/copy-pp {
 #%\$>
 #%m begin_check
   #%%\$>> $fcheck
-  #%%x
+  #%%# x
 #%end
 #%m end_check
-  #%%end.R#(^|\n)[[:space:]]*//[[:space:]]*#\$1#
+  #%%# end.R#(^|\n)[[:space:]]*//[[:space:]]*#\$1#
   #%%\$>
 #%end
 #%begin
@@ -99,7 +99,12 @@ function proc/check {
   local chkdep="$CFGDIR/check/$name.dep"
   mkdf "$chkstm"
   if [[ -s "$fcheck" ]]; then
-    "$MWGCXX" -MD -MF "$chkdep" -I "$CFGDIR/include" -I "$CPPDIR" -o "$chkexe" "$fcheck" && "$chkexe"
+    local FLAGS=$(gawk '{if(match($0,/^[[:space:]]*\/\/[[:space:]]*mmake_check_flags:[[:space:]]*(.+)$/,_m))print _m[1];}' "$fcheck")
+    if [[ $FLAGS ]]; then
+      eval "FLAGS=($FLAGS)"
+      # echo "dbg: FLAGS=(${FLAGS[*]})"
+    fi
+    "$MWGCXX" -MD -MF "$chkdep" -MQ "$chkstm" -I "$CFGDIR/include" -I "$CPPDIR" -o "$chkexe" "$fcheck" "${FLAGS[@]}" && "$chkexe"
   fi && touch "$chkstm"
 }
 
