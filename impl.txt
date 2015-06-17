@@ -1,95 +1,98 @@
 
-*2015-06-15
+2015-06-15
 
-**環境変数 CXX CC FLAGS 等の情報をどのように取り入れるべきか?
+* 環境変数 CXX CC FLAGS 等の情報をどのように取り入れるべきか?
 
-設定切り替えに関しては CXXCFG を用いて切り替える。
-CXXCFG を用いて切り替える際にどこにそれを記述するのかについて考える必要がある。
-CXXCFG に対応するファイルを作成してその中に設定を書き込むという方法もある。
-あるいは、どこかに hoge.mk の中に CXXCFG 毎の条件分岐を記述するという手も存在する。
+  設定切り替えに関しては CXXCFG を用いて切り替える。
+  CXXCFG を用いて切り替える際にどこにそれを記述するのかについて考える必要がある。
+  CXXCFG に対応するファイルを作成してその中に設定を書き込むという方法もある。
+  あるいは、どこかに hoge.mk の中に CXXCFG 毎の条件分岐を記述するという手も存在する。
 
-設定の取り込みに関しては少し考える必要がある。
-基本的に通常の場合と似たような振る舞いにするのが分かりやすい。
-しかし、環境変数によって取り扱い方が異なるのでそれについて確認しておく。
-+先ず CXX CC FLAGS CXXFLAGS 等の情報は通常は ./configure の際に指定する。
- ./configure よりも後に値を変更したりしてもコンパイルには影響されない。
- そして g++ 等の呼び出しの際に直接に引数に指定することで適用される。
-+一方で CPLUS_INCLUDE_PATH LIBRARY_PATH 等はコンパイルの実行時の情報が参照される。
- これらは通常は ./configure & make では設定されないし消去することもない。
- つまりビルドシステムはこれらの環境変数に対しては透過的である。
+  設定の取り込みに関しては少し考える必要がある。
+  基本的に通常の場合と似たような振る舞いにするのが分かりやすい。
+  しかし、環境変数によって取り扱い方が異なるのでそれについて確認しておく。
+  1 先ず CXX CC FLAGS CXXFLAGS 等の情報は通常は ./configure の際に指定する。
+    ./configure よりも後に値を変更したりしてもコンパイルには影響されない。
+    そして g++ 等の呼び出しの際に直接に引数に指定することで適用される。
+  2 一方で CPLUS_INCLUDE_PATH LIBRARY_PATH 等はコンパイルの実行時の情報が参照される。
+    これらは通常は ./configure & make では設定されないし消去することもない。
+    つまりビルドシステムはこれらの環境変数に対しては透過的である。
 
-現状の管理方法についても確認しておく。
-これらの環境変数の設定に関しては現在はコンパイラ側、つまり mcxx 側で勝手に制御している。
-mcxx にコンパイラを登録する時に CXX CC FLAGS および CPLUS_INCLUDE_PATH 等も取り込む。
-そして *_PATH に関しては、コンパイラを登録した時の PATH を勝手に追加する。
-また、FLAGS 等の値に関してはコンパイラを登録した時の値で上書きする (?)。
-実際に使っているかどうかについては疑問である。
-というのも mcxx には source $(mcxx +param config) 的な
-方法で環境変数をロードする仕組みもあるからである。
+  現状の管理方法についても確認しておく。
+  これらの環境変数の設定に関しては現在はコンパイラ側、つまり mcxx 側で勝手に制御している。
+  mcxx にコンパイラを登録する時に CXX CC FLAGS および CPLUS_INCLUDE_PATH 等も取り込む。
+  そして *_PATH に関しては、コンパイラを登録した時の PATH を勝手に追加する。
+  また、FLAGS 等の値に関してはコンパイラを登録した時の値で上書きする (?)。
+  実際に使っているかどうかについては疑問である。
+  というのも mcxx には source $(mcxx +param config) 的な
+  方法で環境変数をロードする仕組みもあるからである。
 
-ToDo:
--mcxx のconfig as source files の仕組みは廃止する
--mcxx の CC・CXX・CFLAGS・CXXFLAGS・LDFLAGS・FLAGS 取り込みは行う。
--mcxx のCPLUS_INCLUDE_PATH・C_INCLUDE_PATH・LIBRARY_PATHに関しては限定的にする。明示されなければ追加しない。
--mcxx に上記のパラメータの一覧を表示する仕組みを作る。
-
-
-*2015-04-28
-
-**目標: 新しいビルド管理システム
-
-> ***ソースコード埋め込み指定
-> 
-> 以下に挙げるような様々な機能を\
-> ソースコード中に埋め込んだ指定から呼び出せる様にする。
-> - configure script (mcxx)
-> - document (lwiki)
-> - preprocess (mwg_pp.awk)
-> - check (mwg_pp.awk sub)
-> 
-> 処理の手順
-> 1. mwg_pp.awk による処理
-> 2. perl による処理
->    (lwiki 部分なども mwg_pp.txt によって生成したくなるだろうから)
-> 
-> ***出力に関して
-> 
-> - 出力は別のディレクトリに対して行う様にしたい
-> - ソースファイル、ヘッダファイルの文字コード変換に対応する。
->   original の文字コードも選択できる様にする。
-> - コンパイラの種類毎の出力に対応する。
->   コンパイラのオプション毎の出力にも対応する。
->   mcxx の機構を使用している場合 CXXFLAGS CFLAGS 等の設定に対応した設定を行うのが難しい。
-> 
-> out/src.charset
-> out/cxxprefix.option/obj
-> out/cxxprefix.option/lib
-> out/cxxprefix.option/include
-> 
-> ***その他の機能
-> wx-config 的なコマンドで cxxflags 等の必要な設定を呼び出す方法も提供する
-> 簡単なプロジェクトの初期化スクリプトも用意する
-> インストール・アンインストールの対応
-
-取り敢えず試しに実装を行ってみる。
+  ToDo:
+  - mcxx の config as env-source files の仕組みは廃止する
+    本当に廃止しても大丈夫か? これは g++/cl 等と直接入力して使う方法を封じることになる。
+    特に cl に特別な引数を渡したいときに困るのではないだろうか。
+  - mcxx の CC・CXX・CFLAGS・CXXFLAGS・LDFLAGS・FLAGS 取り込みは行う。
+  - mcxx のCPLUS_INCLUDE_PATH・C_INCLUDE_PATH・LIBRARY_PATHに関しては限定的にする。明示されなければ追加しない。
+  - mcxx に上記のパラメータの一覧を表示する仕組みを作る。
 
 
-このビルド管理システムでは src に置いたソースコードを起点として、
-out ディレクトリに加工したソースコード・オブジェクトファイル・結果ファイルを出力する。
+
+2015-04-28
+
+*目標: 新しいビルド管理システム
+
+  > ***ソースコード埋め込み指定
+  > 
+  > 以下に挙げるような様々な機能を\
+  > ソースコード中に埋め込んだ指定から呼び出せる様にする。
+  > - configure script (mcxx)
+  > - document (lwiki)
+  > - preprocess (mwg_pp.awk)
+  > - check (mwg_pp.awk sub)
+  > 
+  > 処理の手順
+  > 1. mwg_pp.awk による処理
+  > 2. perl による処理
+  >    (lwiki 部分なども mwg_pp.txt によって生成したくなるだろうから)
+  > 
+  > ***出力に関して
+  > 
+  > - 出力は別のディレクトリに対して行う様にしたい
+  > - ソースファイル、ヘッダファイルの文字コード変換に対応する。
+  >   original の文字コードも選択できる様にする。
+  > - コンパイラの種類毎の出力に対応する。
+  >   コンパイラのオプション毎の出力にも対応する。
+  >   mcxx の機構を使用している場合 CXXFLAGS CFLAGS 等の設定に対応した設定を行うのが難しい。
+  > 
+  > out/src.charset
+  > out/cxxprefix.option/obj
+  > out/cxxprefix.option/lib
+  > out/cxxprefix.option/include
+  > 
+  > ***その他の機能
+  > wx-config 的なコマンドで cxxflags 等の必要な設定を呼び出す方法も提供する
+  > 簡単なプロジェクトの初期化スクリプトも用意する
+  > インストール・アンインストールの対応
+
+  取り敢えず試しに実装を行ってみる。
 
 
-現在以下のシーケンスが用意されている。
+  このビルド管理システムでは src に置いたソースコードを起点として、
+  out ディレクトリに加工したソースコード・オブジェクトファイル・結果ファイルを出力する。
 
-  src/dir/file.cpp
 
-  → mwg_pp.awk による前処理
+  現在以下のシーケンスが用意されている。
 
-  out/src.utf-8/dir/file.cpp
+    src/dir/file.cpp
 
-  → make_extract.pl による lwiki, mconf の抽出
+    → mwg_pp.awk による前処理
 
-  out/src.utf-8/dir%file_cpp.lwiki
-  out/src.utf-8/dir%file_cpp.mconf
+    out/src.utf-8/dir/file.cpp
+
+    → make_extract.pl による lwiki, mconf の抽出
+
+    out/src.utf-8/dir%file_cpp.lwiki
+    out/src.utf-8/dir%file_cpp.mconf
 
 ------------------------------------------------------------------------------
   ToDo
