@@ -9,11 +9,6 @@
 
 #include <mwg/impl/warning_push.inl>
 
-// functions to enable
-//#define MWG_BIO_TAPE_H__20111219_RWFLAGS_IMPL0
-//#define MWG_BIO_TAPE_H__20111219_RWFLAGS_IMPL1
-#define MWG_BIO_TAPE_H__20111219_RWFLAGS_IMPL2
-
 namespace mwg{
 namespace bio{
 //NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN
@@ -113,7 +108,6 @@ public:
 //TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
 //  template<typename ITape> class tape_head
 //-----------------------------------------------------------------------------
-#ifdef MWG_BIO_TAPE_H__20111219_RWFLAGS_IMPL2
   // タグとして可能な物
   // - 整数  : エンディアン
   // - 小数  : エンディアン / IEEE754, 固定小数点
@@ -125,7 +119,6 @@ namespace  rwflags_detail{
 }
   mwg_static_flags_define(little_endian,rwflags_detail::rwflags_tag,0x1);
   mwg_static_flags_define(big_endian,rwflags_detail::rwflags_tag,0x2);
-#endif
 
 template<typename ITape,int RWFlags>
 class tape_head{
@@ -174,7 +167,6 @@ public:
   //
   // basic read/write
   //
-#ifdef MWG_BIO_TAPE_H__20111219_RWFLAGS_IMPL2
   template<typename T>
   typename rwflags_detail::rwflags_impl<T,RWFlags>::wtype write(const T& value) const{
     return rwflags_detail::rwflags_impl<T,RWFlags>::template write<ITape,RWFlags>(this,value);
@@ -212,16 +204,6 @@ public:
     value=_value;
     return ret;
   }
-#else
-  template<typename T>
-  int write(const T& value) const{
-    return this->m_tape->write(&value,sizeof(T),1);
-  }
-  template<typename T>
-  int read(T& value) const{
-    return this->m_tape->read(&value,sizeof(T),1);
-  }
-#endif
 
 public:
   u4t align_fill(int align,byte c=0) const{
@@ -294,7 +276,6 @@ public:
   typename stdm::enable_if<stdm::is_base_of<itape,IT>::value,tape_head<IT,RWF> >::type
   make_head(const IT& tape){return tape_head<IT,RWF>(tape);}
 
-#ifdef MWG_BIO_TAPE_H__20111219_RWFLAGS_IMPL2
 namespace rwflags_detail{
 
   template<typename T>
@@ -431,7 +412,6 @@ namespace rwflags_detail{
   template<int I> struct rwflags_impl< float,I>:rwflags_impl_reinterpret< float,I,u4t>{};
   template<int I> struct rwflags_impl<double,I>:rwflags_impl_reinterpret<double,I,u8t>{};
 } /* endof namespace rwflags_detail */
-#endif
 
 //NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN
 }
