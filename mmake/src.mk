@@ -21,6 +21,10 @@
 
 #%m prologue
 SHELL:=/bin/bash
+CXXFLAGS:=
+CFLAGS:=
+LDFLAGS:=
+FLAGS:=
 
 #%if BASE==""
 #%%error mmake/src.mk: BASE is empty!
@@ -68,7 +72,7 @@ check_files+=$(CFGDIR)/check/${name}.stamp
 $(CPPDIR)/check/${name}$(CXXEXT): $(CPPDIR)/${file}
 -include $(CFGDIR)/check/${name}.dep
 $(CFGDIR)/check/${name}.stamp: $(CPPDIR)/check/${name}$(CXXEXT)
-	$(BASE)/mmake/make_command.sh check ${file}
+	$(BASE)/mmake/make_command.sh check ${file} $(CXXFLAGS) $(FLAGS)
 #%end
 
 #%m _check_duplicates
@@ -90,7 +94,7 @@ $(CFGDIR)/check/${name}.stamp: $(CPPDIR)/check/${name}$(CXXEXT)
 object_files+=$(CFGDIR)/obj/${name}.o
 -include $(CFGDIR)/obj/${name}.dep
 $(CFGDIR)/obj/${name}.o: $(CPPDIR)/${file} | source_files
-	$(BASE)/mmake/make_command.sh compile ${file}
+	$(BASE)/mmake/make_command.sh compile ${file} $(CXXFLAGS) $(FLAGS)
 #%%end.i
 #%%[ppdeps=""]
 

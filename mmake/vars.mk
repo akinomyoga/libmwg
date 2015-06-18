@@ -8,7 +8,9 @@ MWGPP:=$(BASE)/mmake/mwg_pp.awk
 # compiler settings
 CXXPREFIX:=$(shell $(MWGCXX) +prefix)
 CXXENC:=utf-8
-CXXCFG:=default
+ifeq ($(CXXCFG),)
+  CXXCFG:=default
+endif
 CXXEXT:=.cpp
 
 # project settings

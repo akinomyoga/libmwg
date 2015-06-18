@@ -81,18 +81,21 @@ EOF
   # fi
 }
 
+## @fn proc/compile filename.cpp [options...]
 function proc/compile {
   local "${generate_filenames_vars[@]}"
   generate_filenames "$1"
+  shift
 
   mkdf "$fdep"
   mkdf "$fobj"
-  "$MWGCXX" -MD -MF "$fdep" -I "$CFGDIR/include" -I "$CPPDIR" -c -o "$fobj" "$fsource"
+  "$MWGCXX" -MD -MF "$fdep" -I "$CFGDIR/include" -I "$CPPDIR" -c -o "$fobj" "$fsource" "$@"
 }
 
 function proc/check {
   local "${generate_filenames_vars[@]}"
   generate_filenames "$1"
+  shift
 
   local chkexe="$CFGDIR/check/$name.exe"
   local chkstm="$CFGDIR/check/$name.stamp"
@@ -104,7 +107,7 @@ function proc/check {
       eval "FLAGS=($FLAGS)"
       # echo "dbg: FLAGS=(${FLAGS[*]})"
     fi
-    "$MWGCXX" -MD -MF "$chkdep" -MQ "$chkstm" -I "$CFGDIR/include" -I "$CPPDIR" -o "$chkexe" "$fcheck" "${FLAGS[@]}" && "$chkexe"
+    "$MWGCXX" -MD -MF "$chkdep" -MQ "$chkstm" -I "$CFGDIR/include" -I "$CPPDIR" -o "$chkexe" "$fcheck" "${FLAGS[@]}" "$@" && "$chkexe"
   fi && touch "$chkstm"
 }
 
