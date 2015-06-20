@@ -114,7 +114,8 @@ function proc/check {
 function proc/config {
   local "${generate_filenames_vars[@]}"
   generate_filenames "$1"
-  "$MWGCXX" +config -o "$fconfig" --cache="$CFGDIR/cache" "$fmconf"
+  shift
+  "$MWGCXX" +config -o "$fconfig" --cache="$CFGDIR/cache" "$fmconf" -- "$@"
 }
 
 type="$1"; shift

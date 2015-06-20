@@ -238,8 +238,9 @@ namespace concept_detail{
 //  mwg_concept_has_type_member(name,T,メンバー型名)::value
 //  mwg_concept_using_type_member(name,T,メンバー型名)::value
 //-----------------------------------------------------------------------------
-// #define mwg_concept_has_type_member(name,T,member_type)                       \
-//   mwg_concept_is_valid_type(name,T,T_mwg__,typename T_mwg__::member_type)
+/* #define mwg_concept_has_type_member(name,T,member_type)                       \
+ *   mwg_concept_is_valid_type(name,T,T_mwg__,typename T_mwg__::member_type)
+ */
 #define mwg_concept_has_type_member(name,T,member_type)                       \
   struct name{                                                                \
     mwg_concept_is_valid_type(_mwg_1,T,T_mwg__,typename T_mwg__::member_type);\
@@ -305,3 +306,359 @@ namespace concept_detail{
 }
 }
 #endif
+#pragma%x begin_check
+// -*- coding:sjis -*-
+#include <mwg/defs.h>
+#include <mwg/except.h>
+#include <mwg/concept.h>
+#include <mwg/std/type_traits>
+
+struct A{
+  typedef int content;
+};
+struct B{
+  static const int content=0;
+};
+struct C{
+};
+
+void test_is_assignable(){
+  mwg_assert(( mwg_concept_is_assignable(double,0)));
+  mwg_assert((!mwg_concept_is_assignable(double,A())));
+}
+
+namespace sfinae{
+  template<typename T>
+  mwg_concept_sfinae_typeOverload(is_class_or_union_impl,T,X,(void(X::*)(void)),(0));
+
+  void test_typeOverload(){
+    mwg_assert(( is_class_or_union_impl<A>::value));
+    mwg_assert((!is_class_or_union_impl<A*>::value));
+    mwg_assert((!is_class_or_union_impl<int>::value));
+    mwg_assert((!is_class_or_union_impl<int&>::value));
+  }
+
+#ifdef mwg_concept_is_valid_expression
+  template<typename T>
+  mwg_concept_is_valid_expression(can_be_added_int,T,X,(mwg::declval<X>()+1));
+  void func1(int){}
+  template<typename T>
+  mwg_concept_is_valid_expression(canbe_arg_of_func1,T,X,func1(mwg::declval<X>()));
+#endif
+  void test_is_valid_expression(){
+#ifdef mwg_concept_is_valid_expression
+    mwg_assert(( can_be_added_int<int>::value));
+    mwg_assert(( can_be_added_int<int&>::value));
+    mwg_assert(( can_be_added_int<double>::value));
+    mwg_assert((!can_be_added_int<A>::value));
+    mwg_assert((!can_be_added_int<void>::value));
+
+    mwg_assert(( canbe_arg_of_func1<int>::value));
+    mwg_assert((!canbe_arg_of_func1<int*>::value));
+#endif
+  }
+
+  template<typename T>
+  mwg_concept_is_valid_type(can_add_pointer,T,X,X*);
+  template<typename T>
+  mwg_concept_is_valid_type(have_valid_type_member,T,X,typename X::content);
+  struct have_valid_type_member_1{typedef int& content;};
+  void test_is_valid_type(){
+    mwg_assert(( have_valid_type_member<A>::value));
+    mwg_assert((!have_valid_type_member<B>::value));
+    mwg_assert((!have_valid_type_member<C>::value));
+    mwg_assert((!have_valid_type_member<int>::value));
+    mwg_assert(( have_valid_type_member<have_valid_type_member_1>::value));
+  }
+
+  template<typename T>
+  mwg_concept_has_member(has_member_print,T,X,print,void(X::*)(const char*));
+  struct has_member_print_1{void print(const char*){}};
+  struct has_member_print_2{void print(const char*) const{}};
+  struct has_member_print_3{int print(const char*){return 0;}};
+  struct has_member_print_4{void print(){}};
+  void test_has_member(){
+    mwg_assert(( has_member_print<has_member_print_1>::value));
+    mwg_assert((!has_member_print<has_member_print_2>::value));
+    mwg_assert((!has_member_print<has_member_print_3>::value));
+    mwg_assert((!has_member_print<has_member_print_4>::value));
+    mwg_assert((!has_member_print<A>::value));
+    mwg_assert((!has_member_print<int>::value));
+  }
+
+  template<typename T>
+  mwg_concept_has_type_member(have_content_type,T,content);
+  template<typename T>
+  struct have_contente_type2{
+    mwg_concept_has_type_member(cond,T,content);
+  };
+  void test_has_type_member(){
+    mwg_assert(( have_valid_type_member<A>::value));
+    mwg_assert((!have_valid_type_member<B>::value));
+    mwg_assert((!have_valid_type_member<C>::value));
+    mwg_assert((!have_valid_type_member<int>::value));
+    mwg_assert(( have_valid_type_member<have_valid_type_member_1>::value));
+  }
+
+  template<typename T>
+  mwg_concept_is_variant_functor(is_xy_functor,T,X,int*,(mwg_concept_param(int),mwg_concept_param(int)));
+  struct F1{ int operator()(int x) const{return x*x;} };
+  struct F2{ int* operator()(int x) const{return 0;} };
+  struct F3{ int operator()(int x,int y) const{return x*y;} };
+  struct F4{ int* operator()(int x,int y) const{return 0;} };
+  void test_is_variant_functor(){
+#ifdef mwg_concept_is_valid_expression
+    mwg_assert((!is_xy_functor<F1>::value));
+    mwg_assert((!is_xy_functor<F2>::value));
+    mwg_assert((!is_xy_functor<F3>::value));
+    mwg_assert(( is_xy_functor<F4>::value));
+#else
+    mwg_assert((!is_xy_functor<F1>::value));
+    mwg_assert((!is_xy_functor<F2>::value));
+    mwg_assert((!is_xy_functor<F3>::value));
+    mwg_assert(( is_xy_functor<F4>::value));
+#endif
+
+  }
+}
+
+//-----------------------------------------------------------------------------
+namespace apply{
+  struct A1{
+    int operator+(int){return 10;}
+
+    void get(int) const{}
+    int get(int*) const{return 0;}
+    void get(double*)  {}
+    
+    void operator()(int) const{}
+    int operator()(int*) const{return 0;}
+    void operator()(double*)  {}
+
+    void operator&(){}
+    int operator+(){return 0;}
+    int operator-(){return 0;}
+  };
+
+//-----------------------------------------------------------------------------
+// is_method_available
+
+#ifdef mwg_concept_is_valid_expression
+  template<typename T,typename A>
+  mwg_concept_is_valid_expression(is_method_available,T,T_,mwg::declval<T_>().get(mwg::declval<A>()));
+  template<typename T> struct is_method_available<T,void>:mwg::stdm::false_type{};
+  template<typename T,typename A>
+  mwg_concept_is_valid_expression(is_opmethod_available,T,T_,mwg::declval<T_>().operator()(mwg::declval<A>()));
+  template<typename T> struct is_opmethod_available<T,void>:mwg::stdm::false_type{};
+  template<typename T>
+  mwg_concept_is_valid_expression(is_opaddr_available,T,T_,mwg::declval<T_>().operator&());
+#elif defined(mwg_concept_is_valid_expression_vc2010A)
+  template<typename T,typename A>
+  mwg_concept_is_valid_expression_vc2010A(is_method_available,T,T_,mwg::declval<T_>().get(mwg::declval<A>()));
+  template<typename T> struct is_method_available<T,void>:mwg::stdm::false_type{};
+  template<typename T,typename A>
+  mwg_concept_is_valid_expression_vc2010A(is_opmethod_available,T,T_,mwg::declval<T_>().operator()(mwg::declval<A>()));
+  template<typename T> struct is_opmethod_available<T,void>:mwg::stdm::false_type{};
+  template<typename T>
+  mwg_concept_is_valid_expression_vc2010A(is_opaddr_available,T,T_,mwg::declval<T_>().operator&());
+#elif defined(mwg_concept_is_valid_expression_vc2008s)
+  template<typename T,typename A>
+  mwg_concept_is_valid_expression_vc2008s(is_method_available,T,T_,mwg::declval<T_>().get(mwg::declval<A>()));
+  template<typename T> struct is_method_available<T,void>:mwg::stdm::false_type{};
+  template<typename T,typename A>
+  mwg_concept_is_valid_expression_vc2008s(is_opmethod_available,T,T_,mwg::declval<T_>().operator()(mwg::declval<A>()));
+  template<typename T> struct is_opmethod_available<T,void>:mwg::stdm::false_type{};
+  template<typename T>
+  mwg_concept_is_valid_expression_vc2008s(is_opaddr_available,T,T_,mwg::declval<T_>().operator&());
+#else
+# define test_is_method_available_skip
+#endif
+  void test_is_method_available(){
+#ifdef test_is_method_available_skip
+    std::puts("test is_method_available: skipped");
+#else
+    // t.get(u)
+    mwg_assert(( is_method_available<A1,int>::value));
+    mwg_assert(( is_method_available<A1,int*>::value));
+    mwg_assert(( is_method_available<A1,double*>::value));
+    mwg_assert(( is_method_available<A1 const,int>::value));
+    mwg_assert(( is_method_available<A1 const,int*>::value));
+    mwg_assert((!is_method_available<A1 const,double*>::value));
+
+    mwg_assert((!is_method_available<int,int>::value));
+    mwg_assert((!is_method_available<int,float>::value));
+    mwg_assert((!is_method_available<int,A>::value));
+    mwg_assert((!is_method_available<int*,int>::value));
+    mwg_assert((!is_method_available<int*,std::size_t>::value));
+    mwg_assert((!is_method_available<int*,int*>::value));
+    mwg_assert((!is_method_available<A,int>::value));
+    mwg_assert((!is_method_available<A,int*>::value));
+    mwg_assert((!is_method_available<A,A>::value));
+    mwg_assert((!is_method_available<A*,int>::value));
+    mwg_assert((!is_method_available<A*,int*>::value));
+    mwg_assert((!is_method_available<A1,A1>::value));
+    mwg_assert((!is_method_available<A1,A1*>::value));
+    mwg_assert((!is_method_available<A1*,int>::value));
+    mwg_assert((!is_method_available<A1*,int*>::value));
+
+    mwg_assert((!is_method_available<A1,void>::value));
+    mwg_assert((!is_method_available<A1*,void>::value));
+    mwg_assert((!is_method_available<int,void>::value));
+    mwg_assert((!is_method_available<void,int>::value));
+    mwg_assert((!is_method_available<void,void>::value));
+
+    // t.operator()(u)
+    mwg_assert(( is_opmethod_available<A1,int>::value));
+    mwg_assert(( is_opmethod_available<A1,int*>::value));
+    mwg_assert(( is_opmethod_available<A1,double*>::value));
+    mwg_assert(( is_opmethod_available<A1 const,int>::value));
+    mwg_assert(( is_opmethod_available<A1 const,int*>::value));
+    mwg_assert((!is_opmethod_available<A1 const,double*>::value));
+
+    mwg_assert((!is_opmethod_available<int,int>::value));
+    mwg_assert((!is_opmethod_available<int,float>::value));
+    mwg_assert((!is_opmethod_available<int,A>::value));
+    mwg_assert((!is_opmethod_available<int*,int>::value));
+    mwg_assert((!is_opmethod_available<int*,std::size_t>::value));
+    mwg_assert((!is_opmethod_available<int*,int*>::value));
+    mwg_assert((!is_opmethod_available<A,int>::value));
+    mwg_assert((!is_opmethod_available<A,int*>::value));
+    mwg_assert((!is_opmethod_available<A,A>::value));
+    mwg_assert((!is_opmethod_available<A*,int>::value));
+    mwg_assert((!is_opmethod_available<A*,int*>::value));
+    mwg_assert((!is_opmethod_available<A1,A1>::value));
+    mwg_assert((!is_opmethod_available<A1,A1*>::value));
+    mwg_assert((!is_opmethod_available<A1*,int>::value));
+    mwg_assert((!is_opmethod_available<A1*,int*>::value));
+
+    mwg_assert((!is_opmethod_available<A1,void>::value));
+    mwg_assert((!is_opmethod_available<A1*,void>::value));
+    mwg_assert((!is_opmethod_available<int,void>::value));
+    mwg_assert((!is_opmethod_available<void,int>::value));
+    mwg_assert((!is_opmethod_available<void,void>::value));
+
+    // t.operator&()
+    mwg_assert(( is_opaddr_available<A1>::value));
+    mwg_assert((!is_opaddr_available<A1 const>::value));
+
+    mwg_assert((!is_opaddr_available<int>::value));
+    mwg_assert((!is_opaddr_available<int*>::value));
+    mwg_assert((!is_opaddr_available<A>::value));
+    mwg_assert((!is_opaddr_available<A*>::value));
+    mwg_assert((!is_opaddr_available<A1*>::value));
+    mwg_assert((!is_opaddr_available<void>::value));
+#endif
+  }
+
+//-----------------------------------------------------------------------------
+// is_operator_available
+
+#ifdef mwg_concept_is_valid_expression
+  template<typename T,typename U>
+  mwg_concept_is_valid_expression(is_add_operator_available,T,T_,mwg::declval<T_>()+mwg::declval<U>());
+  template<typename T> struct is_add_operator_available<T,void>:mwg::stdm::false_type{};
+
+  template<typename T> mwg_concept_is_valid_expression(is_nsign_available,T,T_,-mwg::declval<T_>());
+  template<typename T> mwg_concept_is_valid_expression(is_psign_available,T,T_,+mwg::declval<T_>());
+#elif defined(mwg_concept_is_valid_expression_vc2010A)
+  template<typename T,typename U>
+  mwg_concept_is_valid_expression_vc2010A(is_add_operator_available,T,T_,mwg::declval<T_>()+mwg::declval<U>());
+  template<typename T> struct is_add_operator_available<T,void>:mwg::stdm::false_type{};
+
+  template<typename T> mwg_concept_is_valid_expression_vc2010A(is_nsign_available,T,T_,-mwg::declval<T_>());
+  template<typename T> mwg_concept_is_valid_expression_vc2010A(is_psign_available,T,T_,+mwg::declval<T_>());
+#elif defined(mwg_concept_is_valid_expression_vc2008s)
+  // ■以下の物で正しい結果になると思いきや、<A1,int> の判定で失敗する。
+  template<typename T,typename U>
+  mwg_concept_is_valid_expression_vc2008s(is_add_operator_available,T,T_,mwg::declval<T_>()+mwg::declval<U>());
+  template<typename T> struct is_add_operator_available<T,void>:mwg::stdm::false_type{};
+  template<typename T> struct is_add_operator_available<void,T>:mwg::stdm::false_type{};
+  template<>           struct is_add_operator_available<void,void>:mwg::stdm::false_type{};
+
+  // ERR: C2675: '-' : 'T_'
+  // template<typename T,bool B>
+  // mwg_concept_is_valid_expression_vc2008s(is_psign_available,T,T_,-mwg::declval<T_>());
+
+  // 以下の様にするとコンパイルエラーにはならないが、
+  // クラスに対して常に false を返す。
+  // クラス以外に対しては正しい結果を出している様に見える。
+  // →と思ったら配列型に対する結果が誤っている。
+  template<typename T,bool B=true>
+  mwg_concept_is_valid_expression_vc2008s(is_nsign_available,T,T_,-mwg::declval<typename mwg::stdm::enable_if<B,T_>::type>());
+  template<typename T,bool B=true>
+  mwg_concept_is_valid_expression_vc2008s(is_psign_available,T,T_,+mwg::declval<typename mwg::stdm::enable_if<B,T_>::type>());
+  template<> struct is_psign_available<void>:mwg::stdm::false_type{};
+  template<> struct is_nsign_available<void>:mwg::stdm::false_type{};
+#else
+# define test_is_operator_available_skip
+#endif
+  void test_is_operator_available(){
+#ifdef test_is_operator_available_skip
+    std::puts("test is_add_operator_available: skipped");
+#else
+    mwg_assert(( is_add_operator_available<int,int>::value));
+    mwg_assert(( is_add_operator_available<int,float>::value));
+    mwg_assert(( is_add_operator_available<double,float>::value));
+    mwg_assert(( is_add_operator_available<char,int>::value));
+    mwg_assert(( is_add_operator_available<int*,int>::value));
+    mwg_assert(( is_add_operator_available<int*,std::size_t>::value));
+
+    mwg_assert((!is_add_operator_available<int*,int*>::value));
+    mwg_assert((!is_add_operator_available<A,int>::value));
+    mwg_assert((!is_add_operator_available<int,A>::value));
+    mwg_assert((!is_add_operator_available<A,A>::value));
+    mwg_assert(( is_add_operator_available<A1,int>::value));
+    mwg_assert(( is_add_operator_available<A1,char>::value));
+    mwg_assert(( is_add_operator_available<A1,double>::value));
+    mwg_assert((!is_add_operator_available<int,A1>::value));
+    mwg_assert((!is_add_operator_available<double,A1>::value));
+
+    mwg_assert((!is_add_operator_available<int,void>::value));
+    mwg_assert((!is_add_operator_available<void,int>::value));
+    mwg_assert((!is_add_operator_available<void,void>::value));
+
+    // +hoge
+    mwg_assert(( is_psign_available<int>::value));
+    mwg_assert(( is_nsign_available<int>::value));
+    mwg_assert(( is_psign_available<double>::value));
+    mwg_assert(( is_nsign_available<double>::value));
+    mwg_assert(( is_psign_available<char>::value));
+    mwg_assert(( is_nsign_available<char>::value));
+#ifndef _MSC_VER
+    mwg_assert(( is_psign_available<int*>::value)); // vc2008s error
+    mwg_assert((!is_nsign_available<int*>::value)); // vc2010A error, vc2008s error
+#endif
+    mwg_assert(( is_psign_available<bool>::value));
+    mwg_assert(( is_nsign_available<bool>::value));
+#ifndef _MSC_VER
+    mwg_assert(( is_psign_available<int[1]>::value)); // vc2008s error
+    mwg_assert((!is_nsign_available<int[1]>::value)); // vc2010A error
+#endif
+    mwg_assert((!is_psign_available<A>::value));
+    mwg_assert((!is_nsign_available<A>::value));
+#ifndef _MSC_VER
+    mwg_assert(( is_psign_available<A1>::value)); // vc2008s error
+    mwg_assert(( is_nsign_available<A1>::value)); // vc2008s error
+#endif
+    mwg_assert((!is_psign_available<A1 const>::value));
+    mwg_assert((!is_nsign_available<A1 const>::value));
+    mwg_assert((!is_psign_available<void>::value));
+    mwg_assert((!is_nsign_available<void>::value));
+#endif
+  }
+}
+
+int main(){
+  test_is_assignable();
+  sfinae::test_typeOverload();
+  sfinae::test_is_valid_expression();
+  sfinae::test_is_valid_type();
+  sfinae::test_has_member();
+  sfinae::test_has_type_member();
+  sfinae::test_is_variant_functor();
+
+  apply::test_is_method_available();
+  apply::test_is_operator_available();
+  return 0;
+}
+#pragma%x end_check

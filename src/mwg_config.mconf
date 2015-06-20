@@ -109,9 +109,9 @@ cat<<EOF >&$fdbase
 
 EOF
 
-if test -n "$MWGCONF_HAS_UNIQUE_PTR"; then
+if X -t'"C++11 Library"' - 'memory' 'std::unique_ptr<int> ptr(new int)'; then
   D MWGCONF_HEADER_STD 2011
-elif test -n "$MWGCONF_HAS_SHARED_PTR"; then
+elif X -t'"C++ TR1 Library at std::"' - 'memory' 'std::shared_ptr<int> ptr(new int)'; then
   D MWGCONF_HEADER_STD 2005
 else
   D MWGCONF_HEADER_STD 2003

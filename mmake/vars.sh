@@ -1,5 +1,5 @@
-# bash source file
 # -*- mode:sh; mode:sh-bash -*-
+# bash source file
 
 if [[ ${BASH_SOURCE:-$0} =~ ^(.*)/+mmake/+[^/]+ ]]; then
   BASE="${BASH_REMATCH[1]:-/}"
@@ -14,13 +14,17 @@ fi
 MWGCXX="$BASE/mmake/mcxx/cxx"
 MWGPP="$BASE/mmake/mwg_pp.awk"
 
+# read config.mk
+: ${CXXCFG:=default}
+[[ -s $BASE/consig.src ]] && source $BASE/config.src
+
 # compiler settings
 CXXPREFIX="$("$MWGCXX" +prefix)"
 CXXENC=utf-8
-: ${CXXCFG:=default}
 CXXEXT=.cpp
 
 # project settings
 SRCENC=utf-8
 CPPDIR="$BASE/out/src.$CXXENC"
 CFGDIR="$BASE/out/$CXXPREFIX+$CXXCFG"
+

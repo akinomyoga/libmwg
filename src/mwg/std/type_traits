@@ -58,6 +58,41 @@
 
 namespace mwg{
 namespace stdm{
+  using ::std::tr1::is_const;
+  using ::std::tr1::is_volatile;
+  using ::std::tr1::add_const;
+  using ::std::tr1::add_volatile;
+  using ::std::tr1::add_cv;
+  using ::std::tr1::remove_const;
+  using ::std::tr1::remove_volatile;
+  using ::std::tr1::remove_cv;
+
+  using ::std::tr1::is_pointer;
+  using ::std::tr1::is_member_function_pointer;
+  using ::std::tr1::is_member_object_pointer;
+  using ::std::tr1::add_pointer;
+  using ::std::tr1::remove_pointer;
+
+  using ::std::tr1::is_reference;
+  using ::std::tr1::add_reference;
+  using ::std::tr1::remove_reference;
+
+  using ::std::tr1::is_array;
+  using ::std::tr1::remove_extent;
+
+  using ::std::tr1::is_same;
+  using ::std::tr1::is_void;
+  using ::std::tr1::is_scalar;
+  using ::std::tr1::is_function;
+  using ::std::tr1::is_empty;
+  using ::std::tr1::is_base_of;
+  using ::std::tr1::is_floating_point;
+  using ::std::tr1::is_integral;
+
+  using ::std::tr1::integral_constant;
+  using ::std::tr1::true_type;
+  using ::std::tr1::false_type;
+
   // conditional
   template<bool V,typename T,typename F> struct conditional:mwg::identity<F>{};
   template<typename T,typename F> struct conditional<true,T,F>:mwg::identity<T>{};

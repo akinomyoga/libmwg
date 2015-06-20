@@ -5,12 +5,14 @@ MWGCXX:=$(BASE)/mmake/mcxx/cxx
 MWGCXXAR:=$(BASE)/mmake/mcxx/cxxar
 MWGPP:=$(BASE)/mmake/mwg_pp.awk
 
-# compiler settings
-CXXPREFIX:=$(shell $(MWGCXX) +prefix)
-CXXENC:=utf-8
 ifeq ($(CXXCFG),)
   CXXCFG:=default
 endif
+-include $(BASE)/config.mk
+
+# compiler settings
+CXXPREFIX:=$(shell $(MWGCXX) +prefix)
+CXXENC:=utf-8
 CXXEXT:=.cpp
 
 # project settings

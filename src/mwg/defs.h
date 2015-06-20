@@ -19,7 +19,7 @@ namespace std{namespace tr1{}}
 namespace mwg{
   namespace stdm{
     using namespace ::std;
-    using namespace ::std::tr1;
+    // using namespace ::std::tr1;
   }
   namespace std_=stdm;
 
@@ -112,10 +112,12 @@ namespace mwg{
     };
   }
 // 依存型・非依存型で typename が必要だったりそうでなかったりするので駄目
-// # define static_assert(C,...)                                     \
-//     struct static_assert_line##__LINE__{                          \
-//       typename mwg::detail::static_assert_tester<C>::type value; \
-//     }
+/*
+# define static_assert(C,...)                                     \
+    struct static_assert_line##__LINE__{                          \
+      typename mwg::detail::static_assert_tester<C>::type value; \
+    }
+*/
 
 // 注意
 // - static const ...::type になっているのは static const int でないとクラス内でエラーになるから
