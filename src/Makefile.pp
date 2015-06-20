@@ -91,11 +91,20 @@ $(CFGDIR)/include/mwg_config_common.h: $(CFGDIR)/include/mwg_config.1.h
 $(CPPDIR)/mwg/config.h: mwg_config.mconf | $(CFGDIR)/include/mwg_config_common.h $(CPPDIR)/mwg
 	cp $(CFGDIR)/include/mwg_config_common.h $@
 source_files+=$(CFGDIR)/include/mwg_config.stamp $(CPPDIR)/mwg/config.h
+install_files+=$(INS_INCCFG)/mwg_config.h $(INS_INCCFG)/mwg/config.h
+$(INS_INCCFG)/mwg_config.h: $(CFGDIR)/include/mwg_config.h
+	$(BASE)/mmake/make_command.sh install-header $< $@
+$(INS_INCCFG)/mwg/config.h: $(CPPDIR)/mwg/config.h
+	$(BASE)/mmake/make_command.sh install-header $< $@
 
 $(CFGDIR)/libmwg.a: $(object_files)
 	$(MWGCXXAR) $@ $^
+install_files+=$(INS_LIBDIR)/libmwg.a
+$(INS_LIBDIR)/libmwg.a: $(CFGDIR)/libmwg.a
+	$(BASE)/mmake/make_command.sh install $< $@
 
 all: $(source_files) $(CFGDIR)/libmwg.a
 check: $(check_files)
+install: $(install_files)
 
 #%x epilogue

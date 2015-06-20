@@ -118,6 +118,33 @@ function proc/config {
   "$MWGCXX" +config -o "$fconfig" --cache="$CFGDIR/cache" "$fmconf" -- "$@"
 }
 
+function proc/install {
+  if (($#==2)); then
+    local src="$1"
+    local dst="$2"
+  else
+    echo 'make_command.sh install: requires two arguments.' >&2
+    return 1
+  fi
+
+  mkdf "$dst"
+  cp -p "$src" "$dst"
+}
+
+function proc/install-header {
+  if (($#==2)); then
+    local src="$1"
+    local dst="$2"
+  else
+    local "${generate_filenames_vars[@]}"
+    generate_filenames "$1"
+    local src="$CPPDIR/$fsrc"
+    local dst="$INS_INCDIR/$fsrc"
+  fi
+  mkdf "$dst"
+  sed '/^[[:space:]]*#[[:space:]]*line[[:space:]]/d' "$src" > "$dst"
+}
+
 type="$1"; shift
 if ! declare -f "proc/$type" &>/dev/null; then
   echo 'make_file.sh! unknown make type' >&2
