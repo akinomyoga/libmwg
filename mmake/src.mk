@@ -19,6 +19,9 @@
 # |
 # | all: $(object_files)
 
+#------------------------------------------------------------------------------
+# Prologue and Epilogue
+
 #%m prologue
 SHELL:=/bin/bash
 CXXFLAGS:=
@@ -38,8 +41,6 @@ directories+=$(CFGDIR)
 directories+=$(CFGDIR)/include
 directories+=$(CFGDIR)/config
 directories+=$(CPPDIR)
-$(directories):
-	mkdir -p $@
 
 clean: clean-obj
 clean-src:
@@ -52,12 +53,23 @@ clean-cache:
 	-rm -rf $(CFGDIR)/cache
 clean-all: clean-src clean-obj clean-lib clean-cache
 .PHONY: clean clean-src clean-obj clean-lib clean-cache clean-all
+
+directories+=$(INS_INCDIR)
+directories+=$(INS_INCCFG)
+directories+=$(INS_LIBDIR)
 #%end
+
 #%m epilogue
 source_files: $(source_files)
 config_files: $(config_files)
 .PHONY: source_files config_files
+
+$(directories):
+	mkdir -p $@
 #%end
+
+#------------------------------------------------------------------------------
+# macros
 
 #%m _preprocess_file
 source_files+=$(CPPDIR)/${file}
@@ -107,9 +119,15 @@ $(CFGDIR)/obj/${name}.o: $(CPPDIR)/${file} | source_files
 #%%[name=file.replace("\\.(cpp|c|C|cxx)$","").replace("/","+").replace("\\.","_")]
 #%%x _check_duplicates.i
 #%%x _preprocess_file.i
+#%%x
+install_files+=$(INS_INCDIR)/${file}
+$(INS_INCDIR)/${file}: $(CPPDIR)/${file} | $(INS_INCDIR)
+	$(BASE)/mmake/make_command.sh install-header ${file}
+#%%end.i
 #%%[ppdeps=""]
 
 #%end
+
 
 #%m AddConfigHeader
 # AddConfigHeader %file%
