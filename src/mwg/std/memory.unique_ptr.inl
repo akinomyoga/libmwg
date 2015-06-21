@@ -18,7 +18,8 @@ namespace detail{
 //  default_delete
 //-----------------------------------------------------------------------------
   template<class T>
-  struct default_delete{
+  class default_delete{
+  public:
     default_delete(){}
     template<class T2>
     default_delete(const default_delete<T2>&){}

@@ -5,7 +5,7 @@
 #include <mwg/defs.h>
 //HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 #if MWGCONF_HEADER_STD>=2011
-# include <initializer_list> 
+# include <initializer_list>
 #else
 # include <cstdlib>
 # include <vector>

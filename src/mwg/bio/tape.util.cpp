@@ -6,6 +6,8 @@ namespace bio{
 namespace{
 
 int HexEncode(const byte*& src0,const byte*const srcN,byte*& dst0,byte*const dstN,void*& state_){
+  mwg_unused(state_);
+
   static const char* const TABLE="0123456789abcdef";
   const byte* src=src0;
   byte*       dst=dst0;
@@ -279,7 +281,11 @@ int Base64Encode(const byte*& src0,const byte* srcN,byte*& dst0,byte* dstN,void*
       dst0=dst;
       return 0;
     }
-    int finish(byte*& dst0,byte*const dstN){return 0;}
+    int finish(byte*& dst0,byte*const dstN){
+      mwg_unused(dst0);
+      mwg_unused(dstN);
+      return 0;
+    }
   };
 
   int Base64Decode(const byte*& src0,const byte*const srcN,byte*& dst0,byte*const dstN,void*& state_){

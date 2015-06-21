@@ -14,12 +14,12 @@ namespace ttx2_detail{
 //-----------------------------------------------------------------------------
 struct ttx_charcat_t{
   static bool isnamef(char c){
-    return 'a'<=c&&c<='z'||'A'<=c&&c<='Z'
+    return ('a'<=c&&c<='z')||('A'<=c&&c<='Z')
       ||c=='-'||c=='_'||c==':'||c=='.'||c=='+';
     // dame: </>&="'`\ ()[]{} *?!#$%@;,|
   }
   static bool isname(char c){
-    return isnamef(c)||'0'<=c&&c<='9';
+    return isnamef(c)||('0'<=c&&c<='9');
   }
 };
 
@@ -264,7 +264,7 @@ public:
   bool next_val(){
     wt=WT_VAL;
     w.erase();
-    int lenM=0;
+    std::size_t lenM=0;
 
     // head space
     this->skip_space();
@@ -297,7 +297,7 @@ public:
     }
 
     // tail space
-    int len=w.size();
+    std::size_t len=w.size();
     while(len>lenM&&isspace(w[len-1]))len--;
     if(len!=w.size())
       w.erase(len);
@@ -664,7 +664,6 @@ private:
   ttx_node*   next_value;
   it_t        i;
   it_t        iN;
-  ttx_node*   elem;
   mwg::exp::enumerator<ttx_node*> mago;
 public:
   virtual void next(){
@@ -711,7 +710,6 @@ private:
   ttx_node*   next_value;
   it_t        i;
   it_t        iN;
-  ttx_node*   elem;
   mwg::exp::enumerator<ttx_node*> mago;
 public:
   virtual void next(){

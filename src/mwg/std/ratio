@@ -37,7 +37,7 @@ namespace ratio_detail{
       ratio_detail::intmax_abs<Den>::value/ratio_detail::intmax_gcd<Num,Den>::value;
     typedef mwg::stdm::ratio<num,den> type;
   };
-  
+
   typedef ratio<1,10> deci;
   typedef ratio<1,100> centi;
   typedef ratio<1,1000> milli;

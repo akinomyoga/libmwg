@@ -107,14 +107,14 @@ namespace bio{
 
   public:
     ttx_node()
-      :m_parent(nullptr),m_index(-1),m_name("xml"){}
+      :m_name("xml"),m_parent(nullptr),m_index(-1){}
     explicit ttx_node(const char* _name)
-      :m_parent(nullptr),m_index(-1),m_name(_name){}
+      :m_name(_name),m_parent(nullptr),m_index(-1){}
     explicit ttx_node(const std::string& _name)
-      :m_parent(nullptr),m_index(-1),m_name(_name){}
+      :m_name(_name),m_parent(nullptr),m_index(-1){}
 #ifdef MWGCONF_STD_RVALUE_REFERENCES
     explicit ttx_node(std::string&& _name)
-      :m_parent(nullptr),m_index(-1),m_name(stdm::move(_name)){}
+      :m_name(stdm::move(_name)),m_parent(nullptr),m_index(-1){}
 #endif
   private:
     void clear(){
@@ -127,7 +127,7 @@ namespace bio{
       this->m_attrs.clear();
     }
   public:
-    ~ttx_node(){
+    virtual ~ttx_node(){
       this->clear();
       if(this->m_parent!=nullptr)
         this->m_parent->release_node(this->m_index);
@@ -151,7 +151,7 @@ namespace bio{
     }
   public:
     ttx_node(ttx_node const& src)
-      :m_parent(nullptr),m_index(-1),m_name(src.m_name)
+      :m_name(src.m_name),m_parent(nullptr),m_index(-1)
     {
       this->addContentOf(src);
     }
@@ -168,7 +168,7 @@ namespace bio{
   //----------------------------------------------------------------------------
   public:
     ttx_node* release_node(int index){
-      if(index<0||index>=m_nodes.size())return nullptr; // throw
+      if(index<0||(std::size_t)index>=m_nodes.size())return nullptr; // throw
 
       ttx_node* const _node=m_nodes[index];
       _node->m_parent=nullptr;

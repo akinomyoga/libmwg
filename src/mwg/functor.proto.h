@@ -5,7 +5,7 @@
 namespace mwg{
 namespace functor_detail{
   template<typename F>
-  class functor_case_traits;
+  struct functor_case_traits;
     // Tr::fct_t
     // Tr::fct_tr functor_traits<F>
     // Tr::case_data
@@ -32,9 +32,9 @@ namespace functor_detail{
   template<typename S>
   struct functor_base;
   template<typename S>
-  struct functor;
+  class functor;
   template<typename S>
-  struct functor_ref;
+  class functor_ref;
 
   template<typename F,typename S>
   struct is_functor;

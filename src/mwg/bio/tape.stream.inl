@@ -51,10 +51,16 @@ namespace detail{
     virtual bool can_trunc() const{return false;}
 
     virtual int read(void* buff,int size,int n=1) const{
+      mwg_unused(buff);
+      mwg_unused(size);
+      mwg_unused(n);
       mwg_assert(self::can_read(),"not supported operation.");
       return 0;
     }
     virtual int write(const void* buff,int size,int n=1) const{
+      mwg_unused(buff);
+      mwg_unused(size);
+      mwg_unused(n);
       mwg_assert(self::can_write(),"not supported operation.");
       return 0;
     }
@@ -71,6 +77,7 @@ namespace detail{
       return ret!=-1?ret:0;
     }
     virtual int trunc(u8t size) const{
+      mwg_unused(size);
       mwg_assert(false);
       return -1;
     }
@@ -231,6 +238,7 @@ protected:
     std::ios_base::seekdir dir,
     int nMode=std::ios::in|std::ios::out
   ){
+    mwg_unused(nMode);
     this->sync();
     tape.seek(
       off,
@@ -246,6 +254,7 @@ protected:
     std::streampos pos,
     int nMode=std::ios::in|std::ios::out
   ){
+    mwg_unused(nMode);
     this->sync();
     tape.seek(pos,SEEK_SET);
     this->setg(gbuff,gbuff_end,gbuff_end);

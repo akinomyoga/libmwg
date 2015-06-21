@@ -105,7 +105,10 @@ public:
   }
   i8t tell() const{return this->position;}
   u8t size() const{return this->length;}
-  int trunc(u8t size) const{errno=EACCES;return -1;}
+  int trunc(u8t size) const{
+    mwg_unused(size);
+    errno=EACCES;return -1;
+  }
   int flush() const{return tape.flush();}
 };
 //FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
@@ -235,11 +238,23 @@ public:
   bool can_write() const{return false;}
   bool can_seek() const{return false;}
   bool can_trunc() const{return false;}
-  int write(const void* buff,int size,int n=1) const{return 0;}
-  int seek(i8t offset,int whence=SEEK_SET) const{errno=EACCES;return -1;}
+  int write(const void* buff,int size,int n=1) const{
+    mwg_unused(buff);
+    mwg_unused(size);
+    mwg_unused(n);
+    return 0;
+  }
+  int seek(i8t offset,int whence=SEEK_SET) const{
+    mwg_unused(offset);
+    mwg_unused(whence);
+    errno=EACCES;return -1;
+  }
   i8t tell() const{return 0;}
   u8t size() const{return 0;}
-  int trunc(u8t size) const{errno=EACCES;return -1;}
+  int trunc(u8t size) const{
+    mwg_unused(size);
+    errno=EACCES;return -1;
+  }
   int flush() const{return 0;}
 };
 
@@ -336,6 +351,10 @@ public:
     :ptr(new filtered_wtape_buffer(tape,filter)){}
 public:
   int read(void* buff_,int size,int n=1) const{
+    mwg_unused(buff_);
+    mwg_unused(size);
+    mwg_unused(n);
+    mwg_check(false);
     return 0;
   }
 public:
@@ -344,10 +363,19 @@ public:
   bool can_seek() const{return false;}
   bool can_trunc() const{return false;}
   int write(const void* buff,int size,int n=1) const{return ptr->write(buff,size,n);}
-  int seek(i8t offset,int whence=SEEK_SET) const{errno=EACCES;return -1;}
-  i8t tell() const{return 0;}
-  u8t size() const{return 0;}
-  int trunc(u8t size) const{errno=EACCES;return -1;}
+  int seek(i8t offset,int whence=SEEK_SET) const{
+    mwg_unused(offset);
+    mwg_unused(whence);
+    mwg_check(false);
+    errno=EACCES;return -1;
+  }
+  i8t tell() const{mwg_check(false);return 0;}
+  u8t size() const{mwg_check(false);return 0;}
+  int trunc(u8t size) const{
+    mwg_unused(size);
+    mwg_check(false);
+    errno=EACCES;return -1;
+  }
   int flush() const{return ptr->flush();}
 };
 
@@ -390,7 +418,7 @@ typename stdm::enable_if<
 operator|(const F& filter,const T& wtape){
   if(!wtape.can_write())
     throw std::invalid_argument("operator|(filter,wtape)! wtape.can_write()");
-  
+
   return filtered_wtape<T,F>(wtape,filter);
 }
 #endif
@@ -499,7 +527,7 @@ void test_filters(){
   };
 
   std::ostringstream dst;
-  for(int i=0;i<sizeof data/sizeof*data;i++){
+  for(std::size_t i=0;i<sizeof data/sizeof*data;i++){
     std::istringstream src1(data[i].text);
     mwg::bio::istream_tape(src1)
       |mwg::bio::filtered(mwg::bio::base64_encode)
@@ -535,7 +563,7 @@ int main(){
 
   // mwg::bio::ostream_tape tape(dst);
   // mwg::bio::tape_head<> head(tape);
-  
+
   return 0;
 }
 #pragma%x end_check

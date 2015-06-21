@@ -14,10 +14,6 @@ MAKEFLAGS += --no-builtin-rules
 Makefile: Makefile.pp
 	$(BASE)/mmake/mwg_pp.awk $< > $@ || mv $@ $@.error
 
-ifeq ($(CXXCFG),default)
-  CXXFLAGS := -Wall -Wextra -O3
-endif
-
 #%x AddCxxHeader.r|%file%|mwg/defs.h|
 #%x AddCxxHeader.r|%file%|mwg/concept.h|
 #%x AddCxxHeader.r|%file%|mwg/except.h|
@@ -81,7 +77,7 @@ endif
 $(CPPDIR)/mwg:
 	mkdir -p $(CPPDIR)/mwg
 $(CFGDIR)/include/mwg_config.1.h: mwg_config.mconf
-	$(MWGCXX) +config -o "$@" --cache="$(CFGDIR)/cache" $<
+	$(MWGCXX) +config -o "$@" --cache="$(CFGDIR)/cache" $< -- $(CXXFLAGS) $(FLAGS) $(LDFLAGS)
 $(CFGDIR)/include/mwg_config.stamp: $(CFGDIR)/include/mwg_config.1.h $(CFGDIR)/include/mwg_config.2.h
 	mv $(CFGDIR)/include/mwg_config.h $@ || touch $@
 	$(MWGPP) $< > $(CFGDIR)/include/mwg_config.h

@@ -101,7 +101,11 @@ public:
   }
   virtual i8t tell() const{return this->m_pos;}
   virtual u8t size() const{return this->m_size;}
-  virtual int trunc(u8t size) const{return -1;}
+  virtual int trunc(u8t size) const{
+    mwg_unused(size);
+    mwg_assert(false,"truncation not supported");
+    return -1;
+  }
   virtual int flush() const{return 0;}
 };
 

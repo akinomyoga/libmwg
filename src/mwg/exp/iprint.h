@@ -37,6 +37,7 @@ struct iprint{
     ostr<<"]";
   }
   virtual void print(std::ostream& ostr,const iformat& fmt) const{
+    mwg_unused(fmt);
     this->print(ostr);
   }
 };

@@ -266,8 +266,8 @@ namespace detail{
     template<std::size_t I,typename R,typename TT> friend struct detail::tuple_get_impl;
   public:
     explicit tuple(){}
-    tuple& operator=(const tuple& other){return *this;}
-    void swap(tuple& other){}
+    tuple& operator=(const tuple& other){mwg_unused(other);return *this;}
+    void swap(tuple& other){mwg_unused(other);}
   };
 #pragma%end
 #pragma%expand
@@ -428,15 +428,21 @@ namespace detail{
     }
     template<typename TTL,typename TTR>
     static bool operator_le(const TTL& left,const TTR& right){
-      return get<I>(left)<get<I>(right)||get<I>(left)==get<I>(right)&&tuple_compare_impl<I+1,INMin>::operator_le(left,right);
+      return get<I>(left)<get<I>(right)||(get<I>(left)==get<I>(right)&&tuple_compare_impl<I+1,INMin>::operator_le(left,right));
     }
   };
   template<std::size_t INMin>
   struct tuple_compare_impl<INMin,INMin>{
     template<typename TTL,typename TTR>
-    static bool operator_eq(const TTL& left,const TTR& right){return true;}
+    static bool operator_eq(const TTL& left,const TTR& right){
+      mwg_unused(left);
+      mwg_unused(right);
+      return true;
+    }
     template<typename TTL,typename TTR>
     static bool operator_le(const TTL& left,const TTR& right){
+      mwg_unused(left);
+      mwg_unused(right);
       return tuple_size<TTL>::value<tuple_size<TTR>::value;
     }
   };
@@ -498,6 +504,7 @@ namespace detail{
 #pragma%expand
   template<$".for/K/0/%Ar%/typename TK/,">
   tuple<$".for/K/1/%Ar%/TK/,"> tuple_unshift(const tuple<$".for/K/0/%Ar%/TK/,">& tuplet){
+    mwg_unused(tuplet); // Ar=1 の時には使われない
     return tuple<$".for/K/1/%Ar%/TK/,">($".for/K/1/%Ar%/get<K>(tuplet)/,");
   }
 #pragma%end.f/%Ar%/1/ArN+1/
@@ -517,6 +524,7 @@ namespace detail{
     :mwg::identity<tuple<$".for/K/0/%Ar%/TK/,"> >{};
   template<typename T$"m"$".for/K/0/%Ar%-1/,typename TK/">
   tuple<$".for/K/0/%Ar%/TK/,"> tuple_push(const tuple<$".for/K/0/%Ar%-1/TK/,">& tuplet,T$"m" arg$"m"){
+    mwg_unused(tuplet); // Ar=1 の時には使われない
     return tuple<$".for/K/0/%Ar%/TK/,">($".for/K/0/%Ar%-1/get<K>(tuplet),/"arg$"m");
   }
 #pragma%end.f/%Ar%/1/ArN+1/
@@ -532,7 +540,10 @@ namespace detail{
   template<typename TTL>
   struct tuple_cat2_type<TTL,tuple<> >:mwg::identity<TTL>{};
   template<typename TTL>
-  const TTL& tuple_cat2(const TTL& left,const tuple<>& right){return left;}
+  const TTL& tuple_cat2(const TTL& left,const tuple<>& right){
+    mwg_unused(right);
+    return left;
+  }
   template<typename TTL,typename TTR>
   typename tuple_cat2_type<TTL,TTR>::type tuple_cat2(const TTL& left,const TTR& right){
     return tuple_cat2(tuple_push<typename tuple_element<0,TTR>::type>(left,get<0>(right)),tuple_unshift(right));
@@ -577,7 +588,10 @@ namespace detail{
 }
 }
 namespace std{
-  inline void swap(mwg::stdm::tuple<>& left,mwg::stdm::tuple<>& right){}
+  inline void swap(mwg::stdm::tuple<>& left,mwg::stdm::tuple<>& right){
+    mwg_unused(left);
+    mwg_unused(right);
+  }
   template<$".for:K:0:ArN:typename TK:,">
   void swap(mwg::stdm::tuple<$".for:K:0:ArN:TK:,">& left,mwg::stdm::tuple<$".for:K:0:ArN:TK:,">& right){
     left.swap(right);

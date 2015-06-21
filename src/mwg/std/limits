@@ -102,7 +102,7 @@ namespace stdm{
     static const int max_digits10=21;
     static_assert(std::numeric_limits<long double>::digits==64,"Not IEEE734 extended double precision"); // IEEE734
   };
-  
+
 }
 }
 #endif

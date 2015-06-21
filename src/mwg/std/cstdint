@@ -92,12 +92,7 @@ namespace stdm{
 //  typedef unsigned int       uint32_t;
 //  typedef unsigned long long uint64_t;
 //
-////#pragma GCC diagnostic push
-////#pragma GCC diagnostic ignored "-Wunused"
-////#pragma GCC diagnostic ignored "-Wunused-function"
-////#pragma GCC diagnostic ignored "-Wunused-variable"
-//  static_assert(sizeof(int8_t)==1&&sizeof(int16_t)==2&&sizeof(int32_t)==4&&sizeof(int64_t)==8);
-////#pragma GCC diagnostic pop
+  static_assert(sizeof(int8_t)==1&&sizeof(int16_t)==2&&sizeof(int32_t)==4&&sizeof(int64_t)==8);
 
 namespace cstdint_detail{
   template<typename T,typename U> struct type_and_size{

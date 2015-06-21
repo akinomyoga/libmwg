@@ -477,11 +477,11 @@ namespace functor_detail{
     }
   public:
     template<typename F>
-    functor_ref(const F& f,mwg_requires((is_functor<F,S>::value),void*) dummy=nullptr){
+    functor_ref(const F& f,mwg_requires((is_functor<F,S>::value),void*) =nullptr){
       this->init<F,functor_case_impl<S,typename functor_traits<F>::ref_tr> >(f);
     }
     template<typename F>
-    explicit functor_ref(const F& f,mwg_requires((!is_functor<F,S>::value&&be_functor<F,S>::value),void*) dummy=nullptr){
+    explicit functor_ref(const F& f,mwg_requires((!is_functor<F,S>::value&&be_functor<F,S>::value),void*) =nullptr){
       this->init<F,functor_case_impl<S,typename functor_traits<F,S>::ref_tr> >(f);
     }
     ~functor_ref(){this->free();}
@@ -532,11 +532,11 @@ namespace functor_detail{
   public:
     vfunctor_ref() mwg_std_deleted;
     template<typename F>
-    vfunctor_ref(const F& f,mwg_requires((is_functor<S,F>::value),void*) dummy=nullptr){
+    vfunctor_ref(const F& f,mwg_requires((is_functor<S,F>::value),void*) =nullptr){
       this->template init<F,functor_case_impl<S,typename functor_traits<F>::ref_tr> >(f);
     }
     template<typename F>
-    vfunctor_ref(const F& f,mwg_requires((!is_functor<S,F>::value&&be_functor<S,F>::value),void*) dummy=nullptr){
+    vfunctor_ref(const F& f,mwg_requires((!is_functor<S,F>::value&&be_functor<S,F>::value),void*) =nullptr){
       this->template init<F,functor_case_impl<S,typename functor_traits<F,S>::ref_tr> >(f);
     }
   };

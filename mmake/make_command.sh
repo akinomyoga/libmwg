@@ -102,11 +102,9 @@ function proc/check {
   local chkdep="$CFGDIR/check/$name.dep"
   mkdf "$chkstm"
   if [[ -s "$fcheck" ]]; then
-    local FLAGS=$(gawk '{if(match($0,/^[[:space:]]*\/\/[[:space:]]*mmake_check_flags:[[:space:]]*(.+)$/,_m))print _m[1];}' "$fcheck")
-    if [[ $FLAGS ]]; then
-      eval "FLAGS=($FLAGS)"
-      # echo "dbg: FLAGS=(${FLAGS[*]})"
-    fi
+    local CHECK_FLAGS_SPEC=$(gawk '{if(match($0,/^[[:space:]]*\/\/[[:space:]]*mmake_check_flags:[[:space:]]*(.+)$/,_m))print _m[1];}' "$fcheck")
+    eval "local FLAGS=($CHECK_FLAGS_SPEC)"
+    # echo "dbg: FLAGS=(${FLAGS[*]})"
     "$MWGCXX" -MD -MF "$chkdep" -MQ "$chkstm" -I "$CFGDIR/include" -I "$CPPDIR" -o "$chkexe" "$fcheck" "${FLAGS[@]}" "$@" && "$chkexe"
   fi && touch "$chkstm"
 }

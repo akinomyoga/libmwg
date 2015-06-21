@@ -85,7 +85,7 @@ namespace chrono_detail{
   struct is_duration_promotable:mwg::stdm::integral_constant<
     bool,
     treat_as_floating_point<typename D1::rep>::value
-    ||treat_as_floating_point<typename D2::rep>::value&&mwg::stdm::ratio_divide<typename D1::period,typename D2::period>::type::den==1
+    ||(treat_as_floating_point<typename D2::rep>::value&&mwg::stdm::ratio_divide<typename D1::period,typename D2::period>::type::den==1)
     >{};
 
   template<typename D1,typename D2>
@@ -100,7 +100,7 @@ namespace chrono_detail{
 
   template<typename D1,typename D2>
   struct is_duration_castable:mwg::stdm::false_type{};
-  
+
   template<typename R1,typename P1,typename R2,typename P2>
   struct is_duration_castable<duration<R1,P1>,duration<R2,P2> >
     :mwg::stdm::is_convertible<R2,R1>{};
@@ -168,7 +168,7 @@ namespace chrono_detail{
     &&chrono_detail::is_duration<Ds>::value
     &&chrono_detail::is_duration_castable<Dd,Ds>::value,Dd>::type
   duration_cast(Ds const& d){
-    typedef typename Ds::rep Rs;
+    //typedef typename Ds::rep Rs;
     typedef typename Dd::rep Rd;
     typedef typename mwg::stdm::ratio_divide<typename Ds::period,typename Dd::period>::type ratio;
     return Dd(Rd(d.count()*ratio::num/ratio::den));
@@ -298,7 +298,7 @@ namespace chrono_detail{
     time_point(time_point<clock,D2> const& tp,typename mwg::stdm::enable_if<chrono_detail::is_duration_promotable<duration,D2>::value,int>::type=0):value(tp.value){}
     // template<typename D2>
     // explicit time_point(time_point<clock,D2> const& tp,typename mwg::stdm::enable_if<!chrono_detail::is_duration_promotable<duration,D2>::value,int>::type=0):value(tp.value){}
-    
+
     duration time_since_epoch() const{return this->value;}
     time_point& operator+=(duration const& rhs){this->value+=rhs;return *this;}
     time_point& operator-=(duration const& rhs){this->value-=rhs;return *this;}

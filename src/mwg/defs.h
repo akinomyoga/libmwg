@@ -28,6 +28,19 @@ namespace mwg{
 #   define MWG_PREPROC_ADDLINE(H)     MWG_PREPROC_ADDLINE_(H,__LINE__)
 #   define MWG_PREPROC_COMMA          ,
 
+#ifndef MWG_ATTRIBUTE_UNUSED
+# ifdef __GNUC__
+#  define MWG_ATTRIBUTE_UNUSED __attribute__((unused))
+# else
+#  define MWG_ATTRIBUTE_UNUSED
+# endif
+#endif
+
+// c.f. Q_UNUSED
+#ifndef mwg_unused
+# define mwg_unused(param) (void)param
+#endif
+
 //MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
 //  C++03 Features
 //------------------------------------------------------------------------------
@@ -52,7 +65,7 @@ namespace mwg{
     private:
       void operator&() const;
       void operator*() const;
-    } nullptr={};
+    } nullptr_instance={};
 
 #   define MWG_TEMP_OP(O)                                             \
     template<typename T> bool operator O(T* p,const nullptr_t&){return p O 0;} \
@@ -65,7 +78,7 @@ namespace mwg{
     MWG_TEMP_OP(>=)
 #   undef MWG_TEMP_OP
   }
-#   define nullptr mwg::stdm::nullptr
+#   define nullptr mwg::stdm::nullptr_instance
 #endif
 //------------------------------------------------------------------------------
 //  Defaulted/deleted member functions
@@ -109,6 +122,7 @@ namespace mwg{
     struct static_assert_tester<true,LINE>{
       static_assert_tester(...){} /* to suppress unused warnings */
       typedef int type;
+      static const int value=LINE;
     };
   }
 // 依存型・非依存型で typename が必要だったりそうでなかったりするので駄目
@@ -119,11 +133,22 @@ namespace mwg{
     }
 */
 
-// 注意
-// - static const ...::type になっているのは static const int でないとクラス内でエラーになるから
+/* 実装のメモ
+ *
+ * 1 static tester<C,__LINE__> dummy; とすると
+ *   クラス内で使った時に実体の定義を要求されてしまう。
+ *   といって static を外すとクラスのサイズが無駄に大きくなってしまう。
+ *   また static const int dummy=hello; という形にする訳にも行かない。
+ *
+ * 2 tester<C,__LINE__>::type dummy; とすると
+ *   C が template type parameter に依存している時に typename が必要になる。
+ *
 # define static_assert(C,Message)                                       \
-  static const mwg::detail::static_assert_tester<C,__LINE__>::type      \
+  static MWG_ATTRIBUTE_UNUSED const mwg::detail::static_assert_tester<C,__LINE__>::type      \
     MWG_PREPROC_ADDLINE(static_assert_at_line_)=(0);
+ */
+# define static_assert(C,Message)                                       \
+  enum{ MWG_PREPROC_ADDLINE(static_assert_at_line_) = mwg::detail::static_assert_tester<C,__LINE__>::value }
 #endif
 //------------------------------------------------------------------------------
 //  __VA_ARGS__

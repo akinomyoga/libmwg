@@ -403,9 +403,9 @@ namespace sfinae{
   template<typename T>
   mwg_concept_is_variant_functor(is_xy_functor,T,X,int*,(mwg_concept_param(int),mwg_concept_param(int)));
   struct F1{ int operator()(int x) const{return x*x;} };
-  struct F2{ int* operator()(int x) const{return 0;} };
+  struct F2{ int* operator()(int x) const{mwg_unused(x);return 0;} };
   struct F3{ int operator()(int x,int y) const{return x*y;} };
-  struct F4{ int* operator()(int x,int y) const{return 0;} };
+  struct F4{ int* operator()(int x,int y) const{mwg_unused(x);mwg_unused(y);return 0;} };
   void test_is_variant_functor(){
 #ifdef mwg_concept_is_valid_expression
     mwg_assert((!is_xy_functor<F1>::value));
@@ -430,7 +430,7 @@ namespace apply{
     void get(int) const{}
     int get(int*) const{return 0;}
     void get(double*)  {}
-    
+
     void operator()(int) const{}
     int operator()(int*) const{return 0;}
     void operator()(double*)  {}

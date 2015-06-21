@@ -9,6 +9,42 @@
 #include <exception>
 #include <stdexcept>
 
+#ifdef STANDALONE_MWG_EXCEPT_H
+# ifndef mwg_unused
+#  define mwg_unused(param) (void)param
+# endif
+# ifndef MWG_ATTRIBUTE_UNUSED
+#  ifdef __GNUC__
+#   define MWG_ATTRIBUTE_UNUSED __attribute__((unused))
+#  else
+#   define MWG_ATTRIBUTE_UNUSED
+#  endif
+# endif
+#else
+# include <mwg_config.h>
+# include <mwg/defs.h>
+#endif
+
+#ifndef MWG_ATTRIBUTE_NORETURN
+//?mconf S -t'[[noreturn]]' -o'MWGCONF_STD_ATTRIBUTE_NORETURN' '' '[[noreturn]] void func(){throw 1;}'
+# ifdef MWGCONF_STD_ATTRIBUTE_NORETURN
+#  define MWG_ATTRIBUTE_NORETURN [[noreturn]]
+# elif defined(_MSC_VER)
+#  define MWG_ATTRIBUTE_NORETURN __declspec((noreturn))
+# elif defined(__GNUC__)
+#  define MWG_ATTRIBUTE_NORETURN __attribute__((unused))
+# else
+#  define MWG_ATTRIBUTE_NORETURN
+# endif
+#endif
+#ifndef mwg_noinline
+# ifdef _MSC_VER
+#  define mwg_noinline __declspec(noinline)
+# else
+#  define mwg_noinline
+# endif
+#endif
+
 namespace mwg{
   // エラーコード
   typedef unsigned ecode_t;
@@ -236,11 +272,6 @@ mwg_check/mwg_assert
     今迄に失敗した条件式の回数が返ります。
 
 -----------------------------------------------------------------------------*/
-#ifdef _MSC_VER
-# define mwg_noinline __declspec(noinline)
-#else
-# define mwg_noinline
-#endif
 //!
 //! @def mwg_assert_funcname
 //!
@@ -263,7 +294,6 @@ mwg_check/mwg_assert
 
 #include <cstdarg>
 #include <string>
-#include <mwg_config.h>
 
 #if defined(__unix__)
 # include <unistd.h>
@@ -312,41 +342,39 @@ namespace except_detail{
       return *this;
     }
   };
-}
-}
 
-static mwg_noinline void mwg_vprintd_(const char* pos,const char* func,const char* fmt,va_list arg){
-  using namespace ::mwg::except_detail;
-  dbgput d(stderr);
+  static mwg_noinline void mwg_vprintd_(const char* pos,const char* func,const char* fmt,va_list arg){
+    using namespace ::mwg::except_detail;
+    dbgput d(stderr);
 
-  std::fprintf(stderr,"%s:",pos);
-  if(fmt&&*fmt){
-    d<<' '<<sgr(94);//sgr(35);
-    std::vfprintf(stderr,fmt,arg);
-    d<<sgr(0);
-    if(func)
-      d<<" @ "<<sgr(32)<<'"'<<func<<'"'<<sgr(0);
-    d<<'\n';
-  }else{
-    if(func){
-      d<<" mwg_printd @ "<<sgr(32)<<'"'<<func<<'"'<<sgr(0)<<'\n';
-    }else
-      d<<" mwg_printd\n";
+    std::fprintf(stderr,"%s:",pos);
+    if(fmt&&*fmt){
+      d<<' '<<sgr(94);//sgr(35);
+      std::vfprintf(stderr,fmt,arg);
+      d<<sgr(0);
+      if(func)
+        d<<" @ "<<sgr(32)<<'"'<<func<<'"'<<sgr(0);
+      d<<'\n';
+    }else{
+      if(func){
+        d<<" mwg_printd @ "<<sgr(32)<<'"'<<func<<'"'<<sgr(0)<<'\n';
+      }else
+        d<<" mwg_printd\n";
+    }
+    std::fflush(stderr);
   }
-  std::fflush(stderr);
-}
-static void mwg_printd_(const char* pos,const char* func,const char* fmt,...){
-  va_list arg;
-  va_start(arg,fmt);
-  mwg_vprintd_(pos,func,fmt,arg);
-  va_end(arg);
-}
+  static void mwg_printd_(const char* pos,const char* func,const char* fmt,...){
+    va_list arg;
+    va_start(arg,fmt);
+    mwg_vprintd_(pos,func,fmt,arg);
+    va_end(arg);
+  }
 
-static mwg_noinline int mwg_vcheckfn(bool condition,const char* expr,const char* pos,const char* func,const char* fmt,va_list arg){
-  static int i=0;
-  if(!condition){
-    ++i; // dummy operation to set break point
-
+  static mwg_noinline int increment_fail_count(int delta=1){
+    static int fail_nothrow_count=0;
+    return fail_nothrow_count+=delta; // dummy operation to set break point
+  }
+  static bool vprint_fail(const char* expr,const char* pos,const char* func,const char* fmt,va_list arg){
     using namespace ::mwg::except_detail;
     dbgput d(stderr);
     // first line
@@ -374,64 +402,131 @@ static mwg_noinline int mwg_vcheckfn(bool condition,const char* expr,const char*
     // }
     // d<<"[expr: "<<sgr(94)<<expr<<sgr(0)<<"]\n";
     std::fflush(stderr);
-  }
-  return i;
-}
 
-static mwg_noinline void mwg_vcheckft(bool condition,const char* expr,const char* pos,const char* func,const char* fmt,va_list arg){
-  if(condition)return;
-  std::string buff("assertion failed! ");
-  if(fmt&&*fmt){
-    char message[1024];
+    return false;
+  }
+
+  MWG_ATTRIBUTE_NORETURN
+  static bool vthrow_fail(const char* expr,const char* pos,const char* func,const char* fmt,va_list arg){
+    mwg_unused(func);
+
+    std::string buff("assertion failed! ");
+    if(fmt&&*fmt){
+      char message[1024];
 #ifdef MWGCONF_HAS_VSNPRINTF
-    // C99 vsnprintf
-    /*?mconf
-     * # X snprintf    cstdio           'char b[9];::snprintf(b,9,"");'
-     * X vsnprintf -h'cstdio' -h'cstdarg' 'char b[9];va_list a;::vsnprintf(b,9,"",a);'
-     */
-    ::vsnprintf(message,sizeof message,fmt,arg);
+      // C99 vsnprintf
+      /*?mconf
+       * # X snprintf    cstdio           'char b[9];::snprintf(b,9,"");'
+       * X vsnprintf -h'cstdio' -h'cstdarg' 'char b[9];va_list a;::vsnprintf(b,9,"",a);'
+       */
+      ::vsnprintf(message,sizeof message,fmt,arg);
 #else
-    std::vsprintf(message,fmt,arg);
+      std::vsprintf(message,fmt,arg);
 #endif
-    buff+=message;
-    buff+=" ";
+      buff+=message;
+      buff+=" ";
+    }
+    buff+="[expr = ";
+    buff+=expr;
+    buff+=" @ ";
+    buff+=pos;
+    buff+=" ]";
+    throw mwg::assertion_error(buff);
   }
-  buff+="[expr = ";
-  buff+=expr;
-  buff+=" @ ";
-  buff+=pos;
-  buff+=" ]";
-  throw mwg::assertion_error(buff);
-}
-static int mwg_checkfn(bool condition,const char* expr,const char* pos,const char* func,const char* fmt,...){
-  va_list arg;
-  va_start(arg,fmt);
-  int r=mwg_vcheckfn(condition,expr,pos,func,fmt,arg);
-  va_end(arg);
-  return r;
-}
-static void mwg_checkft(bool condition,const char* expr,const char* pos,const char* func,const char* fmt,...){
+  static bool print_fail(const char* expr,const char* pos,const char* func,const char* fmt,...){
+    increment_fail_count();
+    va_list arg;
+    va_start(arg,fmt);
+    vprint_fail(expr,pos,func,fmt,arg);
+    va_end(arg);
+    return false;
+  }
+
+  MWG_ATTRIBUTE_NORETURN
+  static bool throw_fail(const char* expr,const char* pos,const char* func,const char* fmt,...){
+    increment_fail_count();
 #if MWG_DEBUG||!defined(NDEBUG)
-  va_list args1;
-  va_start(args1,fmt);
-  mwg_vcheckfn(condition,expr,pos,func,fmt,args1);
-  va_end(args1);
+    va_list args1;
+    va_start(args1,fmt);
+    vprint_fail(expr,pos,func,fmt,args1);
+    va_end(args1);
 #endif
-  va_list args2;
-  va_start(args2,fmt);
-  mwg_vcheckft(condition,expr,pos,func,fmt,args2);
-  va_end(args2);
+    va_list args2;
+    va_start(args2,fmt);
+    vthrow_fail(expr,pos,func,fmt,args2);
+    va_end(args2);
+    throw;
+  }
+
+#ifdef __GNUC__
+  /* GCC で unused-function の警告が出るのでそれを抑制する。
+   *
+   * 1 一番初めに思いつきそうな以下の方法は使えない
+   *
+   * #pragma GCC diagnostic push
+   * #pragma GCC diagnostic ignored "-Wunused"
+   * #pragma GCC diagnostic ignored "-Wunused-function"
+   * #pragma GCC diagnostic ignored "-Wunused-variable"
+   * ...
+   * #pragma GCC diagnostic pop
+   *
+   * というのも、unused が判明するのはファイルを末尾まで読んだ後であり、
+   * その時に -Wunused etc が ignored になっていないと、結局警告が出るからである。
+   * (勿論 ignored のままにしておけば警告は出なくなるが、
+   * 本当にミスで unused になっている関数について警告が出なくなってしまうのでしたくない)。
+   *
+   * 2 GCC の __attribute__((unused)) をつける方法も考えたが今度は「文は効果がありません」の警告が出る
+   *
+   * どうも __attribute__((unused)) をつけた関数の呼び出しは意味のない文として扱われるようである。
+   *
+   * 3 結局ダミー変数を用いて無理やり使うしか方法はないようである
+   *
+   * 参考: http://stackoverflow.com/questions/11124895/suppress-compiler-warning-function-declared-never-referenced
+   *
+   * 4 そもそも static ではなく inline で宣言しておけば問題ない?
+   *
+   * ■これは後で考える。(そもそもなぜ static にしたのであったか??)
+   *
+   */
+# ifndef MWG_SUPPRESS_WUNUSED
+#  define MWG_SUPPRESS_WUNUSED(var) static MWG_ATTRIBUTE_UNUSED int _dummy_tmp_##var=((int)(var)&0)
+# endif
+  MWG_SUPPRESS_WUNUSED(mwg_printd_);
+  MWG_SUPPRESS_WUNUSED(print_fail);
+  MWG_SUPPRESS_WUNUSED(throw_fail);
+#endif
+}
 }
 
+/*
+ * 1 (condition||print) にする理由
+ *
+ *   #define assert(condition,message) check_condition_to_throw(condition,message);
+ *
+ *   としていると message 部分に含まれる複雑な式が遅延評価にならない。従って、
+ *
+ *   #define assert(condition,message) ((condition)||print(message));
+ *
+ *   の様な感じにする。
+ *
+ * 2 しかし上記の様にしていると condition が静的に true と評価される場合に GCC が
+ *
+ *   warning: statement has no effect [-Wunused-value]
+ *
+ *   という警告を出してきてうるさい。特に mwg_assert を使った回数だけ表示される。
+ *   do{if(!condition)print(message)}while(0) などとすれば警告は出ないがこれだと式の中に組み込めない。
+ *   また、((condition)?true:(print(message))) としても同じ警告が出る。
+ *
+ */
+/* GCC: assert 文に対して出る警告について
+ *
+ */
 #define mwg_printd(...)                    mwg_printd_(mwg_assert_position,mwg_assert_funcname,"" __VA_ARGS__)
-// #define mwg_check_nothrow(condition,...)   mwg_checkfn(condition,#condition,mwg_assert_position,mwg_assert_funcname,"" __VA_ARGS__)
-// #define mwg_check(condition,...)           mwg_checkft(condition,#condition,mwg_assert_position,mwg_assert_funcname,"" __VA_ARGS__)
-#define mwg_check_nothrow(condition,...)   ((condition)||(mwg_checkfn(false,#condition,mwg_assert_position,mwg_assert_funcname,"" __VA_ARGS__),false))
-#define mwg_check(condition,...)           ((condition)||(mwg_checkft(false,#condition,mwg_assert_position,mwg_assert_funcname,"" __VA_ARGS__),false))
+#define mwg_check_nothrow(condition,...)   ((condition)||(mwg::except_detail::print_fail(#condition,mwg_assert_position,mwg_assert_funcname,"" __VA_ARGS__),false))
+//#define mwg_check(condition,...)           ((condition)||(mwg::except_detail::throw_fail(#condition,mwg_assert_position,mwg_assert_funcname,"" __VA_ARGS__),false))
+#define mwg_check(condition,...)           do{if(!(condition))mwg::except_detail::throw_fail(#condition,mwg_assert_position,mwg_assert_funcname,"" __VA_ARGS__);}while(0)
 
 #if MWG_DEBUG||!defined(NDEBUG)
-// # define mwg_assert_nothrow(condition,...) mwg_checkfn(condition,#condition,mwg_assert_position,mwg_assert_funcname,"" __VA_ARGS__)
-// # define mwg_assert(condition,...)         mwg_checkft(condition,#condition,mwg_assert_position,mwg_assert_funcname,"" __VA_ARGS__)
 # define mwg_verify_nothrow(condition,...) mwg_check_nothrow(condition,__VA_ARGS__)
 # define mwg_verify(condition,...)         mwg_check(condition,__VA_ARGS__)
 # define mwg_assert_nothrow(condition,...) mwg_check_nothrow(condition,__VA_ARGS__)

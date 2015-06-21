@@ -45,17 +45,25 @@ directories+=$(CFGDIR)/include
 directories+=$(CFGDIR)/config
 directories+=$(CPPDIR)
 
-clean: clean-obj
 clean-src:
-	-rm -rf $(CPPDIR)/* $(CFGDIR)/config/* $(CFGDIR)/include/*
-clean-obj:
-	-rm -rf $(CFGDIR)/obj/*.o
-clean-lib:
-	-rm -rf $(CFGDIR)/lib $(CFGDIR)/bin
-clean-cache:
+	-rm -rf $(CPPDIR)/*
+
+clean-cxx-source:
+	-rm -rf $(CFGDIR)/config $(CFGDIR)/include
+clean-cxx-cache:
 	-rm -rf $(CFGDIR)/cache
-clean-all: clean-src clean-obj clean-lib clean-cache
-.PHONY: clean clean-src clean-obj clean-lib clean-cache clean-all
+clean-cxx-obj:
+	-rm -rf $(CFGDIR)/obj/*.o
+clean-cxx-lib:
+	-rm -rf $(CFGDIR)/lib $(CFGDIR)/bin
+clean-cxx-check:
+	-rm -rf $(CFGDIR)/check
+clean-cxx: clean-cxx-source clean-cxx-cache clean-cxx-obj clean-cxx-lib clean-cxx-check
+.PHONY: clean-cxx clean-cxx-source clean-cxx-cache clean-cxx-obj clean-cxx-lib clean-cxx-check
+
+clean: clean-cxx-obj
+clean-all: clean-src clean-cxx
+.PHONY: clean clean-src clean-all
 
 directories+=$(INS_INCDIR)
 directories+=$(INS_INCCFG)
@@ -82,7 +90,7 @@ $(CPPDIR)/${filex}.mconf: $(CPPDIR)/${file}
 $(CPPDIR)/${filex}.lwiki: $(CPPDIR)/${file}
 config_files+=$(CFGDIR)/config/${name}.h
 $(CFGDIR)/config/${name}.h: $(CPPDIR)/${filex}.mconf | $(CFGDIR)/config
-	$(BASE)/mmake/make_command.sh config ${file} $(FLAGS) $(CXXFLAGS)
+	$(BASE)/mmake/make_command.sh config ${file} $(FLAGS) $(CXXFLAGS) $(LDFLAGS)
 check_files+=$(CFGDIR)/check/${name}.stamp
 $(CPPDIR)/check/${name}$(CXXEXT): $(CPPDIR)/${file}
 -include $(CFGDIR)/check/${name}.dep

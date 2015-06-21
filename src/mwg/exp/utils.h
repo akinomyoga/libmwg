@@ -89,10 +89,11 @@ namespace exp{
 #define mwg_static_flags_cref(TAG,VALUE) \
   const mwg::exp::static_flags<TAG,VALUE>&
 
-// #define mwg_static_flags_define(NAME,TAG,VALUE)                                      \
-//   static mwg_static_flags_cref(TAG,VALUE) NAME                                       \
-//     =reinterpret_cast<mwg_static_flags_cref(TAG,VALUE)>(*reinterpret_cast<int*>(0)); \
-//   static const int NAME##_flag=VALUE;                                               /**/
+/* #define mwg_static_flags_define(NAME,TAG,VALUE)                                      \
+ *   static mwg_static_flags_cref(TAG,VALUE) NAME                                       \
+ *     =reinterpret_cast<mwg_static_flags_cref(TAG,VALUE)>(*reinterpret_cast<int*>(0)); \
+ *   static const int NAME##_flag=VALUE;                                               \/\*\*\/
+ */
 //※null reference はコンパイラの警告が出る。
 
 #define mwg_static_flags_define(NAME,TAG,VALUE)                         \

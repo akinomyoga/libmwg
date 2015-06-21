@@ -11,10 +11,10 @@
  * # C++Tr1
  * H tr1/memory
  * X -t'std::shared_ptr<T>' shared_ptr memory "std::shared_ptr<int> a;"
- * 
+ *
  * # C++11
  * X -t'std::unique_ptr<T>' unique_ptr memory "std::unique_ptr<int> a;"
- * 
+ *
  * # Boost Library Headers
  * if test -n "$MWGCONF_HEADER_BOOST_CONFIG_HPP"; then
  *   H boost/tr1/memory.hpp
@@ -23,60 +23,62 @@
  */
 
 // ↓ std::tr1::shared_ptr ... c++11 shared_ptr と interface が異なるので使わない (unique_ptr で初期化できない)
-// #elif MWGCONF_HEADER_STD>=2005||defined(MWGCONF_HEADER_TR1)
-// # if MWGCONF_HEADER_STD>=2005
-// #  include <memory>
-// # elif defined(MWGCONF_HEADER_TR1)
-// #  include <tr1/memory>
-// # endif
-// # include <mwg/std/utility>
-// # include "memory.unique_ptr.inl"
-// namespace mwg{
-// namespace stdm{
-//   template<typename T,typename A>
-//   struct _allocate_shared_deleter{
-//     typedef typename A::template rebind<T>::other allocator_type;
-//     allocator_type alloc;
-//   public:
-//     _allocate_shared_deleter(A const& alloc):alloc(alloc){}
-//     T* operator()(T* ptr) const{
-//       ptr->~T();
-//       alloc.deallocate(ptr);
-//     }
-//   };
-// # ifdef MWGCONF_STD_VARIADIC_TEMPLATES
-//   /// std::make_shared
-//   template<typename T,typename Args...>
-//   shared_ptr<T> make_shared(Args mwg_forward_rvalue... args){
-//     return shared_ptr<T>(new T(mwg::stdm::forward<Args>(args)...));
-//   }
-//   /// std::allocate_shared
-//   template<typename T,typename A,typename Args...>
-//   shared_ptr<T> allocate_shared(A const& alloc,Args mwg_forward_rvalue... args){
-//     T* buff;
-//     A::template rebind<T>::other(alloc).allocate(buff);
-//     return shared_ptr<T>(new(buff) T(mwg::stdm::forward<Args>(args)...),_allocate_shared_deleter<T,A>(alloc),alloc);
-//   }
-// # else
-// #  define mwg_impl_variadic__function                                   \
-//   template<typename T mwg_impl_variadic__template_params_r> \
-//   shared_ptr<T> make_shared(mwg_impl_variadic__forward_params){ \
-//     return shared_ptr<T>(new T(mwg_impl_variadic__forward_args)); \
-//   }
-// #   include <mwg/impl/DeclareVariadicFunction.inl>
-// #  undef mwg_impl_variadic__function
-// #  define mwg_impl_variadic__function                                   \
-//   template<typename T,typename A mwg_impl_variadic__template_params_r>  \
-//   shared_ptr<T> allocate_shared(A const& alloc mwg_impl_variadic__forward_params_r){ \
-//     T* buff; \
-//     A::template rebind<T>::other(alloc).allocate(buff); \
-//     return shared_ptr<T>(new(buff) T(mwg_impl_variadic__forward_args),_allocate_shared_deleter<T,A>(alloc),alloc); \
-//   }
-// #   include <mwg/impl/DeclareVariadicFunction.inl>
-// #  undef mwg_impl_variadic__function
-// # endif /* end of !defined(MWGCONF_STD_VARIADIC_TEMPLATES) */
-// }
-// }
+/*
+ * #elif MWGCONF_HEADER_STD>=2005||defined(MWGCONF_HEADER_TR1)
+ * # if MWGCONF_HEADER_STD>=2005
+ * #  include <memory>
+ * # elif defined(MWGCONF_HEADER_TR1)
+ * #  include <tr1/memory>
+ * # endif
+ * # include <mwg/std/utility>
+ * # include "memory.unique_ptr.inl"
+ * namespace mwg{
+ * namespace stdm{
+ *   template<typename T,typename A>
+ *   struct _allocate_shared_deleter{
+ *     typedef typename A::template rebind<T>::other allocator_type;
+ *     allocator_type alloc;
+ *   public:
+ *     _allocate_shared_deleter(A const& alloc):alloc(alloc){}
+ *     T* operator()(T* ptr) const{
+ *       ptr->~T();
+ *       alloc.deallocate(ptr);
+ *     }
+ *   };
+ * # ifdef MWGCONF_STD_VARIADIC_TEMPLATES
+ *   /// std::make_shared
+ *   template<typename T,typename Args...>
+ *   shared_ptr<T> make_shared(Args mwg_forward_rvalue... args){
+ *     return shared_ptr<T>(new T(mwg::stdm::forward<Args>(args)...));
+ *   }
+ *   /// std::allocate_shared
+ *   template<typename T,typename A,typename Args...>
+ *   shared_ptr<T> allocate_shared(A const& alloc,Args mwg_forward_rvalue... args){
+ *     T* buff;
+ *     A::template rebind<T>::other(alloc).allocate(buff);
+ *     return shared_ptr<T>(new(buff) T(mwg::stdm::forward<Args>(args)...),_allocate_shared_deleter<T,A>(alloc),alloc);
+ *   }
+ * # else
+ * #  define mwg_impl_variadic__function                                   \
+ *   template<typename T mwg_impl_variadic__template_params_r> \
+ *   shared_ptr<T> make_shared(mwg_impl_variadic__forward_params){ \
+ *     return shared_ptr<T>(new T(mwg_impl_variadic__forward_args)); \
+ *   }
+ * #   include <mwg/impl/DeclareVariadicFunction.inl>
+ * #  undef mwg_impl_variadic__function
+ * #  define mwg_impl_variadic__function                                   \
+ *   template<typename T,typename A mwg_impl_variadic__template_params_r>  \
+ *   shared_ptr<T> allocate_shared(A const& alloc mwg_impl_variadic__forward_params_r){ \
+ *     T* buff; \
+ *     A::template rebind<T>::other(alloc).allocate(buff); \
+ *     return shared_ptr<T>(new(buff) T(mwg_impl_variadic__forward_args),_allocate_shared_deleter<T,A>(alloc),alloc); \
+ *   }
+ * #   include <mwg/impl/DeclareVariadicFunction.inl>
+ * #  undef mwg_impl_variadic__function
+ * # endif \/\* end of !defined(MWGCONF_STD_VARIADIC_TEMPLATES) \*\/
+ * }
+ * }
+ */
 #else
 # include <memory>
 # include <algorithm>
@@ -174,12 +176,14 @@ namespace detail{
 #ifdef MWGCONF_STD_VARIADIC_TEMPLATES
     template<typename... Args>
     count_buff_inplaceAllocated(A const& alloc,Args mwg_forward_rvalue... args):alloc(alloc){
+      mwg_unused(alloc);
       new(this->data) T(mwg::stdm::forward<Args>(args)...);
     }
 #else
 #  define mwg_impl_variadic__function                                   \
     mwg_impl_variadic__template_decl                                    \
     count_buff_inplaceAllocated(A const& alloc mwg_impl_variadic__forward_params_r){ \
+      mwg_unused(alloc);                                                \
       new(this->data) T(mwg_impl_variadic__forward_args);               \
     }
 #    include <mwg/impl/DeclareVariadicFunction.inl>
@@ -320,7 +324,7 @@ namespace detail{
 
     template<class T2>
     shared_ptr(const shared_ptr<T2>& sp):ptr(sp.ptr),counter(sp.counter){}
-    template<class T2> 
+    template<class T2>
     shared_ptr& operator=(const shared_ptr<T2>& sp){
       ptr=sp.ptr;
       counter=sp.counter;
@@ -341,7 +345,7 @@ namespace detail{
     shared_ptr(const shared_ptr<T2>&& sp):ptr(sp.ptr){
       shared_count::swap(counter,sp.counter);
     }
-    template<class T2> 
+    template<class T2>
     shared_ptr& operator=(shared_ptr<T2>&& sp){
       ptr=sp.ptr;
       shared_count::swap(counter,sp.counter);
@@ -359,14 +363,14 @@ namespace detail{
       return *this;
     }
 
-    template<class T2> 
+    template<class T2>
     shared_ptr& operator=(auto_ptr <T2>&& ap){
       ptr=ap.release();
       counter.reset(ptr,default_delete<T2>());
       return *this;
     }
   private:
-    template <class T2, class D> 
+    template <class T2, class D>
     shared_ptr& operator=(const unique_ptr< T2, D>& up) mwg_std_deleted;
 #else
   public:
@@ -385,7 +389,7 @@ namespace detail{
       return *this;
     }
 
-    template<class T2> 
+    template<class T2>
     shared_ptr& operator=(const auto_ptr<T2>& ap){
       ptr=const_cast<auto_ptr<T2>&>(ap).release();
       counter.reset(ptr,default_delete<T2>());
@@ -470,7 +474,7 @@ namespace detail{
       count_buff* r=ptr.get_buff();
       return l<r;
     }
-    template<class D, class T> 
+    template<class D, class T>
     D* get_deleter(shared_ptr<T> const& ptr);
 #endif
   };
@@ -504,7 +508,7 @@ namespace detail{
   shared_ptr<T> allocate_shared(A const& alloc mwg_impl_variadic__forward_params_r){ \
     typedef count_buff_inplaceAllocated<T,A> buffer_type; \
     typedef typename A::template rebind<buffer_type>::other buffer_allocator; \
-    buffer_type* const cbuff=new buffer_type(alloc mwg_impl_variadic__forward_args_r); \
+    buffer_type* const cbuff=new(buffer_allocator(alloc).allocate(1)) buffer_type(alloc mwg_impl_variadic__forward_args_r); \
     return shared_ptr<T>(make_shared_tag(),cbuff->ptr(),cbuff); \
   }
 #    include <mwg/impl/DeclareVariadicFunction.inl>

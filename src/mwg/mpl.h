@@ -315,21 +315,23 @@ void test_integral_minmax(){
 
 //*****************************************************************************
 //  型に関する判定
-// //-----------------------------------------------------------------------------
-// // mustbe_type<T,mem> : mem の型が T でなかったら適用失敗
-// //-----------------------------------------------------------------------------
-//   template<class T,T mem>
-//   struct mustbe_type{typedef mwg::stdm::true_type type;};
-// //----------------------------------------------------------------------------
-// // mwg_mpl_is_assignable(T,expr) : expr を T 型の変数に代入可能か否かの判定
-// //----------------------------------------------------------------------------
-//   template<typename T>
-//   struct is_assignable_impl{
-//     static mwg::mpl::true_t eval(T v);
-//     static mwg::mpl::false_t eval(...);
-//   };
-// #define mwg_mpl_is_assignable(T,expr) \
-//   (sizeof(mwg::mpl::true_t)==sizeof(mwg::mpl::is_assignable_impl<T>::eval(mwg_mpl_void2iarr(expr))))
+/*
+ * //-----------------------------------------------------------------------------
+ * // mustbe_type<T,mem> : mem の型が T でなかったら適用失敗
+ * //-----------------------------------------------------------------------------
+ *   template<class T,T mem>
+ *   struct mustbe_type{typedef mwg::stdm::true_type type;};
+ * //----------------------------------------------------------------------------
+ * // mwg_mpl_is_assignable(T,expr) : expr を T 型の変数に代入可能か否かの判定
+ * //----------------------------------------------------------------------------
+ *   template<typename T>
+ *   struct is_assignable_impl{
+ *     static mwg::mpl::true_t eval(T v);
+ *     static mwg::mpl::false_t eval(...);
+ *   };
+ * #define mwg_mpl_is_assignable(T,expr) \
+ *   (sizeof(mwg::mpl::true_t)==sizeof(mwg::mpl::is_assignable_impl<T>::eval(mwg_mpl_void2iarr(expr))))
+ */
 
   //============================================================================
   //  type_for_arg<T>::type : 関数の引数として適当な物を選択
