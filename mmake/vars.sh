@@ -14,14 +14,14 @@ fi
 MWGCXX="$BASE/mmake/mcxx/cxx"
 MWGPP="$BASE/mmake/mwg_pp.awk"
 
+# compiler settings
+CXXPREFIX="$("$MWGCXX" +prefix)"
+CXXENC="$("$MWGCXX" +get input-charset)"
+CXXEXT=.cpp
+
 # read config.mk
 : ${CXXCFG:=default}
 [[ -s $BASE/consig.src ]] && source $BASE/config.src
-
-# compiler settings
-CXXPREFIX="$("$MWGCXX" +prefix)"
-CXXENC=utf-8
-CXXEXT=.cpp
 
 # project settings
 SRCENC=utf-8

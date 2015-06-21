@@ -49,7 +49,16 @@ function proc/copy-pp {
 
   mkdf "$fcheck"
   mkdf "$fsource"
-  PPLINENO=1 PPC_PRAGMA=1 PPC_CPP=1 "$MWGPP" <<EOF > "$fsource"
+  {
+    export PPLINENO=1 PPC_PRAGMA=1 PPC_CPP=1
+    if [[ "$CXXENC" != "$SRCENC" ]]; then
+      "$MWGPP" \
+        | sed '/-\*-.\{1,\}-\*-/s/\bcoding:[[:space:]]*'"$SRCENC"'\b/coding: '"$CXXENC"'/' \
+        | iconv -c -f "$SRCENC" -t "$CXXENC"
+    else
+      "$MWGPP"
+    fi
+  } <<EOF > "$fsource"
 #%\$> $fcheck
 #%\$>
 #%m begin_check
@@ -89,7 +98,7 @@ function proc/compile {
 
   mkdf "$fdep"
   mkdf "$fobj"
-  "$MWGCXX" -MD -MF "$fdep" -I "$CFGDIR/include" -I "$CPPDIR" -c -o "$fobj" "$fsource" "$@"
+  "$MWGCXX" -MD -MF "$fdep" -MQ "$fobj" -I "$CFGDIR/include" -I "$CPPDIR" -c -o "$fobj" "$fsource" "$@"
 }
 
 function proc/check {
@@ -113,7 +122,7 @@ function proc/config {
   local "${generate_filenames_vars[@]}"
   generate_filenames "$1"
   shift
-  "$MWGCXX" +config -o "$fconfig" --cache="$CFGDIR/cache" "$fmconf" -- "$@"
+  "$MWGCXX" +config -o "$fconfig" --cache="$CFGDIR/cache" --log="$CFGDIR/config.log" "$fmconf" -- "$@"
 }
 
 function proc/install {

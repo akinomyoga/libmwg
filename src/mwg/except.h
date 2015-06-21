@@ -30,7 +30,7 @@
 # ifdef MWGCONF_STD_ATTRIBUTE_NORETURN
 #  define MWG_ATTRIBUTE_NORETURN [[noreturn]]
 # elif defined(_MSC_VER)
-#  define MWG_ATTRIBUTE_NORETURN __declspec((noreturn))
+#  define MWG_ATTRIBUTE_NORETURN __declspec(noreturn)
 # elif defined(__GNUC__)
 #  define MWG_ATTRIBUTE_NORETURN __attribute__((unused))
 # else
@@ -530,8 +530,11 @@ namespace except_detail{
  */
 #define mwg_printd(...)                    mwg_printd_(mwg_assert_position,mwg_assert_funcname,"" __VA_ARGS__)
 #define mwg_check_nothrow(condition,...)   ((condition)||(mwg::except_detail::print_fail(#condition,mwg_assert_position,mwg_assert_funcname,"" __VA_ARGS__),false))
-//#define mwg_check(condition,...)           ((condition)||(mwg::except_detail::throw_fail(#condition,mwg_assert_position,mwg_assert_funcname,"" __VA_ARGS__),false))
-#define mwg_check(condition,...)           do{if(!(condition))mwg::except_detail::throw_fail(#condition,mwg_assert_position,mwg_assert_funcname,"" __VA_ARGS__);}while(0)
+#ifdef _MSC_VER
+# define mwg_check(condition,...)           ((condition)||(mwg::except_detail::throw_fail(#condition,mwg_assert_position,mwg_assert_funcname,"" __VA_ARGS__),false))
+#else
+# define mwg_check(condition,...)           do{if(!(condition))mwg::except_detail::throw_fail(#condition,mwg_assert_position,mwg_assert_funcname,"" __VA_ARGS__);}while(0)
+#endif
 
 #if MWG_DEBUG||!defined(NDEBUG)
 # define mwg_verify_nothrow(condition,...) mwg_check_nothrow(condition,__VA_ARGS__)

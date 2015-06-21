@@ -53,7 +53,7 @@ clean-cxx-source:
 clean-cxx-cache:
 	-rm -rf $(CFGDIR)/cache
 clean-cxx-obj:
-	-rm -rf $(CFGDIR)/obj/*.o
+	-rm -rf $(CFGDIR)/obj/*.o $(CFGDIR)/obj/*.dep
 clean-cxx-lib:
 	-rm -rf $(CFGDIR)/lib $(CFGDIR)/bin
 clean-cxx-check:

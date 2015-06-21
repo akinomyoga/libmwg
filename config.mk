@@ -1,8 +1,11 @@
-# -*- mode:sh; mode:sh-bash -*-
+# -*- mode:makefile-gmake -*-
 # config.mk - compiler settings
 
+# msc の場合は -Wall, -Wextra を指定しない
+ifeq ($(CXXPREFIX:i686-win-vc-%=hit),$(CXXPREFIX))
 CXXFLAGS += -Wall
 CXXFLAGS += -Wextra
+endif
 
 CXXCFG_FOUND:=
 ifeq ($(CXXCFG),default)

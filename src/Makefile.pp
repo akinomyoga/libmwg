@@ -78,15 +78,20 @@ Makefile: Makefile.pp
 $(CPPDIR)/mwg:
 	mkdir -p $(CPPDIR)/mwg
 $(CFGDIR)/include/mwg_config.1.h: mwg_config.mconf
-	$(MWGCXX) +config -o "$@" --cache="$(CFGDIR)/cache" $< -- $(CXXFLAGS) $(FLAGS) $(LDFLAGS)
+	$(MWGCXX) +config -o "$@" --cache="$(CFGDIR)/cache" --log="$(CFGDIR)/config.log" $< -- $(CXXFLAGS) $(FLAGS) $(LDFLAGS)
 $(CFGDIR)/include/mwg_config.stamp: $(CFGDIR)/include/mwg_config.1.h $(CFGDIR)/include/mwg_config.2.h
 	mv $(CFGDIR)/include/mwg_config.h $@ || touch $@
 	$(MWGPP) $< > $(CFGDIR)/include/mwg_config.h
 	touch -r $@ $(CFGDIR)/include/mwg_config.h
 	touch $@
 $(CFGDIR)/include/mwg_config_common.h: $(CFGDIR)/include/mwg_config.1.h
+ifeq ($(CXXENC),$(SRCENC))
 $(CPPDIR)/mwg/config.h: mwg_config.mconf | $(CFGDIR)/include/mwg_config_common.h $(CPPDIR)/mwg
 	cp $(CFGDIR)/include/mwg_config_common.h $@
+else
+$(CPPDIR)/mwg/config.h: mwg_config.mconf | $(CFGDIR)/include/mwg_config_common.h $(CPPDIR)/mwg
+	iconv -c -f "$(SRCENC)" -t "$(CXXENC)" $(CFGDIR)/include/mwg_config_common.h > $@
+endif
 source_files+=$(CFGDIR)/include/mwg_config.stamp $(CPPDIR)/mwg/config.h
 install_files+=$(INS_INCCFG)/mwg_config.h $(INS_INCCFG)/mwg/config.h
 $(INS_INCCFG)/mwg_config.h: $(CFGDIR)/include/mwg_config.h

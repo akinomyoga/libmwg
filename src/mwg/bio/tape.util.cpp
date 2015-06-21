@@ -1,6 +1,7 @@
 // -*- mode:C++;coding:utf-8 -*-
 #include <mwg/bio/tape.h>
 //NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN
+
 namespace mwg{
 namespace bio{
 namespace{
@@ -14,8 +15,8 @@ int HexEncode(const byte*& src0,const byte*const srcN,byte*& dst0,byte*const dst
 
   int n=std::min(srcN-src0,(dstN-dst0)/2);
   for(int i=0;i<n;i++,src++){
-    *dst++=TABLE[*src>>4];
-    *dst++=TABLE[0xF&*src];
+    *dst++=(byte)TABLE[*src>>4];
+    *dst++=(byte)TABLE[0xF&*src];
   }
 
   src0=src;
@@ -39,13 +40,13 @@ int HexDecode(const byte*& src0,const byte*const srcN,byte*& dst0,byte*const dst
     if('0'<=b&&b<='9')
       b-='0';
     else if('a'<=b&&b<='f')
-      b=b-'a'+10;
+      b=byte(b-'a'+10);
     else if('A'<=b&&b<='F')
-      b=b-'A'+10;
+      b=byte(b-'A'+10);
     else continue;
 
     if(state.f){
-      *dst++=state.b<<4|b;
+      *dst++=byte(state.b<<4|b);
       state.f=0;
       if(dst>=dstN)break;
     }else{
@@ -140,6 +141,10 @@ int Base64Encode(const byte*& src0,const byte* srcN,byte*& dst0,byte* dstN,void*
     byte& stat=(&reinterpret_cast<byte&>(state_))[1];
 
     byte s;
+#ifdef _MSC_VER
+# pragma warning(push)
+# pragma warning(disable:4127) // MSC は do{}while(0) の 0 に対して警告を吐く
+#endif
 #define consume_readbyte                        \
     do{if(src>=srcN)goto end;s=*src++;}while(0)
 #define consume_checkdst                        \
@@ -152,27 +157,27 @@ int Base64Encode(const byte*& src0,const byte* srcN,byte*& dst0,byte* dstN,void*
           consume_checkdst;
           consume_readbyte;
 
-          *dst++=Base64EncodeTable[s>>2];
-          buff=s<<4;
+          *dst++=(byte)Base64EncodeTable[s>>2];
+          buff=byte(s<<4);
           stat=1;
         case 1:
           consume_checkdst;
           consume_readbyte;
 
-          *dst++=Base64EncodeTable[0x3F&(buff|s>>4)];
-          buff=s<<2;
+          *dst++=(byte)Base64EncodeTable[0x3F&(buff|s>>4)];
+          buff=byte(s<<2);
           stat=2;
         case 2:
           consume_checkdst;
           consume_readbyte;
 
-          *dst++=Base64EncodeTable[0x3F&(buff|s>>6)];
+          *dst++=(byte)Base64EncodeTable[0x3F&(buff|s>>6)];
           buff=s;
           stat=3;
         case 3:
           consume_checkdst;
 
-          *dst++=Base64EncodeTable[0x3F&buff];
+          *dst++=(byte)Base64EncodeTable[0x3F&buff];
           stat=0;
         }
     }else{
@@ -187,17 +192,17 @@ int Base64Encode(const byte*& src0,const byte* srcN,byte*& dst0,byte* dstN,void*
       case 1:
         consume_checkdst;
 
-        *dst++=Base64EncodeTable[0x3F&buff];
+        *dst++=(byte)Base64EncodeTable[0x3F&buff];
         goto trail2;
       case 2:
         consume_checkdst;
 
-        *dst++=Base64EncodeTable[0x3F&buff];
+        *dst++=(byte)Base64EncodeTable[0x3F&buff];
         goto trail1;
       case 3:
         consume_checkdst;
 
-        *dst++=Base64EncodeTable[0x3F&buff];
+        *dst++=(byte)Base64EncodeTable[0x3F&buff];
         stat=0;
         goto end;
       trail2:stat=4;
@@ -218,6 +223,9 @@ int Base64Encode(const byte*& src0,const byte* srcN,byte*& dst0,byte* dstN,void*
     return 0;
 #undef consume_readbyte
 #undef consume_checkdst
+#ifdef _MSC_VER
+# pragma warning(pop)
+#endif
   }
 #endif
 
@@ -244,38 +252,45 @@ int Base64Encode(const byte*& src0,const byte* srcN,byte*& dst0,byte* dstN,void*
       byte* dst=dst0;
 
       byte s;
+#ifdef _MSC_VER
+# pragma warning(push)
+# pragma warning(disable:4127) // MSC は do{}while(0) の 0 に対して警告を吐く
+#endif
 #define consume_readbyte                                          \
       do if(src>=srcN)goto end;                                   \
       while((s=*src++)>0x7F||(s=Base64DecodeTable[s])==0xFF) /**/
-#define consume_checkdst                        \
+#define consume_checkdst \
       do if(dst>=dstN)goto end;while(0)
 
       switch(stat)for(;;){
         default:
         case 0:
           consume_readbyte;
-          buff=s<<2;
+          buff=(byte)(s<<2);
           stat=1;
         case 1:
           consume_checkdst;
           consume_readbyte;
-          *dst++=buff|s>>4;
-          buff=s<<4;
+          *dst++=(byte)(buff|s>>4);
+          buff=(byte)(s<<4);
           stat=2;
         case 2:
           consume_checkdst;
           consume_readbyte;
-          *dst++=buff|s>>2;
-          buff=s<<6;
+          *dst++=(byte)(buff|s>>2);
+          buff=(byte)(s<<6);
           stat=3;
         case 3:
           consume_checkdst;
           consume_readbyte;
-          *dst++=buff|s;
+          *dst++=(byte)(buff|s);
           stat=0;
         }
 #undef consume_readbyte
 #undef consume_checkdst
+#ifdef _MSC_VER
+# pragma warning(pop)
+#endif
     end:
       src0=src;
       dst0=dst;

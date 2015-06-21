@@ -1,14 +1,13 @@
 # -*- mode:makefile-gmake -*-
 
 all:
-.PHONY: all clean dist
+.PHONY: all clean dist check
 
 CFGSTAMP=out/configure.stamp
 
 configure $(CFGSTAMP):
 	test -s src/Makefile || (cd src; ../mmake/mwg_pp.awk < Makefile.pp > Makefile)
 	test -d mmake/mcxx || (cd mmake && tar xJf mcxx.tar.xz)
-	-rm -rf mmake/mcxx/local
 	mmake/mcxx/cxx +prefix auto -q
 	stamp=$(CFGSTAMP); mkdir -p "$${stamp%/*}" && touch "$$stamp"
 .PHONY: configure
@@ -16,14 +15,14 @@ configure $(CFGSTAMP):
 .NOTPARALLEL:
 MAKEFLAGS += --no-print-directory -O
 
-all: | $(CFGSTAMP)
-	+make -C src
+all check: | $(CFGSTAMP)
 
-clean:
-	+make -C src clean
+clean all check:
+	+make -C src $@
 
 distclean:
 	-rm -rf out
+	-rm -rf mmake/mcxx/local
 
 dist-excludes = \
   --exclude=./dist \
