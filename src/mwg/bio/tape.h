@@ -90,7 +90,7 @@ public:
       pos=offset;
       goto set_pos;
     set_pos:
-      if(0<=pos&&pos<=m_size){
+      if(0<=pos&&static_cast<u8t>(pos)<=m_size){
         m_pos=pos;
         return 0;
       }else
@@ -220,7 +220,7 @@ public:
 private:
   u4t read_skip(u4t size) const{
     u4t r=0;u4t dummy;
-    for(int n=4;n<=size;n+=4)r+=4*m_tape->read(&dummy,4);
+    for(u4t n=4;n<=size;n+=4)r+=4*m_tape->read(&dummy,4);
     if(size&=3)r+=m_tape->read(&dummy,1,size);
     return r;
   }
@@ -251,7 +251,7 @@ public:
   u4t memset(byte c,u4t size) const{
     u4t r=0;
     i4t p=c|c<<8;p|=p<<16;
-    for(int n=4;n<=size;n+=4)r+=4*m_tape->write(&p,4);
+    for(u4t n=4;n<=size;n+=4)r+=4*m_tape->write(&p,4);
     if(size&=3)r+=m_tape->write(&p,1,size);
     return r;
   }

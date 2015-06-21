@@ -1,3 +1,6 @@
+
+* clang -std=c++0x から GCC 4.4.7 libstdc++ を使えない。これに対する対処は諦める。
+
 ------------------------------------------------------------------------------
   ToDo
 ------------------------------------------------------------------------------
@@ -136,6 +139,55 @@
 ------------------------------------------------------------------------------
   Done
 ------------------------------------------------------------------------------
+
+* clang -std=c++0x から GCC 4.4.7 libstdc++ を使った時の問題
+
+  std::move が壊れているために、それを使っている std::swap や std::vector などまでも
+  全てエラーに成ってしまうので救いようがない。
+
+  また type_info が前方宣言されていないのに typeinfo の先頭で使おうとしているので
+  それでもエラーに成ってしまう。これについては一応 type_info を自分で前方宣言すれば良いが…。
+
+  これはサポートの対象外とすることにする(そもそもヘッダファイルを include しようとするだけで死ぬ)。
+  workaround のために書いたコードは削除することにする。以下に残しておく。
+
+  // from mwg/defs.h
+  //------------------------------------------------------------------------------
+  // clang -std=c++0x: #include <typeinfo> (gcc 4.4.7 libstdc++) がエラーになる。
+  // 内部で更に呼び出したヘッダで type_info* を使っているため。
+  //?mconf X -t'"std::type_info sane?"' -oMWGCONF_STD_TYPE_INFO_SANE typeinfo 'const std::type_info* ptr=0;'
+  #if !defined(MWGCONF_STD_TYPE_INFO_SANE)
+  namespace std{
+    class type_info;
+    class bad_cast;
+    class bad_typeid;
+  }
+  #endif
+
+  // from mwg/std/utlility
+  //-----------------------------------------------------------------------------
+  // clang -std=c++0x: gcc 4.4.7 libstdc++ bug workaround
+  // c.f. http://lists.cs.uiuc.edu/pipermail/cfe-dev/2011-February/013216.html
+  //?mconf X -t'"std::move sane?"' -oMWGCONF_STD_MOVE_SANE utlility 'int j=std::move(i)';
+  # ifndef MWGCONF_STD_MOVE_SANE
+  #  include <type_traits>
+  namespace mwg{
+  namespace stdm{
+    template<typename T>
+    T& move(const T& value){return const_cast<T&>(value);}
+    template<typename T>
+    typename enable_if<!is_const<T>::value,T&>::type
+    move(T& value){return value;}
+
+    template<typename T>
+    void swap(T& a,T& b){
+      T tmp(move(a));
+      a=move(b);
+      b=move(tmp);
+    }
+  }
+  }
+  # endif
 
 2015-04-28
 

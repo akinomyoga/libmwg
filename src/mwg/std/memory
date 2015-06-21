@@ -295,7 +295,8 @@ namespace detail{
     }
   public:
     static void swap(shared_count& l,shared_count& r){
-      std::swap(l.count,r.count);
+      // GCC 4.4.7: std::swap → std::move には bug がある
+      mwg::stdm::swap(l.count,r.count);
     }
   };
 

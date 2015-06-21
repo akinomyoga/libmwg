@@ -3,7 +3,6 @@
 #ifndef MWG_STDM_ITERATOR
 #define MWG_STDM_ITERATOR
 #include <mwg/defs.h>
-//#include <mwg/concept.h>
 #include <iterator>
 
 namespace mwg{

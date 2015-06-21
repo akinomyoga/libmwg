@@ -2,6 +2,10 @@
 #pragma once
 #ifndef MWG_DEFS_H
 #define MWG_DEFS_H
+
+#include <cstddef>
+// std::size_t std::ptrdiff_t std::nullptr_t
+
 #include <mwg/config.h>
 
 //------------------------------------------------------------------------------
@@ -40,6 +44,7 @@ namespace mwg{
 #ifndef mwg_unused
 # define mwg_unused(param) (void)param
 #endif
+}
 
 //MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
 //  C++03 Features
@@ -54,31 +59,40 @@ namespace mwg{
 //------------------------------------------------------------------------------
 //  nullptr
 //------------------------------------------------------------------------------
+//?mconf X -t'std::nullptr_t' -oMWGCONF_STD_NULLPTR_T cstddef 'std::nullptr_t* value=0'
 #if !defined(MWGCONF_STD_NULLPTR)&&!defined(nullptr)
-  namespace stdm{
-    static const class nullptr_t{
-    public:
-      template<class T>
-      operator T*() const{return 0;}
-      template<class C, class T>
-      operator T C::*() const{return 0;}
-    private:
-      void operator&() const;
-      void operator*() const;
-    } nullptr_instance={};
+namespace mwg{
+namespace stdm{
+  static const class nullptr_t{
+  public:
+    template<class T>
+    operator T*() const{return 0;}
+    template<class C, class T>
+    operator T C::*() const{return 0;}
+  private:
+    void operator&() const;
+    void operator*() const;
+  } nullptr_instance={};
 
-#   define MWG_TEMP_OP(O)                                             \
-    template<typename T> bool operator O(T* p,const nullptr_t&){return p O 0;} \
-    template<typename T> bool operator O(const nullptr_t&,T* p){return 0 O p;} /**/
-    MWG_TEMP_OP(==)
-    MWG_TEMP_OP(!=)
-    MWG_TEMP_OP(<)
-    MWG_TEMP_OP(>)
-    MWG_TEMP_OP(<=)
-    MWG_TEMP_OP(>=)
+#   define MWG_TEMP_OP(O)                                               \
+  template<typename T> bool operator O(T* p,const nullptr_t&){return p O 0;} \
+  template<typename T> bool operator O(const nullptr_t&,T* p){return 0 O p;} /**/
+  MWG_TEMP_OP(==)
+  MWG_TEMP_OP(!=)
+  MWG_TEMP_OP(<)
+  MWG_TEMP_OP(>)
+  MWG_TEMP_OP(<=)
+  MWG_TEMP_OP(>=)
 #   undef MWG_TEMP_OP
-  }
+}
+}
 #   define nullptr mwg::stdm::nullptr_instance
+#elif !defined(MWGCONF_STD_NULLPTR_T)&&defined(MWGCONF_STD_DECLTYPE)
+namespace mwg{
+namespace stdm{
+  typedef decltype(nullptr) nullptr_t;
+}
+}
 #endif
 //------------------------------------------------------------------------------
 //  Defaulted/deleted member functions
@@ -115,6 +129,7 @@ namespace mwg{
 //  static_assert
 //------------------------------------------------------------------------------
 #ifndef MWGCONF_STD_STATIC_ASSERT
+namespace mwg{
   namespace detail{
     template<bool B,int LINE>
     struct static_assert_tester;
@@ -149,6 +164,7 @@ namespace mwg{
  */
 # define static_assert(C,Message)                                       \
   enum{ MWG_PREPROC_ADDLINE(static_assert_at_line_) = mwg::detail::static_assert_tester<C,__LINE__>::value }
+}
 #endif
 //------------------------------------------------------------------------------
 //  __VA_ARGS__
@@ -171,6 +187,7 @@ namespace mwg{
 //TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
 //  Utility
 //------------------------------------------------------------------------------
+namespace mwg{
   template<typename T> struct identity{typedef T type;};
 
 #ifdef MWGCONF_STD_RVALUE_REFERENCES
@@ -201,12 +218,10 @@ namespace mwg{
     static struct{char m[sizeof(T)];} dummy;
     return reinterpret_cast<typename declval_type<T>::reference_type>(dummy);
   }
-
+}
 //TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
 //  整数型の定義
 //------------------------------------------------------------------------------
-}
-#include <cstddef>
 #include <mwg/std/cstdint> /* requires static_assert */
 namespace mwg{
   typedef mwg::stdm::int8_t   i1t;

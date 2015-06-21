@@ -22,6 +22,7 @@ Makefile: Makefile.pp
 #%x AddCxxHeader.r|%file%|mwg/std/cmath|
 #%x AddCxxHeader.r|%file%|mwg/std/cstdint|
 #%x AddCxxHeader.r|%file%|mwg/std/initializer_list|
+#%x AddCxxHeader.r|%file%|mwg/std/typeinfo|
 #%x AddCxxHeader.r|%file%|mwg/std/iterator|
 #%x AddCxxHeader.r|%file%|mwg/std/limits|
 #%x AddCxxHeader.r|%file%|mwg/std/memory|

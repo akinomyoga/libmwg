@@ -343,7 +343,7 @@ namespace except_detail{
     }
   };
 
-  static mwg_noinline void mwg_vprintd_(const char* pos,const char* func,const char* fmt,va_list arg){
+  static void mwg_vprintd_(const char* pos,const char* func,const char* fmt,va_list arg){
     using namespace ::mwg::except_detail;
     dbgput d(stderr);
 
@@ -363,6 +363,8 @@ namespace except_detail{
     }
     std::fflush(stderr);
   }
+
+  MWG_ATTRIBUTE_UNUSED
   static void mwg_printd_(const char* pos,const char* func,const char* fmt,...){
     va_list arg;
     va_start(arg,fmt);
@@ -433,6 +435,7 @@ namespace except_detail{
     buff+=" ]";
     throw mwg::assertion_error(buff);
   }
+  MWG_ATTRIBUTE_UNUSED
   static bool print_fail(const char* expr,const char* pos,const char* func,const char* fmt,...){
     increment_fail_count();
     va_list arg;
@@ -442,7 +445,9 @@ namespace except_detail{
     return false;
   }
 
+  // [[noreturn]] は __attribute__((unused)) より前になければならない
   MWG_ATTRIBUTE_NORETURN
+  MWG_ATTRIBUTE_UNUSED
   static bool throw_fail(const char* expr,const char* pos,const char* func,const char* fmt,...){
     increment_fail_count();
 #if MWG_DEBUG||!defined(NDEBUG)
@@ -458,47 +463,52 @@ namespace except_detail{
     throw;
   }
 
-#ifdef __GNUC__
-  /* GCC で unused-function の警告が出るのでそれを抑制する。
-   *
-   * 1 一番初めに思いつきそうな以下の方法は使えない
-   *
-   * #pragma GCC diagnostic push
-   * #pragma GCC diagnostic ignored "-Wunused"
-   * #pragma GCC diagnostic ignored "-Wunused-function"
-   * #pragma GCC diagnostic ignored "-Wunused-variable"
-   * ...
-   * #pragma GCC diagnostic pop
-   *
-   * というのも、unused が判明するのはファイルを末尾まで読んだ後であり、
-   * その時に -Wunused etc が ignored になっていないと、結局警告が出るからである。
-   * (勿論 ignored のままにしておけば警告は出なくなるが、
-   * 本当にミスで unused になっている関数について警告が出なくなってしまうのでしたくない)。
-   *
-   * 2 GCC の __attribute__((unused)) をつける方法も考えたが今度は「文は効果がありません」の警告が出る
-   *
-   * どうも __attribute__((unused)) をつけた関数の呼び出しは意味のない文として扱われるようである。
-   *
-   * 3 結局ダミー変数を用いて無理やり使うしか方法はないようである
-   *
-   * 参考: http://stackoverflow.com/questions/11124895/suppress-compiler-warning-function-declared-never-referenced
-   *
-   * 4 そもそも static ではなく inline で宣言しておけば問題ない?
-   *
-   * ■これは後で考える。(そもそもなぜ static にしたのであったか??)
-   *
-   */
-# ifndef MWG_SUPPRESS_WUNUSED
-#  define MWG_SUPPRESS_WUNUSED(var) static MWG_ATTRIBUTE_UNUSED int _dummy_tmp_##var=((int)(var)&0)
-# endif
-  MWG_SUPPRESS_WUNUSED(mwg_printd_);
-  MWG_SUPPRESS_WUNUSED(print_fail);
-  MWG_SUPPRESS_WUNUSED(throw_fail);
-#endif
+/* 実装メモ: GCC で unused-function の警告が出ることについて
+ *
+ * 1 一番初めに思いつきそうな以下の方法は使えない
+ *
+ *   #pragma GCC diagnostic push
+ *   #pragma GCC diagnostic ignored "-Wunused"
+ *   #pragma GCC diagnostic ignored "-Wunused-function"
+ *   #pragma GCC diagnostic ignored "-Wunused-variable"
+ *   ...
+ *   #pragma GCC diagnostic pop
+ *
+ *   というのも、unused が判明するのはファイルを末尾まで読んだ後であり、
+ *   その時に -Wunused etc が ignored になっていないと、結局警告が出るからである。
+ *   (勿論 ignored のままにしておけば警告は出なくなるが、
+ *   本当にミスで unused になっている関数について警告が出なくなってしまうのでしたくない)。
+ *
+ * 2 GCC の __attribute__((unused)) をつける方法?
+ *
+ *   | 「文は効果がありません」の警告が出る?
+ *   | どうも __attribute__((unused)) をつけた関数の呼び出しは意味のない文として扱われるようである。
+ *   | →どうやら勘違いであった
+ *
+ * 3 結局ダミー変数の初期化に使う方法?
+ *
+ *   参考: http://stackoverflow.com/questions/11124895/suppress-compiler-warning-function-declared-never-referenced
+ *
+ *   #if defined(__GNUC__)&&!defined(__INTEL_COMPILER)
+ *   # ifndef MWG_SUPPRESS_WUNUSED
+ *   #  define MWG_SUPPRESS_WUNUSED(var) static MWG_ATTRIBUTE_UNUSED int _dummy_tmp_##var=((int)(var)&0)
+ *   # endif
+ *     MWG_SUPPRESS_WUNUSED(mwg_printd_);
+ *     MWG_SUPPRESS_WUNUSED(print_fail);
+ *     MWG_SUPPRESS_WUNUSED(throw_fail);
+ *   #endif
+ *
+ *   → icc が警告を出す: 関数ポインタを int に変換する時に符号ビットが消える, 云々.
+ *
+ * 4 そもそも static ではなく inline で宣言しておけば問題ない?
+ *
+ *   ■これは後で考える。(そもそもなぜ static にしたのであったか??)
+ */
+
 }
 }
 
-/*
+/* 実装メモ: mwg_assert の展開式をどの様にするか?
  * 1 (condition||print) にする理由
  *
  *   #define assert(condition,message) check_condition_to_throw(condition,message);
@@ -516,9 +526,6 @@ namespace except_detail{
  *   という警告を出してきてうるさい。特に mwg_assert を使った回数だけ表示される。
  *   do{if(!condition)print(message)}while(0) などとすれば警告は出ないがこれだと式の中に組み込めない。
  *   また、((condition)?true:(print(message))) としても同じ警告が出る。
- *
- */
-/* GCC: assert 文に対して出る警告について
  *
  */
 #define mwg_printd(...)                    mwg_printd_(mwg_assert_position,mwg_assert_funcname,"" __VA_ARGS__)
