@@ -1,7 +1,7 @@
 # will be generated
 /dist
 /out
-/mmake/mcxx
+# /mmake/mcxx
 /src/Makefile
 
 # tests/temporaries

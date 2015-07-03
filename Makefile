@@ -4,14 +4,9 @@ all:
 .PHONY: all clean dist check
 
 CFGSTAMP=out/configure.stamp
-MCXXSTAMP=out/mcxx.stamp
 
-$(MCXXSTAMP): mmake/mcxx.tar.xz
-	cd mmake && tar xJf mcxx.tar.xz
-	touch $@
-configure $(CFGSTAMP): | $(MCXXSTAMP)
+configure $(CFGSTAMP):
 	test -s src/Makefile || (cd src; ../mmake/mwg_pp.awk < Makefile.pp > Makefile)
-	test -d mmake/mcxx || (cd mmake && tar xJf mcxx.tar.xz)
 	mmake/mcxx/cxx +prefix auto -q
 	stamp=$(CFGSTAMP); mkdir -p "$${stamp%/*}" && touch "$$stamp"
 .PHONY: configure

@@ -1,0 +1,3 @@
+[submodule "mmake/mcxx"]
+	path = mmake/mcxx
+	url = git:akinomyoga/mcxx
