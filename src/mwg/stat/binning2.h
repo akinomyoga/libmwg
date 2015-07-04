@@ -192,9 +192,9 @@ public:
   ceil(B const& bin,mwg::stat::bindex index){return bin.ceil(index);}
 
   template<typename B>
-  typename mwg::stdm::enable_if<mwg::stat::binning1dim_concept<B>::value,mwg::range_t<typename B::domain_type> >::type
-  range(B const& bin,mwg::stat::bindex index){
-    return mwg::range_t<typename B::domain_type>(mwg::floor(bin,index),mwg::ceil(bin,index));
+  typename mwg::stdm::enable_if<mwg::stat::binning1dim_concept<B>::value,mwg::range<typename B::domain_type> >::type
+  make_range(B const& bin,mwg::stat::bindex index){
+    return mwg::range<typename B::domain_type>(mwg::floor(bin,index),mwg::ceil(bin,index));
   }
 
   template<typename B>
@@ -206,9 +206,9 @@ public:
   ceil(B const& bin){return bin.ceil((mwg::stat::bindex)(bin.size()-1));}
 
   template<typename B>
-  typename mwg::stdm::enable_if<mwg::stat::binning1dim_concept<B>::value,mwg::range_t<typename B::domain_type> >::type
-  range(B const& bin){
-    return mwg::range_t<typename B::domain_type>(mwg::floor(bin),mwg::ceil(bin));
+  typename mwg::stdm::enable_if<mwg::stat::binning1dim_concept<B>::value,mwg::range<typename B::domain_type> >::type
+  make_range(B const& bin){
+    return mwg::range<typename B::domain_type>(mwg::floor(bin),mwg::ceil(bin));
   }
 
 namespace stat{
@@ -226,7 +226,7 @@ namespace stat{
     T floor() const{return bin.floor(index);}
     T ceil() const{return bin.ceil(index);}
     T width() const{return bin.width(index);}
-    mwg::range_t<T> range() const{return mwg::range(bin,index);}
+    mwg::range<T> range() const{return mwg::make_range(bin,index);}
     T operator*() const{return this->representative()}
   };
 }
