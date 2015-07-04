@@ -4,7 +4,7 @@
 #define MWG_STAT_ERRORED_VALUE_H
 #include <cstdio>
 #include <cmath>
-#include <mwg/range.h>
+// #include <mwg/range.h>
 namespace mwg{
 namespace stat{
 //NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN
@@ -33,8 +33,8 @@ namespace stat{
       :m_value(value),m_var(var){}
     errored(T value,T delta,deviation_tag_type* =0)
       :m_value(value),m_var(delta*delta){}
-    explicit errored(mwg::range_t<T> const& range)
-      :m_value(0.5*(range.begin()+range.end())),m_var(0.25*range.length()*range.length()){}
+    // explicit errored(mwg::range_t<T> const& range)
+    //   :m_value(0.5*(range.begin()+range.end())),m_var(0.25*range.length()*range.length()){}
     errored operator+(const errored& r) const{
       return errored(m_value+r.m_value,this->m_var+r.m_var,variance_tag);
     }

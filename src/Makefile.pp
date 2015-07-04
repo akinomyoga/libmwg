@@ -66,9 +66,12 @@ Makefile: Makefile.pp
 #%x AddCxxHeader.r|%file%|mwg/bio/tape.stream.inl|
 #%x AddCxxHeader.r|%file%|mwg/bio/ttx2.h|
 #%x AddCxxHeader.r|%file%|mwg/bio/filter.inl|
-#%x AddCxxHeader.r|%file%|mwg/bio/mwb_header.h|
 #%x AddCxxSource.r|%file%|mwg/bio/tape.util.cpp|
 #%x AddCxxSource.r|%file%|mwg/bio/ttx2.cpp|
+
+#%x AddCxxHeader.r|%file%|mwg/bio/mwb_header.h|
+#%x AddCxxHeader.r|%file%|mwg/bio/mwb_format.h|
+#%x AddCxxSource.r|%file%|mwg/bio/mwb_format.cpp|
 
 #%x AddCxxHeader.r|%file%|mwg/funcsig.h|
 #%x AddCxxHeader.r|%file%|mwg/functor.h|
