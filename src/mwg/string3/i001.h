@@ -291,8 +291,8 @@ public:
     if(_start>_end)_end=_start;
     return slice_return_type(this->data,_start,_end-_start);
   }
-  slice_return_type slice(mwg::range_i const& range) const{
-    return slice(range.begin(),range.end());
+  slice_return_type slice(mwg::range_i const& r) const{
+    return slice(r.begin(),r.end());
   }
   slice_return_type substr(std::ptrdiff_t start,std::size_t length) const{
     std::size_t const len=this->length();
@@ -337,8 +337,8 @@ public:
       slice_return_type(this->data,_end,_len-_end)
     );
   }
-  remove_return_type remove(mwg::range_i const& range) const{
-    return this->remove(range.begin(),range.end());
+  remove_return_type remove(mwg::range_i const& r) const{
+    return this->remove(r.begin(),r.end());
   }
 
   typedef strbase<_strtmp_map_policy<policy_type,_filt_tolower<char_type> > >        tolower_return_type;
@@ -355,8 +355,8 @@ public:
     if(_end<_start)_end=_start;
     return ranged_tolower_return_type(this->data,_filt_tolower<char_type>(),_start,_end);
   }
-  ranged_tolower_return_type tolower(mwg::range_i const& range) const{
-    return tolower(range.begin(),range.end());
+  ranged_tolower_return_type tolower(mwg::range_i const& r) const{
+    return tolower(r.begin(),r.end());
   }
   toupper_return_type toupper() const{
     return toupper_return_type(this->data,_filt_toupper<char_type>());
@@ -368,8 +368,8 @@ public:
     if(_end<_start)_end=_start;
     return ranged_toupper_return_type(this->data,_filt_toupper<char_type>(),_start,_end);
   }
-  ranged_toupper_return_type toupper(mwg::range_i const& range) const{
-    return toupper(range.begin(),range.end());
+  ranged_toupper_return_type toupper(mwg::range_i const& r) const{
+    return toupper(r.begin(),r.end());
   }
 private:
   template<typename Filter>
@@ -394,8 +394,8 @@ public:
     return typename ranged_map_enabler<F>::type(this->data,filter,_start,_end);
   }
   template<typename F>
-  typename ranged_map_enabler<F>::type map(F const& filter,mwg::range_i const& range) const{
-    return map(filter,range.begin(),range.end());
+  typename ranged_map_enabler<F>::type map(F const& filter,mwg::range_i const& r) const{
+    return map(filter,r.begin(),r.end());
   }
 
 private:
@@ -622,12 +622,12 @@ public:
     return this->FIND(stradp<char_type>(str),start,end); \
   } \
   template<typename T> \
-  typename find_enabler<T,1>::type FIND(T const& str,mwg::range_i const& range) const{ \
-    return this->FIND(str,range.begin(),range.end()); \
+  typename find_enabler<T,1>::type FIND(T const& str,mwg::range_i const& r) const{ \
+    return this->FIND(str,r.begin(),r.end()); \
   } \
   template<typename T> \
-  typename find_enabler<T,2>::type FIND(T const& str,mwg::range_i const& range) const{ \
-    return this->FIND(stradp<char_type>(str),range.begin(),range.end()); \
+  typename find_enabler<T,2>::type FIND(T const& str,mwg::range_i const& r) const{ \
+    return this->FIND(stradp<char_type>(str),r.begin(),r.end()); \
   }
 
   MWG_STRING2_STRING_H__define_find_overloads(find)
@@ -661,8 +661,8 @@ public:
     if(_end<_start)_end=_start;
     return ranged_char_replace_return_type(this->data,_filt_replace_char<char_type>(before,after),_start,_end);
   }
-  ranged_char_replace_return_type replace(char_type const& before,char_type const& after,mwg::range_i const& range) const{
-    return this->replace(before,after,range.begin(),range.end());
+  ranged_char_replace_return_type replace(char_type const& before,char_type const& after,mwg::range_i const& r) const{
+    return this->replace(before,after,r.begin(),r.end());
   }
 
 private:
@@ -716,13 +716,13 @@ public:
   }
   template<typename T>
   typename range_replace_enabler<T,1>::type
-  replace(mwg::range_i const& range,T const& str) const{
-    return this->replace(range.begin(),range.end(),str);
+  replace(mwg::range_i const& r,T const& str) const{
+    return this->replace(r.begin(),r.end(),str);
   }
   template<typename T>
   typename range_replace_enabler<T,2>::type
-  replace(mwg::range_i const& range,T const& str) const{
-    return this->replace(range.begin(),range.end(),str);
+  replace(mwg::range_i const& r,T const& str) const{
+    return this->replace(r.begin(),r.end(),str);
   }
   template<typename T>
   typename range_replace_enabler<T,1>::type
@@ -1020,14 +1020,14 @@ struct _strtmp_ranged_map_policy{
   struct buffer_type{
     const typename StrP::buffer_type& buff;
     Filter filter;
-    mwg::range_t<std::size_t> range;
+    mwg::range<std::size_t> r;
   public:
     typedef typename mwg::stdm::remove_reference<Filter>::type filter_type;
     buffer_type(const typename StrP::buffer_type& buff,filter_type const& filter,std::size_t start,std::size_t end)
-      :buff(buff),filter(filter),range(start,end){}
+      :buff(buff),filter(filter),r(start,end){}
   public:
     char_at_type operator[](std::size_t index) const{
-      if(range.contains(index))
+      if(r.contains(index))
         return this->filter(this->buff[index]);
       else
         return this->buff[index];
