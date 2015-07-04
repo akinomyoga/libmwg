@@ -460,8 +460,12 @@ namespace except_detail{
     va_start(args2,fmt);
     vthrow_fail(expr,pos,func,fmt,args2);
     va_end(args2);
+
+    /*NOTREACHED*/
     throw;
   }
+
+  inline bool nop_succuss(){return true;}
 
 /* 実装メモ: GCC で unused-function の警告が出ることについて
  *
@@ -513,7 +517,7 @@ namespace except_detail{
  *
  *   #define assert(condition,message) check_condition_to_throw(condition,message);
  *
- *   としていると message 部分に含まれる複雑な式が遅延評価にならない。従って、
+ *   としていると message 部分に含まれる (possibly) 複雑な式が遅延評価にならない。従って、
  *
  *   #define assert(condition,message) ((condition)||print(message));
  *
@@ -524,8 +528,19 @@ namespace except_detail{
  *   warning: statement has no effect [-Wunused-value]
  *
  *   という警告を出してきてうるさい。特に mwg_assert を使った回数だけ表示される。
- *   do{if(!condition)print(message)}while(0) などとすれば警告は出ないがこれだと式の中に組み込めない。
- *   また、((condition)?true:(print(message))) としても同じ警告が出る。
+ *
+ *   a #define mwg_check(condition,message) do{if(!condition)print(message)}while(0)
+ *     などとすれば警告は出ないがこれだと式の中に組み込めない。
+ *
+ *   b #define mwg_check(condition,message) ((condition)?true:(print(message)))
+ *     → 同じ警告が出る。
+ *
+ *   c いきなり true ではなくて dummy の関数呼び出しをしたらどうだろう。
+ *     #define mwg_check(condition,message) ((condition)?nop():(throw1(message),false));
+ *     → warning: right operand of comma operator has no effect
+ *
+ *   d #define mwg_check(condition,message) ((condition)?nop():throw1(message));
+ *     → 警告なし!
  *
  */
 #define mwg_printd(...)                    mwg_printd_(mwg_assert_position,mwg_assert_funcname,"" __VA_ARGS__)
@@ -533,7 +548,7 @@ namespace except_detail{
 #ifdef _MSC_VER
 # define mwg_check(condition,...)           ((condition)||(mwg::except_detail::throw_fail(#condition,mwg_assert_position,mwg_assert_funcname,"" __VA_ARGS__),false))
 #else
-# define mwg_check(condition,...)           do{if(!(condition))mwg::except_detail::throw_fail(#condition,mwg_assert_position,mwg_assert_funcname,"" __VA_ARGS__);}while(0)
+# define mwg_check(condition,...)           ((condition)?mwg::except_detail::nop_succuss():mwg::except_detail::throw_fail(#condition,mwg_assert_position,mwg_assert_funcname,"" __VA_ARGS__))
 #endif
 
 #if MWG_DEBUG||!defined(NDEBUG)
