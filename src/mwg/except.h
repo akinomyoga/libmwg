@@ -543,7 +543,7 @@ namespace except_detail{
  *     → 警告なし!
  *
  */
-#define mwg_printd(...)                    mwg_printd_(mwg_assert_position,mwg_assert_funcname,"" __VA_ARGS__)
+#define mwg_printd(...)                    mwg::except_detail::mwg_printd_(mwg_assert_position,mwg_assert_funcname,"" __VA_ARGS__)
 #define mwg_check_nothrow(condition,...)   ((condition)||(mwg::except_detail::print_fail(#condition,mwg_assert_position,mwg_assert_funcname,"" __VA_ARGS__),false))
 #ifdef _MSC_VER
 # define mwg_check(condition,...)           ((condition)||(mwg::except_detail::throw_fail(#condition,mwg_assert_position,mwg_assert_funcname,"" __VA_ARGS__),false))
