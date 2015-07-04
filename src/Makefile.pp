@@ -53,6 +53,10 @@ Makefile: Makefile.pp
 #%x AddCxxHeader.r|%file%|mwg/stat/accumulator.h|
 #%x AddCxxHeader.r|%file%|mwg/stat/histogram2.h|
 #%x AddCxxHeader.r|%file%|mwg/stat/binning2.h|
+#%[ppdeps="mwg/stat/binning2.ProductBinning.hpp"]
+#%x AddCxxHeader.r|%file%|mwg/stat/binning2.ProductBinning.inl|
+#%[ppdeps="mwg/stat/binning2.ProductBinning.hpp"]
+#%x AddCxxHeader.r|%file%|mwg/stat/binning2.ProductBinning_nonvariadic.inl|
 
 #%x AddCxxHeader.r|%file%|mwg/bio/defs.h|
 #%x AddCxxHeader.r|%file%|mwg/bio/tape.h|
@@ -94,8 +98,8 @@ $(CPPDIR)/mwg/config.h: mwg_config.mconf | $(CFGDIR)/include/mwg_config_common.h
 endif
 source_files+=$(CFGDIR)/include/mwg_config.stamp $(CPPDIR)/mwg/config.h
 install_files+=$(INS_INCCFG)/mwg_config.h $(INS_INCCFG)/mwg/config.h
-$(INS_INCCFG)/mwg_config.h: $(CFGDIR)/include/mwg_config.h
-	$(BASE)/mmake/make_command.sh install-header $< $@
+$(INS_INCCFG)/mwg_config.h: $(CFGDIR)/include/mwg_config.stamp
+	$(BASE)/mmake/make_command.sh install-header $(CFGDIR)/include/mwg_config.h $@
 $(INS_INCCFG)/mwg/config.h: $(CPPDIR)/mwg/config.h
 	$(BASE)/mmake/make_command.sh install-header $< $@
 

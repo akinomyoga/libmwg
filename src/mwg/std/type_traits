@@ -85,6 +85,7 @@ namespace stdm{
   using ::std::tr1::is_function;
   using ::std::tr1::is_empty;
 
+  using ::std::tr1::is_arithmetic;
   using ::std::tr1::is_floating_point;
   using ::std::tr1::is_integral;
 
