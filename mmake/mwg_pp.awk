@@ -71,17 +71,19 @@ function replace(text,before,after, _is_tmpl,_is_head,_captures,_rep,_ltext,_rte
   }
   return _ret text;
 }
-function rep_instantiate_tmpl(text,captures,  _ret,_num){
+function rep_instantiate_tmpl(text,captures,  _ret,_num,_insert){
   _ret="";
-  while(match(text,/\\\$|\$([0-9]+)/,_num)){
+  while(match(text,/\\(.)|\$([0-9]+)/,_num)){
     #print "dbg: $ captured: RSTART=" RSTART "; num=" _num[1] "; captures[num]=" captures[_num[1]] > "/dev/stderr"
-    if(_num[1]!=""){
-      _ret=_ret substr(text,1,RSTART-1) captures[_num[1]];
-      text=substr(text,RSTART+RLENGTH);
+    if(_num[2]!=""){
+      _insert=captures[_num[2]];
+    }else if(_num[1]~/^[$\\]$/){
+      _insert=_num[1];
     }else{
-      _ret=_ret substr(text,1,RSTART-1) "$";
-      text=substr(text,RSTART+RLENGTH);
+      _insert=_num[0];
     }
+    _ret=_ret substr(text,1,RSTART-1) _insert;
+    text=substr(text,RSTART+RLENGTH);
   }
   return _ret text;
 }

@@ -377,6 +377,12 @@ namespace sfinae{
   struct has_member_print_2{void print(const char*) const{}};
   struct has_member_print_3{int print(const char*){return 0;}};
   struct has_member_print_4{void print(){}};
+  template<typename T>
+  mwg_concept_has_member(has_member_opadd,T,X,operator(),void(X::*)(const char*));
+  struct has_member_opadd_1{void operator()(const char*){}};
+  struct has_member_opadd_2{void operator()(const char*) const{}};
+  struct has_member_opadd_3{int operator()(const char*){return 0;}};
+  struct has_member_opadd_4{void operator()(){}};
   void test_has_member(){
     mwg_assert(( has_member_print<has_member_print_1>::value));
     mwg_assert((!has_member_print<has_member_print_2>::value));
@@ -384,6 +390,13 @@ namespace sfinae{
     mwg_assert((!has_member_print<has_member_print_4>::value));
     mwg_assert((!has_member_print<A>::value));
     mwg_assert((!has_member_print<int>::value));
+
+    mwg_assert(( has_member_opadd<has_member_opadd_1>::value));
+    mwg_assert((!has_member_opadd<has_member_opadd_2>::value));
+    mwg_assert((!has_member_opadd<has_member_opadd_3>::value));
+    mwg_assert((!has_member_opadd<has_member_opadd_4>::value));
+    mwg_assert((!has_member_opadd<A>::value));
+    mwg_assert((!has_member_opadd<int>::value));
   }
 
   template<typename T>

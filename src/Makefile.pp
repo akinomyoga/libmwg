@@ -52,6 +52,7 @@ Makefile: Makefile.pp
 #%x AddCxxHeader.r|%file%|mwg/stat/bindex.h|
 #%x AddCxxHeader.r|%file%|mwg/stat/accumulator.h|
 #%x AddCxxHeader.r|%file%|mwg/stat/histogram2.h|
+#%[ppdeps="mwg/stat/mwg_concept.hpp"]
 #%x AddCxxHeader.r|%file%|mwg/stat/binning2.h|
 #%[ppdeps="mwg/stat/binning2.ProductBinning.hpp"]
 #%x AddCxxHeader.r|%file%|mwg/stat/binning2.ProductBinning.inl|

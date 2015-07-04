@@ -30,7 +30,8 @@ struct %TConcept%{
 //%%%[cond=cond+"&&(%value%)"]
 //%%)
 //%%m f (
-//%%%[rex_methodname="%name%".slice(0,8)=="operator"?"\\<operator"+"%name%".slice(8).Replace("(.)","\\$1"):"\\<%name%\\>"]
+//%%%[methodname="%name%"]
+//%%%[rex_methodname=methodname.slice(0,8)=="operator"?"\\<operator"+methodname.slice(8).Replace("([][+*()^|.?])","\\\\$1"):"\\<"+methodname+"\\>"]
 //%%%[decl="%decl%".replace(rex_methodname+"\\s*\\(","(X::*)(")]
 //%%%[cond=cond+"&&c"+(++i)+"::value"]
 //%%%x (
