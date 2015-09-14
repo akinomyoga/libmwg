@@ -1,7 +1,14 @@
 # -*- mode:makefile-gmake -*-
 
+#
+# make all
+# make PREFIX=$HOME/opt/libmwg-20150101 install
+# make dist
+# make check
+#
+
 all:
-.PHONY: all clean dist check
+.PHONY: all clean dist check install
 
 CFGSTAMP=out/configure.stamp
 
@@ -16,7 +23,7 @@ MAKEFLAGS += --no-print-directory -O
 
 all check: | $(CFGSTAMP)
 
-clean all check:
+clean all check install:
 	+make -C src $@
 
 distclean:

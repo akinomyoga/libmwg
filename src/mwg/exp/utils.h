@@ -39,7 +39,7 @@ namespace exp{
     T) operator^(const X& r) const{return this->value^(I)r;}
     template<typename X> mwg_requires((stdm::is_same<X,typename std::conditional<true,T,X>::type::enum_t>::value),
     T) operator|(const X& r) const{return this->value|(I)r;}
-    //*/
+    */
 
     static bool equals(const enum_class_base& l,const I& r){return l.value==r;}
   protected:
