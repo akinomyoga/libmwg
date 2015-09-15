@@ -213,7 +213,7 @@ public:
   u4t align_fill(int align,byte c=0) const{
     // align must be some power of 2.
     i8t pos=this->m_tape->tell();
-    i4t res=i4t(pos&align-1);
+    i4t res=i4t(pos&(align-1));
     return res==0?0:memset(c,align-res);
   }
 
@@ -229,7 +229,7 @@ public:
   u4t align(int align) const{
     // align must be some power of 2.
     i8t pos=this->m_tape->tell();
-    i4t res=i4t(pos&align-1);
+    i4t res=i4t(pos&(align-1));
     if(res==0)return 0;
 
     i4t advance=align-res;

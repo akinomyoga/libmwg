@@ -29,7 +29,7 @@ namespace range_detail{
     // for floating-point numbers
     typedef T value_type;
     typedef T difference_type;
-    static void increment_inclusive(T& end){}
+    static void increment_inclusive(T& /* end */){}
   };
 }
 

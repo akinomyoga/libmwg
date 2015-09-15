@@ -36,7 +36,7 @@ namespace mwb1{
     }
     static bool istype(IFormatNode* node){
       byte c=node->GetFormatNodeType();
-      return 'a'<=c&&c<='z'||c==FMTC::ARRAY||c==FMTC::TUPLE;
+      return ('a'<=c&&c<='z')||c==FMTC::ARRAY||c==FMTC::TUPLE;
     }
     typedef struct clone_tag_type{} *clone_tag;
   };

@@ -40,7 +40,7 @@ namespace mwb1{
         ret=0;
         byte const* const data=quoted->data();
         std::size_t const size=quoted->size();
-        for(int i=0;i<size;i++)ret|=data[i]<<i*8;
+        for(std::size_t i=0;i<size;i++)ret|=data[i]<<i*8;
       }
       delete quoted;
       return true;
