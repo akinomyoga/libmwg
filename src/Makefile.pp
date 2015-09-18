@@ -20,6 +20,9 @@ Makefile: Makefile.pp
 #%x AddCxxHeader.r|%file%|mwg/mpl.h|
 #%x AddCxxHeader.r|%file%|mwg/range.h|
 
+#%x AddCxxHeader.r|%file%|mwg/xprintf.h|
+#%x AddCxxSource.r|%file%|mwg/xprintf.cpp|
+
 #%x AddCxxHeader.r|%file%|mwg/std/chrono|
 #%x AddCxxHeader.r|%file%|mwg/std/cmath|
 #%x AddCxxHeader.r|%file%|mwg/std/cstdint|
