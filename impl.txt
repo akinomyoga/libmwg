@@ -5,6 +5,29 @@
   ToDo
 ------------------------------------------------------------------------------
 
+2015-09-18
+
+* xprintf を移植
+
+* mwg/std/type_traits
+
+  TR1 Header からの対応がかなり不完全になっている。
+  現在では TR1 Header がある場合の実装と、何もない場合の実装を別々に (ファイルの前半と後半に) 記述している。
+  各クラスについて TR1 Header があるかどうかで実装を切り替える様にしないと見通しが悪い。
+  更に、現在どの機能が実装されていてどの機能が実装されていないのかも分かりにくい。
+  これらについても整理しながら実装を行う必要がある。
+
+  →整理を実行した。
+
+  ToDo:
+    is_null_pointer for C++11
+    aligned_storage, aligned_union
+    is_class, is_union
+    is_compound, is_fundamental, is_object
+    max_align_t     in <cstddef>
+
+    underlying_type result_of
+
 2015-06-21
 
 * std::tr1
