@@ -7,6 +7,54 @@
 #include <mwg/std/tuple>
 #include <mwg/std/utility>
 #include <mwg/std/type_traits>
+#pragma%begin
+//-----------------------------------------------------------------------------
+
+#pragma%[ArN=10]
+
+#pragma%m variadic_expand::with_arity
+#pragma%%m _ 1
+#pragma%%m _ _.R|,[[:space:]]*typename[[:space:]]*\.\.\.[[:space:]]*([_[:alpha:]][_[:alnum:]]*)\y|$".for/%K/0/__arity__/,typename $1%K/"|
+#pragma%%m _ _.R|[[:space:]]*\ytypename[[:space:]]*\.\.\.[[:space:]]*([_[:alpha:]][_[:alnum:]]*)\y|$".for/%K/0/__arity__/typename $1%K/,"|
+#pragma%%m _ _.R|,[[:space:]]*([_[:alnum:]]+)([_[:alnum:][:space:]&*]*)\.\.\.[[:space:]]*([_[:alnum:]]+)\y|$".for/%K/0/__arity__/,$1%K$2 $3%K/"|
+#pragma%%m _ _.R|[[:space:]]*\y([_[:alnum:]]+)([_[:alnum:][:space:]&*]*)\.\.\.[[:space:]]*([_[:alnum:]]+)\y|$".for/%K/0/__arity__/$1%K$2 $3%K/,"|
+#pragma%%m _ _.R|,[[:space:]]*([_[:alnum:]]+)([_[:alnum:][:space:]&*]*)\.\.\.|$".for/%K/0/__arity__/,$1%K$2/"|
+#pragma%%m _ _.R|[[:space:]]*\y([_[:alnum:]]+)([_[:alnum:][:space:]&*]*)\.\.\.|$".for/%K/0/__arity__/$1%K$2/,"|
+#pragma%%x _.i
+#pragma%end
+
+#pragma%m variadic_expand_0toArN
+#ifdef MWGCONF_STD_VARIADIC_TEMPLATES
+#pragma%%x 1
+#else
+#pragma%%m a
+#pragma%%x variadic_expand::with_arity.f/__arity__/0/ArN+1/
+#pragma%%end
+#pragma%%m a a.R/\ytemplate<>([[:space:][:cntrl:]]*(struct|union|class))/template<--->$1/
+#pragma%%m a a.r|\ytemplate<>||
+#pragma%%m a a.r|\ytemplate\<---\>|template<>|
+#pragma%%x a
+#endif
+#pragma%end
+
+#pragma%m variadic_expand_ArN
+#ifdef MWGCONF_STD_VARIADIC_TEMPLATES
+#pragma%%x 1
+#else
+#pragma%%x variadic_expand::with_arity.r/__arity__/ArN/
+#endif
+#pragma%end
+
+#pragma%m variadic_expand_ArNm1
+#ifdef MWGCONF_STD_VARIADIC_TEMPLATES
+#pragma%%x 1
+#else
+#pragma%%x variadic_expand::with_arity.r/__arity__/ArN-1/
+#endif
+#pragma%end
+
+//-----------------------------------------------------------------------------
+#pragma%end
 
 /*
  * ★型 Target を新しく出力先として登録する方法
@@ -125,6 +173,8 @@ namespace vararg{
   struct pack_forward_enabler{};
   template<>
   struct pack_forward_enabler<mwg::stdm::tuple<>,mwg::stdm::tuple<> >:mwg::stdm::true_type{};
+
+#pragma%m 1
   template<typename X,typename Y,typename... XArgs,typename... YArgs>
   struct pack_forward_enabler<mwg::stdm::tuple<X,XArgs...>,mwg::stdm::tuple<Y,YArgs...> >{
     static const bool head_value=
@@ -136,16 +186,21 @@ namespace vararg{
     static const bool value=head_value
       &&pack_forward_enabler<mwg::stdm::tuple<XArgs...>,mwg::stdm::tuple<YArgs...> >::value;
   };
+#pragma%end
+#pragma%x variadic_expand_ArNm1
 
+#pragma%m 1
   template<typename... XArgs,typename... YArgs>
   typename mwg::stdm::enable_if<
     pack_forward_enabler<mwg::stdm::tuple<XArgs...>,mwg::stdm::tuple<YArgs...> >::value,
-    mwg::stdm::tuple<XArgs&&...>
+    mwg::stdm::tuple<XArgs mwg_forward_rvalue...>
     >::type
-  va_forward(YArgs&&... args){
-    typedef mwg::stdm::tuple<XArgs&&...> return_type;
+  va_forward(YArgs mwg_forward_rvalue... args){
+    typedef mwg::stdm::tuple<XArgs mwg_forward_rvalue...> return_type;
     return return_type(mwg::stdm::forward<XArgs>(args)...);
   }
+#pragma%end
+#pragma%x variadic_expand_ArN
 }
 }
 
@@ -204,7 +259,6 @@ namespace xprintf_detail{
   };
 
   void read_fmtspec(fmtspec& spec,const char*& _p);
-
 }
 }
 
@@ -534,36 +588,48 @@ namespace xprintf_detail{
 
 //---------------------------------------------------------------------------
 
+#pragma%m 1
   template<typename Buff,typename... Args>
   int vxprintf(Buff& buff,const char* fmt,mwg::stdm::tuple<Args...> const& args){
     return vxprintf_impl(
       create_xprintf_writer(buff,(adl_helper*)0),
       fmt,args);
   }
+#pragma%end
+#pragma%x variadic_expand_ArN
 
+#pragma%m 1
   template<typename Buff,typename... Args>
-  int xprintf(Buff& buff,const char* fmt,Args&&... args){
+  int xprintf(Buff& buff,const char* fmt,Args mwg_forward_rvalue... args){
     return vxprintf_impl(
       create_xprintf_writer(buff,(adl_helper*)0),
       fmt,mwg::vararg::va_forward<Args...>(args...));
   }
+#pragma%end
+#pragma%x variadic_expand_0toArN
 
+#pragma%m 1
   template<typename... Args>
   std::string vsprintf(const char* fmt,mwg::stdm::tuple<Args...> const& args){
     std::string buff;
     vxprintf(buff,fmt,args);
     return mwg::stdm::move(buff);
   }
+#pragma%end
+#pragma%x variadic_expand_ArN
 
+#pragma%m 1
   template<typename Buff,typename... Args>
-  std::string sprintf(const char* fmt,Args&&... args){
+  std::string sprintf(const char* fmt,Args mwg_forward_rvalue... args){
     std::string buff;
     vxprintf(
       buff,fmt,
       fmt,mwg::vararg::va_forward<Args...>(args...));
     return mwg::stdm::move(buff);
   }
-
+#pragma%end
+#pragma%x variadic_expand_0toArN
+  
 }
 }
 namespace mwg{
