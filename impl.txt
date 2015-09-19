@@ -28,6 +28,35 @@
 
     underlying_type result_of
 
+* tuple_element を copy_cv を用いて実装する
+
+* mwg::vararg::va_forward の存在意義に疑問
+
+  | va_forward
+  |
+  |   以下のようにして引数を捕まえるのに使う。
+  |     void func(Args&&... _args){
+  |       std::tuple<Args&&...> args=va_forward<Args...>(_args...);
+  |     }
+  |   類似のものに std::forward_as_tuple があるがこれは使いづらい。というのも、
+  |     void func(Args&&... _args){
+  |       std::tuple<Args&&...> args=std::forward_as_tuple(std::forward<Args>(_args)...);
+  |     }
+  |   としなければならないからである。あるいは、va_forward は
+  |     std::forward_as_tuple(std::forward<Args>(_args)...)
+  |   を組み合わせた物と考えれば良い。
+
+  上記の記述は本当だろうか? 勿論 forward_as_tuple(...) とはできないけれども、
+  forward_as_tuple<Types...>() の様な使い方はできるのではないかという気がする。
+
+  また、現在の実装で va_forward<XArgs...,YArgs...>(yargs...) となっているのは、
+  yargs から xargs に変換できるかどうかのチェックをするためである。
+  単純な forward_as_tuple の場合はそのチェックがないので面倒なテンプレートのエラーが発生する。
+  しかし、今回想定している使い方の範囲内では必ず yargs → XArgs に変換出来るはずである。
+
+  やはり std::forward_as_tuple で駄目な理由が分からなくなった…。
+  試しに forward_as_tuple に切り替えて見る。
+
 2015-06-21
 
 * std::tr1

@@ -889,6 +889,21 @@ namespace mwg{
 namespace stdx{
   using namespace mwg::stdm;
 
+  //
+  // struct copy_const    <T,From>
+  // struct copy_volatile <T,From>
+  // struct copy_cv       <T,From>
+  //
+  //   From についている cv を T に適用する。元から T についている cv はそのままにする。
+  //   クラスに cv がついている時に、そのメンバ T が実質的にどの型になるかを得るのに使う。
+  //
+  template<typename To,typename From> struct copy_const
+    :conditional<is_const<From>::value,typename add_const<To>::type,To>{};
+  template<typename To,typename From> struct copy_volatile
+    :conditional<is_volatile<From>::value,typename add_volatile<To>::type,To>{};
+  template<typename To,typename From> struct copy_cv
+    :copy_const<typename copy_volatile<To,From>::type,From>{};
+
   // add_cref<T>
   template<typename T> struct add_cref:add_lvalue_reference<typename add_const<T>::type>{};
 
@@ -907,9 +922,13 @@ namespace stdx{
 //%).i
 #endif
 
+  //
   // ice_and
   // ice_or
   // is_convertible_pack<Ts...>
+  //
+  //   To avoid internal compiler errors in some compilers.
+  //   They can also be used with ... expansion as ice_and<expr...>::value.
 #if defined(MWGCONF_STD_VARIADIC_TEMPLATES)
   template<bool... Bs> struct ice_and;
   template<bool... Bs> struct ice_and<false,Bs...>:stdm::false_type{};

@@ -48,62 +48,50 @@ namespace detail{
 
   namespace detail{
     template<typename TT>
-    struct is_tuple:stdm::false_type{static const int size=0;};
+    struct is_tuple_nocv:stdm::false_type{static const int size=0;};
 #pragma%if MWGCONF_STD_VARIADIC
     template<typename... Ts>
-    struct is_tuple<tuple<Ts...> >:stdm::true_type{
+    struct is_tuple_nocv<tuple<Ts...> >:stdm::true_type{
       static const int size=tuple_size<tuple<Ts...> >::value;
     };
 #pragma%else
     template<$".for:K:0:ArN:typename TK:,">
-    struct is_tuple<tuple<$".for:K:0:ArN:TK:,"> >:stdm::true_type{
+    struct is_tuple_nocv<tuple<$".for:K:0:ArN:TK:,"> >:stdm::true_type{
       static const int size=tuple_size<tuple<$".for:K:0:ArN:TK:,"> >::value;
     };
 #pragma%end
+    template<typename TT>
+    struct is_tuple:is_tuple_nocv<typename mwg::stdm::remove_cv<TT>::type>{};
 
     template<std::size_t I,typename TT>
-    struct tuple_element_impl:mwg::identity<void>{};
+    struct tuple_element_nocv:mwg::identity<void>{};
 #pragma%if MWGCONF_STD_VARIADIC
     template<typename T0,typename... T1s>
-    struct tuple_element_impl<0,tuple<T0,T1s...> >
+    struct tuple_element_nocv<0,tuple<T0,T1s...> >
       :mwg::identity<T0>{};
     template<std::size_t I,typename T0,typename... T1s>
-    struct tuple_element_impl<I,tuple<T0,T1s...> >
-      :tuple_element_impl<I-1,tuple<T1s...> >{};
+    struct tuple_element_nocv<I,tuple<T0,T1s...> >
+      :tuple_element_nocv<I-1,tuple<T1s...> >{};
 #pragma%else
     template<$".for:K:0:ArN:typename TK:,">
-    struct tuple_element_impl<0,tuple<$".for:K:0:ArN:TK:,"> >
+    struct tuple_element_nocv<0,tuple<$".for:K:0:ArN:TK:,"> >
       :mwg::identity<T0>{};
     template<std::size_t I$".for:K:0:ArN:,typename TK:">
-    struct tuple_element_impl<I,tuple<$".for:K:0:ArN:TK:,"> >
-      :tuple_element_impl<I-1,tuple<$".for:K:1:ArN:TK:,"> >{};
+    struct tuple_element_nocv<I,tuple<$".for:K:0:ArN:TK:,"> >
+      :tuple_element_nocv<I-1,tuple<$".for:K:1:ArN:TK:,"> >{};
 #pragma%end
     template<>
-    struct tuple_element_impl<0,tuple<> >:mwg::identity<void>{};
+    struct tuple_element_nocv<0,tuple<> >:mwg::identity<void>{};
     template<std::size_t I>
-    struct tuple_element_impl<I,tuple<> >:mwg::identity<void>{};
+    struct tuple_element_nocv<I,tuple<> >:mwg::identity<void>{};
   }
 
   template<std::size_t I,typename TT>
   class tuple_element:public stdm::enable_if<
     detail::is_tuple<TT>::value&&(I<detail::is_tuple<TT>::size),
-    typename detail::tuple_element_impl<I,TT>::type
-    >{};
-  template<std::size_t I,typename TT>
-  class tuple_element<I,TT const>:public stdm::enable_if<
-    detail::is_tuple<TT>::value&&(I<detail::is_tuple<TT>::size),
-    typename detail::tuple_element_impl<I,TT>::type const
-    >{};
-  template<std::size_t I,typename TT>
-  class tuple_element<I,TT volatile>:public stdm::enable_if<
-    detail::is_tuple<TT>::value&&(I<detail::is_tuple<TT>::size),
-    typename detail::tuple_element_impl<I,TT>::type volatile
-    >{};
-  template<std::size_t I,typename TT>
-  class tuple_element<I,TT const volatile>:public stdm::enable_if<
-    detail::is_tuple<TT>::value&&(I<detail::is_tuple<TT>::size),
-    typename detail::tuple_element_impl<I,TT>::type const volatile
-    >{};
+    typename mwg::stdx::copy_cv<
+      typename detail::tuple_element_nocv<I,typename mwg::stdm::remove_cv<TT>::type>::type,
+      TT>::type>{};
 
   template<std::size_t I,typename A0,typename A1>
   class tuple_element<I,stdm::pair<A0,A1> >
