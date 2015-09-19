@@ -151,7 +151,8 @@ namespace bio{
     }
   public:
     ttx_node(ttx_node const& src)
-      :m_name(src.m_name),m_parent(nullptr),m_index(-1)
+      :mwg::exp::iprint(static_cast<mwg::exp::iprint const&>(src)),
+       m_name(src.m_name),m_parent(nullptr),m_index(-1)
     {
       this->addContentOf(src);
     }

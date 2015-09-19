@@ -646,7 +646,7 @@ namespace xprintf_detail{
       bool fOmitTrailingZero=false;
       if(type==fptype_significant){
         fOmitTrailingZero=(spec.flags&flag_hash)==0;
-        if((value<std::pow(radix,-4.0)&&value!=0.0)||std::pow(radix,precision)<=value+0.5){
+        if((value<std::pow((double)radix,(double)-4.0)&&value!=0.0)||std::pow((double)radix,(double)precision)<=value+0.5){
           type=fptype_exponent;
           precision--;
         }
@@ -892,11 +892,10 @@ namespace xprintf_detail{
   }
 
   class string_converter{
-    fmtspec const& spec;
     std::size_t s;
   public:
     string_converter(fmtspec const& spec,std::size_t len)
-      :spec(spec),s(len)
+      :s(len)
     {
       if(spec.precision>=0&&(std::size_t)spec.precision<len)
         this->s=spec.precision;

@@ -27,7 +27,8 @@ namespace stdm{
   }
 #else
   template<typename T>
-  const T& forward(const T& value){return value;}
+  typename stdx::add_const_reference<T>::type
+  forward(typename stdx::add_const_reference<T>::type value){return value;}
   template<typename T>
   typename enable_if<!is_const<T>::value,T&>::type
   forward(T& value){return value;}

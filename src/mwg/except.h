@@ -10,9 +10,6 @@
 #include <stdexcept>
 
 #ifdef STANDALONE_MWG_EXCEPT_H
-# ifndef mwg_unused
-#  define mwg_unused(param) (void)param
-# endif
 # ifndef MWG_ATTRIBUTE_UNUSED
 #  ifdef __GNUC__
 #   define MWG_ATTRIBUTE_UNUSED __attribute__((unused))
@@ -160,7 +157,8 @@ namespace mwg{
       return *this;
     }
     except(const except& cpy)
-      :msg(cpy.msg),
+      :std::exception(cpy),
+       msg(cpy.msg),
        ecode(cpy.ecode),
        original(CopyException(cpy.original))
     {}
@@ -409,9 +407,7 @@ namespace except_detail{
   }
 
   MWG_ATTRIBUTE_NORETURN
-  static bool vthrow_fail(const char* expr,const char* pos,const char* func,const char* fmt,va_list arg){
-    mwg_unused(func);
-
+  static bool vthrow_fail(const char* expr,const char* pos,const char* /* func */,const char* fmt,va_list arg){
     std::string buff("assertion failed! ");
     if(fmt&&*fmt){
       char message[1024];

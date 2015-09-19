@@ -1,10 +1,16 @@
-# will be generated
+# generated files
 /dist
 /out
-# /mmake/mcxx
 /src/Makefile
 
 # tests/temporaries
 /test
 .clang-completion-error
 /mmake/test
+
+# for edit
+/COMMIT
+
+# old codes not yet merged
+/src/mwgold
+/src/chkold

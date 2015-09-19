@@ -33,7 +33,7 @@
 #pragma%%x variadic_expand::with_arity.f/__arity__/0/ArN+1/
 #pragma%%end
 #pragma%%m a a.R/\ytemplate<>([[:space:][:cntrl:]]*(struct|union|class))/template<--->$1/
-#pragma%%m a a.r|\ytemplate<>|inline|
+#pragma%%m a a.r|\ytemplate<>([[:space:]]*typename\y)?|inline|
 #pragma%%m a a.r|\ytemplate\<---\>|template<>|
 #pragma%%x a
 #endif
@@ -163,6 +163,9 @@ namespace vararg{
     struct tuple_element_selector__impl<0,0,stdm::tuple<>,false>{
       template<typename F>
       static typename F::return_type eval(F const& obj,int index,stdm::tuple<> const& tp){
+        mwg_unused(obj);
+        mwg_unused(index);
+        mwg_unused(tp);
         return obj.out_of_range();
       }
     };
@@ -350,6 +353,7 @@ namespace xprintf_detail{
 
   template<typename Buff>
   int xprintf_convert(Buff const& buff,fmtspec const& spec,...){
+    mwg_unused(spec);
     return xputs(buff,"(xprintf: not supported argument type)");
   }
   template<typename Buff>
@@ -499,7 +503,7 @@ namespace xprintf_detail{
 
   template<typename T>
   void _instantiate_xprintf_convert(T const& value){
-    fmtspec spec={0};
+    fmtspec spec={};
     xprintf_convert(
       mwg::declval<xprintf_writer const&>(),
       spec,value,(adl_helper*)0);
@@ -695,7 +699,14 @@ void check_printf_with_stdio(const char* fmt,Args mwg_forward_rvalue... args){
 
   std::vector<char> buff2(buff.size()+100,'\n');
   char* ptr=&buff[0];
+#ifdef __clang__
+# pragma clang diagnostic push
+# pragma clang diagnostic ignored "-Wformat-security"
+#endif
   std::sprintf(&buff2[0],fmt,args...);
+#ifdef __clang__
+# pragma clang diagnostic pop
+#endif
 
   mwg_check(buff==ptr,"expected=(%s) result=(%s)",ptr,buff.c_str());
 }

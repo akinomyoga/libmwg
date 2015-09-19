@@ -28,8 +28,6 @@
 
     underlying_type result_of
 
-* tuple_element を copy_cv を用いて実装する
-
 * mwg/xprintf: mwg::vararg::va_forward の存在意義に疑問
 
   | va_forward

@@ -385,13 +385,13 @@ struct tag_filter_type{
   virtual int operator()(const byte*& s,const byte* sN,byte*& d,byte* dN,void*& state) const=0;
 };
 
-filtered_rtape<itape,tag_filter_type> operator|(const itape& rtape,const tag_filter_type& filter){
+inline filtered_rtape<itape,tag_filter_type> operator|(const itape& rtape,const tag_filter_type& filter){
   if(!rtape.can_read())
     throw std::invalid_argument("operator|(rtape,filter)! rtape.can_read()");
 
   return filtered_rtape<itape,tag_filter_type>(rtape,filter);
 }
-filtered_wtape<itape,tag_filter_type> operator|(const tag_filter_type& filter,const itape& wtape){
+inline filtered_wtape<itape,tag_filter_type> operator|(const tag_filter_type& filter,const itape& wtape){
   if(!wtape.can_write())
     throw std::invalid_argument("operator|(filter,wtape)! wtape.can_write()");
 

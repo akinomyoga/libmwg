@@ -20,9 +20,6 @@ Makefile: Makefile.pp
 #%x AddCxxHeader.r|%file%|mwg/mpl.h|
 #%x AddCxxHeader.r|%file%|mwg/range.h|
 
-#%x AddCxxHeader.r|%file%|mwg/xprintf.h|
-#%x AddCxxSource.r|%file%|mwg/xprintf.cpp|
-
 #%x AddCxxHeader.r|%file%|mwg/std/chrono|
 #%x AddCxxHeader.r|%file%|mwg/std/cmath|
 #%x AddCxxHeader.r|%file%|mwg/std/cstdint|
@@ -47,6 +44,9 @@ Makefile: Makefile.pp
 #%x AddCxxHeader.r|%file%|mwg/impl/warning_push.inl|
 #%x AddCxxHeader.r|%file%|mwg/impl/warning_pop.inl|
 #%x AddCxxHeader.r|%file%|mwg/impl/DeclareVariadicFunction.inl|
+
+#%x AddCxxHeader.r|%file%|mwg/xprintf.h|
+#%x AddCxxSource.r|%file%|mwg/xprintf.cpp|
 
 #%x AddCxxHeader.r|%file%|mwg/char.h|
 #%x AddCxxHeader.r|%file%|mwg/cast.h|
@@ -121,7 +121,7 @@ $(INS_LIBDIR)/libmwg.a: $(CFGDIR)/libmwg.a
 	$(BASE)/mmake/make_command.sh install $< $@
 
 all: $(source_files) $(CFGDIR)/libmwg.a
-check: $(check_files)
+check: all $(check_files)
 install: $(install_files)
 
 #%x epilogue

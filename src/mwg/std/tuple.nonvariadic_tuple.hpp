@@ -48,16 +48,16 @@ namespace detail{
 
   namespace detail{
     template<typename TT>
-    struct is_tuple_nocv:stdm::false_type{static const int size=0;};
+    struct is_tuple_nocv:stdm::false_type{static const std::size_t size=0;};
 #pragma%if MWGCONF_STD_VARIADIC
     template<typename... Ts>
     struct is_tuple_nocv<tuple<Ts...> >:stdm::true_type{
-      static const int size=tuple_size<tuple<Ts...> >::value;
+      static const std::size_t size=tuple_size<tuple<Ts...> >::value;
     };
 #pragma%else
     template<$".for:K:0:ArN:typename TK:,">
     struct is_tuple_nocv<tuple<$".for:K:0:ArN:TK:,"> >:stdm::true_type{
-      static const int size=tuple_size<tuple<$".for:K:0:ArN:TK:,"> >::value;
+      static const std::size_t size=tuple_size<tuple<$".for:K:0:ArN:TK:,"> >::value;
     };
 #pragma%end
     template<typename TT>
@@ -208,7 +208,7 @@ namespace detail{
     //template<std::size_t I,typename R,typename TT> friend struct detail::tuple_get_impl;
     T0 m_data;
   public:
-    explicit tuple(typename stdx::add_cref<T0>::type arg0)
+    explicit tuple(typename stdx::add_const_reference<T0>::type arg0)
       :m_data(arg0){}
   };
 
@@ -265,7 +265,7 @@ namespace detail{
     template<$".for/K/0/ArN/typename UK/,"> friend class tuple;
     template<std::size_t I,typename R,typename TT> friend struct detail::tuple_get_impl;
   public:
-    explicit tuple($".for/K/0/%Ar%/typename stdx::add_cref<TK>::type argK/,")
+    explicit tuple($".for/K/0/%Ar%/typename stdx::add_const_reference<TK>::type argK/,")
       :$".for/K/0/%Ar%/m_valueK(argK)/,"{}
     template<$".for/K/0/%Ar%/typename BK/,">
     explicit tuple($".for/K/0/%Ar%/BK mwg_forward_rvalue argK/,")
@@ -539,7 +539,7 @@ namespace detail{
 
   //---------------------------------------------------------------------------
   // tuple_reference
-  template<typename T> struct tuple_element_ref:stdx::add_cref<T>{};
+  template<typename T> struct tuple_element_ref:stdx::add_const_reference<T>{};
   template<>           struct tuple_element_ref<void>:mwg::identity<void>{};
   template<$".for/K/0/ArN/typename AK/,">
   tuple<$".for/K/0/ArN/typename tuple_element_ref<AK>::type/,">
