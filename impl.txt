@@ -30,7 +30,7 @@
 
 * tuple_element を copy_cv を用いて実装する
 
-* mwg::vararg::va_forward の存在意義に疑問
+* mwg/xprintf: mwg::vararg::va_forward の存在意義に疑問
 
   | va_forward
   |
@@ -56,6 +56,23 @@
 
   やはり std::forward_as_tuple で駄目な理由が分からなくなった…。
   試しに forward_as_tuple に切り替えて見る。
+  実際に試してみた所、以下の様になった:
+
+  | void func(Args&&... _args){
+  |   std::forward_as_tuple<Args...>(_args...); // NG: int&& arg1 は (int&& param1) に渡せない。
+  |   std::forward_as_tuple<Args...>(std::forward<Args>(_args)...); // OK
+  |   std::forward_as_tuple(std::forward<Args>(_args)...); // OK: でも上の様に書くぐらいならば下の様に書けば良い。
+  | }
+
+  結局、std::forward_as_tuple(std::forward<Args>(_args)...) と書かなければならないのが面倒だから、
+  va_forward という関数を作ったという解釈で良いという事である。
+  序でに空の forward_as_tuple が許されるのかを確かめる。
+
+* mwg/xprintf.h: mwg::xprintf(std::string); // 追記になっているが sprintf 等を考えると分かりにくい
+* mwg/xprintf.h: va_forward 廃止??
+* mwg/xprintf.h: tuple_element_select 関連の整理。
+* mwg/xprintf.h: その他の型 ... ostringstream << を用いた実装。
+
 
 2015-06-21
 

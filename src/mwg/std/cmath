@@ -5,6 +5,9 @@
 #ifdef _MSC_VER
 # define _USE_MATH_DEFINES
 #endif
+#ifndef _GNU_SOURCE
+# define _GNU_SOURCE 1
+#endif
 #include <cmath>
 #include <mwg/defs.h>
 #include <mwg/std/type_traits>

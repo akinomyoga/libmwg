@@ -382,12 +382,12 @@ namespace xprintf_detail{
 
   class character_converter{
   public:
-    int count_body(std::wint_t ch) const{return 1;}
+    int count_body(std::wint_t ch) const{mwg_unused(ch);return 1;}
     template<typename Buff>
     void output_body(Buff& buff,std::wint_t ch) const{buff.put(ch);}
-    int count_prefix(std::wint_t ch) const{return 0;}
+    int count_prefix(std::wint_t ch) const{mwg_unused(ch);return 0;}
     template<typename Buff>
-    void output_prefix(Buff& buff,std::wint_t ch) const{}
+    void output_prefix(Buff& buff,std::wint_t ch) const{mwg_unused(buff);mwg_unused(ch);}
     static bool has_leading_zeroes(std::wint_t const&){
       return false;
     }
@@ -408,9 +408,9 @@ namespace xprintf_detail{
       else
         xputs(buff,value?"true":"false");
     }
-    int count_prefix(bool value) const{return 0;}
+    int count_prefix(bool value) const{mwg_unused(value);return 0;}
     template<typename Buff>
-    void output_prefix(Buff& buff,bool value) const{}
+    void output_prefix(Buff& buff,bool value) const{mwg_unused(buff);mwg_unused(value);}
     static bool has_leading_zeroes(bool const&){return false;}
   };
 
@@ -469,7 +469,7 @@ namespace xprintf_detail{
       if(ssize&&size>ssize)size=ssize;
     }
 
-    mwg::u8t const mask=(size<sizeof(mwg::u8t)?mwg::u8t(1)<<(size<<3):0)-1;
+    mwg::u8t const mask=((std::size_t)size<sizeof(mwg::u8t)?mwg::u8t(1)<<(size<<3):0)-1;
     value&=mask;
 
     // preferences
@@ -902,14 +902,14 @@ namespace xprintf_detail{
         this->s=spec.precision;
     }
   public:
-    int count_body(const char* str) const{return s;}
+    int count_body(const char* str) const{mwg_unused(str);return s;}
     template<typename Buff>
     void output_body(Buff& buff,const char* str) const{
       for(std::size_t i=0;i<s;i++)buff.put(str[i]);
     }
-    int count_prefix(const char* str) const{return 0;}
+    int count_prefix(const char* str) const{mwg_unused(str);return 0;}
     template<typename Buff>
-    void output_prefix(Buff& buff,const char* str) const{}
+    void output_prefix(Buff& buff,const char* str) const{mwg_unused(buff);mwg_unused(str);}
     static bool has_leading_zeroes(const char*){
       return false;
     }
