@@ -5,7 +5,9 @@
 #pragma%x begin_check
 #include <cstdio>
 #include <cstring>
+#include <mwg/std/type_traits>
 #include <mwg/except.h>
+#include <mwg/concept.h>
 #include <mwg/functor.h>
 
 //-----------------------------------------------------------------------------

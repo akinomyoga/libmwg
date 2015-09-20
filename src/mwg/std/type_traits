@@ -6,6 +6,7 @@
 # include <type_traits>
 #else
 //HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+#pragma%[ArN=10]
 /*?mconf
  *
  * # C++11, C++TR1
@@ -50,7 +51,13 @@
  */
 #pragma%x begin_check
 #include <mwg/except.h>
+#include <mwg/std/cstdint>
 #include <mwg/std/type_traits>
+
+enum E {};
+struct S {};
+struct T : public S {};
+struct U : public T {};
 
 #pragma%x end_check
 
@@ -149,7 +156,7 @@ namespace stdm{
   // +   is_array
   // +   is_class
   // +   is_union
-  // 
+  //
   // + @f = is_fundamental
   // + !@f = is_compound
   //
@@ -212,6 +219,15 @@ namespace stdm{
   template<typename T,int N>  struct remove_volatile<volatile T[N]> :mwg::identity<T[N]>{};
   template<typename T>        struct remove_cv:remove_const<typename remove_volatile<T>::type>{};
 #endif
+#pragma%x begin_check
+
+  void check_remove_cv(){
+    mwg_check(( mwg::stdm::is_same<int,mwg::stdm::remove_cv<const int>::type>::value));
+    mwg_check(( mwg::stdm::is_same<int,mwg::stdm::remove_cv<volatile int>::type>::value));
+    mwg_check(( mwg::stdm::is_same<int,mwg::stdm::remove_cv<const volatile int>::type>::value));
+  }
+
+#pragma%x end_check
 
   //
   // is_void
@@ -226,7 +242,6 @@ namespace stdm{
 
   //
   // remove_reference
-  // add_reference (TR1)
   // add_lvalue_reference
   // add_rvalue_reference
   //
@@ -270,6 +285,23 @@ namespace stdm{
     :detail::add_rvalue_reference__impl<T,!is_reference<T>::value&&!is_void<T>::value>{};
 # endif
 #endif
+#pragma%x begin_check
+
+  void check_add_lvalue_reference(){
+    mwg_check((mwg::stdm::is_same<void,mwg::stdm::add_lvalue_reference<void>::type>::value));
+    mwg_check((mwg::stdm::is_same<int&,mwg::stdm::add_lvalue_reference<int>::type>::value));
+    mwg_check((mwg::stdm::is_same<int&,mwg::stdm::add_lvalue_reference<int&>::type>::value));
+#ifdef MWGCONF_STD_RVALUE_REFERENCES
+    mwg_check((mwg::stdm::is_same<int&,mwg::stdm::add_lvalue_reference<int&&>::type>::value));
+
+    mwg_check((mwg::stdm::is_same<void ,mwg::stdm::add_rvalue_reference<void>::type>::value));
+    mwg_check((mwg::stdm::is_same<int&&,mwg::stdm::add_rvalue_reference<int>::type>::value));
+    mwg_check((mwg::stdm::is_same<int& ,mwg::stdm::add_rvalue_reference<int&>::type>::value));
+    mwg_check((mwg::stdm::is_same<int&&,mwg::stdm::add_rvalue_reference<int&&>::type>::value));
+#endif
+  }
+
+#pragma%x end_check
 
   //
   // is_function
@@ -382,6 +414,79 @@ namespace stdm{
   struct is_arithmetic
     :integral_constant<bool,is_integral<T>::value||is_floating_point<T>::value>{};
 #endif
+#pragma%x begin_check
+  void check_is_integral(){
+    mwg_check(( mwg::stdm::is_integral<char>::value));
+    mwg_check(( mwg::stdm::is_integral<signed char>::value));
+    mwg_check(( mwg::stdm::is_integral<unsigned char>::value));
+    mwg_check(( mwg::stdm::is_integral<short>::value));
+    mwg_check(( mwg::stdm::is_integral<unsigned short>::value));
+    mwg_check(( mwg::stdm::is_integral<int>::value));
+    mwg_check(( mwg::stdm::is_integral<unsigned int>::value));
+    mwg_check(( mwg::stdm::is_integral<long>::value));
+    mwg_check(( mwg::stdm::is_integral<unsigned long>::value));
+#ifdef MWGCONF_HAS_LONGLONG
+    mwg_check(( mwg::stdm::is_integral<long long>::value));
+    mwg_check(( mwg::stdm::is_integral<unsigned long long>::value));
+#endif
+#ifdef MWGCONF_HAS_INT64
+    mwg_check(( mwg::stdm::is_integral<__int64>::value));
+    mwg_check(( mwg::stdm::is_integral<unsigned __int64>::value));
+#endif
+    mwg_check(( mwg::stdm::is_integral<bool>::value));
+    mwg_check(( mwg::stdm::is_integral<wchar_t>::value));
+#ifdef MWGCONF_STD_CHAR16_T
+    mwg_check(( mwg::stdm::is_integral<char16_t>::value));
+#endif
+#ifdef MWGCONF_STD_CHAR32_T
+    mwg_check(( mwg::stdm::is_integral<char32_t>::value));
+#endif
+
+    mwg_check(( mwg::stdm::is_integral<int>::value));
+    mwg_check(( mwg::stdm::is_integral<const int>::value));
+    mwg_check(( mwg::stdm::is_integral<volatile int>::value));
+    mwg_check(( mwg::stdm::is_integral<const volatile int>::value));
+
+    mwg_check((!mwg::stdm::is_integral<int&>::value));
+#ifdef MWGCONF_STD_RVALUE_REFERENCES
+    mwg_check((!mwg::stdm::is_integral<int&&>::value));
+#endif
+
+    mwg_check((!mwg::stdm::is_integral<float>::value));
+    mwg_check((!mwg::stdm::is_integral<double>::value));
+    mwg_check((!mwg::stdm::is_integral<long double>::value));
+  }
+
+  void check_is_floating_point(){
+    mwg_check(( mwg::stdm::is_floating_point<float>::value));
+    mwg_check(( mwg::stdm::is_floating_point<double>::value));
+    mwg_check(( mwg::stdm::is_floating_point<long double>::value));
+
+    mwg_check((!mwg::stdm::is_floating_point<double&>::value));
+#ifdef MWGCONF_STD_RVALUE_REFERENCES
+    mwg_check((!mwg::stdm::is_floating_point<double&&>::value));
+#endif
+    mwg_check((!mwg::stdm::is_floating_point<double*>::value));
+  }
+
+  void check_is_arithmetic(){
+    mwg_check(( mwg::stdm::is_arithmetic<int>::value));
+    mwg_check(( mwg::stdm::is_arithmetic<double>::value));
+    mwg_check(( mwg::stdm::is_arithmetic<long double>::value));
+
+    mwg_check((!mwg::stdm::is_arithmetic<int*>::value));
+    mwg_check((!mwg::stdm::is_arithmetic<int&>::value));
+    mwg_check((!mwg::stdm::is_arithmetic<double*>::value));
+    mwg_check((!mwg::stdm::is_arithmetic<double&>::value));
+#ifdef MWGCONF_STD_RVALUE_REFERENCES
+    mwg_check((!mwg::stdm::is_arithmetic<int&&>::value));
+    mwg_check((!mwg::stdm::is_arithmetic<double&&>::value));
+#endif
+
+    mwg_check((!mwg::stdm::is_arithmetic<U>::value));
+    mwg_check((!mwg::stdm::is_arithmetic<U*>::value));
+  }
+#pragma%x end_check
 
   //
   //  is_signed
@@ -429,21 +534,51 @@ namespace stdm{
   template<typename T> struct is_signed  :detail::is_signed_nocv  <typename remove_cv<T>::type>{};
   template<typename T> struct is_unsigned:detail::is_unsigned_nocv<typename remove_cv<T>::type>{};
 #pragma%x begin_check
-template<typename T>
-void check_is_signed__for_type(){
-  mwg_check( (mwg::stdm::is_signed<T>::value==(mwg::stdm::is_arithmetic<T>::value&&(T(-1)<T(0)))));
-  mwg_check( (mwg::stdm::is_unsigned<T>::value==(mwg::stdm::is_arithmetic<T>::value&&(T(0)<T(-1)))));
-}
-void check_is_signed(){
-  check_is_signed__for_type<bool>();
-  check_is_signed__for_type<char>();
-  check_is_signed__for_type<signed>();
-  check_is_signed__for_type<unsigned>();
+  template<typename T>
+  void check_is_signed__for_type(){
+    mwg_check( (mwg::stdm::is_signed<T>::value==(mwg::stdm::is_arithmetic<T>::value&&(T(-1)<T(0)))));
+    mwg_check( (mwg::stdm::is_unsigned<T>::value==(mwg::stdm::is_arithmetic<T>::value&&(T(0)<T(-1)))));
+  }
+  void check_is_signed(){
+    check_is_signed__for_type<bool>();
+    check_is_signed__for_type<char>();
+    check_is_signed__for_type<signed>();
+    check_is_signed__for_type<unsigned>();
 
-  check_is_signed__for_type<float>();
-  check_is_signed__for_type<double>();
-  check_is_signed__for_type<long double>();
-}
+    check_is_signed__for_type<float>();
+    check_is_signed__for_type<double>();
+    check_is_signed__for_type<long double>();
+
+    mwg_check(( mwg::stdm::is_signed<int>::value));
+    mwg_check(( mwg::stdm::is_signed<float>::value));
+    mwg_check(( mwg::stdm::is_signed<double>::value));
+    mwg_check(( mwg::stdm::is_signed<long double>::value));
+
+    mwg_check(( mwg::stdm::is_signed<const int>::value));
+    mwg_check(( mwg::stdm::is_signed<volatile double>::value));
+    mwg_check(( mwg::stdm::is_signed<const volatile long double>::value));
+
+    mwg_check((!mwg::stdm::is_signed<unsigned>::value));
+    mwg_check((!mwg::stdm::is_signed<S>::value));
+    mwg_check((!mwg::stdm::is_signed<T*>::value));
+
+    mwg_check((!mwg::stdm::is_signed<int&>::value));
+#ifdef MWGCONF_STD_RVALUE_REFERENCES
+    mwg_check((!mwg::stdm::is_signed<double&&>::value));
+#endif
+
+    mwg_check(( mwg::stdm::is_unsigned<unsigned>::value));
+    mwg_check(( mwg::stdm::is_unsigned<unsigned short>::value));
+    mwg_check(( mwg::stdm::is_unsigned<unsigned char>::value));
+
+    mwg_check(( mwg::stdm::is_unsigned<const unsigned>::value));
+    mwg_check(( mwg::stdm::is_unsigned<volatile unsigned char>::value));
+    mwg_check(( mwg::stdm::is_unsigned<const volatile unsigned short>::value));
+
+    mwg_check((!mwg::stdm::is_unsigned<int>::value));
+    mwg_check((!mwg::stdm::is_unsigned<double>::value));
+    mwg_check((!mwg::stdm::is_unsigned<long double>::value));
+  }
 #pragma%x end_check
 
   //
@@ -567,6 +702,18 @@ void check_is_signed(){
   using detail::add_pointer;
   using detail::remove_pointer;
 #endif
+#pragma%x begin_check
+  void check_is_member_pointer(){
+    mwg_check(( mwg::stdm::is_member_function_pointer<int (S::*)(int)>::value));
+    mwg_check(( mwg::stdm::is_member_function_pointer<int (S::*)(int) const>::value));
+    mwg_check(( mwg::stdm::is_member_function_pointer<int (S::*)(int) volatile>::value));
+    mwg_check(( mwg::stdm::is_member_function_pointer<int (S::*)(int) const volatile>::value));
+    mwg_check(( mwg::stdm::is_member_pointer<int (S::*)(int)>::value));
+    mwg_check(( mwg::stdm::is_member_pointer<int (S::*)(int) const>::value));
+    mwg_check(( mwg::stdm::is_member_pointer<int (S::*)(int) volatile>::value));
+    mwg_check(( mwg::stdm::is_member_pointer<int (S::*)(int) const volatile>::value));
+  }
+#pragma%x end_check
 
   //
   // is_array
@@ -703,6 +850,17 @@ void check_is_signed(){
   struct is_base_of:integral_constant<bool,is_same<Base,Derived>::value||mwg::stdm::detail::is_base_and_derived<Base,Derived>::value >{};
 # endif
 #endif
+#pragma%x begin_check
+
+  void check_is_base_of(){
+    mwg_check(( mwg::stdm::is_base_of<S,U>::value));
+    mwg_check(( mwg::stdm::is_base_of<S,T>::value));
+    mwg_check(( mwg::stdm::is_base_of<T,T>::value));
+    mwg_check((!mwg::stdm::is_base_of<U,S>::value));
+    mwg_check((!mwg::stdm::is_base_of<T,S>::value));
+  }
+
+#pragma%x end_check
 
   //
   // is_convertible
@@ -720,6 +878,159 @@ void check_is_signed(){
 namespace mwg{
 namespace stdm{
 #endif
+#pragma%x begin_check
+  //
+  // check is_convertible
+  //
+
+  // test is_convertible for the case from values to references
+  //  see also test/chk_cpp/stdlib11-is_convertible-check_def.cpp
+  //
+  // struct is_convertible_toref__test
+  //   正しく判定できているかの判定用クラス。
+  //   コンパイラ毎に正しい結果が異なるので、コンパイラ毎にテストを定義。
+  template<typename F,typename T> struct is_convertible_toref__test{};
+#ifdef _MSC_VER
+  template<typename F,typename T> struct is_convertible_toref__test<F,T&>
+    :mwg::stdm::integral_constant<bool,mwg::stdm::is_convertible<F,T&>::value==(mwg::stdm::is_const<T>::value&&(mwg::stdm::is_volatile<T>::value||!mwg::stdm::is_volatile<F>::value))>{};
+#elif __INTEL_COMPILER
+  // version によって異なる?
+  template<typename F,typename T> struct is_convertible_toref__test<F,T&>
+    :mwg::stdm::integral_constant<bool,
+      mwg::stdm::is_convertible<F,T&>::value==(mwg::stdm::is_const<T>::value&&(!mwg::stdm::is_volatile<T>::value))||
+      mwg::stdm::is_convertible<F,T&>::value==(mwg::stdm::is_const<T>::value&&(!mwg::stdm::is_volatile<T>::value&&!mwg::stdm::is_volatile<F>::value))>{};
+#else
+  template<typename F,typename T> struct is_convertible_toref__test<F,T&>
+    :mwg::stdm::integral_constant<bool,mwg::stdm::is_convertible<F,T&>::value==(mwg::stdm::is_const<T>::value&&(!mwg::stdm::is_volatile<T>::value&&!mwg::stdm::is_volatile<F>::value))>{};
+#endif
+  void check_is_convertible__toref(){
+    mwg_check((is_convertible_toref__test<int,int&>::value));
+    mwg_check((is_convertible_toref__test<int,const int&>::value));
+    mwg_check((is_convertible_toref__test<int,volatile int&>::value));
+    mwg_check((is_convertible_toref__test<int,const volatile int&>::value));
+    mwg_check((is_convertible_toref__test<const int,int&>::value));
+    mwg_check((is_convertible_toref__test<const int,const int&>::value));
+    mwg_check((is_convertible_toref__test<const int,volatile int&>::value));
+    mwg_check((is_convertible_toref__test<const int,const volatile int&>::value));
+    mwg_check((is_convertible_toref__test<volatile int,int&>::value));
+    mwg_check((is_convertible_toref__test<volatile int,const int&>::value));
+    mwg_check((is_convertible_toref__test<volatile int,volatile int&>::value));
+    mwg_check((is_convertible_toref__test<volatile int,const volatile int&>::value));
+    mwg_check((is_convertible_toref__test<const volatile int,int&>::value));
+    mwg_check((is_convertible_toref__test<const volatile int,const int&>::value));
+    mwg_check((is_convertible_toref__test<const volatile int,volatile int&>::value));
+    mwg_check((is_convertible_toref__test<const volatile int,const volatile int&>::value));
+  }
+
+  void check_is_convertible(){
+    mwg_check(( mwg::stdm::is_convertible<void,void>::value));
+    mwg_check((!mwg::stdm::is_convertible<void,int>::value));
+    mwg_check((!mwg::stdm::is_convertible<void,float>::value));
+    mwg_check((!mwg::stdm::is_convertible<void,int*>::value));
+    mwg_check((!mwg::stdm::is_convertible<void,int&>::value));
+    mwg_check((!mwg::stdm::is_convertible<void,E>::value));
+    mwg_check((!mwg::stdm::is_convertible<void,S>::value));
+    mwg_check((!mwg::stdm::is_convertible<void,int[1]>::value));
+    mwg_check((!mwg::stdm::is_convertible<void,int(int)>::value));
+    mwg_check((!mwg::stdm::is_convertible<void,int(*)(int)>::value));
+    mwg_check((!mwg::stdm::is_convertible<void,int(&)(int)>::value));
+    mwg_check((!mwg::stdm::is_convertible<void,int S::*>::value));
+
+    mwg_check((!mwg::stdm::is_convertible<int,void>::value));
+    mwg_check(( mwg::stdm::is_convertible<int,mwg::i1t>::value));
+    mwg_check(( mwg::stdm::is_convertible<int,mwg::u1t>::value));
+    mwg_check(( mwg::stdm::is_convertible<int,int>::value));
+    mwg_check(( mwg::stdm::is_convertible<int,unsigned>::value));
+    mwg_check(( mwg::stdm::is_convertible<int,mwg::i8t>::value));
+    mwg_check(( mwg::stdm::is_convertible<int,mwg::u8t>::value));
+    mwg_check(( mwg::stdm::is_convertible<int,double>::value));
+
+    mwg_check((!mwg::stdm::is_convertible<double,void>::value));
+    mwg_check(( mwg::stdm::is_convertible<double,int>::value));
+    mwg_check(( mwg::stdm::is_convertible<double,float>::value));
+    mwg_check(( mwg::stdm::is_convertible<float,double>::value));
+    mwg_check((!mwg::stdm::is_convertible<double,int*>::value));
+    mwg_check((!mwg::stdm::is_convertible<double,int&>::value));
+    mwg_check(( mwg::stdm::is_convertible<double,const int&>::value));
+
+    mwg_check((!mwg::stdm::is_convertible<int,int*>::value));
+    mwg_check(( mwg::stdm::is_convertible<int*,void*>::value));
+    mwg_check((!mwg::stdm::is_convertible<void*,int*>::value));
+    mwg_check(( mwg::stdm::is_convertible<int*,int*>::value));
+    mwg_check((!mwg::stdm::is_convertible<int*,char*>::value));
+    mwg_check(( mwg::stdm::is_convertible<U*,S*>::value));
+    mwg_check((!mwg::stdm::is_convertible<S*,U*>::value));
+    mwg_check(( mwg::stdm::is_convertible<T*,S*>::value));
+    mwg_check((!mwg::stdm::is_convertible<S*,T*>::value));
+    mwg_check(( mwg::stdm::is_convertible<U*,U*>::value));
+    mwg_check((!mwg::stdm::is_convertible<const U*,U*>::value));
+
+    // cv qualifiers
+    // - values to values
+    mwg_check(( mwg::stdm::is_convertible<int,const int>::value));
+    mwg_check(( mwg::stdm::is_convertible<const int,int>::value));
+    mwg_check(( mwg::stdm::is_convertible<int,volatile int>::value));
+    mwg_check(( mwg::stdm::is_convertible<volatile int,int>::value));
+    mwg_check(( mwg::stdm::is_convertible<int,const volatile int>::value));
+    mwg_check(( mwg::stdm::is_convertible<const volatile int,int>::value));
+
+    // from values to references
+    check_is_convertible__toref();
+
+    // - pointers to pointers
+    mwg_check(( mwg::stdm::is_convertible<int*,const int*>::value));
+    mwg_check(( mwg::stdm::is_convertible<int*,volatile int*>::value));
+    mwg_check(( mwg::stdm::is_convertible<int*,const volatile int*>::value));
+    mwg_check((!mwg::stdm::is_convertible<const int*,int*>::value));
+    mwg_check((!mwg::stdm::is_convertible<const int*,volatile int*>::value));
+    mwg_check(( mwg::stdm::is_convertible<const int*,const int*>::value));
+    mwg_check(( mwg::stdm::is_convertible<const int*,const volatile int*>::value));
+    mwg_check((!mwg::stdm::is_convertible<volatile int*,int*>::value));
+    mwg_check((!mwg::stdm::is_convertible<volatile int*,const int*>::value));
+    mwg_check(( mwg::stdm::is_convertible<volatile int*,volatile int*>::value));
+    mwg_check(( mwg::stdm::is_convertible<volatile int*,const volatile int*>::value));
+    mwg_check((!mwg::stdm::is_convertible<const volatile int*,int*>::value));
+    mwg_check((!mwg::stdm::is_convertible<const volatile int*,const int*>::value));
+    mwg_check((!mwg::stdm::is_convertible<const volatile int*,volatile int*>::value));
+    mwg_check(( mwg::stdm::is_convertible<const volatile int*,const volatile int*>::value));
+
+    // from GNU ISO C++ Library is_convertible.cc (GPL)
+    // // Positive tests.
+    // mwg_check(( mwg::stdm::is_convertible<int, const int>::value));
+    // mwg_check(( mwg::stdm::is_convertible<volatile int, const int>::value));
+    // mwg_check(( mwg::stdm::is_convertible<int*, const int*>::value));
+    // mwg_check(( mwg::stdm::is_convertible<int*, void*>::value));
+    // mwg_check(( mwg::stdm::is_convertible<int[4], int*>::value));
+    // mwg_check(( mwg::stdm::is_convertible<float&, int>::value));
+    // mwg_check(( mwg::stdm::is_convertible<int, const int&>::value));
+    // mwg_check(( mwg::stdm::is_convertible<const int&, int>::value));
+    // mwg_check(( mwg::stdm::is_convertible<float, const int&>::value));
+    // mwg_check(( mwg::stdm::is_convertible<float, volatile float&>::value));
+    // mwg_check(( mwg::stdm::is_convertible<int(int), int(*)(int)>::value));
+    // mwg_check(( mwg::stdm::is_convertible<int(int), int(&)(int)>::value));
+    // mwg_check(( mwg::stdm::is_convertible<int(&)(int), int(*)(int)>::value));
+    // mwg_check(( mwg::stdm::is_convertible<E, int>::value));
+    // mwg_check(( mwg::stdm::is_convertible<S, ClassType>::value));
+    // mwg_check(( mwg::stdm::is_convertible<T, S>::value));
+    // mwg_check(( mwg::stdm::is_convertible<T*, S*>::value));
+    // mwg_check(( mwg::stdm::is_convertible<T&, S&>::value));
+
+    // // Negative tests.
+    // mwg_check((!mwg::stdm::is_convertible<const int*, int*>::value));
+    // mwg_check((!mwg::stdm::is_convertible<int*, float*>::value));
+    // mwg_check((!mwg::stdm::is_convertible<const int[4], int*>::value));
+    // mwg_check((!mwg::stdm::is_convertible<int[4], int[4]>::value));
+    // mwg_check((!mwg::stdm::is_convertible<const int&, int&>::value));
+    // mwg_check((!mwg::stdm::is_convertible<float&, int&>::value));
+    // mwg_check((!mwg::stdm::is_convertible<float, volatile int&>::value));
+    // mwg_check((!mwg::stdm::is_convertible<int(int), int(int)>::value));
+    // mwg_check((!mwg::stdm::is_convertible<int(int), int(*)(void)>::value));
+    // mwg_check((!mwg::stdm::is_convertible<int(*)(int), int(&)(int)>::value));
+    // mwg_check((!mwg::stdm::is_convertible<S, T>::value));
+    // mwg_check((!mwg::stdm::is_convertible<S*, T*>::value));
+    // mwg_check((!mwg::stdm::is_convertible<S&, T&>::value));
+  }
+#pragma%x end_check
 
   //
   // is_object
@@ -778,7 +1089,35 @@ namespace stdm{
   template<typename T>
   struct is_compound:integral_constant<bool,!is_fundamental<T>::value>{};
 #endif
+#pragma%x begin_check
+  void check_is_fundamental(){
+    mwg_check(( mwg::stdm::is_fundamental<int>::value));
+    mwg_check(( mwg::stdm::is_fundamental<float>::value));
+    mwg_check(( mwg::stdm::is_fundamental<long double>::value));
+    mwg_check(( mwg::stdm::is_fundamental<const int>::value));
+    mwg_check(( mwg::stdm::is_fundamental<volatile float>::value));
+    mwg_check(( mwg::stdm::is_fundamental<const volatile long double>::value));
 
+    mwg_check((!mwg::stdm::is_fundamental<U>::value));
+    mwg_check((!mwg::stdm::is_fundamental<int&>::value));
+    mwg_check((!mwg::stdm::is_fundamental<int*>::value));
+    mwg_check((!mwg::stdm::is_fundamental<float&>::value));
+    mwg_check((!mwg::stdm::is_fundamental<float*>::value));
+
+    mwg_check((!mwg::stdm::is_compound<int>::value));
+    mwg_check((!mwg::stdm::is_compound<float>::value));
+    mwg_check((!mwg::stdm::is_compound<long double>::value));
+    mwg_check((!mwg::stdm::is_compound<const int>::value));
+    mwg_check((!mwg::stdm::is_compound<volatile float>::value));
+    mwg_check((!mwg::stdm::is_compound<const volatile long double>::value));
+
+    mwg_check(( mwg::stdm::is_compound<U>::value));
+    mwg_check(( mwg::stdm::is_compound<int&>::value));
+    mwg_check(( mwg::stdm::is_compound<int*>::value));
+    mwg_check(( mwg::stdm::is_compound<float&>::value));
+    mwg_check(( mwg::stdm::is_compound<float*>::value));
+  }
+#pragma%x end_check
   //===========================================================================
   //  type utilities
   //---------------------------------------------------------------------------
@@ -1006,11 +1345,43 @@ namespace stdx{
 }
 }
 #include "type_traits.is_constructible.h"
+#pragma%x begin_check
+struct Test0{};
+struct Test1{Test1();};
+struct Test2{Test2(int);};
+class  Test3{Test3();};
+void check_is_default_constructible(){
+  mwg_check(( mwg::stdm::is_default_constructible<int>::value));
+  mwg_check(( mwg::stdm::is_default_constructible<int[2]>::value));
+  mwg_check((!mwg::stdm::is_default_constructible<int&>::value));
+  mwg_check(( mwg::stdm::is_default_constructible<int Test0::*>::value));
+  mwg_check(( mwg::stdm::is_default_constructible<int (Test0::*)(int)>::value));
+  mwg_check_nothrow(( mwg::stdm::is_default_constructible<Test0>::value));
+  mwg_check_nothrow(( mwg::stdm::is_default_constructible<Test1>::value));
+  mwg_check_nothrow((!mwg::stdm::is_default_constructible<Test2>::value));
+  mwg_check_nothrow((!mwg::stdm::is_default_constructible<Test3>::value));
+  mwg_check_nothrow(( mwg::stdm::is_default_constructible<Test0[2]>::value));
+  mwg_check_nothrow(( mwg::stdm::is_default_constructible<Test1[2]>::value));
+  mwg_check_nothrow((!mwg::stdm::is_default_constructible<Test2[2]>::value));
+  mwg_check_nothrow((!mwg::stdm::is_default_constructible<Test3[2]>::value));
+}
+#pragma%x end_check
+
 #endif /* MWG_STDM_TYPE_TRAITS */
 #pragma%x begin_check
 
 int main(){
+  check_remove_cv();
+  check_add_lvalue_reference();
+  check_is_integral();
+  check_is_floating_point();
+  check_is_arithmetic();
   check_is_signed();
+  check_is_member_pointer();
+  check_is_base_of();
+  check_is_convertible();
+  check_is_fundamental();
+  check_is_default_constructible();
   return 0;
 }
 #pragma%x end_check

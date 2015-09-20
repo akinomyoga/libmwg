@@ -114,11 +114,12 @@ $(INS_INCCFG)/mwg/config.h: $(CPPDIR)/mwg/config.h
 $(CFGDIR)/libmwg.a: $(object_files)
 	@echo 'AR $@'
 	@$(MWGCXXAR) $@ $^
+library_files+=$(CFGDIR)/libmwg.a
 install_files+=$(INS_LIBDIR)/libmwg.a
 $(INS_LIBDIR)/libmwg.a: $(CFGDIR)/libmwg.a
 	$(BASE)/mmake/make_command.sh install $< $@
 
-all: $(source_files) $(CFGDIR)/libmwg.a
+all: $(source_files) $(library_files)
 check: all $(check_files)
 install: $(install_files)
 
