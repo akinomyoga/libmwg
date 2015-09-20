@@ -48,6 +48,11 @@
  * fi
  *
  */
+#pragma%x begin_check
+#include <mwg/except.h>
+#include <mwg/std/type_traits>
+
+#pragma%x end_check
 
 // load TR1 library
 #if MWGCONF_HEADER_STD>=2005
@@ -382,46 +387,64 @@ namespace stdm{
   //  is_signed
   //  is_unsigned
   //
-#ifdef MWG_STDM_TYPE_TRAITS_WithTr1Header
-  // modify is_signed
-  template<typename T> struct is_signed:integral_constant<
-    bool,::std::tr1::is_signed<T>::value||::std::tr1::is_floating_point<T>::value>{};
-
-  using ::std::tr1::is_unsigned;
-#else
+  //  Note: std::tr1::is_signed/is_unsigned は使わない。
+  //    tr1 の is_signed/is_unsigned は
+  //    signed/unsigned char/short/int/long/long long/__int64 のみに対して true となった。
+  //    しかし C++11 では浮動小数点数は signed になり、bool は unsigned になった。
+  //    更に、char, char16_t, char32_t は実際の振る舞いに応じて signed/unsigned になる。
+  //
   namespace detail{
-    template<typename T> struct is_signed_nocv:is_floating_point<T>{};
-    template<> struct is_signed_nocv<signed char>     :true_type{};
-    template<> struct is_signed_nocv<signed short>    :true_type{};
-    template<> struct is_signed_nocv<signed int>      :true_type{};
-    template<> struct is_signed_nocv<signed long>     :true_type{};
+    template<typename T,bool B=is_integral<T>::value> struct is_signed_nocv:false_type{};
+    template<typename T,bool B=is_integral<T>::value> struct is_unsigned_nocv:false_type{};
+
+    template<typename T> struct is_signed_nocv  <T,true>:integral_constant<bool,(T(-1)<T(0))>{};
+    template<typename T> struct is_unsigned_nocv<T,true>:integral_constant<bool,(T(0)<T(-1))>{};
+
+    // floating point numbers are signed
+    template<> struct is_signed_nocv<float      ,false>:true_type{};
+    template<> struct is_signed_nocv<double     ,false>:true_type{};
+    template<> struct is_signed_nocv<long double,false>:true_type{};
+
+    // bool is always unsigned
+    template<> struct is_unsigned_nocv<bool          ,true>:true_type{};
+
+    // signed/unsigned integers
+    template<> struct is_signed_nocv  <signed char   ,true>:true_type{};
+    template<> struct is_signed_nocv  <signed short  ,true>:true_type{};
+    template<> struct is_signed_nocv  <signed int    ,true>:true_type{};
+    template<> struct is_signed_nocv  <signed long   ,true>:true_type{};
+    template<> struct is_unsigned_nocv<unsigned char ,true>:true_type{};
+    template<> struct is_unsigned_nocv<unsigned short,true>:true_type{};
+    template<> struct is_unsigned_nocv<unsigned int  ,true>:true_type{};
+    template<> struct is_unsigned_nocv<unsigned long ,true>:true_type{};
 # ifdef MWGCONF_HAS_LONGLONG
-    template<> struct is_signed_nocv<signed long long>:true_type{};
+    template<> struct is_signed_nocv  <signed long long  ,true>:true_type{};
+    template<> struct is_unsigned_nocv<unsigned long long,true>:true_type{};
 # endif
 # ifdef MWGCONF_HAS_DISTINCT_INT64
-    template<> struct is_signed_nocv<signed __int64>  :true_type{};
+    template<> struct is_signed_nocv  <signed __int64  ,true>:true_type{};
+    template<> struct is_unsigned_nocv<unsigned __int64,true>:true_type{};
 # endif
-
-    template<typename T> struct is_unsigned_nocv:false_type{};
-    template<> struct is_unsigned_nocv<unsigned char>     :true_type{};
-    template<> struct is_unsigned_nocv<unsigned short>    :true_type{};
-    template<> struct is_unsigned_nocv<unsigned int>      :true_type{};
-    template<> struct is_unsigned_nocv<unsigned long>     :true_type{};
-# ifdef MWGCONF_HAS_LONGLONG
-    template<> struct is_unsigned_nocv<unsigned long long>:true_type{};
-# endif
-# ifdef MWGCONF_HAS_DISTINCT_INT64
-    template<> struct is_unsigned_nocv<unsigned __int64>  :true_type{};
-# endif
-
-    template<typename T> struct is_signed
-      :is_signed_nocv<typename remove_cv<T>::type>{};
-    template<typename T> struct is_unsigned
-      :is_unsigned_nocv<typename remove_cv<T>::type>{};
   }
-  using detail::is_signed;
-  using detail::is_unsigned;
-#endif
+  template<typename T> struct is_signed  :detail::is_signed_nocv  <typename remove_cv<T>::type>{};
+  template<typename T> struct is_unsigned:detail::is_unsigned_nocv<typename remove_cv<T>::type>{};
+#pragma%x begin_check
+template<typename T>
+void check_is_signed__for_type(){
+  mwg_check( (mwg::stdm::is_signed<T>::value==(mwg::stdm::is_arithmetic<T>::value&&(T(-1)<T(0)))));
+  mwg_check( (mwg::stdm::is_unsigned<T>::value==(mwg::stdm::is_arithmetic<T>::value&&(T(0)<T(-1)))));
+}
+void check_is_signed(){
+  check_is_signed__for_type<bool>();
+  check_is_signed__for_type<char>();
+  check_is_signed__for_type<signed>();
+  check_is_signed__for_type<unsigned>();
+
+  check_is_signed__for_type<float>();
+  check_is_signed__for_type<double>();
+  check_is_signed__for_type<long double>();
+}
+#pragma%x end_check
 
   //
   //  make_signed
@@ -984,3 +1007,10 @@ namespace stdx{
 }
 #include "type_traits.is_constructible.h"
 #endif /* MWG_STDM_TYPE_TRAITS */
+#pragma%x begin_check
+
+int main(){
+  check_is_signed();
+  return 0;
+}
+#pragma%x end_check

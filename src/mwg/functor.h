@@ -2,6 +2,54 @@
 #pragma once
 #ifndef MWG_FUNCTOR_H
 #define MWG_FUNCTOR_H
+#pragma%x begin_check
+#include <cstdio>
+#include <cstring>
+#include <mwg/except.h>
+#include <mwg/functor.h>
+
+//-----------------------------------------------------------------------------
+// Test targets
+
+int func1(){
+  return 123;
+}
+
+class C{
+  int x;
+public:
+  C(int x):x(x){}
+  void print() const{
+    std::printf("C::print(): this->x =%d\n",this->x);
+  }
+
+  int getValue() const{return this->x;}
+};
+
+class F{
+  int x;
+public:
+  F(int x):x(x){}
+  int operator()(int y) const{
+    //std::printf("F::print(int): x+y=%d\n",x+y);
+    return x+y;
+  }
+};
+
+class F2{
+public:
+  int operator()(int) const{return 1;}
+  int operator()(float) const{return 1;}
+  int operator()(int,int) const{return 2;}
+  int operator()(int x,int y,int z) const{return x+y+z;}
+};
+
+struct Str{
+  int x;
+  int y;
+};
+
+#pragma%x end_check
 #include <new>
 #include <algorithm>
 #include <cstring>
@@ -536,7 +584,7 @@ namespace functor_detail{
       this->template init<F,functor_case_impl<S,typename functor_traits<F>::ref_tr> >(f);
     }
     template<typename F>
-    vfunctor_ref(const F& f,mwg_requires((!is_functor<S,F>::value&&be_functor<S,F>::value),void*) =nullptr){
+    vfunctor_ref(const F& f,mwg_requires((!is_functor<S,F>::value&&be_functor<F,S>::value),void*) =nullptr){
       this->template init<F,functor_case_impl<S,typename functor_traits<F,S>::ref_tr> >(f);
     }
   };
@@ -548,15 +596,230 @@ namespace functor_detail{
   using functor_detail::functor_invoke;
 } // end of mwg
 //EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
-#if 0
-  template<typename F> mwg_requires((mwg::is_functor<bool(),F>::value),
-  void) test1(const F& f){
-    puts(mwg::functor_traits<F>::invoke(f)?"O":"X");
-  }
-  template<typename F> mwg_requires((mwg::be_functor<bool(),F>::value),
-  void) test2(const F& f){
-    puts(mwg::functor_traits<F,bool()>::invoke(f)?"O":"X");
-  }
-#endif
+/*?lwiki
+ * &pre(!cpp){
+ * template<typename F>
+ * typename mwg::stdm::enable_if<mwg::is_functor<bool(),F>::value,void>::type
+ * test1(const F& f){
+ *   puts(mwg::functor_traits<F>::invoke(f)?"O":"X");
+ * }
+ * template<typename F>
+ * typename mwg::stdm::enable_if<mwg::be_functor<bool(),F>::value,void>::type
+ * test2(const F& f){
+ *   puts(mwg::functor_traits<F,bool()>::invoke(f)?"O":"X");
+ * }
+ * }
+ */
 //EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
 #endif
+#pragma%x begin_check
+
+//------------------------------------------------------------------------------
+// for debug
+
+#ifdef MWG_FUNCTOR_H__VariantFunctorEnabled
+
+#ifdef mwg_concept_is_valid_expression
+template<typename F>
+mwg_concept_is_valid_expression(has_single_operator_functor,F,F_,((F_*)0)->operator());
+#elif defined(mwg_concept_is_valid_expression_vc2010A)
+template<typename F>
+mwg_concept_is_valid_expression_vc2010A(has_single_operator_functor,F,F_,((F_*)0)->operator());
+#else
+template<typename F>
+struct has_single_operator_functor:mwg::stdm::false_type{};
+#define mwgconf_mwg_functor_nosupport
+#endif
+
+template<typename P>
+struct is_pointer_to_single_operator_functor{
+#ifdef mwg_concept_is_valid_expression
+  mwg_concept_is_valid_expression(c1_1,P,P_,((P_*)0)->operator*());
+#elif defined(mwg_concept_is_valid_expression_vc2010A)
+  mwg_concept_is_valid_expression_vc2010A(c1_1,P,P_,((P_*)0)->operator*());
+#else
+  struct c1_1:mwg::stdm::false_type{};
+#endif
+
+  struct c1:mwg::stdm::integral_constant<bool,c1_1::value||mwg::stdm::is_pointer<P>::value>{};
+
+  template<typename T> static T expr();
+
+  template<typename P_,bool B> struct c2:mwg::stdm::false_type{
+    typedef mwg::unknown_type operator_type;
+  };
+  template<typename P_> struct c2<P_,true>{
+    typedef typename std::remove_reference<decltype(*expr<P_>())>::type functor_type;
+    static const bool value=has_single_operator_functor<functor_type>::value;
+    typedef decltype(&functor_type::operator()) operator_type;
+  };
+
+  mwg_concept_condition(c2<P,c1::value>::value);
+  typedef typename c2<P,c1::value>::operator_type operator_type;
+};
+
+#endif
+
+//-----------------------------------------------------------------------------
+void debug_support_member_function_pointer(){
+  mwg_check( mwg::stdm::is_member_function_pointer<void(C::*)() const>::value);
+  mwg_check(!mwg::stdm::is_member_function_pointer<void(const C&)>::value);
+
+  // mwg_check(mwg::functor_detail::signature_mfp<void(C::*)()>::is_mfp==true);
+  // mwg_check(mwg::functor_detail::signature_mfp<int(C::*)()>::is_mfp==true);
+  // mwg_check(mwg::functor_detail::signature_mfp<int(C::*)(int)>::is_mfp==true);
+
+  mwg_check(( mwg::functor_detail::is_memfun_pointer<void(C::*)() const>::value));
+  mwg_check((!mwg::functor_detail::is_memfun_pointer<void(const C&)>::value));
+  mwg_check(( mwg::stdm::is_same<void(const C&),mwg::functor_detail::is_memfun_pointer<void(C::*)() const>::functor_sgn>::value));
+  mwg_check(( mwg::is_functor<void(C::*)() const,void(const C&)>::value));
+  mwg_check(( mwg::be_functor<void(C::*)() const,void(const C&)>::value));
+}
+
+void debug_support_functor_object(){
+#ifdef MWG_FUNCTOR_H__VariantFunctorEnabled
+  mwg_check(!(is_pointer_to_single_operator_functor<F>::c1_1::value));
+  mwg_check(!(is_pointer_to_single_operator_functor<F>::c1::value));
+  mwg_check(!(is_pointer_to_single_operator_functor<F>::value));
+  mwg_check(!(mwg::functor_detail::is_pointer_to_single_operator_functor<F>::value));
+
+  mwg_check( (mwg::functor_traits<F>::is_functor));
+#else
+  mwg_check(!(mwg::functor_detail::is_pointer_to_single_operator_functor<F>::value));
+
+  mwg_check(!(mwg::functor_traits<F>::is_functor));
+  mwg_check( (mwg::functor_detail::can_be_called_as<F,int(int)>::value));
+  mwg_check( (mwg::functor_detail::functor_traits_switch<F,int(int),102>::is_functor));
+  mwg_check( (mwg::functor_detail::functor_traits_signature<int(int)>::is_functor));
+  mwg_check( (mwg::functor_traits<F,int(int)>::is_functor));
+#endif
+
+#if 0
+  // debug
+  typedef mwg::functor_detail::functor_case_traits_FunctorRef<F> case_tr;
+  typedef mwg::functor_detail::functor_case_impl<void(int),case_tr> case_t;
+  mwg_check((mwg::std_::is_same<case_tr::case_data,const F*>::value));
+  mwg_check((mwg::std_::is_same<case_t::base,mwg::functor_detail::functor_case_data<void(int),const F*,true> >::value));
+  //case_t::base x(reinterpret_cast<const F*>(0));
+#endif
+}
+
+//-----------------------------------------------------------------------------
+
+void check_function_pointer(){
+  // 1. function pointer
+  mwg::functor<int()> f1(&func1);
+  mwg_check(f1()==func1());
+  f1=func1;
+  mwg_check(f1()==func1());
+}
+
+void check_member_function_pointer(){
+  C instance(123);
+  mwg::functor<int(const C&)> f2(&C::getValue);
+  mwg_check(f2(instance)==123);
+  mwg::functor<void(C&)> f2_2(&C::getValue);
+  f2_2(instance);
+
+  //mwg::functor<void(const C&)> f2(&C::print);f2(C(123));
+  //mwg::functor<void(C&)> f2_2(&C::print);
+}
+
+void check_functor_object(){
+  F functor(5);
+  mwg::functor<int(int)> f3(functor);
+  mwg_check(f3(4)==functor(4));
+  mwg::functor_ref<int(int)> f3_1(functor);
+  mwg_check(f3_1(4)==functor(4));
+}
+
+void check_member_object_pointer(){
+  mwg::functor<int&(Str&)> f4(&Str::x);
+  Str hoge={2011,2012};
+  mwg_check(f4(hoge)==hoge.x);
+  mwg::functor<const int&(const Str&)> f4_1(&Str::x);
+  mwg_check(f4_1(hoge)==2011);
+  mwg::functor<int(const Str&)> f4_2(&Str::x);
+  mwg_check(f4_2(hoge)==2011);
+  mwg_check( (mwg::stdm::is_convertible<const int&,int>::value));
+}
+
+void check_variance(){
+  {
+    mwg::functor<int(int,int)> g1(&func1);
+    mwg_check(g1(1,2)==func1());
+    g1=func1;
+    mwg_check(g1(1,2)==func1());
+  }
+
+  {
+    mwg::functor<void(char*,const char*,int)> g2(sprintf);
+    char buff[100];
+    g2(buff,"hello! %dth world!\n",4);
+    mwg_check(std::strcmp(buff,"hello! 4th world!\n")==0);
+  }
+
+#ifdef MWG_FUNCTOR_H__VariantFunctorEnabled
+  mwg_check( (mwg::functor_detail::can_be_called_as<F,int(int)>::value));
+  mwg_check( (mwg::functor_detail::can_be_called_as<F,int(short)>::value));
+  mwg_check( (mwg::functor_detail::can_be_called_as<F,int(char)>::value));
+  mwg_check( (mwg::functor_detail::can_be_called_as<F,int(float)>::value));
+  mwg_check( (mwg::functor_detail::can_be_called_as<F,int(double)>::value));
+  mwg_check(!(mwg::functor_detail::can_be_called_as<F,int*(int)>::value));
+  mwg_check(!(mwg::functor_detail::can_be_called_as<F,int()>::value));
+  mwg_check( (mwg::functor_detail::can_be_called_as<F,int(int,int)>::value));
+
+  mwg_check(!(mwg::functor_detail::can_be_called_as<F2,void()>::value));
+  mwg_check( (mwg::functor_detail::can_be_called_as<F2,void(int)>::value));
+  mwg_check( (mwg::functor_detail::can_be_called_as<F2,void(int,int)>::value));
+  mwg_check( (mwg::functor_detail::can_be_called_as<F2,void(int,int,int)>::value));
+  mwg_check( (mwg::functor_detail::can_be_called_as<F2,void(int,int,int,int)>::value));
+#else
+  mwg_check( (mwg::functor_detail::can_be_called_as<F,int(int)>::value));
+  mwg_check(!(mwg::functor_detail::can_be_called_as<F,int(short)>::value));
+  mwg_check(!(mwg::functor_detail::can_be_called_as<F,int(char)>::value));
+  mwg_check(!(mwg::functor_detail::can_be_called_as<F,int(float)>::value));
+  mwg_check(!(mwg::functor_detail::can_be_called_as<F,int(double)>::value));
+  mwg_check(!(mwg::functor_detail::can_be_called_as<F,int*(int)>::value));
+  mwg_check(!(mwg::functor_detail::can_be_called_as<F,void()>::value));
+  mwg_check( (mwg::functor_detail::can_be_called_as<F,int(int,int)>::value));
+
+  mwg_check(!(mwg::functor_detail::can_be_called_as<F2,int()>::value));
+  mwg_check( (mwg::functor_detail::can_be_called_as<F2,int(int)>::value));
+  mwg_check( (mwg::functor_detail::can_be_called_as<F2,int(int,int)>::value));
+  mwg_check( (mwg::functor_detail::can_be_called_as<F2,int(int,int,int)>::value));
+  mwg_check( (mwg::functor_detail::can_be_called_as<F2,int(int,int,int,int)>::value));
+#endif
+
+  mwg::functor<int(int,int,int)> g3=mwg::functor<int(int,int,int)>(F2());
+  mwg_check( (g3(1,2,3)==6));
+}
+
+int main(){
+  typedef mwg::functor_traits<void(C::*)()const> mfp_ftr;
+
+  // sizeof(functor_case)
+  std::fprintf(stderr,"  sizeof(functor_case)=%zd sizeof(ins_t)=%zd\n",
+    sizeof(mwg::functor_detail::functor_case<int()>),
+    sizeof(mwg::functor_detail::functor_case_impl<mfp_ftr::sgn_t,mfp_ftr::ins_tr>)
+  );
+
+  check_can_be_called_as();
+
+  //----------------------------------------------------------------------------
+  check_function_pointer();
+
+  debug_support_member_function_pointer();
+  check_member_function_pointer();
+
+  debug_support_functor_object();
+  check_functor_object();
+
+  check_member_object_pointer();
+
+  //----------------------------------------------------------------------------
+  check_variance();
+
+  return 0;
+}
+#pragma%x end_check

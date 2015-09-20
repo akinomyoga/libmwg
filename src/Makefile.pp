@@ -30,13 +30,11 @@ Makefile: Makefile.pp
 #%x AddCxxHeader.r|%file%|mwg/std/memory|
 #%x AddCxxHeader.r|%file%|mwg/std/memory.unique_ptr.inl|
 #%x AddCxxHeader.r|%file%|mwg/std/ratio|
-
 #%x AddCxxHeader.r|%file%|mwg/std/tuple|
 #%[ppdeps="mwg/std/tuple.nonvariadic_tuple.hpp"]
 #%x AddCxxHeader.r|%file%|mwg/std/tuple.nonvariadic_tuple.inl|
 #%[ppdeps="mwg/std/tuple.nonvariadic_tuple.hpp"]
 #%x AddCxxHeader.r|%file%|mwg/std/tuple.variadic_tuple.inl|
-
 #%x AddCxxHeader.r|%file%|mwg/std/type_traits|
 #%x AddCxxHeader.r|%file%|mwg/std/type_traits.is_constructible.h|
 #%x AddCxxHeader.r|%file%|mwg/std/type_traits.is_convertible.inl|
@@ -44,6 +42,10 @@ Makefile: Makefile.pp
 #%x AddCxxHeader.r|%file%|mwg/impl/warning_push.inl|
 #%x AddCxxHeader.r|%file%|mwg/impl/warning_pop.inl|
 #%x AddCxxHeader.r|%file%|mwg/impl/DeclareVariadicFunction.inl|
+
+#%x AddCxxHeader.r|%file%|mwg/funcsig.h|
+#%x AddCxxHeader.r|%file%|mwg/functor.h|
+#%x AddCxxHeader.r|%file%|mwg/functor.proto.h|
 
 #%x AddCxxHeader.r|%file%|mwg/xprintf.h|
 #%x AddCxxSource.r|%file%|mwg/xprintf.cpp|
@@ -77,10 +79,6 @@ Makefile: Makefile.pp
 #%x AddCxxHeader.r|%file%|mwg/bio/mwb_header.h|
 #%x AddCxxHeader.r|%file%|mwg/bio/mwb_format.h|
 #%x AddCxxSource.r|%file%|mwg/bio/mwb_format.cpp|
-
-#%x AddCxxHeader.r|%file%|mwg/funcsig.h|
-#%x AddCxxHeader.r|%file%|mwg/functor.h|
-#%x AddCxxHeader.r|%file%|mwg/functor.proto.h|
 
 #%x AddCxxHeader.r|%file%|mwg/ext/zlib.h|
 #%x AddCxxSource.r|%file%|mwg/ext/zlib.cpp|

@@ -31,23 +31,24 @@ namespace functor_detail{
 
   template<typename S>
   struct functor_base;
-  template<typename S>
-  class functor;
-  template<typename S>
-  class functor_ref;
+  template<typename S> class functor;
+  template<typename S> class functor_ref;
+  template<typename S> class vfunctor;
+  template<typename S> class vfunctor_ref;
 
-  template<typename F,typename S>
-  struct is_functor;
-  template<typename F,typename S>
-  struct be_functor;
+  template<typename F,typename S> struct is_functor;
+  template<typename F,typename S> struct be_functor;
 }
 
   using functor_detail::functor_traits;
+
   using functor_detail::functor;
   using functor_detail::functor_ref;
+  using functor_detail::vfunctor;
+  using functor_detail::vfunctor_ref;
 
-  using functor_detail::be_functor;
   using functor_detail::is_functor;
+  using functor_detail::be_functor;
 }
 #endif
 

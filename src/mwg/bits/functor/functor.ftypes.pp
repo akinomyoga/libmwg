@@ -188,7 +188,9 @@
     mwg_concept_has_member(c1_1,F,X,operator(),R(X::*)(%types%));
     mwg_concept_has_member(c1_2,F,X,operator(),R(X::*)(%types%) const);
     struct c1:stdm::integral_constant<bool,c1_1::value||c1_2::value>{};
-    //struct c1:stdm::false_type{};
+
+    // // permissive: overload 選択などで問題あり。
+    // struct c1:stdm::true_type{};
 #endif
 
 #if defined(MWGCONF_STD_DECLTYPE)
@@ -197,11 +199,10 @@
       typedef decltype(expr<F_>().operator()($".for:K:1:%AR%+1:expr<AK>():,")) type;
     };
     typedef typename s1<F,c1::value>::type OpR;
-    mwg_concept_condition(c1::value&&is_variant_argument<OpR,R>::value);
 #else
     typedef R OpR;
-    mwg_concept_condition(c1::value&&is_variant_argument<OpR,R>::value);
 #endif
+    mwg_concept_condition(c1::value&&is_variant_argument<OpR,R>::value);
   };
 #%)
 #%expand mwg::functor::arities
@@ -213,9 +214,8 @@
   template<typename F,typename S,bool CANBE1>
   struct can_be_called_as_impl2:stdm::false_type{};
   template<typename F,typename S>
-  struct can_be_called_as_impl2<F,S,true>{
+  struct can_be_called_as_impl2<F,S,true>:stdm::true_type{
     typedef S signature_type;
-    static const bool value=true;
   };
   template<typename F,typename S>
   struct can_be_called_as_impl2<F,S,false>
@@ -223,5 +223,19 @@
   template<typename F,typename R>
   struct can_be_called_as_impl2<F,R(),false>
     :stdm::false_type{};
+
+#pragma%x begin_check
+void check_can_be_called_as(){
+  using namespace mwg::functor_detail;
+  mwg_check( (is_variant_signature<functor_traits<int(int)>,functor_traits<int(int)> >::value));
+  mwg_check( (is_variant_signature<functor_traits<void(int)>,functor_traits<void(int)> >::value));
+  mwg_check( (is_variant_signature<functor_traits<int(int)>,functor_traits<void(int)> >::value));
+  mwg_check(!(is_variant_signature<functor_traits<void(int)>,functor_traits<int(int)> >::value));
+
+  mwg_check( (is_variant_argument<int,int>::value));
+  mwg_check( (is_variant_argument<int,void>::value));
+  mwg_check(!(is_variant_argument<void,int>::value));
+}
+#pragma%x end_check
 
 //------------------------------------------------------------------------------

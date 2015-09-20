@@ -421,7 +421,7 @@ namespace xprintf_detail{
   template<typename Buff,typename T>
   typename stdm::enable_if<stdm::is_unsigned<T>::value||stdm::is_same<T,char>::value,int>::type
   xprintf_convert(Buff const& buff,fmtspec const& spec,T const& value){
-    return xprintf_convert(buff,spec,(mwg::i8t)value,true,sizeof(T));
+    return xprintf_convert(buff,spec,(mwg::i8t)value,false,sizeof(T));
   }
 
   template<typename Buff>
@@ -831,9 +831,7 @@ void test1(){
   mwg::xprintf(line,"0.01=%.100f\n",0.01);
   mwg_check(line.compare(0,10,"0.01=0.010")==0&&line.size()==7+100+1&&line[107]=='\n',"result=%s",line.c_str());
 
-  check_printf(
-    "bool: (xprintf: unknown conversion 's') (xprintf: unknown conversion 'S')\n",
-    "bool: %s %S\n",true,false);
+  check_printf("bool: true FALSE\n","bool: %s %S\n",true,false);
 }
 
 void test2(){
@@ -929,8 +927,6 @@ void test2(){
   check_printf("nan NAN +nan NAN","%e %1$E %1$+e %E",nan,-nan);
   check_printf("nan NAN +nan NAN","%g %1$G %1$+g %G",nan,-nan);
   check_printf("nan NAN +nan NAN","%a %1$A %1$+a %A",nan,-nan);
-
-  //mwg_printd("completed");
 }
 
 int main(){
