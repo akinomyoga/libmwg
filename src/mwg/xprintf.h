@@ -700,34 +700,17 @@ namespace xprintf_detail{
     const char* m_fmt;
     Tuple const& m_args;
 
-#ifdef MWGCONF_STD11
-    // Make copy constructor private.
-    //
-    // When a reference is bound to a const reference,
-    // the copy constructor is required to be accessible in C++98.
-    // Thus the copy constructor is left to be public for C++98.
-    //
-    // Actually, in g++-3.4.6, the private copy constructor
-    // generates the compiler error
-    // although it seems OK in g++-3.3.6, g++-2.95, and g++-4.5.4.
-    // The other compilers have not yet been tested.
-    //
-    // see libmwg/note/20150920.g++-3.4.6-bug.copyctor_required_for_cref.cpp
-    //
-    _vxputf_temporary_object(_vxputf_temporary_object const& c):m_fmt(c.m_fmt),m_args(c.m_args){}
-# ifdef MWGCONF_STD_RVALUE_REFERENCES
-    _vxputf_temporary_object(_vxputf_temporary_object&& c):m_fmt(c.m_fmt),m_args(c.m_args){}
-# endif
-#endif
-
     _vxputf_temporary_object(const char* fmt,Tuple const& args)
       :m_fmt(fmt),m_args(args){}
 
-#ifdef MWGCONF_STD_DEFAULTED_FUNCTIONS
-    _vxputf_temporary_object& operator=(_vxputf_temporary_object const& c) = default;
-#else
-    _vxputf_temporary_object& operator=(_vxputf_temporary_object const& c){this->m_fmt=c.m_fmt;this->m_args=c.m_args;}
+#if defined(MWGCONF_STD_DEFAULTED_FUNCTIONS)&&defined(MWGCONF_STD_RVALUE_REFERENCES)
+    _vxputf_temporary_object(_vxputf_temporary_object const& c) = default;
+    _vxputf_temporary_object(_vxputf_temporary_object&& c) = default;
 #endif
+
+    template<typename Tuple2>
+    friend typename mwg::stdm::enable_if<mwg::stdx::is_tuple<Tuple2>::value,_vxputf_temporary_object<Tuple2> const>::type
+    vxputf(const char* fmt,Tuple2 const& args);
 
   public:
     template<typename Buff>
@@ -749,15 +732,11 @@ namespace xprintf_detail{
       return vxprintf_impl(empty_writer(),m_fmt,m_args);
     }
 
-    // friend functions
-
-    template<typename Tuple2>
-    friend typename mwg::stdm::enable_if<mwg::stdx::is_tuple<Tuple2>::value,_vxputf_temporary_object<Tuple2> >::type
-    vxputf(const char* fmt,Tuple2 const& args);
+  private:
   };
 
   template<typename Tuple>
-  typename mwg::stdm::enable_if<mwg::stdx::is_tuple<Tuple>::value,_vxputf_temporary_object<Tuple> >::type
+  typename mwg::stdm::enable_if<mwg::stdx::is_tuple<Tuple>::value,_vxputf_temporary_object<Tuple> const>::type
   vxputf(const char* fmt,Tuple const& args){
     return _vxputf_temporary_object<Tuple>(fmt,args);
   }
@@ -767,14 +746,6 @@ namespace xprintf_detail{
     const char* m_fmt;
     Tuple m_args;
 
-#ifdef MWGCONF_STD11
-    // Make copy constructor private.
-    _xputf_temporary_object(_xputf_temporary_object const& c):m_fmt(c.m_fmt),m_args(c.m_args){}
-# ifdef MWGCONF_STD_RVALUE_REFERENCES
-    _xputf_temporary_object(_xputf_temporary_object&& c):m_fmt(c.m_fmt),m_args(mwg::stdm::move(c.m_args)){}
-# endif
-#endif
-
 #pragma%m 1
     template<typename... Args>
     _xputf_temporary_object(const char* fmt,Args... args)
@@ -782,17 +753,19 @@ namespace xprintf_detail{
 #pragma%end
 #pragma%x variadic_expand_0toArN
 
-#ifdef MWGCONF_STD_DEFAULTED_FUNCTIONS
-    _xputf_temporary_object& operator=(_xputf_temporary_object const& c) = default;
-# ifdef MWGCONF_STD_RVALUE_REFERENCES
-    _xputf_temporary_object& operator=(_xputf_temporary_object&& c) = default;
-# endif
-#else
-    _xputf_temporary_object& operator=(_xputf_temporary_object const& c){this->m_fmt=c.m_fmt;this->m_args=c.m_args;}
-# ifdef MWGCONF_STD_RVALUE_REFERENCES
-    _xputf_temporary_object& operator=(_xputf_temporary_object&& c){this->m_fmt=c.m_fmt;this->m_args=mwg::stdm::move(c.m_args);};
-# endif
+#if defined(MWGCONF_STD_DEFAULTED_FUNCTIONS)&&defined(MWGCONF_STD_RVALUE_REFERENCES)
+    _xputf_temporary_object(_xputf_temporary_object const& c) = default;
+    _xputf_temporary_object(_xputf_temporary_object&& c) = default;
+    // _xputf_temporary_object& operator=(_xputf_temporary_object const& c) = default;
+    // _xputf_temporary_object& operator=(_xputf_temporary_object&& c) = default;
 #endif
+
+#pragma%m 1
+    template<typename... Args>
+    friend _xputf_temporary_object<mwg::stdm::tuple<Args...> > const
+    xputf(const char* fmt,Args mwg_forward_rvalue... args);
+#pragma%end
+#pragma%x variadic_expand_0toArN
 
   public:
     template<typename Buff>
@@ -813,33 +786,25 @@ namespace xprintf_detail{
     std::size_t count() const{
       return vxprintf_impl(empty_writer(),m_fmt,m_args);
     }
-
-    // friend functions
-#pragma%m 1
-    template<typename... Args>
-    friend _xputf_temporary_object<mwg::stdm::tuple<Args...> >
-    xputf(const char* fmt,Args mwg_forward_rvalue... args);
-#pragma%end
-#pragma%x variadic_expand_0toArN
   };
 
 #pragma%m 1
   template<typename... Args>
-  _xputf_temporary_object<mwg::stdm::tuple<Args...> >
+  _xputf_temporary_object<mwg::stdm::tuple<Args...> > const
   xputf(const char* fmt,Args mwg_forward_rvalue... args){
-    typedef _xputf_temporary_object<mwg::stdm::tuple<Args...> > return_type;
+    typedef _xputf_temporary_object<mwg::stdm::tuple<Args...> > const return_type;
     return return_type(fmt,mwg::stdm::forward<Args>(args)...);
   }
 #pragma%end
 #pragma%x variadic_expand_0toArN
 
   template<typename Buff,typename Tuple>
-  Buff& operator<<(Buff& buff,_vxputf_temporary_object<Tuple> mwg_forward_rvalue _vxputf){
+  Buff& operator<<(Buff& buff,_vxputf_temporary_object<Tuple> const& _vxputf){
     _vxputf.print(buff);
     return buff;
   }
   template<typename Buff,typename Tuple>
-  Buff& operator<<(Buff& buff,_xputf_temporary_object<Tuple> mwg_forward_rvalue _vxputf){
+  Buff& operator<<(Buff& buff,_xputf_temporary_object<Tuple> const& _vxputf){
     _vxputf.print(buff);
     return buff;
   }
