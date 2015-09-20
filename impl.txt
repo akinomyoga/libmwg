@@ -1,9 +1,14 @@
 
 * clang -std=c++0x から GCC 4.4.7 libstdc++ を使えない。これに対する対処は諦める。
 
+
 ------------------------------------------------------------------------------
   ToDo
 ------------------------------------------------------------------------------
+
+2015-09-20
+
+* mwg/xprintf.h: %; で std::flush, std::fflush, etc.?
 
 2015-09-18
 
@@ -19,26 +24,26 @@
   result_of,
   max_align_t in <cstddef>
 
-* mwg/xprintf: mwg::vararg::va_forward の存在意義に疑問
+* mwg/xprintf: mwg::vararg::pack_forward の存在意義に疑問
 
-  | va_forward
+  | pack_forward
   |
   |   以下のようにして引数を捕まえるのに使う。
   |     void func(Args&&... _args){
-  |       std::tuple<Args&&...> args=va_forward<Args...>(_args...);
+  |       std::tuple<Args&&...> args=pack_forward<Args...>(_args...);
   |     }
   |   類似のものに std::forward_as_tuple があるがこれは使いづらい。というのも、
   |     void func(Args&&... _args){
   |       std::tuple<Args&&...> args=std::forward_as_tuple(std::forward<Args>(_args)...);
   |     }
-  |   としなければならないからである。あるいは、va_forward は
+  |   としなければならないからである。あるいは、pack_forward は
   |     std::forward_as_tuple(std::forward<Args>(_args)...)
   |   を組み合わせた物と考えれば良い。
 
   上記の記述は本当だろうか? 勿論 forward_as_tuple(...) とはできないけれども、
   forward_as_tuple<Types...>() の様な使い方はできるのではないかという気がする。
 
-  また、現在の実装で va_forward<XArgs...,YArgs...>(yargs...) となっているのは、
+  また、現在の実装で pack_forward<XArgs...,YArgs...>(yargs...) となっているのは、
   yargs から xargs に変換できるかどうかのチェックをするためである。
   単純な forward_as_tuple の場合はそのチェックがないので面倒なテンプレートのエラーが発生する。
   しかし、今回想定している使い方の範囲内では必ず yargs → XArgs に変換出来るはずである。
@@ -54,11 +59,12 @@
   | }
 
   結局、std::forward_as_tuple(std::forward<Args>(_args)...) と書かなければならないのが面倒だから、
-  va_forward という関数を作ったという解釈で良いという事である。
+  pack_forward という関数を作ったという解釈で良いという事である。
   序でに空の forward_as_tuple が許されるのかを確かめる。
 
+* mwg/xprintf.h: pack_forward 廃止??
+
 * mwg/xprintf.h: mwg::xprintf(std::string); // 追記になっているが sprintf 等を考えると分かりにくい
-* mwg/xprintf.h: va_forward 廃止??
 * mwg/xprintf.h: tuple_element_select 関連の整理。
 * mwg/xprintf.h: その他の型 ... ostringstream << を用いた実装。
 
@@ -199,6 +205,117 @@
 
 2015-09-20
 
+* mwg/xprintf.h: interface について
+
+  現在の interface は以下の関数である:
+
+  - xprintf(target,fmt,args);
+  - vxprintf(target,fmt,args);
+  - sprintf(fmt,args);
+  - vsprintf(fmt,args);
+
+  [問題点] sprintf/vsprintf は std::sprintf/std::vsprintf を隠蔽する。
+
+  つまり mwg 名前空間内では std:: を省略できないこと。
+  更に両関数の引数が互いに可換な状況があるので using std::sprintf もできない。
+
+  - ADL が働いて ::sprintf を呼んでいる積もりで
+    mwg::sprintf が呼び出されてしまう可能性がある。
+    (::sprintf は基本型しか受け取らない筈だが…例えば書き込み先に
+    operator char*() をメンバ関数として持つ型を指定する場合など?)
+
+  - 更に namespace mwg 内部で使っているから mwg::sprintf が呼び出されていると
+    思っていたら #include <mwg/xprintf.h> を忘れていた所為で
+    ::sprintf() の方が呼び出されるという危険性もある。
+
+  - 他の人が使おうとした時にバグを生む可能性がある。
+    特に初心者向けの文書での習慣である using namespace
+    を使うものだと考えている人は多い。
+
+  常に完全修飾名で指定すれば良いという考え方もあるが、気を抜くと忘れかねない。
+  以上の理由から、一般的に std:: 名前空間内部の物と同じ名前は使わない方が良い。
+
+  [計画] 同時に interface も改良したい。
+
+  | 以下の様な使い方ができる様にしたい:
+  |
+  |   std::cout << mwg::xprintf(fmt,...);
+  |   stdout << mwg::xprintf(fmt,...);
+  |
+  |   std::string line( mwg::xprintf(...) );
+  |   line << mwg::xprintf(fmt,...);
+  |   ilne = mwg::xprintf(fmt,...);
+  |
+  |   mwg::xprintf().str()
+  |
+  | でもこの interface だと出力&出力文字数取得ができない…。
+  |
+  |   std::tie(std::cout,count) << mwg::xprintf(fmt,...);
+  |   if((std::tie(std::cout,count) << mwg::xprintf(fmt,...)).second == 0) ...;
+  |
+  | だと如何にも煩雑である。といって、
+  |
+  |   if(mwg::xprintf(fmt,...).write(std::cout) == 0)
+  |
+  | というのも分かりにくい。やはり従来型の interface も同時に提供するべきだろうか。
+  | そうすると mwg::xprintf の関数名は従来型の interface に使用したい。
+  | 新しい << による interface の関数名をどうするかが問題になる。
+  | 下手に *printf などだと従来型の使い方を想像してしまうかもしれない。
+  | といって全然違う関数名にすると printf にするよりは気分的に抵抗が生じる。
+  |
+  | 或いは、ostream 的に << で使えるという事から関数名を決められないか。
+  | → boost::format は元々知っていたが、どうやら std::putf という名前で標準化の
+  | 提案が為されている様である。これが標準化されるかどうかはさておきこの真似で
+  |
+  |   mwg::xputf
+  |
+  | という関数名で実装するというのが良さそうである。
+
+  以下の interface で作る事にする:
+
+  1 xprintf, vxprintf はそのまま。
+
+    特に std::string に出力する時の文字列は xprintf 側でクリアする様に変更する。
+    → create_xprintf_writer の第二引数に指定する様に変更した。
+
+  2 xputf, vxputf という関数を作成して以下の使い方ができる様にする:
+
+    std::cout << mwg::xputf(...);
+    stdout << mwg::xputf(...);
+    std::string() << mwg::xputf(...);
+
+    →実装した。チェックした。
+
+    std::string(mwg::xputf(...));
+    mwg::xputf(...).str();
+    mwg::xputf(...).count();
+
+    →実装した。チェックした。
+
+  3 sprintf/vsprintf は削除する。
+
+  gcc のバグやら色々面倒な事はあったがどうやら終わった。
+
+* mwg/xprintf.h (_vxputf_temporary_object): g++-3.4.6 friend が効かない?
+
+  参考: libmwg/note/20150920.g++-3.4.6-bug.copyctor_required_for_cref.cpp
+
+  色々調べた結果、コピーを禁止すると g++-3.4.6 で以下が通らないという事が分かった:
+
+  class A{
+    A(A const&){}
+  public:
+    A(){}
+  };
+  void proc(A const&){}
+  void test(){proc(A());}
+
+  proc は参照として A インスタンスを受け取ろうとしているのに、
+  実際にはコピーをしようとして失敗している様子である。
+  g++-3.3.6 ではコンパイルが通る。g++-2.95 でもコンパイルが通る。
+
+  仕様がないので適当な gcc の version の範囲で constructor たちを public にする事にした。
+
 * xprintf を移植
 
 * mwg/std/type_traits
@@ -267,33 +384,33 @@
 *目標: 新しいビルド管理システム
 
   > ***ソースコード埋め込み指定
-  > 
+  >
   > 以下に挙げるような様々な機能を\
   > ソースコード中に埋め込んだ指定から呼び出せる様にする。
   > - configure script (mcxx)
   > - document (lwiki)
   > - preprocess (mwg_pp.awk)
   > - check (mwg_pp.awk sub)
-  > 
+  >
   > 処理の手順
   > 1. mwg_pp.awk による処理
   > 2. perl による処理
   >    (lwiki 部分なども mwg_pp.txt によって生成したくなるだろうから)
-  > 
+  >
   > ***出力に関して
-  > 
+  >
   > - 出力は別のディレクトリに対して行う様にしたい
   > - ソースファイル、ヘッダファイルの文字コード変換に対応する。
   >   original の文字コードも選択できる様にする。
   > - コンパイラの種類毎の出力に対応する。
   >   コンパイラのオプション毎の出力にも対応する。
   >   mcxx の機構を使用している場合 CXXFLAGS CFLAGS 等の設定に対応した設定を行うのが難しい。
-  > 
+  >
   > out/src.charset
   > out/cxxprefix.option/obj
   > out/cxxprefix.option/lib
   > out/cxxprefix.option/include
-  > 
+  >
   > ***その他の機能
   > wx-config 的なコマンドで cxxflags 等の必要な設定を呼び出す方法も提供する
   > 簡単なプロジェクトの初期化スクリプトも用意する
@@ -429,18 +546,18 @@
   複数のコマンドを生成する場合
 
   > [[GNU Makefile rule generating a few targets from a single source file - Stack Overflow>http://stackoverflow.com/questions/2973445/gnu-makefile-rule-generating-a-few-targets-from-a-single-source-file]]
-  > 
+  >
   > | B1 B2: A1
   > | 	command B1 B2 < A1
-  > 
+  >
   > 上記の様にするとコマンドが 2 回実行されて無駄である。
   > その上 -j4 などで並列化するとコマンドが同時に起動されて出力が変になる。
   > 以下のようにする解決方法が提示されている。
-  > 
+  >
   > | B1: A1
   > |   command B1 B2 < A1
   > | B2: B1 A1
-  > 
+  >
   > 上の様にしていると、B1 の方が後に生成された場合に毎回 B2 を更新しようとするのでは?
   > と思ったが、実際に試してみると Nothing to be done となる。
   > つまり、更新用のコマンドが設定されていない場合にはファイルが存在する事だけを確認する様だ。
@@ -475,7 +592,7 @@
   #   command B1 /dev/null < A1
   # B2: A1
   #   command /dev/null B2 < A1
-  # 
+  #
   # B1: A1
   #   command B1.tmp B2.tmp < A1
   #   [[ B1 -nt A1 ]] || mv B1.tmp B1

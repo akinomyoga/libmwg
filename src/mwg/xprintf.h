@@ -58,20 +58,63 @@
 //-----------------------------------------------------------------------------
 #pragma%end
 
-/*
- * ★型 Target を新しく出力先として登録する方法
+/*?lwiki
  *
- * in myheader.h
- * | namespace MyNamespace{
- * |   class custom_writer:public mwg::xprintf_detail::xprintf_writer{
- * |     virtual void put(std::wint_t ch) const{ ... }
- * |   };
- * | }
- * | namespace mwg{
- * | namespace xprintf_detail{
- * |   MyNamespace::custom_writer create_xprintf_writer(Target& target,adl_helper*);
- * | }
- * | }
+ * *使用時の注意
+ *
+ * **xputf の戻り値の参照は複製しないで下さい。
+ *
+ * 例:
+ * &pre(!cpp){
+ * auto& f=xputf("%d",1);
+ * std::cout << f; // undefined
+ *
+ * auto&& g(){return xputf("%d",1);}
+ * std::cout << g(); // undefined
+ * }
+ *
+ * 但し以下は OK:
+ *
+ * &pre(!cpp){
+ * h(auto const& formatter){std::cout << formatter;}
+ * h(xputf("%d",1));
+ * }
+ *
+ * ''説明''
+ * xputf の結果は一時オブジェクトとして使う事を想定している。
+ * 具体的には xputf の結果 (temp とする) は xputf の実引数に対する参照を保持する。
+ * 従って、temp の有効寿命は temp を構築した完全式の寿命と同じになる。
+ * 誤って temp を有効寿命を超えて持ち越さない様に、
+ * temp のコピー演算子・コピー構築を削除している。
+ * しかしこの対策は完全でない。
+ * 参照の複製に関してまでは禁止することができないからである。
+ * 寿命を超えて参照の複製が起こるのは 2 パターンある。
+ *
+ * +auto& a=xputf(...); で参照を捕獲する。
+ *
+ *  C++ の例外的既定で捕獲されたオブジェクトの寿命 temp は参照変数 a の寿命にまで延長される。
+ *  しかし、''temp の部分式評価で生成された実引数の寿命は延長されない'' ので、
+ *  temp の有効寿命はこの完全式の評価が終わった時点で尽きる。
+ *
+ * +auto&& f(){return xputf(...);}: 関数の戻り値として参照を返す。
+ *
+ *  これも駄目。関数を抜けた時点で xputf は消滅してなくなる。
+ *
+ *
+ * *型 Target を新しく出力先として登録する方法
+ *
+ * &pre(!cpp,title=myheader.h){
+ *   namespace MyNamespace{
+ *     class custom_writer:public mwg::xprintf_detail::xprintf_writer{
+ *       virtual void put(std::wint_t ch) const{ ... }
+ *     };
+ *   }
+ *   namespace mwg{
+ *   namespace xprintf_detail{
+ *     MyNamespace::custom_writer create_xprintf_writer(Target& target,adl_helper);
+ *   }
+ *   }
+ * }
  *
  * namespace mwg::xprintf_detail の中に create_xprintf_writer という関数を定義する。
  * この関数は Target& target を受け取って、
@@ -82,51 +125,56 @@
  * 内部でバッファリングをする場合はデストラクタで flush するのを忘れない様に。
  *
  *
- * ★型 T の引数に対する書式出力を定義する方法
+ * *型 T の引数に対する書式出力を定義する方法
  *
+ * &pre(!cpp){
  * template<typename Buff>
  * int mwg::xprintf_detail::xprintf_convert(
  *   Buff const& buff,fmtspec const& spec,MyType const& value,
- *   mwg::xprintf_detail::adl_helper*);
+ *   mwg::xprintf_detail::adl_helper);
+ * }
  * を実装すれば良い。
  *
- * in xxx.h
- * | namespace mwg{
- * | namespace xprintf_detail{
- * |   template<typename Writer>
- * |   int xprintf_convert(Writer const& buff,fmtspec const& spec,MyType const& value,adl_helper*){
- * |     実装
- * |   }
- * | }
- * | }
+ * &pre(!cpp,title=xxx.h){
+ *   namespace mwg{
+ *   namespace xprintf_detail{
+ *     template<typename Writer>
+ *     int xprintf_convert(Writer const& buff,fmtspec const& spec,MyType const& value,adl_helper){
+ *       実装
+ *     }
+ *   }
+ *   }
+ * }
  *
  * 実装を隠蔽または分離したい場合は、
  * Writer = xprintf_writer, cfile_writer, ostream_writer, string_writer の4つについて、
  * 関数テンプレートのインスタンス化をする。
  *
- * in yyy.h
- * | namespace mwg{
- * | namespace xprintf_detail{
- * |   template<typename Writer>
- * |   int xprintf_convert(Writer const& buff,fmtspec const& spec,MyType const& value,adl_helper*);
- * | }
- * | }
+ * &pre(!cpp,title=yyy.h){
+ *   namespace mwg{
+ *   namespace xprintf_detail{
+ *     template<typename Writer>
+ *     int xprintf_convert(Writer const& buff,fmtspec const& spec,MyType const& value,adl_helper);
+ *   }
+ *   }
+ * }
  *
- * in yyy.cpp
- * | namespace mwg{
- * | namespace xprintf_detail{
- * |   template<typename Writer>
- * |   int xprintf_convert(Writer const& buff,fmtspec const& spec,MyType const& value,adl_helper*){
- * |     実装
- * |   }
- * |
- * |   // template int xprintf_convert<xprintf_writer>(xprintf_writer const& buff,fmtspec const& spec,MyType const& value);
- * |   // template int xprintf_convert<cfile_writer  >(cfile_writer   const& buff,fmtspec const& spec,MyType const& value);
- * |   // template int xprintf_convert<ostream_writer>(ostream_writer const& buff,fmtspec const& spec,MyType const& value);
- * |   // template int xprintf_convert<string_writer >(string_writer  const& buff,fmtspec const& spec,MyType const& value);
- * |   template void _instantiate_xprintf_convert<MyType>(MyType const&);
- * | }
- * | }
+ * &pre(!cpp,title=yyy.cpp){
+ *   namespace mwg{
+ *   namespace xprintf_detail{
+ *     template<typename Writer>
+ *     int xprintf_convert(Writer const& buff,fmtspec const& spec,MyType const& value,adl_helper){
+ *       実装
+ *     }
+ * 
+ *     // template int xprintf_convert<xprintf_writer>(xprintf_writer const& buff,fmtspec const& spec,MyType const& value);
+ *     // template int xprintf_convert<cfile_writer  >(cfile_writer   const& buff,fmtspec const& spec,MyType const& value);
+ *     // template int xprintf_convert<ostream_writer>(ostream_writer const& buff,fmtspec const& spec,MyType const& value);
+ *     // template int xprintf_convert<string_writer >(string_writer  const& buff,fmtspec const& spec,MyType const& value);
+ *     template void _instantiate_xprintf_convert<MyType>(MyType const&);
+ *   }
+ *   }
+ * }
  *
  */
 
@@ -184,33 +232,36 @@ namespace vararg{
       return detail::tuple_element_selector<0,U,TT>::eval(evaluater,index,tp);
   }
 
-  template<typename XTuple,typename YTuple>
-  struct pack_forward_enabler:mwg::stdm::false_type{};
-  template<>
-  struct pack_forward_enabler<mwg::stdm::tuple<>,mwg::stdm::tuple<> >:mwg::stdm::true_type{};
+  namespace detail{
+    template<typename T,typename F>
+    struct can_be_forwarded_from:stdm::integral_constant<bool,
+      (!mwg::stdm::is_lvalue_reference<T>::value||mwg::stdm::is_lvalue_reference<F>::value)
+      &&mwg::stdm::is_convertible<
+        typename mwg::stdm::remove_reference<F>::type*,
+        typename mwg::stdm::remove_reference<T>::type*>::value>{};
+
+    template<typename XTuple,typename YTuple>
+    struct pack_forward_enabler:mwg::stdm::false_type{};
+    template<>
+    struct pack_forward_enabler<mwg::stdm::tuple<>,mwg::stdm::tuple<> >:mwg::stdm::true_type{};
 
 #pragma%m 1
-  template<typename X,typename Y,typename... XArgs,typename... YArgs>
-  struct pack_forward_enabler<mwg::stdm::tuple<X,XArgs...>,mwg::stdm::tuple<Y,YArgs...> >{
-    static const bool head_value=
-      (!mwg::stdm::is_lvalue_reference<X>::value||mwg::stdm::is_lvalue_reference<Y>::value)
-      &&mwg::stdm::is_convertible<
-        typename mwg::stdm::remove_reference<X>::type*,
-        typename mwg::stdm::remove_reference<Y>::type*>::value;
-
-    static const bool value=head_value
-      &&pack_forward_enabler<mwg::stdm::tuple<XArgs...>,mwg::stdm::tuple<YArgs...> >::value;
-  };
+    template<typename X,typename Y,typename... XArgs,typename... YArgs>
+    struct pack_forward_enabler<mwg::stdm::tuple<X,XArgs...>,mwg::stdm::tuple<Y,YArgs...> >:
+      stdm::integral_constant<bool,
+        detail::can_be_forwarded_from<X,Y>::value
+        &&pack_forward_enabler<mwg::stdm::tuple<XArgs...>,mwg::stdm::tuple<YArgs...> >::value>{};
 #pragma%end
 #pragma%x variadic_expand_ArNm1
+  }
 
 #pragma%m 1
   template<typename... XArgs,typename... YArgs>
   typename mwg::stdm::enable_if<
-    pack_forward_enabler<mwg::stdm::tuple<XArgs...>,mwg::stdm::tuple<YArgs...> >::value,
+    detail::pack_forward_enabler<mwg::stdm::tuple<XArgs...>,mwg::stdm::tuple<YArgs...> >::value,
     mwg::stdm::tuple<XArgs mwg_forward_rvalue...>
-    >::type
-  va_forward(YArgs mwg_forward_rvalue... args){
+  >::type
+  pack_forward(YArgs mwg_forward_rvalue... args){
     typedef mwg::stdm::tuple<XArgs mwg_forward_rvalue...> return_type;
     return return_type(mwg::stdm::forward<XArgs>(args)...);
   }
@@ -464,6 +515,10 @@ namespace xprintf_detail{
     virtual void put(std::wint_t ch) const=0;
   };
 
+  struct empty_writer{
+    void put(std::wint_t) const{}
+  };
+
   struct cfile_writer{
     std::FILE* file;
   public:
@@ -491,14 +546,16 @@ namespace xprintf_detail{
     }
   };
 
-  inline xprintf_detail::cfile_writer create_xprintf_writer(std::FILE* file,adl_helper*){
+  inline xprintf_detail::cfile_writer create_xprintf_writer(std::FILE* file,bool flagClear,adl_helper){
+    mwg_unused(flagClear);
     return xprintf_detail::cfile_writer(file);
   }
-  inline xprintf_detail::ostream_writer create_xprintf_writer(std::ostream& ostr,adl_helper*){
+  inline xprintf_detail::ostream_writer create_xprintf_writer(std::ostream& ostr,bool flagClear,adl_helper){
+    mwg_unused(flagClear);
     return xprintf_detail::ostream_writer(ostr);
   }
-  inline xprintf_detail::string_writer create_xprintf_writer(std::string& str,adl_helper*){
-    str="";
+  inline xprintf_detail::string_writer create_xprintf_writer(std::string& str,bool flagClear,adl_helper){
+    if(flagClear)str="";
     return xprintf_detail::string_writer(str);
   }
 
@@ -507,17 +564,20 @@ namespace xprintf_detail{
     fmtspec spec={};
     xprintf_convert(
       mwg::declval<xprintf_writer const&>(),
-      spec,value,(adl_helper*)0);
+      spec,value,adl_helper());
+    xprintf_convert(
+      empty_writer(),
+      spec,value,adl_helper());
     xprintf_convert(
       cfile_writer(stdout),
-      spec,value,(adl_helper*)0);
+      spec,value,adl_helper());
     xprintf_convert(
       ostream_writer(std::cout),
-      spec,value,(adl_helper*)0);
+      spec,value,adl_helper());
     std::string dummy;
     xprintf_convert(
       string_writer(dummy),
-      spec,value,(adl_helper*)0);
+      spec,value,adl_helper());
   }
 }
 }
@@ -607,46 +667,109 @@ namespace xprintf_detail{
   template<typename Buff,typename Tuple>
   typename mwg::stdm::enable_if<mwg::stdx::is_tuple<Tuple>::value,int>::type
   vxprintf(Buff& buff,const char* fmt,Tuple const& args){
-    return vxprintf_impl(
-      create_xprintf_writer(buff,(adl_helper*)0),
-      fmt,args);
+    return vxprintf_impl(create_xprintf_writer(buff,true,adl_helper()),fmt,args);
   }
 
 #pragma%m 1
   template<typename Buff,typename... Args>
   int xprintf(Buff& buff,const char* fmt,Args mwg_forward_rvalue... args){
-    return vxprintf_impl(
-      create_xprintf_writer(buff,(adl_helper*)0),
-      fmt,mwg::stdm::forward_as_tuple(mwg::stdm::forward<Args>(args)...));
+    return vxprintf(buff,fmt,mwg::stdm::forward_as_tuple(mwg::stdm::forward<Args>(args)...));
   }
 #pragma%end
 #pragma%x variadic_expand_0toArN
 
+//---------------------------------------------------------------------------
+
   template<typename Tuple>
-  typename mwg::stdm::enable_if<mwg::stdx::is_tuple<Tuple>::value,std::string>::type
-  vsprintf(const char* fmt,Tuple const& args){
-    std::string buff;
-    vxprintf(buff,fmt,args);
-    return mwg::stdm::move(buff);
+  class _vxputf_temporary_object{
+    const char* m_fmt;
+    Tuple m_args;
+
+#if (30400<=MWGCONF_GCC_VER&&MWGCONF_GCC_VER<40000)
+  public:
+    // this is a workaround for g++-3.4.6 bug.
+    // In g++3.4.6, class instance without copy constructor
+    // cannot be passed to parameters with const references
+    // although references actually does not require copy.
+    // In g++-3.3.6, g++-2.95, and g++-4.5.4, it was OK.
+    // The other compilers have not yet tested.
+    //
+    // see libmwg/note/20150920.g++-3.4.6-bug.copyctor_required_for_cref.cpp
+#endif
+
+    _vxputf_temporary_object(const char* fmt,Tuple const& args)
+      :m_fmt(fmt),m_args(args){}
+
+#ifdef MWGCONF_STD_DEFAULTED_FUNCTIONS
+    _vxputf_temporary_object& operator=(_vxputf_temporary_object const&) = default;
+    _vxputf_temporary_object(_vxputf_temporary_object const&) = default;
+#else
+    _vxputf_temporary_object(_vxputf_temporary_object const& c):m_fmt(c.m_fmt),m_args(c.m_args){}
+    _vxputf_temporary_object& operator=(_vxputf_temporary_object const& c){this->m_fmt=c.m_fmt;this->m_args=c.m_args;}
+#endif
+
+  public:
+    template<typename Buff>
+    int print(Buff& buff) const{
+      return vxprintf_impl(create_xprintf_writer(buff,false,adl_helper()),m_fmt,m_args);
+    }
+
+    std::string str() const{
+      std::string buff;
+      vxprintf_impl(create_xprintf_writer(buff,false,adl_helper()),m_fmt,m_args);
+      return mwg::stdm::move(buff);
+    }
+
+    mwg_explicit_operator std::string() const{
+      return mwg::stdm::move(this->str());
+    }
+
+    std::size_t count() const{
+      return vxprintf_impl(empty_writer(),m_fmt,m_args);
+    }
+
+    // friend functions
+
+    template<typename Tuple2>
+    friend typename mwg::stdm::enable_if<mwg::stdx::is_tuple<Tuple2>::value,_vxputf_temporary_object<Tuple2> >::type
+    vxputf(const char* fmt,Tuple2 const& args);
+
+#pragma%m 1
+    template<typename... Args>
+    friend _vxputf_temporary_object<mwg::stdm::tuple<Args mwg_forward_rvalue...> >
+    xputf(const char* fmt,Args mwg_forward_rvalue... args);
+#pragma%end
+#pragma%x variadic_expand_0toArN
+  };
+
+  template<typename Tuple>
+  typename mwg::stdm::enable_if<mwg::stdx::is_tuple<Tuple>::value,_vxputf_temporary_object<Tuple> >::type
+  vxputf(const char* fmt,Tuple const& args){
+    return _vxputf_temporary_object<Tuple>(fmt,args);
   }
 
 #pragma%m 1
-  template<typename Buff,typename... Args>
-  std::string sprintf(const char* fmt,Args mwg_forward_rvalue... args){
-    std::string buff;
-    vxprintf(buff,fmt,mwg::stdm::forward_as_tuple(mwg::stdm::forward<Args>(args)...));
-    return mwg::stdm::move(buff);
+  template<typename... Args>
+  _vxputf_temporary_object<mwg::stdm::tuple<Args mwg_forward_rvalue...> >
+  xputf(const char* fmt,Args mwg_forward_rvalue... args){
+    typedef _vxputf_temporary_object<mwg::stdm::tuple<Args mwg_forward_rvalue...> > return_type;
+    return return_type(fmt,mwg::stdm::forward_as_tuple(mwg::stdm::forward<Args>(args)...));
   }
 #pragma%end
 #pragma%x variadic_expand_0toArN
-  
+
+  template<typename Buff,typename Tuple>
+  Buff& operator<<(Buff& buff,_vxputf_temporary_object<Tuple> const& _vxputf){
+    _vxputf.print(buff);
+    return buff;
+  }
 }
 }
 namespace mwg{
   using mwg::xprintf_detail::vxprintf;
   using mwg::xprintf_detail::xprintf;
-  using mwg::xprintf_detail::vsprintf;
-  using mwg::xprintf_detail::sprintf;
+  using mwg::xprintf_detail::vxputf;
+  using mwg::xprintf_detail::xputf;
 }
 
 #endif
@@ -822,6 +945,47 @@ void test1(){
   check_printf("bool: true FALSE\n","bool: %s %S\n",true,false);
 }
 
+void check_xputf_interface(){
+  std::string buff;
+  mwg::xprintf(buff,"%#x",1234);
+  mwg_check(buff=="0x4d2","result=%s",buff.c_str());
+
+  // std::ostream
+  {
+    std::ostringstream line;
+    line << mwg::xputf("hello %05d!\n",1234)
+         << "simple" << std::endl
+         << mwg::xputf("world %#x!\n",1234);
+    mwg_check(line.str()=="hello 01234!\nsimple\nworld 0x4d2!\n","line=%s",line.str().c_str());
+  }
+
+  // std::string
+  {
+    std::string line;
+    line << mwg::xputf("hello %05d!\n",1234)
+         << mwg::xputf("simple\n")
+         << mwg::xputf("world %#x!\n",1234);
+    mwg_check(line=="hello 01234!\nsimple\nworld 0x4d2!\n","line=%s",line.c_str());
+  }
+
+#ifdef __linux__
+  {
+    // std::FILE*
+    // Only compile&run tests. Results are not tested below.
+    std::FILE* file=std::fopen("/dev/null","wb");
+    file << mwg::xputf("hello %05d!\n");
+    std::fclose(file);
+  }
+#endif
+
+  // std::string(mwg::xputf())
+  // mwg::xputf().str()
+  // mwg::xputf().count()
+  mwg_check(std::string(mwg::xputf("hello %05d!",1234))=="hello 01234!","result=%s",std::string(mwg::xputf("hello %05d!")).c_str());
+  mwg_check(mwg::xputf("hello %05d!",1234).str()=="hello 01234!");
+  mwg_check(mwg::xputf("hello %05d!",1234).count()==12);
+}
+
 void test2(){
   // %d
   check_printf("0 -1","%d %d",0,-1);
@@ -919,6 +1083,8 @@ void test2(){
 
 int main(){
   check_read_fmtspec();
+
+  check_xputf_interface();
 
   test1();
   test2();

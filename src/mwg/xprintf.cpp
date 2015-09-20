@@ -526,7 +526,6 @@ namespace xprintf_detail{
     default:
       return xprint_convert_unknown_conv;
     }
-
   }
 }
 }
@@ -931,16 +930,19 @@ namespace xprintf_detail{
 namespace mwg{
 namespace xprintf_detail{
   template int xprintf_convert<xprintf_writer>(xprintf_writer const& buff,fmtspec const& spec,mwg::u8t value,bool isSigned,int size);
+  template int xprintf_convert<empty_writer  >(empty_writer   const& buff,fmtspec const& spec,mwg::u8t value,bool isSigned,int size);
   template int xprintf_convert<cfile_writer  >(cfile_writer   const& buff,fmtspec const& spec,mwg::u8t value,bool isSigned,int size);
   template int xprintf_convert<ostream_writer>(ostream_writer const& buff,fmtspec const& spec,mwg::u8t value,bool isSigned,int size);
   template int xprintf_convert<string_writer >(string_writer  const& buff,fmtspec const& spec,mwg::u8t value,bool isSigned,int size);
 
   template int xprintf_convert<xprintf_writer>(xprintf_writer const& buff,fmtspec const& spec,double const& value);
+  template int xprintf_convert<empty_writer  >(empty_writer   const& buff,fmtspec const& spec,double const& value);
   template int xprintf_convert<cfile_writer  >(cfile_writer   const& buff,fmtspec const& spec,double const& value);
   template int xprintf_convert<ostream_writer>(ostream_writer const& buff,fmtspec const& spec,double const& value);
   template int xprintf_convert<string_writer >(string_writer  const& buff,fmtspec const& spec,double const& value);
 
   template int xprintf_convert<xprintf_writer>(xprintf_writer const& buff,fmtspec const& spec,const char* str,std::size_t len);
+  template int xprintf_convert<empty_writer  >(empty_writer   const& buff,fmtspec const& spec,const char* str,std::size_t len);
   template int xprintf_convert<cfile_writer  >(cfile_writer   const& buff,fmtspec const& spec,const char* str,std::size_t len);
   template int xprintf_convert<ostream_writer>(ostream_writer const& buff,fmtspec const& spec,const char* str,std::size_t len);
   template int xprintf_convert<string_writer >(string_writer  const& buff,fmtspec const& spec,const char* str,std::size_t len);
