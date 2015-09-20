@@ -59,10 +59,32 @@
 #pragma%end
 
 /*?lwiki
+ * *関数一覧
+ * <?cpp #include <mwg/xprintf.h>?>
+ * :@fn int mwg::''xprintf''(buff,fmt,args...);
+ * :@fn int mwg::''vxprintf''(buff,fmt,tuple);
+ *  指定した出力先に書式指定文字列で整形された文字列を書き込みます。
+ *  :@param[in,out] template<typename Buff> Buff& ''buff'';
+ *   出力先を指定します。\
+ *   現在 <?cpp std::ostream, std::string, std::FILE*?> に対応しています。
+ *  :@param[in] const char* ''fmt'';
+ *   書式指定文字列を指定します。
+ *  :@param[in] template<typename... Args> Args... ''args'';
+ *  :@param[in] template<typename... Args> std::tuple<Args...> ''tuple'';
+ *   引数を指定します。
+ * :@fn '''xputf-temp''' mwg::''xputf''(fmt,args...);
+ * :@fn '''xputf-temp''' mwg::''vxputf''(fmt,tuple);
+ *  :@param[in] template<typename... Args> Args... ''args'';
+ *  :@param[in] template<typename... Args> std::tuple<Args...> ''tuple'';
+ *  :@class '''xputf-temp'''
+ *   :@fn std::size_t '''xputf-temp'''::''count''() const;
+ *   :@fn std::string '''xputf-temp'''::''str''() const;
+ *   :@fn explicit '''xputf-temp'''::''operator'' std::string() const;
+ *  :@fn Buff& ''operator<<''(buff,'''xputf-temp''');
+ *   :@param[in,out] template<typename Buff> Buff& ''buff'';
  *
- * *使用時の注意
- *
- * **xputf の戻り値の参照は複製しないで下さい。
+ * *注意
+ * **xputf の戻り値の参照は複製しない
  *
  * 例:
  * &pre(!cpp){
@@ -74,7 +96,6 @@
  * }
  *
  * 但し以下は OK:
- *
  * &pre(!cpp){
  * h(auto const& formatter){std::cout << formatter;}
  * h(xputf("%d",1));
@@ -91,42 +112,36 @@
  * 寿命を超えて参照の複製が起こるのは 2 パターンある。
  *
  * +auto& a=xputf(...); で参照を捕獲する。
- *
  *  C++ の例外的既定で捕獲されたオブジェクトの寿命 temp は参照変数 a の寿命にまで延長される。
  *  しかし、''temp の部分式評価で生成された実引数の寿命は延長されない'' ので、
  *  temp の有効寿命はこの完全式の評価が終わった時点で尽きる。
- *
  * +auto&& f(){return xputf(...);}: 関数の戻り値として参照を返す。
- *
  *  これも駄目。関数を抜けた時点で xputf は消滅してなくなる。
  *
- *
- * *型 Target を新しく出力先として登録する方法
- *
+ * *拡張: 型 Target を新しく出力先として登録する方法
  * &pre(!cpp,title=myheader.h){
- *   namespace MyNamespace{
- *     class custom_writer:public mwg::xprintf_detail::xprintf_writer{
- *       virtual void put(std::wint_t ch) const{ ... }
- *     };
- *   }
- *   namespace mwg{
- *   namespace xprintf_detail{
- *     MyNamespace::custom_writer create_xprintf_writer(Target& target,adl_helper);
- *   }
- *   }
+ * namespace MyNamespace{
+ *   class custom_writer:public mwg::xprintf_detail::xprintf_writer{
+ *     virtual void put(std::wint_t ch) const{ ... }
+ *   };
+ * }
+ * namespace mwg{
+ * namespace xprintf_detail{
+ *   MyNamespace::custom_writer create_xprintf_writer(Target& target,adl_helper);
+ * }
+ * }
  * }
  *
- * namespace mwg::xprintf_detail の中に create_xprintf_writer という関数を定義する。
- * この関数は Target& target を受け取って、
- * インターフェイス xprintf_writer を実装するクラスのインスタンスを生成する。
+ * <?cpp namespace mwg::xprintf_detail?> の中に <?cpp create_xprintf_writer?> という関数を定義する。
+ * この関数は <?cpp Target& target?> を受け取って、
+ * インターフェイス <?cpp xprintf_writer?> を実装するクラスのインスタンスを生成する。
  *
  * インターフェイス xprintf_writer は void put(std::wint_t) const; という純粋仮想関数を持つ。
  * この put メンバ関数は文字を受け取って、その文字を出力する処理を行う。
  * 内部でバッファリングをする場合はデストラクタで flush するのを忘れない様に。
  *
  *
- * *型 T の引数に対する書式出力を定義する方法
- *
+ * *拡張: 型 T の引数に対する書式出力を定義する方法
  * &pre(!cpp){
  * template<typename Buff>
  * int mwg::xprintf_detail::xprintf_convert(
@@ -136,44 +151,44 @@
  * を実装すれば良い。
  *
  * &pre(!cpp,title=xxx.h){
- *   namespace mwg{
- *   namespace xprintf_detail{
- *     template<typename Writer>
- *     int xprintf_convert(Writer const& buff,fmtspec const& spec,MyType const& value,adl_helper){
- *       実装
- *     }
+ * namespace mwg{
+ * namespace xprintf_detail{
+ *   template<typename Writer>
+ *   int xprintf_convert(Writer const& buff,fmtspec const& spec,MyType const& value,adl_helper){
+ *     実装
  *   }
- *   }
+ * }
+ * }
  * }
  *
  * 実装を隠蔽または分離したい場合は、
- * Writer = xprintf_writer, cfile_writer, ostream_writer, string_writer の4つについて、
+ * Writer = xprintf_writer, empty_writer, cfile_writer, ostream_writer, string_writer の4つについて、
  * 関数テンプレートのインスタンス化をする。
  *
  * &pre(!cpp,title=yyy.h){
- *   namespace mwg{
- *   namespace xprintf_detail{
- *     template<typename Writer>
- *     int xprintf_convert(Writer const& buff,fmtspec const& spec,MyType const& value,adl_helper);
- *   }
- *   }
+ * namespace mwg{
+ * namespace xprintf_detail{
+ *   template<typename Writer>
+ *   int xprintf_convert(Writer const& buff,fmtspec const& spec,MyType const& value,adl_helper);
+ * }
+ * }
  * }
  *
  * &pre(!cpp,title=yyy.cpp){
- *   namespace mwg{
- *   namespace xprintf_detail{
- *     template<typename Writer>
- *     int xprintf_convert(Writer const& buff,fmtspec const& spec,MyType const& value,adl_helper){
- *       実装
- *     }
+ * namespace mwg{
+ * namespace xprintf_detail{
+ *   template<typename Writer>
+ *   int xprintf_convert(Writer const& buff,fmtspec const& spec,MyType const& value,adl_helper){
+ *     実装
+ *   }
  * 
- *     // template int xprintf_convert<xprintf_writer>(xprintf_writer const& buff,fmtspec const& spec,MyType const& value);
- *     // template int xprintf_convert<cfile_writer  >(cfile_writer   const& buff,fmtspec const& spec,MyType const& value);
- *     // template int xprintf_convert<ostream_writer>(ostream_writer const& buff,fmtspec const& spec,MyType const& value);
- *     // template int xprintf_convert<string_writer >(string_writer  const& buff,fmtspec const& spec,MyType const& value);
- *     template void _instantiate_xprintf_convert<MyType>(MyType const&);
- *   }
- *   }
+ *   // template int xprintf_convert<xprintf_writer>(xprintf_writer const& buff,fmtspec const& spec,MyType const& value);
+ *   // template int xprintf_convert<cfile_writer  >(cfile_writer   const& buff,fmtspec const& spec,MyType const& value);
+ *   // template int xprintf_convert<ostream_writer>(ostream_writer const& buff,fmtspec const& spec,MyType const& value);
+ *   // template int xprintf_convert<string_writer >(string_writer  const& buff,fmtspec const& spec,MyType const& value);
+ *   template void _instantiate_xprintf_convert<MyType>(MyType const&);
+ * }
+ * }
  * }
  *
  */

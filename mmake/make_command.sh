@@ -152,6 +152,27 @@ function proc/install-header {
   sed '/^[[:space:]]*#[[:space:]]*line[[:space:]]/d' "$src" > "$dst"
 }
 
+function proc/lwiki {
+  if ! type lwiki &>/dev/null; then
+    echo "mmake: lwiki not found" >&2
+    return 1
+  fi
+
+  [[ -d $BASE/out ]] || return
+  cd "$BASE"/out
+
+  local fsrc fhtm fbase
+  for fsrc in $(find src.utf-8 -type f -size +1c -name \*.lwiki); do
+    fbase="${fsrc#src.utf-8/}"
+    fbase="${fbase%.lwiki}"
+    fhtm="doc.utf-8/$fbase.htm"
+    [[ $fhtm -nt $fsrc ]] && continue
+    printf "lwiki: %q\n" "$fsrc"
+    mkdf "$fhtm"
+    lwiki convert --header --title="$fbase" "$fsrc" > "$fhtm"
+  done
+}
+
 type="$1"; shift
 if ! declare -f "proc/$type" &>/dev/null; then
   echo 'make_file.sh! unknown make type' >&2

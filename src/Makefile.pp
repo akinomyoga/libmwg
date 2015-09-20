@@ -119,8 +119,11 @@ install_files+=$(INS_LIBDIR)/libmwg.a
 $(INS_LIBDIR)/libmwg.a: $(CFGDIR)/libmwg.a
 	$(BASE)/mmake/make_command.sh install $< $@
 
+.PHONY: all check install
 all: $(source_files) $(library_files)
 check: all $(check_files)
 install: $(install_files)
+
+#%x DefineRuleDoc
 
 #%x epilogue

@@ -23,31 +23,31 @@
 # Prologue and Epilogue
 
 #%m prologue
+# mmake/src.mk/Prologue
 SHELL:=/bin/bash
-
+#
 # initialize
 FLAGS:=
 CFLAGS:=
 FFLAGS:=
 CXXFLAGS:=
 LDFLAGS:=
-
+#
 #%if BASE==""
 #%%error mmake/src.mk: BASE is empty!
 #%else
 BASE:=${BASE}
-include ${BASE}/mmake/vars.mk
-Makefile: ${BASE}/mmake/src.mk
+include $(BASE)/mmake/vars.mk
+Makefile: $(BASE)/mmake/src.mk
 #%end.i
-
+#
 directories+=$(CFGDIR)
 directories+=$(CFGDIR)/include
 directories+=$(CFGDIR)/config
 directories+=$(CPPDIR)
-
+#
 clean-src:
 	-rm -rf $(CPPDIR)/*
-
 clean-cxx-source:
 	-rm -rf $(CFGDIR)/config $(CFGDIR)/include
 clean-cxx-cache:
@@ -60,17 +60,18 @@ clean-cxx-check:
 	-rm -rf $(CFGDIR)/check
 clean-cxx: clean-cxx-source clean-cxx-cache clean-cxx-obj clean-cxx-lib clean-cxx-check
 .PHONY: clean-cxx clean-cxx-source clean-cxx-cache clean-cxx-obj clean-cxx-lib clean-cxx-check
-
+#
 clean: clean-cxx-obj
 clean-all: clean-src clean-cxx
 .PHONY: clean clean-src clean-all
-
+#
 directories+=$(INS_INCDIR)
 directories+=$(INS_INCCFG)
 directories+=$(INS_LIBDIR)
 #%end
 
 #%m epilogue
+# mmake/src.mk/Epilogue
 source_files: $(source_files)
 config_files: $(config_files)
 .PHONY: source_files config_files
@@ -84,6 +85,7 @@ $(directories):
 
 #%m _preprocess_file
 source_files+=$(CPPDIR)/${file}
+lwiki_files+=$(CPPDIR)/${filex}.lwiki
 $(CPPDIR)/${file}: ${file} ${ppdeps}
 	@echo 'GEN ${file}'
 	@$(BASE)/mmake/make_command.sh copy-pp ${file}
@@ -110,7 +112,7 @@ $(CFGDIR)/check/${name}.stamp: $(CPPDIR)/check/${name}$(CXXEXT)
 #%end
 
 #%m AddCxxSource
-# AddCxxSource %file%
+# mmake/src.mk/AddCxxSource %file%
 #%%[file="%file%"]
 #%%[filex=file.replace("\\.","_")]
 #%%[name=file.replace("\\.(cpp|c|C|cxx)$","").replace("/","+").replace("\\.","_")]
@@ -128,7 +130,7 @@ $(CFGDIR)/obj/${name}.o: $(CPPDIR)/${file} | source_files
 #%end
 
 #%m AddCxxHeader
-# AddCxxHeader %file%
+# mmake/src.mk/AddCxxHeader %file%
 #%%[file="%file%"]
 #%%[filex=file.replace("\\.","_")]
 #%%[name=file.replace("\\.(cpp|c|C|cxx)$","").replace("/","+").replace("\\.","_")]
@@ -145,11 +147,20 @@ $(INS_INCDIR)/${file}: $(CPPDIR)/${file} | $(INS_INCDIR)
 
 
 #%m AddConfigHeader
-# AddConfigHeader %file%
+# mmake/src.mk/AddConfigHeader %file%
 source_files+=$(CFGDIR)/include/%file%
 $(CFGDIR)/include/%file%: $(config_files) | $(CFGDIR)/include
 	@echo 'CFG-GATHER > $@'
 	@cat $^ > $@
+
+#%end
+
+#%m DefineRuleDoc
+# mmake/src.mk/DefineRuleDoc
+.PHONY: doc
+doc: $(lwiki_files)
+	@echo 'DOC lwiki'
+	@$(BASE)/mmake/make_command.sh lwiki
 
 #%end
 

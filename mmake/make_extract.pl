@@ -52,7 +52,15 @@ sub file_print {
 
 my $fwiki="$fbase.lwiki";
 open(my $hwiki,"> $fwiki");
-print $hwiki "*$filename\n";
+my $hwiki_empty=1;
+sub hwiki_print {
+  my $value=shift;
+  if($hwiki_empty){
+    $hwiki_empty=0;
+    #print $hwiki "*$filename\n";
+  }
+  print $hwiki "$value";
+}
 
 while($content =~ m/'(?:[^\\']|\\.)*'|"(?:[^"\\]|\\.)*"|\/\/(?:\?([[:alnum:]_]+)\b[[:space:]]*(.+?)|.*?)(?:[\r\n]|$)|\/\*(?:\?([[:alnum:]_]+)[[:space:]]*([\s\S]+?)|[\s\S]*?)\*\//g) {
   my ($type,$value);
@@ -73,7 +81,7 @@ while($content =~ m/'(?:[^\\']|\\.)*'|"(?:[^"\\]|\\.)*"|\/\/(?:\?([[:alnum:]_]+)
       #print $hconf "$value\n";
       file_print($oconf,$value);
     }elsif($type eq 'lwiki'){
-      print $hwiki "$value\n";
+      hwiki_print("$value\n");
     }
   }
 }
