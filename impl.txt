@@ -10,6 +10,17 @@
 
 * mwg/xprintf.h: %; で std::flush, std::fflush, etc.?
 
+* mwg/xprintf.h: bugfix, C++11 で mwg::xputf の戻り値が構築できない。
+
+  戻り値で受け取った tuple をコピーしようとしていたが、
+  g++-4.9.2 の C++11 で tuple<int&&> はコピー不可能になる?
+  "implicitly deleted because the default definition would be ill-formed"
+  等と文句を言って tuple はコピーできない様である。
+
+  仕方がないので tuple を受け取る vxputf に関しては
+  Tuple const& で tuple を保持し、
+  xputf に関してはその場で tuple を構築する事にして我慢する。
+
 2015-09-18
 
 * mwg/std/type_traits ToDo
