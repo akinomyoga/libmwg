@@ -7,26 +7,17 @@
 
 2015-09-18
 
-* xprintf を移植
+* mwg/std/type_traits ToDo
 
-* mwg/std/type_traits
+  is_null_pointer for C++11
+    is_null_pointer は C++14 で導入された。
+    C++11 未満では追加したが、C++11 はそのまま使っているので補填する必要がある。
 
-  TR1 Header からの対応がかなり不完全になっている。
-  現在では TR1 Header がある場合の実装と、何もない場合の実装を別々に (ファイルの前半と後半に) 記述している。
-  各クラスについて TR1 Header があるかどうかで実装を切り替える様にしないと見通しが悪い。
-  更に、現在どの機能が実装されていてどの機能が実装されていないのかも分かりにくい。
-  これらについても整理しながら実装を行う必要がある。
-
-  →整理を実行した。
-
-  ToDo:
-    is_null_pointer for C++11
-    aligned_storage, aligned_union
-    is_class, is_union
-    is_compound, is_fundamental, is_object
-    max_align_t     in <cstddef>
-
-    underlying_type result_of
+  aligned_storage,
+  aligned_union,
+  underlying_type,
+  result_of,
+  max_align_t in <cstddef>
 
 * mwg/xprintf: mwg::vararg::va_forward の存在意義に疑問
 
@@ -57,7 +48,7 @@
   実際に試してみた所、以下の様になった:
 
   | void func(Args&&... _args){
-  |   std::forward_as_tuple<Args...>(_args...); // NG: int&& arg1 は (int&& param1) に渡せない。
+  |   std::forward_as_tuple<Args...>(_args...); // NG: 当然だが int&& arg1; の arg1 は左辺値なので (int&& param1) に渡せない。
   |   std::forward_as_tuple<Args...>(std::forward<Args>(_args)...); // OK
   |   std::forward_as_tuple(std::forward<Args>(_args)...); // OK: でも上の様に書くぐらいならば下の様に書けば良い。
   | }
@@ -70,7 +61,6 @@
 * mwg/xprintf.h: va_forward 廃止??
 * mwg/xprintf.h: tuple_element_select 関連の整理。
 * mwg/xprintf.h: その他の型 ... ostringstream << を用いた実装。
-
 
 2015-06-21
 
@@ -206,6 +196,22 @@
 ------------------------------------------------------------------------------
   Done
 ------------------------------------------------------------------------------
+
+2015-09-20
+
+* xprintf を移植
+
+* mwg/std/type_traits
+
+  TR1 Header からの対応がかなり不完全になっている。
+  現在では TR1 Header がある場合の実装と、何もない場合の実装を別々に (ファイルの前半と後半に) 記述している。
+  各クラスについて TR1 Header があるかどうかで実装を切り替える様にしないと見通しが悪い。
+  更に、現在どの機能が実装されていてどの機能が実装されていないのかも分かりにくい。
+  これらについても整理しながら実装を行う必要がある。
+
+  →整理を実行した。
+
+2015-09-20 以前
 
 * clang -std=c++0x から GCC 4.4.7 libstdc++ を使った時の問題
 

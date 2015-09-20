@@ -498,6 +498,7 @@ namespace xprintf_detail{
     return xprintf_detail::ostream_writer(ostr);
   }
   inline xprintf_detail::string_writer create_xprintf_writer(std::string& str,adl_helper*){
+    str="";
     return xprintf_detail::string_writer(str);
   }
 
@@ -603,51 +604,41 @@ namespace xprintf_detail{
 
 //---------------------------------------------------------------------------
 
-#pragma%m 1
-  template<typename Buff,typename... Args>
-  int vxprintf(Buff& buff,const char* fmt,mwg::stdm::tuple<Args...> const& args){
+  template<typename Buff,typename Tuple>
+  typename mwg::stdm::enable_if<mwg::stdx::is_tuple<Tuple>::value,int>::type
+  vxprintf(Buff& buff,const char* fmt,Tuple const& args){
     return vxprintf_impl(
       create_xprintf_writer(buff,(adl_helper*)0),
       fmt,args);
   }
-#pragma%end
-#pragma%x variadic_expand_ArN
 
 #pragma%m 1
   template<typename Buff,typename... Args>
   int xprintf(Buff& buff,const char* fmt,Args mwg_forward_rvalue... args){
     return vxprintf_impl(
       create_xprintf_writer(buff,(adl_helper*)0),
-      fmt,mwg::vararg::va_forward<Args...>(args...));
+      fmt,mwg::stdm::forward_as_tuple(mwg::stdm::forward<Args>(args)...));
   }
 #pragma%end
-#pragma%x
 #pragma%x variadic_expand_0toArN
-#pragma%end.r|\yva_forward<>|va_forward|
 
-
-#pragma%m 1
-  template<typename... Args>
-  std::string vsprintf(const char* fmt,mwg::stdm::tuple<Args...> const& args){
+  template<typename Tuple>
+  typename mwg::stdm::enable_if<mwg::stdx::is_tuple<Tuple>::value,std::string>::type
+  vsprintf(const char* fmt,Tuple const& args){
     std::string buff;
     vxprintf(buff,fmt,args);
     return mwg::stdm::move(buff);
   }
-#pragma%end
-#pragma%x variadic_expand_ArN
 
 #pragma%m 1
   template<typename Buff,typename... Args>
   std::string sprintf(const char* fmt,Args mwg_forward_rvalue... args){
     std::string buff;
-    vxprintf(
-      buff,fmt,mwg::vararg::va_forward<Args...>(args...));
+    vxprintf(buff,fmt,mwg::stdm::forward_as_tuple(mwg::stdm::forward<Args>(args)...));
     return mwg::stdm::move(buff);
   }
 #pragma%end
-#pragma%x
 #pragma%x variadic_expand_0toArN
-#pragma%end.r|\yva_forward<>|va_forward|
   
 }
 }
@@ -691,6 +682,10 @@ void check_printf(const char* expectedResult,const char* fmt,Args mwg_forward_rv
 #pragma%end
 #pragma%x variadic_expand_0toArN
 
+#ifdef __clang__
+# pragma clang diagnostic push
+# pragma clang diagnostic ignored "-Wformat-security"
+#endif
 #pragma%m 1
 template<typename... Args>
 void check_printf_with_stdio(const char* fmt,Args mwg_forward_rvalue... args){
@@ -699,19 +694,15 @@ void check_printf_with_stdio(const char* fmt,Args mwg_forward_rvalue... args){
 
   std::vector<char> buff2(buff.size()+100,'\n');
   char* ptr=&buff[0];
-#ifdef __clang__
-# pragma clang diagnostic push
-# pragma clang diagnostic ignored "-Wformat-security"
-#endif
   std::sprintf(&buff2[0],fmt,args...);
-#ifdef __clang__
-# pragma clang diagnostic pop
-#endif
 
   mwg_check(buff==ptr,"expected=(%s) result=(%s)",ptr,buff.c_str());
 }
 #pragma%end
 #pragma%x variadic_expand_0toArN
+#ifdef __clang__
+# pragma clang diagnostic pop
+#endif
 
 void check_read_fmtspec(){
   const char* fmt="aiueo kakikukeko %s %10.12s %#010.123f\n";
@@ -819,15 +810,12 @@ void test1(){
 
   check_printf("pi=3.141593 1=1.000000\n","pi=%f 1=%f\n",M_PI,1.0);
 
-  line="";
   mwg::xprintf(line,"pi=%.20f\n",M_PI);
   mwg_check(line.compare(0,15,"pi=3.1415926535")==0&&line.size()==26&&line[25]=='\n');
 
-  line="";
   mwg::xprintf(line,"0.1=%.100f\n",0.1);
   mwg_check(line.compare(0,10,"0.1=0.1000")==0&&line.size()==6+100+1&&line[106]=='\n');
 
-  line="";
   mwg::xprintf(line,"0.01=%.100f\n",0.01);
   mwg_check(line.compare(0,10,"0.01=0.010")==0&&line.size()==7+100+1&&line[107]=='\n',"result=%s",line.c_str());
 
