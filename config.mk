@@ -3,8 +3,8 @@
 
 # msc の場合は -Wall, -Wextra を指定しない
 ifeq ($(CXXPREFIX:i686-win-vc-%=hit),$(CXXPREFIX))
-CXXFLAGS += -Wall
-CXXFLAGS += -Wextra
+  CXXFLAGS += -Wall
+  CXXFLAGS += -Wextra
 endif
 
 CXXCFG_FOUND:=
@@ -28,5 +28,5 @@ ifeq ($(CXXCFG),cxx11-release)
 endif
 
 ifeq ($(CXXCFG_FOUND),)
-include config-$(CXXCFG).mk
+  -include config-$(CXXCFG).mk
 endif

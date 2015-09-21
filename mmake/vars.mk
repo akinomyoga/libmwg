@@ -7,11 +7,13 @@ MWGPP:=$(BASE)/mmake/mwg_pp.awk
 MMAKECMD:=BASE=$(BASE); source $(BASE)/mmake/make_command.sh
 
 # compiler settings
-CXXPREFIX:=$(shell $(MWGCXX) +prefix)
-ifeq ($(CXXPREFIX),)
+SHELL:=/bin/bash
+_cxx_params:=$(shell source $(MWGCXX) +get --eval '$$CXXPREFIX $$CXX_ENCODING')
+ifeq ($(_cxx_params),)
   $(error [1mFailed to determine CXXPREFIX[m: [34mCheck MWGCXX='[4m$(MWGCXX)[24m' / CXXKEY='[4m$(CXXKEY)[24m' / cxx configurations[m)
 endif
-CXXENC:=$(shell $(MWGCXX) +get input-charset)
+CXXPREFIX:=$(word 1,$(_cxx_params))
+CXXENC:=$(word 2,$(_cxx_params))
 CXXEXT:=.cpp
 
 ifeq ($(CXXCFG),)
