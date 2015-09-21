@@ -393,8 +393,11 @@ int main(){
   mwg_check(mwg::stdm::acosh(1.0)==0.0);
   mwg_check(mwg::stdm::atanh(0.0)==0.0);
 
-  //double const inf=1.0/0.0;
+#ifdef _MSC_VER
   double const inf=double(float(1e100));
+#else
+  double const inf=1.0/0.0;
+#endif
   double const qnan=std::sqrt(double(-1));
   mwg_check(!mwg::stdm::isnan(0.0));
   mwg_check(!mwg::stdm::isnan(1.0));

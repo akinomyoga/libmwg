@@ -930,11 +930,11 @@ namespace xprintf_detail{
 namespace mwg{
 namespace xprintf_detail{
 
-  template class basic_convert_impl<xprintf_writer>;
-  template class basic_convert_impl<empty_writer>;
-  template class basic_convert_impl<cfile_writer>;
-  template class basic_convert_impl<ostream_writer>;
-  template class basic_convert_impl<string_writer>;
+  template struct basic_convert_impl<xprintf_writer>;
+  template struct basic_convert_impl<empty_writer>;
+  template struct basic_convert_impl<cfile_writer>;
+  template struct basic_convert_impl<ostream_writer>;
+  template struct basic_convert_impl<string_writer>;
 
   // template class _instantiate_for_writers<_instantiate_basic_convert>;
 }

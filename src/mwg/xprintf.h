@@ -1099,7 +1099,11 @@ void test2(){
   check_printf("0.00000 0","%#g %1$g",0.0);
 
   // nan/inf
-  double const inf=float(1e100);
+#ifdef _MSC_VER
+  double const inf=double(float(1e100));
+#else
+  double const inf=1.0/0.0;
+#endif
   check_printf("inf INF +inf -INF","%f %1$F %1$+f %F",inf,-inf);
   check_printf("inf INF +inf -INF","%e %1$E %1$+e %E",inf,-inf);
   check_printf("inf INF +inf -INF","%g %1$G %1$+g %G",inf,-inf);
