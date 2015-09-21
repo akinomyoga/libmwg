@@ -126,4 +126,8 @@ install: $(install_files)
 
 #%x DefineRuleDoc
 
+.PHONY: scan-check
+scan-check:
+	@for key in $$($(BASE)/mmake/mcxx/cxx +prefix list|awk '{print $$2}'); do printf '\e[48;5;189;1m%-79s\e[m\n' "$$ CXXKEY=$$key make check"; CXXKEY="$$key" make check; done
+
 #%x epilogue

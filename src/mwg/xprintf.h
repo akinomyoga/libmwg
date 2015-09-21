@@ -14,20 +14,24 @@
 
 #pragma%m variadic_expand::with_arity
 #pragma%%m _ 1
+#pragma%# // typename... args
 #pragma%%m _ _.R|,[[:space:]]*typename[[:space:]]*\.\.\.[[:space:]]*([_[:alpha:]][_[:alnum:]]*)\y|$".for/%K/0/__arity__/,typename $1%K/"|
 #pragma%%m _ _.R|[[:space:]]*\ytypename[[:space:]]*\.\.\.[[:space:]]*([_[:alpha:]][_[:alnum:]]*)\y|$".for/%K/0/__arity__/typename $1%K/,"|
+#pragma%# // Args qualifiers... args
 #pragma%%m _ _.R|,[[:space:]]*([_[:alnum:]]+)([_[:alnum:][:space:]&*]*)\.\.\.[[:space:]]*([_[:alnum:]]+)\y|$".for/%K/0/__arity__/,$1%K$2 $3%K/"|
 #pragma%%m _ _.R|[[:space:]]*\y([_[:alnum:]]+)([_[:alnum:][:space:]&*]*)\.\.\.[[:space:]]*([_[:alnum:]]+)\y|$".for/%K/0/__arity__/$1%K$2 $3%K/,"|
+#pragma%# // Args qualifiers...
 #pragma%%m _ _.R|,[[:space:]]*([_[:alnum:]]+)([_[:alnum:][:space:]&*]*)\.\.\.|$".for/%K/0/__arity__/,$1%K$2/"|
 #pragma%%m _ _.R|[[:space:]]*\y([_[:alnum:]]+)([_[:alnum:][:space:]&*]*)\.\.\.|$".for/%K/0/__arity__/$1%K$2/,"|
+#pragma%# // mwg::stdm::forward<Args>(args)...
 #pragma%%m _ _.R|,[[:space:]]*mwg::stdm::forward<([_[:alnum:]]+)>\(([_[:alnum:]]+)\)...|$".for/%K/0/__arity__/,mwg::stdm::forward<$1%K>($2%K)/"|
 #pragma%%m _ _.R|[[:space:]]*\ymwg::stdm::forward<([_[:alnum:]]+)>\(([_[:alnum:]]+)\)...|$".for/%K/0/__arity__/mwg::stdm::forward<$1%K>($2%K)/,"|
-#pragma%%x _.i
+#pragma%%x _.i.r/<##>|##//
 #pragma%end
 
 #pragma%m variadic_expand_0toArN
 #ifdef MWGCONF_STD_VARIADIC_TEMPLATES
-#pragma%%x 1
+#pragma%%x 1.r/##//
 #else
 #pragma%%m a
 #pragma%%x variadic_expand::with_arity.f/__arity__/0/ArN+1/
@@ -41,7 +45,7 @@
 
 #pragma%m variadic_expand_ArN
 #ifdef MWGCONF_STD_VARIADIC_TEMPLATES
-#pragma%%x 1
+#pragma%%x 1.r/##//
 #else
 #pragma%%x variadic_expand::with_arity.r/__arity__/ArN/
 #endif
@@ -49,7 +53,7 @@
 
 #pragma%m variadic_expand_ArNm1
 #ifdef MWGCONF_STD_VARIADIC_TEMPLATES
-#pragma%%x 1
+#pragma%%x 1.r/##//
 #else
 #pragma%%x variadic_expand::with_arity.r/__arity__/ArN-1/
 #endif
@@ -202,7 +206,7 @@ namespace vararg{
 
   namespace detail{
     // 二分探索
-    template<std::size_t L,std::size_t U,typename TT,bool Binary=(L+1<U)>
+    template<std::size_t L,std::size_t U,typename TT,bool=(L+1<U)>
     struct tuple_element_selector__impl{
       static const std::size_t M=(L+U)/2;
       template<typename F>
@@ -222,21 +226,18 @@ namespace vararg{
         return obj.eval(mwg::stdm::get<L>(tp));
       }
     };
-    template<>
-    struct tuple_element_selector__impl<0,0,stdm::tuple<>,false>{
-      template<typename F>
-      static typename F::return_type eval(F const& obj,int index,stdm::tuple<> const& tp){
-        mwg_unused(obj);
-        mwg_unused(index);
-        mwg_unused(tp);
-        return obj.out_of_range();
-      }
-    };
 
     template<std::size_t L,std::size_t U,typename TT>
     struct tuple_element_selector:tuple_element_selector__impl<L,U,TT>{};
   }
 
+  template<typename Eval>
+  typename Eval::return_type
+  evaluate_element(Eval const& evaluater,mwg::stdm::tuple<> const& tp,int index){
+    mwg_unused(tp);
+    mwg_unused(index);
+    return evaluater.out_of_range();
+  }
   template<typename TT,typename Eval>
   typename Eval::return_type
   evaluate_element(Eval const& evaluater,TT const& tp,int index){
@@ -272,12 +273,6 @@ namespace vararg{
 #pragma%x variadic_expand::with_arity.f/__arity__/0/ArN/
 #endif
 
-#if defined(MWGCONF_STD_RVALUE_REFERENCES)
-# define mwg_forward_lvalue &
-#else
-# define mwg_forward_lvalue const&
-#endif
-
 #pragma%m 1
   template<typename... Args>
   packed_forward<Args...> pack_forward(Args mwg_forward_lvalue... args){
@@ -285,8 +280,6 @@ namespace vararg{
   }
 #pragma%end
 #pragma%x variadic_expand_0toArN
-
-#undef mwg_forward_lvalue
 
 }
 }
@@ -714,7 +707,7 @@ namespace xprintf_detail{
 #endif
 
     template<typename Tuple2>
-    friend typename mwg::stdm::enable_if<mwg::stdx::is_tuple<Tuple2>::value,_vxputf_temporary_object<Tuple2> const>::type
+    friend _vxputf_temporary_object<typename mwg::stdm::enable_if<mwg::stdx::is_tuple<Tuple2>::value,Tuple2>::type> const
     vxputf(const char* fmt,Tuple2 const& args);
 
   public:
@@ -736,12 +729,10 @@ namespace xprintf_detail{
     std::size_t count() const{
       return vxprintf_impl(empty_writer(),m_fmt,m_args);
     }
-
-  private:
   };
 
   template<typename Tuple>
-  typename mwg::stdm::enable_if<mwg::stdx::is_tuple<Tuple>::value,_vxputf_temporary_object<Tuple> const>::type
+  _vxputf_temporary_object<typename mwg::stdm::enable_if<mwg::stdx::is_tuple<Tuple>::value,Tuple>::type> const
   vxputf(const char* fmt,Tuple const& args){
     return _vxputf_temporary_object<Tuple>(fmt,args);
   }
@@ -793,12 +784,10 @@ namespace xprintf_detail{
   _xputf_temporary_object<mwg::vararg::packed_forward<Args...> > const
   xputf(const char* fmt,Args mwg_forward_rvalue... args){
     typedef _xputf_temporary_object<mwg::vararg::packed_forward<Args...> > const return_type;
-    return return_type(fmt,mwg::vararg::pack_forward<Args...>(args...));
+    return return_type(fmt,mwg::vararg::pack_forward<Args...##>(args...));
   }
 #pragma%end
-#pragma%x
 #pragma%x variadic_expand_0toArN
-#pragma%end.r/pack_forward<>/pack_forward/
 
   template<typename Buff,typename Tuple>
   Buff& operator<<(Buff& buff,_vxputf_temporary_object<Tuple> const& _vxputf){
@@ -1031,6 +1020,7 @@ void check_xputf_interface(){
   mwg_check(std::string(mwg::xputf("hello %05d!",1234))=="hello 01234!","result=%s",std::string(mwg::xputf("hello %05d!")).c_str());
   mwg_check(mwg::xputf("hello %05d!",1234).str()=="hello 01234!");
   mwg_check(mwg::xputf("hello %05d!",1234).count()==12);
+  mwg_check(mwg::vxputf("hello %05d!",mwg::stdm::forward_as_tuple(1234)).count()==12);
 }
 
 void test2(){

@@ -48,25 +48,67 @@ namespace stdm{
 namespace mwg{
 namespace stdx{
 #if defined(MWGCONF_STD_RVALUE_REFERENCES)
+#  define mwg_forward_lvalue &
 #  define mwg_forward_rvalue &&
 #else
+#  define mwg_forward_lvalue const&
 #  define mwg_forward_rvalue const&
+/*  Implementation note:
+ *
+ *  template class cannot be used here for switching those references.
+ *  That is because the type parameters with the complex parameter types, such as
+ *    void func(typename mwg::forward_rvalue<Args>::type...),
+ *  cannot be resolved to match the arguments.
+ */
+
+/*?lwiki
+ * *独自拡張
+ * @def mwg_forward_rvalue
+ * パラメータ型に対する後置修飾。
+ * C++11 では && に展開され C++03 では const& に展開される。
+ * -完全転送 (perfect forward) をする時のパラメータに用いる。
+ *  &pre(!cpp){
+ * template<typename T>
+ * void func(T mwg_forward_rvalue value){
+ *   mwg::stdm::forward<T>(value);
+ * }
+ * }
+ * -右辺値参照を受け取る関数に用いる。
+ *  但し const& による overload がない場合に限る。
+ *  &pre(!cpp){
+ * void func(C mwg_forward_rvalue value){ ... }
+ * }
+ *  対象のパラメータは更に mwg::stdm::move を用いて別の関数に渡す事を想定している。
+ *  mwg::stdm::move は C++11 では右辺値参照に変換を行い破壊的操作される可能性もある。
+ *  一方で C++03 の時にはそのままの型で渡されるので破壊による矛盾の心配はない。
+ *
+ * @def mwg_forward_lvalue
+ * パラメータ型に対する後置修飾。
+ * C++11 では & に展開され C++03 では const& に展開される。
+ * forward 擬きの実装時にその引数として使用する。
+ * tepmlate<typename T>
+ * T mwg_forward_rvalue my_forward(T mwg_forward_lvalue value){
+ *   return reinterpret_cast<T mwg_forward_rvalue>(value);
+ * }
+ *
+ */
+
 /*
-  // usage:
-  template<typename T> void hoge(T mwg_forward_rvalue t){hoge_impl(mwg::stdm::forward<T>(t));}
-
-  template<typename T> void hoge(T const& t){hoge_impl(t);}
-  // NG: 参照が定数参照になる
-  //  ok: int -> const int&
-  //  ng: int& -> const int&
-  //  ok: const int& -> const int&
-
-  template<typename T> void hoge(T& t){hoge_impl(t);}
-  // NG: 定数値を渡せない
-  //  ng: int
-  //  ok: int& -> int&
-  //  ok: const int& -> const int&
-*/
+ *  // usage:
+ *  template<typename T> void hoge(T mwg_forward_rvalue t){hoge_impl(mwg::stdm::forward<T>(t));}
+ *
+ *  template<typename T> void hoge(T const& t){hoge_impl(t);}
+ *  // NG: 参照が定数参照になる
+ *  //  ok: int -> const int&
+ *  //  ng: int& -> const int&
+ *  //  ok: const int& -> const int&
+ *
+ *  template<typename T> void hoge(T& t){hoge_impl(t);}
+ *  // NG: 定数値を渡せない
+ *  //  ng: int
+ *  //  ok: int& -> int&
+ *  //  ok: const int& -> const int&
+ */
 #endif
 }
 }
