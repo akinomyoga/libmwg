@@ -8,18 +8,11 @@
 
 2015-09-20
 
+* mwg/xprintf.h: 一応引数は完全 forward しているが、
+  一羅パラメータ N$ 等を用いると複数回引数を読み取る事が可能である。
+  つまり、各関数は右辺値参照を受け取ってもそれを破壊するべきではない。
+
 * mwg/xprintf.h: %; で std::flush, std::fflush, etc.?
-
-* mwg/xprintf.h: bugfix, C++11 で mwg::xputf の戻り値が構築できない。
-
-  戻り値で受け取った tuple をコピーしようとしていたが、
-  g++-4.9.2 の C++11 で tuple<int&&> はコピー不可能になる?
-  "implicitly deleted because the default definition would be ill-formed"
-  等と文句を言って tuple はコピーできない様である。
-
-  仕方がないので tuple を受け取る vxputf に関しては
-  Tuple const& で tuple を保持し、
-  xputf に関してはその場で tuple を構築する事にして我慢する。
 
 2015-09-18
 
@@ -35,49 +28,7 @@
   result_of,
   max_align_t in <cstddef>
 
-* mwg/xprintf: mwg::vararg::pack_forward の存在意義に疑問
-
-  | pack_forward
-  |
-  |   以下のようにして引数を捕まえるのに使う。
-  |     void func(Args&&... _args){
-  |       std::tuple<Args&&...> args=pack_forward<Args...>(_args...);
-  |     }
-  |   類似のものに std::forward_as_tuple があるがこれは使いづらい。というのも、
-  |     void func(Args&&... _args){
-  |       std::tuple<Args&&...> args=std::forward_as_tuple(std::forward<Args>(_args)...);
-  |     }
-  |   としなければならないからである。あるいは、pack_forward は
-  |     std::forward_as_tuple(std::forward<Args>(_args)...)
-  |   を組み合わせた物と考えれば良い。
-
-  上記の記述は本当だろうか? 勿論 forward_as_tuple(...) とはできないけれども、
-  forward_as_tuple<Types...>() の様な使い方はできるのではないかという気がする。
-
-  また、現在の実装で pack_forward<XArgs...,YArgs...>(yargs...) となっているのは、
-  yargs から xargs に変換できるかどうかのチェックをするためである。
-  単純な forward_as_tuple の場合はそのチェックがないので面倒なテンプレートのエラーが発生する。
-  しかし、今回想定している使い方の範囲内では必ず yargs → XArgs に変換出来るはずである。
-
-  やはり std::forward_as_tuple で駄目な理由が分からなくなった…。
-  試しに forward_as_tuple に切り替えて見る。
-  実際に試してみた所、以下の様になった:
-
-  | void func(Args&&... _args){
-  |   std::forward_as_tuple<Args...>(_args...); // NG: 当然だが int&& arg1; の arg1 は左辺値なので (int&& param1) に渡せない。
-  |   std::forward_as_tuple<Args...>(std::forward<Args>(_args)...); // OK
-  |   std::forward_as_tuple(std::forward<Args>(_args)...); // OK: でも上の様に書くぐらいならば下の様に書けば良い。
-  | }
-
-  結局、std::forward_as_tuple(std::forward<Args>(_args)...) と書かなければならないのが面倒だから、
-  pack_forward という関数を作ったという解釈で良いという事である。
-  序でに空の forward_as_tuple が許されるのかを確かめる。
-
-* mwg/xprintf.h: pack_forward 廃止??
-
-* mwg/xprintf.h: mwg::xprintf(std::string); // 追記になっているが sprintf 等を考えると分かりにくい
 * mwg/xprintf.h: tuple_element_select 関連の整理。
-* mwg/xprintf.h: その他の型 ... ostringstream << を用いた実装。
 
 2015-06-21
 
@@ -216,6 +167,66 @@
 
 2015-09-20
 
+* mwg/xprintf.h: bugfix, C++11 で mwg::xputf の戻り値が構築できない。
+
+  戻り値で受け取った tuple をコピーしようとしていたが、
+  g++-4.9.2 の C++11 で tuple<int&&> はコピー不可能になる?
+  "implicitly deleted because the default definition would be ill-formed"
+  等と文句を言って tuple はコピーできない様である。
+
+  仕方がないので tuple を受け取る vxputf に関しては
+  Tuple const& で tuple を保持し、
+  xputf に関してはその場で tuple を構築する事にして我慢する。
+
+  →参照としてのコピーができる tuple として packed_forward<Args...> を定義した。
+  更に、pack_forward 関数を定義して std::forward と同じように呼び出して、
+  packed_forward<> を得られる様にした。
+  現在の所コンパイルは通っているし期待通りに動いている。
+
+  以下は関連して解決したと見做す。
+
+  > 2015-09-18
+  >
+  > * mwg/xprintf: mwg::vararg::pack_forward の存在意義に疑問
+  >
+  >   | pack_forward
+  >   |
+  >   |   以下のようにして引数を捕まえるのに使う。
+  >   |     void func(Args&&... _args){
+  >   |       std::tuple<Args&&...> args=pack_forward<Args...>(_args...);
+  >   |     }
+  >   |   類似のものに std::forward_as_tuple があるがこれは使いづらい。というのも、
+  >   |     void func(Args&&... _args){
+  >   |       std::tuple<Args&&...> args=std::forward_as_tuple(std::forward<Args>(_args)...);
+  >   |     }
+  >   |   としなければならないからである。あるいは、pack_forward は
+  >   |     std::forward_as_tuple(std::forward<Args>(_args)...)
+  >   |   を組み合わせた物と考えれば良い。
+  >
+  >   上記の記述は本当だろうか? 勿論 forward_as_tuple(...) とはできないけれども、
+  >   forward_as_tuple<Types...>() の様な使い方はできるのではないかという気がする。
+  >
+  >   また、現在の実装で pack_forward<XArgs...,YArgs...>(yargs...) となっているのは、
+  >   yargs から xargs に変換できるかどうかのチェックをするためである。
+  >   単純な forward_as_tuple の場合はそのチェックがないので面倒なテンプレートのエラーが発生する。
+  >   しかし、今回想定している使い方の範囲内では必ず yargs → XArgs に変換出来るはずである。
+  >
+  >   やはり std::forward_as_tuple で駄目な理由が分からなくなった…。
+  >   試しに forward_as_tuple に切り替えて見る。
+  >   実際に試してみた所、以下の様になった:
+  >
+  >   | void func(Args&&... _args){
+  >   |   std::forward_as_tuple<Args...>(_args...); // NG: 当然だが int&& arg1; の arg1 は左辺値なので (int&& param1) に渡せない。
+  >   |   std::forward_as_tuple<Args...>(std::forward<Args>(_args)...); // OK
+  >   |   std::forward_as_tuple(std::forward<Args>(_args)...); // OK: でも上の様に書くぐらいならば下の様に書けば良い。
+  >   | }
+  >
+  >   結局、std::forward_as_tuple(std::forward<Args>(_args)...) と書かなければならないのが面倒だから、
+  >   pack_forward という関数を作ったという解釈で良いという事である。
+  >   序でに空の forward_as_tuple が許されるのかを確かめる。
+  >
+  > * mwg/xprintf.h: pack_forward 廃止??
+
 * mwg/xprintf.h: interface について
 
   現在の interface は以下の関数である:
@@ -306,6 +317,14 @@
   3 sprintf/vsprintf は削除する。
 
   gcc のバグやら色々面倒な事はあったがどうやら終わった。
+
+  以下は関連して解決した物である:
+
+  > 2015-09-18
+  >
+  > * mwg/xprintf.h: mwg::xprintf(std::string); // 追記になっているが sprintf 等を考えると分かりにくい
+  > * mwg/xprintf.h: その他の型 ... ostringstream << を用いた実装。
+
 
 * mwg/xprintf.h (_vxputf_temporary_object): g++-3.4.6 friend が効かない?
 

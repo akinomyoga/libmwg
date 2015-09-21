@@ -34,7 +34,7 @@
 #pragma%%end
 #pragma%%m a a.R/\ytemplate<>([[:space:][:cntrl:]]*(struct|union|class))/template<--->$1/
 #pragma%%m a a.r|\ytemplate<>([[:space:]]*typename\y)?|inline|
-#pragma%%m a a.r|\ytemplate\<---\>|template<>|
+#pragma%%m a a.r|\ytemplate<--->|template<>|
 #pragma%%x a
 #endif
 #pragma%end
@@ -247,41 +247,47 @@ namespace vararg{
       return detail::tuple_element_selector<0,U,TT>::eval(evaluater,index,tp);
   }
 
-  namespace detail{
-    template<typename T,typename F>
-    struct can_be_forwarded_from:stdm::integral_constant<bool,
-      (!mwg::stdm::is_lvalue_reference<T>::value||mwg::stdm::is_lvalue_reference<F>::value)
-      &&mwg::stdm::is_convertible<
-        typename mwg::stdm::remove_reference<F>::type*,
-        typename mwg::stdm::remove_reference<T>::type*>::value>{};
-
-    template<typename XTuple,typename YTuple>
-    struct pack_forward_enabler:mwg::stdm::false_type{};
-    template<>
-    struct pack_forward_enabler<mwg::stdm::tuple<>,mwg::stdm::tuple<> >:mwg::stdm::true_type{};
-
+#ifdef MWGCONF_STD_VARIADIC_TEMPLATES
 #pragma%m 1
-    template<typename X,typename Y,typename... XArgs,typename... YArgs>
-    struct pack_forward_enabler<mwg::stdm::tuple<X,XArgs...>,mwg::stdm::tuple<Y,YArgs...> >:
-      stdm::integral_constant<bool,
-        detail::can_be_forwarded_from<X,Y>::value
-        &&pack_forward_enabler<mwg::stdm::tuple<XArgs...>,mwg::stdm::tuple<YArgs...> >::value>{};
+  template<typename... Args>
+  class packed_forward:public mwg::stdm::tuple<Args mwg_forward_rvalue...>{
+  public:
+    typedef mwg::stdm::tuple<Args mwg_forward_rvalue...> tuple_type;
+
+    packed_forward(Args mwg_forward_rvalue... args):tuple_type(mwg::stdm::forward<Args>(args)...){}
+
+    // copy constructor
+    //   右辺値参照も左辺値参照も全部コピーする。
+    //   基底が tuple<Args mwg_forward_rvalue...> なので要素は全て参照である。
+    //   従って rhs を右辺値参照に強制しても問題は生じない。
+    packed_forward(packed_forward const& rhs):tuple_type((tuple_type mwg_forward_rvalue)rhs){}
+  };
 #pragma%end
-#pragma%x variadic_expand_ArNm1
-  }
+#pragma%x 1
+#else
+#pragma%x
+#pragma%x variadic_expand::with_arity.r/__arity__/ArN/
+#pragma%end.r/typename Args[0-9]/&=void/
+#pragma%m 1 1.r/class packed_forward/&<Args...>/
+#pragma%x variadic_expand::with_arity.f/__arity__/0/ArN/
+#endif
+
+#if defined(MWGCONF_STD_RVALUE_REFERENCES)
+# define mwg_forward_lvalue &
+#else
+# define mwg_forward_lvalue const&
+#endif
 
 #pragma%m 1
-  template<typename... XArgs,typename... YArgs>
-  typename mwg::stdm::enable_if<
-    detail::pack_forward_enabler<mwg::stdm::tuple<XArgs...>,mwg::stdm::tuple<YArgs...> >::value,
-    mwg::stdm::tuple<XArgs mwg_forward_rvalue...>
-  >::type
-  pack_forward(YArgs mwg_forward_rvalue... args){
-    typedef mwg::stdm::tuple<XArgs mwg_forward_rvalue...> return_type;
-    return return_type(mwg::stdm::forward<XArgs>(args)...);
+  template<typename... Args>
+  packed_forward<Args...> pack_forward(Args mwg_forward_lvalue... args){
+    return packed_forward<Args...>(mwg::stdm::forward<Args>(args)...);
   }
 #pragma%end
 #pragma%x variadic_expand_0toArN
+
+#undef mwg_forward_lvalue
+
 }
 }
 
@@ -700,8 +706,7 @@ namespace xprintf_detail{
     const char* m_fmt;
     Tuple const& m_args;
 
-    _vxputf_temporary_object(const char* fmt,Tuple const& args)
-      :m_fmt(fmt),m_args(args){}
+    _vxputf_temporary_object(const char* fmt,Tuple const& args):m_fmt(fmt),m_args(args){}
 
 #if defined(MWGCONF_STD_DEFAULTED_FUNCTIONS)&&defined(MWGCONF_STD_RVALUE_REFERENCES)
     _vxputf_temporary_object(_vxputf_temporary_object const& c) = default;
@@ -741,41 +746,36 @@ namespace xprintf_detail{
     return _vxputf_temporary_object<Tuple>(fmt,args);
   }
 
-  template<typename Tuple>
+  template<typename pack_type>
   class _xputf_temporary_object{
     const char* m_fmt;
-    Tuple m_args;
+    pack_type m_args;
 
-#pragma%m 1
-    template<typename... Args>
-    _xputf_temporary_object(const char* fmt,Args... args)
-      :m_fmt(fmt),m_args(mwg::stdm::forward<Args>(args)...){}
-#pragma%end
-#pragma%x variadic_expand_0toArN
+    _xputf_temporary_object(const char* fmt,pack_type mwg_forward_rvalue args):m_fmt(fmt),m_args(mwg::stdm::move(args)){}
 
 #if defined(MWGCONF_STD_DEFAULTED_FUNCTIONS)&&defined(MWGCONF_STD_RVALUE_REFERENCES)
     _xputf_temporary_object(_xputf_temporary_object const& c) = default;
     _xputf_temporary_object(_xputf_temporary_object&& c) = default;
-    // _xputf_temporary_object& operator=(_xputf_temporary_object const& c) = default;
-    // _xputf_temporary_object& operator=(_xputf_temporary_object&& c) = default;
 #endif
 
 #pragma%m 1
     template<typename... Args>
-    friend _xputf_temporary_object<mwg::stdm::tuple<Args...> > const
+    friend _xputf_temporary_object<mwg::vararg::packed_forward<Args...> > const
     xputf(const char* fmt,Args mwg_forward_rvalue... args);
 #pragma%end
 #pragma%x variadic_expand_0toArN
 
+    typename pack_type::tuple_type const& get_args() const{return this->m_args;}
+
   public:
     template<typename Buff>
     int print(Buff& buff) const{
-      return vxprintf_impl(create_xprintf_writer(buff,false,adl_helper()),m_fmt,m_args);
+      return vxprintf_impl(create_xprintf_writer(buff,false,adl_helper()),m_fmt,this->get_args());
     }
 
     std::string str() const{
       std::string buff;
-      vxprintf_impl(create_xprintf_writer(buff,false,adl_helper()),m_fmt,m_args);
+      vxprintf_impl(create_xprintf_writer(buff,false,adl_helper()),m_fmt,this->get_args());
       return mwg::stdm::move(buff);
     }
 
@@ -784,19 +784,21 @@ namespace xprintf_detail{
     }
 
     std::size_t count() const{
-      return vxprintf_impl(empty_writer(),m_fmt,m_args);
+      return vxprintf_impl(empty_writer(),m_fmt,this->get_args());
     }
   };
 
 #pragma%m 1
   template<typename... Args>
-  _xputf_temporary_object<mwg::stdm::tuple<Args...> > const
+  _xputf_temporary_object<mwg::vararg::packed_forward<Args...> > const
   xputf(const char* fmt,Args mwg_forward_rvalue... args){
-    typedef _xputf_temporary_object<mwg::stdm::tuple<Args...> > const return_type;
-    return return_type(fmt,mwg::stdm::forward<Args>(args)...);
+    typedef _xputf_temporary_object<mwg::vararg::packed_forward<Args...> > const return_type;
+    return return_type(fmt,mwg::vararg::pack_forward<Args...>(args...));
   }
 #pragma%end
+#pragma%x
 #pragma%x variadic_expand_0toArN
+#pragma%end.r/pack_forward<>/pack_forward/
 
   template<typename Buff,typename Tuple>
   Buff& operator<<(Buff& buff,_vxputf_temporary_object<Tuple> const& _vxputf){
