@@ -4,6 +4,7 @@
 MWGCXX:=$(BASE)/mmake/mcxx/cxx
 MWGCXXAR:=$(BASE)/mmake/mcxx/cxxar
 MWGPP:=$(BASE)/mmake/mwg_pp.awk
+MMAKECMD:=BASE=$(BASE); source $(BASE)/mmake/make_command.sh
 
 # compiler settings
 CXXPREFIX:=$(shell $(MWGCXX) +prefix)
@@ -19,7 +20,7 @@ endif
 -include $(BASE)/config.mk
 
 # project settings
-SRCENC=utf-8
+SRCENC:=utf-8
 CPPDIR:=$(BASE)/out/src.$(CXXENC)
 CFGDIR:=$(BASE)/out/$(CXXPREFIX)+$(CXXCFG)
 ifneq ($(INSDIR),)

@@ -87,20 +87,17 @@ $(directories):
 source_files+=$(CPPDIR)/${file}
 lwiki_files+=$(CPPDIR)/${filex}.lwiki
 $(CPPDIR)/${file}: ${file} ${ppdeps}
-	@echo 'GEN ${file}'
-	@$(BASE)/mmake/make_command.sh copy-pp ${file}
+	@echo 'GEN ${file}'; $(MMAKECMD) copy-pp ${file}
 $(CPPDIR)/${filex}.mconf: $(CPPDIR)/${file}
 $(CPPDIR)/${filex}.lwiki: $(CPPDIR)/${file}
 config_files+=$(CFGDIR)/config/${name}.h
 $(CFGDIR)/config/${name}.h: $(CPPDIR)/${filex}.mconf | $(CFGDIR)/config
-	@echo 'CFG ${file}'
-	@$(BASE)/mmake/make_command.sh config ${file} $(FLAGS) $(CXXFLAGS) $(LDFLAGS)
+	@echo 'CFG ${file}'; $(MMAKECMD) config ${file} $(FLAGS) $(CXXFLAGS) $(LDFLAGS)
 check_files+=$(CFGDIR)/check/${name}.stamp
 $(CPPDIR)/check/${name}$(CXXEXT): $(CPPDIR)/${file}
 -include $(CFGDIR)/check/${name}.dep
 $(CFGDIR)/check/${name}.stamp: $(CPPDIR)/check/${name}$(CXXEXT)
-	@echo 'CHK ${file}'
-	@$(BASE)/mmake/make_command.sh check ${file} $(FLAGS) $(CXXFLAGS) $(LDFLAGS)
+	@echo 'CHK ${file}'; $(MMAKECMD) check ${file} $(FLAGS) $(CXXFLAGS) $(LDFLAGS)
 #%end
 
 #%m _check_duplicates
@@ -122,8 +119,7 @@ $(CFGDIR)/check/${name}.stamp: $(CPPDIR)/check/${name}$(CXXEXT)
 object_files+=$(CFGDIR)/obj/${name}.o
 -include $(CFGDIR)/obj/${name}.dep
 $(CFGDIR)/obj/${name}.o: $(CPPDIR)/${file} | source_files
-	@echo 'CXX ${file}'
-	@$(BASE)/mmake/make_command.sh compile ${file} $(FLAGS) $(CXXFLAGS)
+	@echo 'CXX ${file}'; $(MMAKECMD) compile ${file} $(FLAGS) $(CXXFLAGS)
 #%%end.i
 #%%[ppdeps=""]
 
@@ -139,7 +135,7 @@ $(CFGDIR)/obj/${name}.o: $(CPPDIR)/${file} | source_files
 #%%x
 install_files+=$(INS_INCDIR)/${file}
 $(INS_INCDIR)/${file}: $(CPPDIR)/${file} | $(INS_INCDIR)
-	$(BASE)/mmake/make_command.sh install-header ${file}
+	@echo 'INS header ${file}'; $(MMAKECMD) install-header ${file}
 #%%end.i
 #%%[ppdeps=""]
 
@@ -150,8 +146,7 @@ $(INS_INCDIR)/${file}: $(CPPDIR)/${file} | $(INS_INCDIR)
 # mmake/src.mk/AddConfigHeader %file%
 source_files+=$(CFGDIR)/include/%file%
 $(CFGDIR)/include/%file%: $(config_files) | $(CFGDIR)/include
-	@echo 'CFG-GATHER > $@'
-	@cat $^ > $@
+	@echo 'CFG-GATHER > $@'; cat $^ > $@
 
 #%end
 
@@ -159,8 +154,7 @@ $(CFGDIR)/include/%file%: $(config_files) | $(CFGDIR)/include
 # mmake/src.mk/DefineRuleDoc
 .PHONY: doc
 doc: $(lwiki_files)
-	@echo 'DOC lwiki'
-	@$(BASE)/mmake/make_command.sh lwiki
+	@echo 'DOC lwiki'; $(MMAKECMD) lwiki
 
 #%end
 

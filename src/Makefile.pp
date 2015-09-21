@@ -107,13 +107,12 @@ endif
 source_files+=$(CFGDIR)/include/mwg_config.stamp $(CPPDIR)/mwg/config.h
 install_files+=$(INS_INCCFG)/mwg_config.h $(INS_INCCFG)/mwg/config.h
 $(INS_INCCFG)/mwg_config.h: $(CFGDIR)/include/mwg_config.stamp
-	$(BASE)/mmake/make_command.sh install-header $(CFGDIR)/include/mwg_config.h $@
+	@echo 'INS header ${file}'; $(MMAKECMD) install-header $(CFGDIR)/include/mwg_config.h $@
 $(INS_INCCFG)/mwg/config.h: $(CPPDIR)/mwg/config.h
-	$(BASE)/mmake/make_command.sh install-header $< $@
+	@echo 'INS header ${file}'; $(MMAKECMD) install-header $< $@
 
 $(CFGDIR)/libmwg.a: $(object_files)
-	@echo 'AR $@'
-	@$(MWGCXXAR) $@ $^
+	@echo 'AR $@'; $(MWGCXXAR) $@ $^
 library_files+=$(CFGDIR)/libmwg.a
 install_files+=$(INS_LIBDIR)/libmwg.a
 $(INS_LIBDIR)/libmwg.a: $(CFGDIR)/libmwg.a

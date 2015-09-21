@@ -1,10 +1,14 @@
 #!/bin/bash
 
-if [[ $0 =~ ^(.*)/+mmake/+[^/]+ ]]; then
-  BASE="${BASH_REMATCH[1]:-/}"
-elif [[ $0 =~ mmake/+[^/]+ ]]; then
-  BASE=.
-else
+if [[ ! $BASE ]]; then
+  if [[ $0 =~ ^(.*)/+mmake/+[^/]+ ]]; then
+    BASE="${BASH_REMATCH[1]:-/}"
+  elif [[ $0 =~ mmake/+[^/]+ ]]; then
+    BASE=.
+  fi
+fi
+
+if [[ ! -s $BASE/mmake/vars.sh ]]; then
   echo "unknown script directory! \$0=$0" >&2
   exit 1
 fi
