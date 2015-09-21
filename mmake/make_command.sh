@@ -59,6 +59,14 @@ function generate_filenames {
   fobj="$CFGDIR/obj/$name.o"
 }
 
+# char code conversion
+function proc/copy-pp/iconv {
+  local file="$1"
+  [[ $CXXENC == $SRCENC || ! -s $file ]] && return
+  local sed_iconv='/-\*-.\{1,\}-\*-/s/\bcoding:[[:space:]]*'"$SRCENC"'\b/coding: '"$CXXENC"'/'
+  sed "$sed_iconv" "$file" | iconv -c -f "$SRCENC" -t "$CXXENC" > "$file.iconv" && mv "$file.iconv" "$file"
+}
+
 function proc/copy-pp {
   local "${generate_filenames_vars[@]}"
   generate_filenames "$1"
@@ -66,16 +74,8 @@ function proc/copy-pp {
   mkdf "$fcheck"
   mkdf "$fsource"
   > "$fcheck"
-  {
-    export PPLINENO=1 PPC_PRAGMA=1 PPC_CPP=1
-    if [[ $CXXENC != $SRCENC ]]; then
-      "$MWGPP" \
-        | sed '/-\*-.\{1,\}-\*-/s/\bcoding:[[:space:]]*'"$SRCENC"'\b/coding: '"$CXXENC"'/' \
-        | iconv -c -f "$SRCENC" -t "$CXXENC"
-    else
-      "$MWGPP"
-    fi
-  } <<EOF > "$fsource"
+
+  PPLINENO=1 PPC_PRAGMA=1 PPC_CPP=1 "$MWGPP" <<EOF > "$fsource"
 #%m begin_check
   #%%\$>> $fcheck
   #%%# x
@@ -92,20 +92,19 @@ X '%name%' '%headers%' '%expression%'
 #%include "$fsrc"
 EOF
 
-  gawk '
+  if [[ -s $fcheck ]]; then
+    proc/copy-pp/iconv "$fcheck"
+
+    # create <chkflg>
+    gawk '
     {if(match($0,/^[[:space:]]*\/\/[[:space:]]*mmake_check_flags:[[:space:]]*(.+)$/,_m))print _m[1];}
   ' "$fcheck" > "$CPPDIR/check/$name.flags"
+  fi
 
+  proc/copy-pp/iconv "$fsource"
+
+  # extract <fmconf> <flwiki>
   perl "$BASE/mmake/make_extract.pl" "$fsource"
-
-  # 以下の操作は CXXKEY に依存するので別のフェーズで実行するべき
-  # echo $fmconf
-  # if [[ -s $fmconf ]]; then
-  #   mkdf "$fconfig"
-  #   cxx +config -o "$fconfig" --cache="$CFGDIR/cache" "$fmconf"
-  # else
-  #   rm -rf "$fconfig"
-  # fi
 }
 
 ## @fn proc/compile filename.cpp [options...]
@@ -116,7 +115,7 @@ function proc/compile {
 
   mkdf "$fdep"
   mkdf "$fobj"
-  "$MWGCXX" -MD -MF "$fdep" -MQ "$fobj" -I "$CFGDIR/include" -I "$CPPDIR" -c -o "$fobj" "$fsource" "$@"
+  source "$MWGCXX" -MD -MF "$fdep" -MQ "$fobj" -I "$CFGDIR/include" -I "$CPPDIR" -c -o "$fobj" "$fsource" "$@"
 }
 
 function proc/check {
@@ -130,7 +129,6 @@ function proc/check {
   local chkflg="$CPPDIR/check/$name.flags"
   mkdf "$chkstm"
   if [[ -s $fcheck ]]; then
-    # update
     [[ ! -e $chkflg ]] &&
       gawk '{if(match($0,/^[[:space:]]*\/\/[[:space:]]*mmake_check_flags:[[:space:]]*(.+)$/,_m))print _m[1];}' "$fcheck" > "$chkflg"
 
@@ -148,7 +146,14 @@ function proc/config {
   local "${generate_filenames_vars[@]}"
   generate_filenames "$1"
   shift
-  "$MWGCXX" +config -o "$fconfig" --cache="$CFGDIR/cache" --log="$CFGDIR/config.log" "$fmconf" -- "$@"
+  if [[ ! -f $fmconf ]]; then
+    [[ -f $fconfig ]] && rm -f $fconfig
+    return 1
+  elif [[ ! -s $fmconf ]]; then
+    > "$fconfig"
+  else
+    source "$MWGCXX" +config -o "$fconfig" --cache="$CFGDIR/cache" --log="$CFGDIR/config.log" "$fmconf" -- "$@"
+  fi
 }
 
 function proc/install {

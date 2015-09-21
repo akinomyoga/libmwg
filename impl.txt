@@ -6,6 +6,18 @@
   ToDo
 ------------------------------------------------------------------------------
 
+2015-09-21
+
+* mmake が要求するコマンド群
+
+  util-linux (rename) bash gawk perl iconv
+
+* mwg/xprintf.h: xprintf_convert, create_xprintf_writer を定義する namespace を変更する。
+  現在は mwg::xprintf_detail になっている。
+  実は mwg でも良い様な気がする。xprintf_* という関数名なので他と混じる事もない。
+
+  adl_helper を mwg/defs.h に移動する。xprintf_convert を mwg 名前空間に出す。
+
 2015-09-20
 
 * mwg/xprintf.h: 一応引数は完全 forward しているが、
@@ -164,6 +176,60 @@
 ------------------------------------------------------------------------------
   Done
 ------------------------------------------------------------------------------
+
+2015-09-22
+
+* mwg/xprintf.h: テンプレート明示的実体化
+
+  今迄使っていた実体化が VC2010 のバグでエラーになって動かないので、
+  改めて整理して使いやすくすることを試みる。
+  クラスを通じて間接的に呼び出したりする事で、一度に複数のクラスの実体化をできるのではないかと
+  思ったがなかなかうまく行かない。結局の所、手で指定した物しか実体化は保証されず、
+  そこから呼び出される別の関数や別のクラスについては実体化されるかもしれないという程度の気がする。
+  幸いクラスのメンバ関数だけはまとめて実体化する事が可能であるので、これを用いて実装し直す事にする。
+
+  以下は試行錯誤の末に書いて消した物である。
+
+  % template<typename Buff>
+  % struct _instantiate_basic_convert{
+  %   static void _call(Buff& buff,fmtspec const& spec){
+  %     //
+  %     // ここで呼び出すだけで本当にインスタンス化されるのだろうか?
+  %     //
+  %     // - 各関数の定義は既に与えられているので実体化可能である。
+  %     //   またテンプレート関数が別の翻訳単位で実体化されるかどうか何も仮定できないので、
+  %     //   ここで実体化しないと最終的にリンク時に失敗する事になる。
+  %     //   従って、ここで必ず実体化されるはずである。
+  %     //
+  %     // - 但し、インライン化されてシンボルが割り当てられない可能性もある?
+  %     //
+  %     basic_convert_impl<Buff>::convert_integer(buff,spec,mwg::u8t(),bool(),int());
+  %     basic_convert_impl<Buff>::convert_floating_point(buff,spec,double());
+  %     basic_convert_impl<Buff>::convert_string(buff,spec,"",std::size_t());
+  %   }
+  % };
+  %
+  % // 以下どの様な条件で実体化されるか不明
+  %
+  % template<template<typename Buff> class InstantiateForWriter>
+  % struct _instantiate_for_writers:
+  %   InstantiateForWriter<xprintf_writer>,
+  %   InstantiateForWriter<empty_writer>,
+  %   InstantiateForWriter<cfile_writer>,
+  %   InstantiateForWriter<ostream_writer>,
+  %   InstantiateForWriter<string_writer>{};
+  %
+  % template<typename T>
+  % struct _simple_xprintf_convert{
+  %   template<typename Buff>
+  %   struct _instantiate{
+  %     static void _call(xprintf_writer& buff,fmtspec const& spec,T const& value){
+  %       xprintf_convert(buff,spec,value,adl_helper());
+  %     }
+  %   };
+  % };
+  %
+  % // template class _instantiate_for_writers<_simple_xprintf_convert<T>::_instantiate>;
 
 2015-09-20
 

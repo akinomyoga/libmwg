@@ -415,7 +415,7 @@ namespace xprintf_detail{
   };
 
   template<typename Buff>
-  int xprintf_convert(Buff const& buff,fmtspec const& spec,mwg::u8t value,bool isSigned,int size){
+  int basic_convert_impl<Buff>::convert_integer(Buff const& buff,fmtspec const& spec,mwg::u8t value,bool isSigned,int size){
     if(spec.type!=type_default){
       int ssize=0;
 
@@ -520,9 +520,9 @@ namespace xprintf_detail{
     case 'g':case 'G':
     case 'a':case 'A':
       if(isSigned)
-        return xprintf_convert(buff,spec,(double)(mwg::i8t)value);
+        return basic_convert_impl<Buff>::convert_floating_point(buff,spec,(double)(mwg::i8t)value);
       else
-        return xprintf_convert(buff,spec,(double)(mwg::u8t)value);
+        return basic_convert_impl<Buff>::convert_floating_point(buff,spec,(double)(mwg::u8t)value);
     default:
       return xprint_convert_unknown_conv;
     }
@@ -852,7 +852,7 @@ namespace xprintf_detail{
   };
 
   template<typename Buff>
-  int xprintf_convert(Buff const& buff,fmtspec const& spec,double const& value){
+  int basic_convert_impl<Buff>::convert_floating_point(Buff const& buff,fmtspec const& spec,double const& value){
     floating_point_converter conv(spec);
 
     switch(spec.conv){
@@ -914,7 +914,7 @@ namespace xprintf_detail{
   };
 
   template<typename Buff>
-  int xprintf_convert(Buff const& buff,fmtspec const& spec,const char* str,std::size_t len){
+  int basic_convert_impl<Buff>::convert_string(Buff const& buff,fmtspec const& spec,const char* str,std::size_t len){
     string_converter conv(spec,len);
     switch(spec.conv){
     case 's':break;
@@ -929,23 +929,14 @@ namespace xprintf_detail{
 
 namespace mwg{
 namespace xprintf_detail{
-  template int xprintf_convert<xprintf_writer>(xprintf_writer const& buff,fmtspec const& spec,mwg::u8t value,bool isSigned,int size);
-  template int xprintf_convert<empty_writer  >(empty_writer   const& buff,fmtspec const& spec,mwg::u8t value,bool isSigned,int size);
-  template int xprintf_convert<cfile_writer  >(cfile_writer   const& buff,fmtspec const& spec,mwg::u8t value,bool isSigned,int size);
-  template int xprintf_convert<ostream_writer>(ostream_writer const& buff,fmtspec const& spec,mwg::u8t value,bool isSigned,int size);
-  template int xprintf_convert<string_writer >(string_writer  const& buff,fmtspec const& spec,mwg::u8t value,bool isSigned,int size);
 
-  template int xprintf_convert<xprintf_writer>(xprintf_writer const& buff,fmtspec const& spec,double const& value);
-  template int xprintf_convert<empty_writer  >(empty_writer   const& buff,fmtspec const& spec,double const& value);
-  template int xprintf_convert<cfile_writer  >(cfile_writer   const& buff,fmtspec const& spec,double const& value);
-  template int xprintf_convert<ostream_writer>(ostream_writer const& buff,fmtspec const& spec,double const& value);
-  template int xprintf_convert<string_writer >(string_writer  const& buff,fmtspec const& spec,double const& value);
+  template class basic_convert_impl<xprintf_writer>;
+  template class basic_convert_impl<empty_writer>;
+  template class basic_convert_impl<cfile_writer>;
+  template class basic_convert_impl<ostream_writer>;
+  template class basic_convert_impl<string_writer>;
 
-  template int xprintf_convert<xprintf_writer>(xprintf_writer const& buff,fmtspec const& spec,const char* str,std::size_t len);
-  template int xprintf_convert<empty_writer  >(empty_writer   const& buff,fmtspec const& spec,const char* str,std::size_t len);
-  template int xprintf_convert<cfile_writer  >(cfile_writer   const& buff,fmtspec const& spec,const char* str,std::size_t len);
-  template int xprintf_convert<ostream_writer>(ostream_writer const& buff,fmtspec const& spec,const char* str,std::size_t len);
-  template int xprintf_convert<string_writer >(string_writer  const& buff,fmtspec const& spec,const char* str,std::size_t len);
+  // template class _instantiate_for_writers<_instantiate_basic_convert>;
 }
 }
 

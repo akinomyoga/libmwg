@@ -333,8 +333,55 @@ using mwg::stdm::isnormal;
 #if defined(MWG_STDM_CMATH__fpclassify_undefined)&&!defined(MWGCONF_HAS_GLOBAL_FPCLASSIFY)
 using mwg::stdm::fpclassify;
 #endif
-
 #endif /* end of !defined(_MSC_VER) */
+/* end of part FPCLASSIFY */
+//HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+//
+// Math constants
+//   できるだけ _USE_MATH_DEFINES や _GNU_SOURCE を define して使っているが、
+//   include の順序の都合で結局 define されないという事も多くあるのでここで定義する。
+//   値は https://msdn.microsoft.com/en-us/library/4hwaceh6(v=vs.100).aspx から取った。
+//
+#ifndef M_E
+# define M_E        2.71828182845904523536e+000
+#endif
+#ifndef M_LOG2E
+# define M_LOG2E    1.44269504088896340736e+000
+#endif
+#ifndef M_LOG10E
+# define M_LOG10E   4.34294481903251827651e-001
+#endif
+#ifndef M_LN2
+# define M_LN2      6.93147180559945309417e-001
+#endif
+#ifndef M_LN10
+# define M_LN10     2.30258509299404568402e+000
+#endif
+#ifndef M_PI
+# define M_PI       3.14159265358979323846e+000
+#endif
+#ifndef M_PI_2
+# define M_PI_2     1.57079632679489661923e+000
+#endif
+#ifndef M_PI_4
+# define M_PI_4     7.85398163397448309616e-001
+#endif
+#ifndef M_1_PI
+# define M_1_PI     3.18309886183790671538e-001
+#endif
+#ifndef M_2_PI
+# define M_2_PI     6.36619772367581343076e-001
+#endif
+#ifndef M_2_SQRTPI
+# define M_2_SQRTPI 1.12837916709551257390e+000
+#endif
+#ifndef M_SQRT2
+# define M_SQRT2    1.41421356237309504880e+000
+#endif
+#ifndef M_SQRT1_2
+# define M_SQRT1_2  7.07106781186547524401e-001
+#endif
+
 //HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 #endif /* end of MWG_STDM_CMATH */
 #pragma%x begin_check

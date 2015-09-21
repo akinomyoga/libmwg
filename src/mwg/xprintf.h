@@ -166,8 +166,8 @@
  * }
  *
  * 実装を隠蔽または分離したい場合は、
- * Writer = xprintf_writer, empty_writer, cfile_writer, ostream_writer, string_writer の4つについて、
- * 関数テンプレートのインスタンス化をする。
+ * Writer = xprintf_writer, empty_writer, cfile_writer, ostream_writer, string_writer の5つについて、
+ * 関数テンプレートのインスタンス化をする。例えば以下の様にする。
  *
  * &pre(!cpp,title=yyy.h){
  * namespace mwg{
@@ -186,11 +186,11 @@
  *     実装
  *   }
  * 
- *   // template int xprintf_convert<xprintf_writer>(xprintf_writer const& buff,fmtspec const& spec,MyType const& value);
- *   // template int xprintf_convert<cfile_writer  >(cfile_writer   const& buff,fmtspec const& spec,MyType const& value);
- *   // template int xprintf_convert<ostream_writer>(ostream_writer const& buff,fmtspec const& spec,MyType const& value);
- *   // template int xprintf_convert<string_writer >(string_writer  const& buff,fmtspec const& spec,MyType const& value);
- *   template void _instantiate_xprintf_convert<MyType>(MyType const&);
+ *   template int xprintf_convert<xprintf_writer>(xprintf_writer const& buff,fmtspec const& spec,MyType const& value,adl_helper);
+ *   template int xprintf_convert<empty_writer  >(cfile_writer   const& buff,fmtspec const& spec,MyType const& value,adl_helper);
+ *   template int xprintf_convert<cfile_writer  >(cfile_writer   const& buff,fmtspec const& spec,MyType const& value,adl_helper);
+ *   template int xprintf_convert<ostream_writer>(ostream_writer const& buff,fmtspec const& spec,MyType const& value,adl_helper);
+ *   template int xprintf_convert<string_writer >(string_writer  const& buff,fmtspec const& spec,MyType const& value,adl_helper);
  * }
  * }
  * }
@@ -431,7 +431,7 @@ namespace xprintf_detail{
 
     template<typename T>
     int eval(T mwg_forward_rvalue value) const{
-      return xprintf_convert(this->buff,this->spec,mwg::stdm::forward<T>(value));
+      return xprintf_convert(this->buff,this->spec,mwg::stdm::forward<T>(value),adl_helper());
     }
 
     static int out_of_range(){
@@ -475,42 +475,51 @@ namespace xprintf_detail{
   // default converters
 
   template<typename Buff>
-  int xprintf_convert(Buff const& buff,fmtspec const& spec,mwg::u8t value,bool isSigned,int size);
+  struct basic_convert_impl{
+    // implemented in xprintf.cpp
+    static int convert_integer(Buff const& buff,fmtspec const& spec,mwg::u8t value,bool isSigned,int size);
+    static int convert_floating_point(Buff const& buff,fmtspec const& spec,double const& value);
+    static int convert_string(Buff const& buff,fmtspec const& spec,const char* str,std::size_t len);
+  };
+
+  // integral conversion
 
   template<typename Buff,typename T>
   typename stdm::enable_if<stdm::is_signed<T>::value&&!stdm::is_same<T,char>::value,int>::type
-  xprintf_convert(Buff const& buff,fmtspec const& spec,T const& value){
-    return xprintf_convert(buff,spec,(mwg::i8t)value,true,sizeof(T));
+  xprintf_convert(Buff const& buff,fmtspec const& spec,T const& value,adl_helper){
+    return basic_convert_impl<Buff>::convert_integer(buff,spec,(mwg::i8t)value,true,sizeof(T));
   }
 
   template<typename Buff,typename T>
   typename stdm::enable_if<stdm::is_unsigned<T>::value||stdm::is_same<T,char>::value,int>::type
-  xprintf_convert(Buff const& buff,fmtspec const& spec,T const& value){
-    return xprintf_convert(buff,spec,(mwg::i8t)value,false,sizeof(T));
+  xprintf_convert(Buff const& buff,fmtspec const& spec,T const& value,adl_helper){
+    return basic_convert_impl<Buff>::convert_integer(buff,spec,(mwg::i8t)value,false,sizeof(T));
   }
 
-  template<typename Buff>
-  int xprintf_convert(Buff const& buff,fmtspec const& spec,double const& value);
-
-  // string
-  template<typename Buff>
-  int xprintf_convert(Buff const& buff,fmtspec const& spec,const char* str,std::size_t len);
+  // floating point conversion
 
   template<typename Buff>
-  int xprintf_convert(Buff const& buff,fmtspec const& spec,const char* str){
-    return xprintf_convert(buff,spec,str,std::strlen(str));
+  int xprintf_convert(Buff const& buff,fmtspec const& spec,double const& value,adl_helper){
+    return basic_convert_impl<Buff>::convert_floating_point(buff,spec,value);
+  }
+
+  // string conversion
+
+  template<typename Buff>
+  int xprintf_convert(Buff const& buff,fmtspec const& spec,const char* str,adl_helper){
+    return basic_convert_impl<Buff>::convert_string(buff,spec,str,std::strlen(str));
   }
 
   // template<typename Buff,std::size_t N>
-  // int xprintf_convert(Buff const& buff,fmtspec const& spec,const char (&str)[N]){
+  // int xprintf_convert(Buff const& buff,fmtspec const& spec,const char (&str)[N],adl_helper){
   //   std::size_t s;
   //   for(s=0;s<N;s++)if(!str[s])break;
-  //   return xprintf_convert(buff,spec,str,s);
+  //   return basic_convert_impl<Buff>::convert_string(buff,spec,str,s);
   // }
 
   template<typename Buff>
-  int xprintf_convert(Buff const& buff,fmtspec const& spec,std::string const& str){
-    return xprintf_convert(buff,spec,str.data(),str.size());
+  int xprintf_convert(Buff const& buff,fmtspec const& spec,std::string const& str,adl_helper){
+    return basic_convert_impl<Buff>::convert_string(buff,spec,str.data(),str.size());
   }
 }
 }
@@ -573,26 +582,6 @@ namespace xprintf_detail{
     return xprintf_detail::string_writer(str);
   }
 
-  template<typename T>
-  void _instantiate_xprintf_convert(T const& value){
-    fmtspec spec={};
-    xprintf_convert(
-      mwg::declval<xprintf_writer const&>(),
-      spec,value,adl_helper());
-    xprintf_convert(
-      empty_writer(),
-      spec,value,adl_helper());
-    xprintf_convert(
-      cfile_writer(stdout),
-      spec,value,adl_helper());
-    xprintf_convert(
-      ostream_writer(std::cout),
-      spec,value,adl_helper());
-    std::string dummy;
-    xprintf_convert(
-      string_writer(dummy),
-      spec,value,adl_helper());
-  }
 }
 }
 

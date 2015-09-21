@@ -214,8 +214,9 @@ elif M compiler_vc    '' _MSC_VER; then
   #                 SP2 RC    : 180030324
   #   
   # C++11 Features
+  #   https://msdn.microsoft.com/en-us/library/hh567368.aspx
+  #   https://msdn.microsoft.com/ja-jp/library/hh567368.aspx
   #   http://blogs.msdn.com/b/vcblog/archive/2011/09/12/10209291.aspx
-  #   http://msdn.microsoft.com/ja-jp/library/hh567368.aspx
   # References
   #   http://d.hatena.ne.jp/yohhoy/20121106/p1
   #   http://sourceforge.net/p/predef/wiki/Compilers/
@@ -355,7 +356,7 @@ declare_feature deleted_functions
 
 cond_gcc='MWGCONF_GCC_STD11>=40500'
 cond_icc='MWGCONF_ICC_STD11>=1300'
-cond_msc='_MSC_VER>=1600'
+cond_msc='_MSC_VER>=1800'
 cond_clang='-a'
 cond_expression='struct test_type{explicit operator int() const{return 1;}};'
 declare_feature explicit_conversions

@@ -92,7 +92,6 @@ namespace stdm{
 //  typedef unsigned int       uint32_t;
 //  typedef unsigned long long uint64_t;
 //
-  static_assert(sizeof(int8_t)==1&&sizeof(int16_t)==2&&sizeof(int32_t)==4&&sizeof(int64_t)==8);
 
 namespace cstdint_detail{
   template<typename T,typename U> struct type_and_size{
@@ -135,6 +134,10 @@ namespace cstdint_detail{
   typedef cstdint_detail::integer_switch<2>::uint_t uint16_t;
   typedef cstdint_detail::integer_switch<4>::uint_t uint32_t;
   typedef cstdint_detail::integer_switch<8>::uint_t uint64_t;
+
+  static_assert(
+    sizeof(int8_t)==1&&sizeof(int16_t)==2&&sizeof(int32_t)==4&&sizeof(int64_t)==8,
+    "mwg/std/cstdint: FATAL: sorry, failed to generate inttypes...");
 
   typedef long long int intmax_t;
   typedef unsigned long long int uintmax_t;
