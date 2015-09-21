@@ -48,7 +48,7 @@ directories+=$(CPPDIR)
 #
 clean-src:
 	-rm -rf $(CPPDIR)/*
-clean-cxx-source:
+clean-cxx-config:
 	-rm -rf $(CFGDIR)/config $(CFGDIR)/include
 clean-cxx-cache:
 	-rm -rf $(CFGDIR)/cache
@@ -58,8 +58,8 @@ clean-cxx-lib:
 	-rm -rf $(CFGDIR)/lib $(CFGDIR)/bin
 clean-cxx-check:
 	-rm -rf $(CFGDIR)/check
-clean-cxx: clean-cxx-source clean-cxx-cache clean-cxx-obj clean-cxx-lib clean-cxx-check
-.PHONY: clean-cxx clean-cxx-source clean-cxx-cache clean-cxx-obj clean-cxx-lib clean-cxx-check
+clean-cxx: clean-cxx-config clean-cxx-cache clean-cxx-obj clean-cxx-lib clean-cxx-check
+.PHONY: clean-cxx clean-cxx-config clean-cxx-cache clean-cxx-obj clean-cxx-lib clean-cxx-check
 #
 clean: clean-cxx-obj
 clean-all: clean-src clean-cxx

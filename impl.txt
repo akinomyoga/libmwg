@@ -8,6 +8,8 @@
 
 2015-09-21
 
+* mcxx msc install cxxar を張り間違えている。
+
 * mmake が要求するコマンド群
 
   util-linux (rename) bash gawk perl iconv

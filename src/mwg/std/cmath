@@ -98,7 +98,7 @@ namespace stdm{
   }
   template<typename T>
   inline static bool isnormal(const T& value){
-    return (::_fpclass((double)value)&(_FPCLASS_PN|_FPCLASS_NN|_FPCLASS_PZ|_FPCLASS_NZ))!=0;
+    return (::_fpclass((double)value)&(_FPCLASS_PN|_FPCLASS_NN))!=0;
   }
 
   enum _FPCLASSIFY{
@@ -393,8 +393,9 @@ int main(){
   mwg_check(mwg::stdm::acosh(1.0)==0.0);
   mwg_check(mwg::stdm::atanh(0.0)==0.0);
 
-  double const inf=1.0/0.0;
-  double const qnan=std::sqrt(-1);
+  //double const inf=1.0/0.0;
+  double const inf=double(float(1e100));
+  double const qnan=std::sqrt(double(-1));
   mwg_check(!mwg::stdm::isnan(0.0));
   mwg_check(!mwg::stdm::isnan(1.0));
   mwg_check(!mwg::stdm::isnan(inf));

@@ -261,7 +261,7 @@ namespace vararg{
     //   右辺値参照も左辺値参照も全部コピーする。
     //   基底が tuple<Args mwg_forward_rvalue...> なので要素は全て参照である。
     //   従って rhs を右辺値参照に強制しても問題は生じない。
-    packed_forward(packed_forward const& rhs):tuple_type((tuple_type mwg_forward_rvalue)rhs){}
+    packed_forward(packed_forward const& rhs):tuple_type(mwg::stdm::move((tuple_type&)rhs)){}
   };
 #pragma%end
 #pragma%x 1
@@ -801,6 +801,10 @@ namespace mwg{
 #pragma%x begin_check
 // mmake_check_flags: -L "$CFGDIR" -lmwg
 
+#ifdef _MSC_VER
+# pragma warning(disable:4413) // 参照を捕獲すると文句を言う
+#endif
+
 #include <cstdio>
 #include <cstring>
 #include <sstream>
@@ -1095,10 +1099,11 @@ void test2(){
   check_printf("0.00000 0","%#g %1$g",0.0);
 
   // nan/inf
-  check_printf("inf INF +inf -INF","%f %1$F %1$+f %F",1.0/0.0,-1.0/0.0);
-  check_printf("inf INF +inf -INF","%e %1$E %1$+e %E",1.0/0.0,-1.0/0.0);
-  check_printf("inf INF +inf -INF","%g %1$G %1$+g %G",1.0/0.0,-1.0/0.0);
-  check_printf("inf INF +inf -INF","%a %1$A %1$+a %A",1.0/0.0,-1.0/0.0);
+  double const inf=float(1e100);
+  check_printf("inf INF +inf -INF","%f %1$F %1$+f %F",inf,-inf);
+  check_printf("inf INF +inf -INF","%e %1$E %1$+e %E",inf,-inf);
+  check_printf("inf INF +inf -INF","%g %1$G %1$+g %G",inf,-inf);
+  check_printf("inf INF +inf -INF","%a %1$A %1$+a %A",inf,-inf);
 
   double nan=std::sqrt(-1.0);
   check_printf("nan NAN +nan NAN","%f %1$F %1$+f %F",nan,-nan);

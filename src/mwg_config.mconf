@@ -60,10 +60,10 @@ H -t'"Boost Library"' boost/config.hpp
 X -t'long long' longlong '' 'long long value=0;'
 
 X -t'__int64'   int64    '' '__int64 value=0;'
-if test -n "$MWGCONF_HAS_INT64"; then
+if [[ $MWGCONF_HAS_INT64 ]]; then
   S -t'"__int64 is long"' INT64_IS_LONG '' 'template<typename T> struct A{};template<> struct A<long>{static const int v=0;};int f(){return A<__int64>::v;}'
   
-  if test -n "$MWGCONF_HAS_LONGLONG"; then
+  if [[ $MWGCONF_HAS_LONGLONG ]]; then
     S -t'"__int64 is long long"' INT64_IS_LONGLONG '' 'template<typename T> struct A{};template<> struct A<long long>{static const int v=0;};int f(){return A<__int64>::v;}'
   fi
 fi
