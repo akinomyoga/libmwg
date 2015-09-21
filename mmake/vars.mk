@@ -12,9 +12,9 @@ _cxx_params:=$(shell source $(MWGCXX) +get --eval '$$CXXPREFIX $$CXX_ENCODING')
 ifeq ($(_cxx_params),)
   $(error [1mFailed to determine CXXPREFIX[m: [34mCheck MWGCXX='[4m$(MWGCXX)[24m' / CXXKEY='[4m$(CXXKEY)[24m' / cxx configurations[m)
 endif
-CXXPREFIX:=$(word 1,$(_cxx_params))
-CXXENC:=$(word 2,$(_cxx_params))
-CXXEXT:=.cpp
+export CXXPREFIX:=$(word 1,$(_cxx_params))
+export CXXENC:=$(word 2,$(_cxx_params))
+export CXXEXT:=.cpp
 
 ifeq ($(CXXCFG),)
   CXXCFG:=default

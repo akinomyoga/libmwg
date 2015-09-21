@@ -1,5 +1,18 @@
 #!/bin/bash
 
+#------------------------------------------------------------------------------
+# utilities
+
+function mkd { [[ -d "$1" ]] || mkdir -p "$1"; }
+function mkdf { mkd "${1%/*}"; }
+function mmake/util/readfile {
+  IFS= read -r -d '' "$1" < "$2"
+  eval "$1=\"\${$1%\$'\n'}\""
+}
+
+#------------------------------------------------------------------------------
+# base variables
+
 if [[ ! $BASE ]]; then
   if [[ $0 =~ ^(.*)/+mmake/+[^/]+ ]]; then
     BASE="${BASH_REMATCH[1]:-/}"
@@ -15,8 +28,7 @@ fi
 
 source "$BASE"/mmake/vars.sh
 
-function mkd { [[ -d "$1" ]] || mkdir -p "$1"; }
-function mkdf { mkd "${1%/*}"; }
+#------------------------------------------------------------------------------
 
 generate_filenames_vars=(fsrc fsource fcheck fmconf flwiki fconfig fdep fobj name)
 function generate_filenames {
@@ -53,9 +65,10 @@ function proc/copy-pp {
 
   mkdf "$fcheck"
   mkdf "$fsource"
+  > "$fcheck"
   {
     export PPLINENO=1 PPC_PRAGMA=1 PPC_CPP=1
-    if [[ "$CXXENC" != "$SRCENC" ]]; then
+    if [[ $CXXENC != $SRCENC ]]; then
       "$MWGPP" \
         | sed '/-\*-.\{1,\}-\*-/s/\bcoding:[[:space:]]*'"$SRCENC"'\b/coding: '"$CXXENC"'/' \
         | iconv -c -f "$SRCENC" -t "$CXXENC"
@@ -63,8 +76,6 @@ function proc/copy-pp {
       "$MWGPP"
     fi
   } <<EOF > "$fsource"
-#%\$> $fcheck
-#%\$>
 #%m begin_check
   #%%\$>> $fcheck
   #%%# x
@@ -81,7 +92,10 @@ X '%name%' '%headers%' '%expression%'
 #%include "$fsrc"
 EOF
 
-  touch "$fcheck"
+  gawk '
+    {if(match($0,/^[[:space:]]*\/\/[[:space:]]*mmake_check_flags:[[:space:]]*(.+)$/,_m))print _m[1];}
+  ' "$fcheck" > "$CPPDIR/check/$name.flags"
+
   perl "$BASE/mmake/make_extract.pl" "$fsource"
 
   # 以下の操作は CXXKEY に依存するので別のフェーズで実行するべき
@@ -113,13 +127,21 @@ function proc/check {
   local chkexe="$CFGDIR/check/$name.exe"
   local chkstm="$CFGDIR/check/$name.stamp"
   local chkdep="$CFGDIR/check/$name.dep"
+  local chkflg="$CPPDIR/check/$name.flags"
   mkdf "$chkstm"
-  if [[ -s "$fcheck" ]]; then
-    local CHECK_FLAGS_SPEC=$(gawk '{if(match($0,/^[[:space:]]*\/\/[[:space:]]*mmake_check_flags:[[:space:]]*(.+)$/,_m))print _m[1];}' "$fcheck")
-    eval "local FLAGS=($CHECK_FLAGS_SPEC)"
-    # echo "dbg: FLAGS=(${FLAGS[*]})"
-    "$MWGCXX" -MD -MF "$chkdep" -MQ "$chkstm" -I "$CFGDIR/include" -I "$CPPDIR" -o "$chkexe" "$fcheck" "${FLAGS[@]}" "$@" && "$chkexe"
-  fi && touch "$chkstm"
+  if [[ -s $fcheck ]]; then
+    # update
+    [[ ! -e $chkflg ]] &&
+      gawk '{if(match($0,/^[[:space:]]*\/\/[[:space:]]*mmake_check_flags:[[:space:]]*(.+)$/,_m))print _m[1];}' "$fcheck" > "$chkflg"
+
+    local -a FLAGS
+    if [[ -s $chkflg ]]; then
+      local CHECK_FLAGS_SPEC
+      mmake/util/readfile CHECK_FLAGS_SPEC "$chkflg"
+      eval "FLAGS=($CHECK_FLAGS_SPEC)"
+    fi
+    source "$MWGCXX" -MD -MF "$chkdep" -MQ "$chkstm" -I "$CFGDIR/include" -I "$CPPDIR" -o "$chkexe" "$fcheck" "${FLAGS[@]}" "$@" && "$chkexe"
+  fi && > "$chkstm"
 }
 
 function proc/config {

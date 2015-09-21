@@ -15,9 +15,12 @@ MWGCXX="$BASE/mmake/mcxx/cxx"
 MWGPP="$BASE/mmake/mwg_pp.awk"
 
 # compiler settings
-CXXPREFIX="$("$MWGCXX" +prefix)"
-CXXENC="$("$MWGCXX" +get input-charset)"
-CXXEXT=.cpp
+if [[ ! ( $CXXPREFIX && $CXXENC && $CXXEXT ) ]]; then
+  # if sourced from src/Makefile, the following variables are already defined.
+  CXXPREFIX=($(source "$MWGCXX" +get --eval '$CXXPREFIX $CXX_ENCODING')) || exit 1
+  CXXENC="${CXXPREFIX[1]}"
+  CXXEXT=.cpp
+fi
 
 # read config.mk
 : ${CXXCFG:=default}
