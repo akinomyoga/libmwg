@@ -23,6 +23,14 @@
  * if [[ $StandardHeaders ]]; then
  *   HeaderInvalid=
  *
+ *   X -t'std::tr1::add_reference<T>::type' -oMWGCONF_HAS_STD_TR1_ADD_REFERENCE "$StandardHeaders" "typedef std::tr1::add_reference<int>::type a;"
+ *   if [[ $MWGCONF_HAS_STD_TR1_ADD_REFERENCE ]]; then
+ *     if ! X -t"(libstdc++) std::tr1::add_reference<void>::type" -o - "$StandardHeaders" "int a=std::tr1::add_reference::is_const<int&&>::value;"; then
+ *       D MWGCONF_INVALID_STD_TR1_ADD_REFERENCE 1
+ *       HeaderInvalid=1
+ *     fi
+ *   fi
+ *
  *   if X - '' 'int&& a=1;'; then
  *     if ! X -t"(vcbug) $Namespace::is_const<int&&>::value" -o - "$StandardHeaders" "int a=$Namespace::is_const<int&&>::value;"; then
  *       D MWGCONF_INVALID_STD_IS_CONST 1
@@ -36,7 +44,6 @@
  * # is_convertible
  * if [[ $StandardHeaders ]]; then
  *   X add_lvalue_reference "$StandardHeaders" "typedef std::add_lvalue_reference<int>::type a;"
- *   X tr1_add_reference    "$StandardHeaders" "typedef std::tr1::add_reference<int>::type a;"
  *
  *   # libstdc++ の特定の version で is_convertible<int,void> が true となる。
  *   X valid_is_convertible "$StandardHeaders" 'int arr[!std::is_convertible<int,void>::value?1:-1];'
@@ -292,7 +299,7 @@ namespace stdm{
 # endif
 #endif
 #if (defined(MWG_STDM_TYPE_TRAITS_WithTr1Header) \
-  &&defined(MWGCONF_HAS_TR1_ADD_REFERENCE))
+  &&defined(MWGCONF_HAS_STD_TR1_ADD_REFERENCE)&&!defined(MWGCONF_INVALID_STD_TR1_ADD_REFERENCE))
 
 # if !defined(MWGCONF_HAS_ADD_LVALUE_REFERENCE)
   // std::add_lvalue_reference が既に定義されている場合がある(?)
