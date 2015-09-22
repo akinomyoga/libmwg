@@ -535,10 +535,8 @@ namespace stdm{
   //
   namespace detail{
     template<typename T,bool B=is_integral<T>::value> struct is_signed_nocv:false_type{};
-    template<typename T,bool B=is_integral<T>::value> struct is_unsigned_nocv:false_type{};
 
-    template<typename T> struct is_signed_nocv  <T,true>:integral_constant<bool,(T(-1)<T(0))>{};
-    template<typename T> struct is_unsigned_nocv<T,true>:integral_constant<bool,(T(0)<T(-1))>{};
+    template<typename T> struct is_signed_nocv<T,true>:integral_constant<bool,(T(-1)<T(0))>{};
 
     // floating point numbers are signed
     template<> struct is_signed_nocv<float      ,false>:true_type{};
@@ -546,29 +544,37 @@ namespace stdm{
     template<> struct is_signed_nocv<long double,false>:true_type{};
 
     // bool is always unsigned
-    template<> struct is_unsigned_nocv<bool          ,true>:true_type{};
+    template<> struct is_signed_nocv<bool       ,true>:false_type{};
 
     // signed/unsigned integers
-    template<> struct is_signed_nocv  <signed char   ,true>:true_type{};
-    template<> struct is_signed_nocv  <signed short  ,true>:true_type{};
-    template<> struct is_signed_nocv  <signed int    ,true>:true_type{};
-    template<> struct is_signed_nocv  <signed long   ,true>:true_type{};
-    template<> struct is_unsigned_nocv<unsigned char ,true>:true_type{};
-    template<> struct is_unsigned_nocv<unsigned short,true>:true_type{};
-    template<> struct is_unsigned_nocv<unsigned int  ,true>:true_type{};
-    template<> struct is_unsigned_nocv<unsigned long ,true>:true_type{};
+    template<> struct is_signed_nocv<signed char   ,true>:true_type{};
+    template<> struct is_signed_nocv<signed short  ,true>:true_type{};
+    template<> struct is_signed_nocv<signed int    ,true>:true_type{};
+    template<> struct is_signed_nocv<signed long   ,true>:true_type{};
+    template<> struct is_signed_nocv<unsigned char ,true>:false_type{};
+    template<> struct is_signed_nocv<unsigned short,true>:false_type{};
+    template<> struct is_signed_nocv<unsigned int  ,true>:false_type{};
+    template<> struct is_signed_nocv<unsigned long ,true>:false_type{};
 # ifdef MWGCONF_HAS_LONGLONG
-    template<> struct is_signed_nocv  <signed long long  ,true>:true_type{};
-    template<> struct is_unsigned_nocv<unsigned long long,true>:true_type{};
+    template<> struct is_signed_nocv<  signed long long,true>:true_type{};
+    template<> struct is_signed_nocv<unsigned long long,true>:false_type{};
 # endif
 # ifdef MWGCONF_HAS_DISTINCT_INT64
-    template<> struct is_signed_nocv  <signed __int64  ,true>:true_type{};
-    template<> struct is_unsigned_nocv<unsigned __int64,true>:true_type{};
+    template<> struct is_signed_nocv<  signed __int64,true>:true_type{};
+    template<> struct is_signed_nocv<unsigned __int64,true>:false_type{};
 # endif
+
+    // characters
+    //   sign of char, char16_t, char32_t, and wchar_t will be determined
+    //   by is_signed_nocv<T,ttue> specialization.
   }
   template<typename T> struct is_signed  :detail::is_signed_nocv  <typename remove_cv<T>::type>{};
-  template<typename T> struct is_unsigned:detail::is_unsigned_nocv<typename remove_cv<T>::type>{};
+  template<typename T> struct is_unsigned
+    :integral_constant<bool,is_arithmetic<T>::value&&!is_signed<T>::value>{};
 #pragma%x begin_check
+#if 40200<=MWGCONF_GCC_VER&&MWGCONF_GCC_VER<40600
+# pragma GCC diagnostic ignored "-Wtype-limits"
+#endif
   template<typename T>
   void check_is_signed__for_type(){
     mwg_check( (mwg::stdm::is_signed<T>::value==(mwg::stdm::is_arithmetic<T>::value&&(T(-1)<T(0)))));
@@ -614,6 +620,9 @@ namespace stdm{
     mwg_check((!mwg::stdm::is_unsigned<double>::value));
     mwg_check((!mwg::stdm::is_unsigned<long double>::value));
   }
+// #if 40200<=MWGCONF_GCC_VER&&MWGCONF_GCC_VER<40600
+// # pragma GCC diagnostic warning "-Wtype-limits"
+// #endif
 #pragma%x end_check
 
   //

@@ -125,18 +125,20 @@ namespace tuple_detail{
   template<typename T>
   struct element_traits{
     typedef T stored_type;
-
-    // T* stored_type::operator&() const;
-    //
-    //   The stored_type should define operator& to get an address.
-    //   If T is a reference, operator& returns the address of target.
-    //   If T is a non-reference type,
-    //   operator& returns the address of the tuple element.
-    //
   };
 
-#if defined(_MSC_VER)&&defined(MWGCONF_STD_RVALUE_REFERENCES)
-  // vcbug workaround 2015-09-22
+#if defined(_MSC_VER)&&!defined(MWGCONF_STD_RVALUE_REFERENCES)
+# define MWG_STD_TUPLE_NONVARIADIC_TUPLE_HPP__NonTrivialElementTraits
+  //
+  // REQUIRE: T* stored_type::operator&() const;
+  //
+  //   The stored_type should define operator& to get an address.
+  //   If T is a reference, operator& returns the address of target.
+  //   If T is a non-reference type,
+  //   operator& returns the address of the tuple element.
+  //
+  //
+  // 2015-09-22 vcbug workaround
   //
   //   VC10 では参照変数を初期化しようとすると
   //   勝手に一時オブジェクトへのアドレスに変わってしまう。
@@ -148,7 +150,7 @@ namespace tuple_detail{
     rvalue_reference_wrapper(T&& _value):rvalue(&_value){}
 
     // operator T&&() const{return static_cast<T&&>(*this->rvalue);}
-    T&& get() const{return static_cast<T&&>(*this->rvalue);}
+    // T&& get() const{return static_cast<T&&>(*this->rvalue);}
     T* operator&() const{return this->rvalue;}
 
   private:
@@ -158,7 +160,6 @@ namespace tuple_detail{
   template<typename T>
   struct element_traits<T&&>{
     typedef rvalue_reference_wrapper<T> stored_type;
-    static T&& ref(stored_type const& wrapper){return wrapper.get();}
   };
 #endif
 }
@@ -167,22 +168,30 @@ namespace detail{
   // template<std::size_t I,typename R,typename TT> struct tuple_get_impl;
   //   R には右辺値参照または左辺値参照が指定される。
   template<std::size_t I,typename R,typename TT> struct tuple_get_impl{};
+
+#ifdef MWG_STD_TUPLE_NONVARIADIC_TUPLE_HPP__NonTrivialElementTraits
+  // 2015-09-22 (tuple_get_impl<K,R,TT>::_get): vcbug workaround
+  //
+  //   Visual Studio 2010 では cv qualifiers の変更などが伴うと、
+  //   どうしても右辺値参照を勝手にローカルの一時オブジェクトに move する。
+  //   すると戻り値の寿命が既に切れている状態になる。
+  //   仕様がないので一旦ポインタに変換してキャストしてから返す。
+  //
 #pragma%expand
   template<typename R,typename TT>
   struct tuple_get_impl<K,R,TT>{
     static R _get(TT t){
-      // vcbug workaround 2015-09-22
-      //
-      //   Visual Studio 2010 では cv qualifiers の変更などが伴うと、
-      //   どうしても右辺値参照を勝手にローカルの一時オブジェクトに move する。
-      //   すると戻り値の寿命が既に切れている状態になる。
-      //   仕様がないので一旦ポインタに変換してキャストしてから返す。
-      //
       typedef typename stdm::remove_reference<R>::type value_type;
       return R(*(value_type*)(&t.m_valueK));
     }
   };
 #pragma%end.f/K/0/ArN/
+#else
+#pragma%expand
+  template<typename R,typename TT>
+  struct tuple_get_impl<K,R,TT>{static R _get(TT t){return mwg::stdm::forward<R>(t.m_valueK);}};
+#pragma%end.f/K/0/ArN/
+#endif
   template<typename R,typename A0,typename A1>
   struct tuple_get_impl<0,R,pair<A0,A1>&>{
     static R _get(pair<A0,A1>& p){return reinterpret_cast<R>(p.first);}

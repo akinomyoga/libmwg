@@ -6,6 +6,8 @@
   ToDo
 ------------------------------------------------------------------------------
 
+2015-09-23
+
 2015-09-22
 
 * tuple のテスト達。今は #if 0 ... #endif で囲んでいる。
@@ -181,6 +183,73 @@
 ------------------------------------------------------------------------------
 
 2015-09-22
+
+* mwg/xprintf.h: VC10 のバグを回避する様にしたら今度は gcc-3.4.6 で通らなくなった。
+
+  配列の参照を変数なしに配列の参照に変換できない (実際何も変換しないはずなのだが)。不思議だ。
+
+  参照: /note/20150923.gcc3bug.array_pointer_dereference.cpp
+
+  &pre(!cpp){
+  // gcc-3 で以下がコンパイルできない
+  // a.cpp: In function `const char (& f1(const char (*)[2]))[2]':
+  // a.cpp:5: error: invalid initialization of non-const reference of type 'const char (&)[2]' from a temporary of type 'const char*'
+  typedef const char (&return_type)[2];
+  return_type f1(const char (*p)[2]){
+    return return_type(*p);
+  }
+
+  // 以下はコンパイルできる
+  return_type f2(const char (*p)[2]){
+    return_type ret(*p);
+    return ret;
+  }
+  }
+
+  色々試したがなかなかうまく行かない。
+  &pre(!cpp,title=うまく行かなかったコード){
+  #if defined(MWGCONF_GCC_VER)&&(MWGCONF_GCC_VER<40000)
+    // gcc-3 では &配列 とすると配列へのポインタではなく
+    // 先頭要素へのポインタになってしまう?
+    // 結果として (value_type*)(&t.m_valueK) に失敗する。
+    //
+    // 本当か? 本当に (value_type*) で失敗しているのか? 実は R() に失敗しているのではないか?
+    template<typename T>
+    struct array_reference_wrapper{};
+    template<typename T,std::size_t N>
+    struct array_reference_wrapper<T[N]>{
+      T* data;
+      array_reference_wrapper(T* _data):data(_data){}
+      T (*operator&() const)[N]{return reinterpret_cast<T(*)[N]>(data);}
+    };
+    template<typename T,std::size_t N>
+    struct element_traits<T(&)[N]>{
+      typedef array_reference_wrapper<T[N]> stored_type;
+    };
+  #endif
+  }
+  &pre(!cpp,title=うまく行かなかったコード2){
+  template<typename T>
+  struct element_traits{
+    typedef T stored_type;
+    template<typename R,typename Store>
+    static R ref(Store mwg_forward_rvalue store){
+      typedef typename remove_reference<R>::type value_type;
+      return R(*(value_type*)&store);
+    }
+  }
+  template<typename R,typename TT>
+  struct tuple_get_impl<K,R,TT>{
+    static R _get(TT t){
+      typedef typename stdm::remove_cv<typename stdm::remove_reference<TT>::type>::type tuple_type;
+      typedef tuple_detail::element_traits<typename tuple_element<K,tuple_type>::type> traits;
+      return traits::template ref<R>(t.m_valueK);
+    }
+  };
+  }
+
+  VC 対応の為に拡張したコードを、古い拡張性のないコードに戻したら通る。
+  仕方がないので VC 対応の為に拡張したコードは VC のみで使う事にする。
 
 * mwg/xprintf.h, mwg/std/tuple: VC 2010 のバグで tuple が動かないので tuple を修正する事にする。
 
