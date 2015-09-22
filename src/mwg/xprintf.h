@@ -351,6 +351,11 @@ namespace xprintf_detail{
   inline int va_getIndex(...){
     throw mwg::except("mwg::xprintf(): invalid argument type");
   }
+  template<typename T>
+  inline typename stdm::enable_if<stdm::is_floating_point<T>::value,int>::type
+  va_getIndex(T const&){
+    throw mwg::except("mwg::xprintf(): a floating point number cannot used for an index.");
+  }
   inline int va_getIndex(int const& value){
     return value;
   }
@@ -953,8 +958,11 @@ void test1(){
 
   // test of size spec
   check_printf(
+    sizeof(long)==4?
     "hhd=46 hd=-722 ld=-1234567890 lld=-1234567890\n"
-    "hhx=2e hx=fd2e lx=b669fd2e llx=ffffffffb669fd2e\n",
+    "hhx=2e hx=fd2e lx=b669fd2e llx=ffffffffb669fd2e\n":
+    "hhd=46 hd=-722 ld=-1234567890 lld=-1234567890\n"
+    "hhx=2e hx=fd2e lx=ffffffffb669fd2e llx=ffffffffb669fd2e\n",
     "hhd=%1$hhd hd=%1$hd ld=%1$ld lld=%1$lld\n"
     "hhx=%1$hhx hx=%1$hx lx=%1$lx llx=%1$llx\n",
     mwg::i8t(-1234567890)
@@ -1099,7 +1107,7 @@ void test2(){
   check_printf("0.00000 0","%#g %1$g",0.0);
 
   // nan/inf
-#ifdef _MSC_VER
+#if defined(_MSC_VER)||(0<MWGCONF_GCC_VER&&MWGCONF_GCC_VER<40000)
   double const inf=double(float(1e100));
 #else
   double const inf=1.0/0.0;

@@ -60,7 +60,7 @@ namespace stdm{
     template<typename F>            struct is_reference_convertible_nocv<F,void>:true_type{};
     template<typename F,typename T> struct is_reference_convertible:integral_constant<
       bool,
-      !(is_const<F>::value&&!is_const<T>::value||is_volatile<F>::value&&!is_volatile<T>::value)&&
+      !((is_const<F>::value&&!is_const<T>::value)||(is_volatile<F>::value&&!is_volatile<T>::value))&&
       is_reference_convertible_nocv<typename remove_cv<F>::type,typename remove_cv<T>::type>::value
       >{};
 

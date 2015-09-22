@@ -48,11 +48,13 @@ namespace stdm{
   }
 #else
   template<typename T>
-  typename stdx::add_const_reference<T>::type
+  typename enable_if<!is_reference<T>::value,
+    typename stdx::add_const_reference<T>::type>::type
   forward(typename stdx::add_const_reference<T>::type value){return value;}
   template<typename T>
-  typename enable_if<!is_const<T>::value,T&>::type
-  forward(T& value){return value;}
+  typename enable_if<is_reference<T>::value,
+    typename add_lvalue_reference<T>::type>::type
+  forward(typename add_lvalue_reference<T>::type value){return value;}
 
   template<typename T>
   T& move(const T& value){return const_cast<T&>(value);}
