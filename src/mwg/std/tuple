@@ -11,12 +11,12 @@
  * # # X std.tuple_size.cv_qualifiers tuple 'int a=std::tuple_size<const std::tuple<int> >::value;';
  * S -t'std::tuple<T> "sane?"' STD_TUPLE_IS_SANE tuple '
  * void test(){
- * std::tuple_size<const std::tuple<> >::value;
- * std::tuple_size<const std::tuple<int> >::value;
- * std::tuple_element<0,const std::tuple<int> >::type b=1;
- * std::tuple_cat();
- * std::tuple_cat(std::tuple<int>(1));
- * std::tuple_cat(std::tuple<int>(1),std::tuple<int>(2),std::tuple<int>(3));
+ *   std::tuple_size<const std::tuple<> >::value;
+ *   std::tuple_size<const std::tuple<int> >::value;
+ *   std::tuple_element<0,const std::tuple<int> >::type b=1;
+ *   std::tuple_cat();
+ *   std::tuple_cat(std::tuple<int>(1));
+ *   std::tuple_cat(std::tuple<int>(1),std::tuple<int>(2),std::tuple<int>(3));
  * }
  * '
  */
@@ -100,6 +100,11 @@ void check_tuple_element(){
 void test(){
   check_tuple_size();
   check_tuple_element();
+
+  stdm::tuple<> t0m;
+  stdm::tuple<
+    int,int,int,int,int,
+    int,int,int,int,int> t10m(1,2,3,4,5,6,7,8,9,10);
 
 #if 0
   // make_tuple, get

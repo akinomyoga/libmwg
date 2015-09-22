@@ -903,7 +903,7 @@ void check_read_fmtspec(){
 void test1(){
   std::ostringstream ss;
   mwg::xprintf(ss,"(%.6d,%6o,%#-5x,%d)\n",100,100,100,"a");
-  mwg_check(ss.str()=="(000100,   144,0x64 ,(xprintf: unknown conversion 'd'))\n");
+  mwg_check(ss.str()=="(000100,   144,0x64 ,(xprintf: unknown conversion 'd'))\n","ss=%s",ss.str().c_str());
 
   check_printf("(                   123,456,789)\n","(%'*d)\n",30,123456789);
 

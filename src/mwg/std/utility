@@ -3,7 +3,28 @@
 #define MWG_STDM_UTILITY
 #include <mwg/defs.h>
 //HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
-#if MWGCONF_HEADER_STD>=2011
+/*?mconf
+ *
+ * StandardHeaders=utility
+ * H tr1/utility && StandardHeaders+=' tr1/utility'
+ * if X -t'std::forward' std_forward "$StandardHeaders" 'int a;int b=std::forward<int&>(a);'; then
+ *   Namespace=std
+ * elif X -t'std::tr1::forward' std_forward "$StandardHeaders" 'int a;int b=std::tr1::forward<int&>(a);'; then
+ *   Namespace=std::tr1
+ * fi
+ *
+ * function check_cxx11_functionality {
+ *   [[ $Namespace ]] || return 1
+ *   if X - '' 'int&& a=1;'; then
+ *     X -t"(vcbug) $Namespace::forward<int>(1)" -o - "$StandardHeaders" "int&& a=$Namespace::forward<int>(1);" || return 1
+ *   fi
+ *   return 0
+ * }
+ *
+ * check_cxx11_functionality || D MWGCONF_INVALID_HEADER_UTILITY 1
+ *
+ */
+#if MWGCONF_HEADER_STD>=2011&&!defined(MWGCONF_INVALID_HEADER_UTILITY)
 # include <utility>
 #else
 # include <algorithm>
@@ -114,3 +135,21 @@ namespace stdx{
 }
 //HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 #endif /* end of include guard */
+#pragma%x begin_check
+#include <mwg/std/utility>
+
+int main(){
+  int b=123;
+  int& b1=mwg::stdm::forward<int&>(b);
+  mwg_unused(b1);
+
+#ifdef MWGCONF_STD_RVALUE_REFERENCES
+  int&& a1=mwg::stdm::forward<int>(123);
+  int&& a2=mwg::stdm::forward<int&&>(123);
+  mwg_unused(a1);
+  mwg_unused(a2);
+#endif
+
+  return 0;
+}
+#pragma%x end_check

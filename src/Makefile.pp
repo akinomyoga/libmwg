@@ -15,11 +15,19 @@ Makefile: Makefile.pp
 	$(BASE)/mmake/mwg_pp.awk $< > $@ || mv $@ $@.error
 
 #%x AddCxxHeader.r|%file%|mwg/defs.h|
-#%x AddCxxHeader.r|%file%|mwg/concept.h|
 #%x AddCxxHeader.r|%file%|mwg/except.h|
+#%x AddCxxHeader.r|%file%|mwg/concept.h|
+#%x AddCxxHeader.r|%file%|mwg/std/type_traits|
+#%x AddCxxHeader.r|%file%|mwg/std/type_traits.is_constructible.h|
+#%x AddCxxHeader.r|%file%|mwg/std/type_traits.is_convertible.inl|
+
 #%x AddCxxHeader.r|%file%|mwg/mpl.h|
 #%x AddCxxHeader.r|%file%|mwg/range.h|
 
+#%x AddCxxHeader.r|%file%|mwg/impl/warning_push.inl|
+#%x AddCxxHeader.r|%file%|mwg/impl/warning_pop.inl|
+#%x AddCxxHeader.r|%file%|mwg/impl/DeclareVariadicFunction.inl|
+#%x AddCxxHeader.r|%file%|mwg/std/utility|
 #%x AddCxxHeader.r|%file%|mwg/std/chrono|
 #%x AddCxxHeader.r|%file%|mwg/std/cmath|
 #%x AddCxxHeader.r|%file%|mwg/std/cstdint|
@@ -35,13 +43,6 @@ Makefile: Makefile.pp
 #%x AddCxxHeader.r|%file%|mwg/std/tuple.nonvariadic_tuple.inl|
 #%[ppdeps="mwg/std/tuple.nonvariadic_tuple.hpp"]
 #%x AddCxxHeader.r|%file%|mwg/std/tuple.variadic_tuple.inl|
-#%x AddCxxHeader.r|%file%|mwg/std/type_traits|
-#%x AddCxxHeader.r|%file%|mwg/std/type_traits.is_constructible.h|
-#%x AddCxxHeader.r|%file%|mwg/std/type_traits.is_convertible.inl|
-#%x AddCxxHeader.r|%file%|mwg/std/utility|
-#%x AddCxxHeader.r|%file%|mwg/impl/warning_push.inl|
-#%x AddCxxHeader.r|%file%|mwg/impl/warning_pop.inl|
-#%x AddCxxHeader.r|%file%|mwg/impl/DeclareVariadicFunction.inl|
 
 #%x AddCxxHeader.r|%file%|mwg/funcsig.h|
 #%x AddCxxHeader.r|%file%|mwg/functor.h|

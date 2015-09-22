@@ -2,53 +2,76 @@
 #ifndef MWG_STDM_TYPE_TRAITS
 #define MWG_STDM_TYPE_TRAITS
 #include <mwg/defs.h>
-#if MWGCONF_HEADER_STD>=2011
-# include <type_traits>
-#else
-//HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
-#pragma%[ArN=10]
 /*?mconf
  *
  * # C++11, C++TR1
  * H type_traits || H tr1/type_traits
  *
  * # include <type_traits> / <tr1/type_traits>
- * headers=
- * [[ $MWGCONF_HEADER_TR1_TYPE_TRAITS ]] && headers="$headers tr1/type_traits"
- * [[ $MWGCONF_HEADER_TYPE_TRAITS     ]] && headers="$headers type_traits"
- * if [[ $headers ]]; then
- *   X add_lvalue_reference "$headers" "typedef std::add_lvalue_reference<int>::type a;"
- *   X tr1_add_reference    "$headers" "typedef std::tr1::add_reference<int>::type a;"
- *
- *   # libstdc++ の特定の version で is_convertible<int,void> が true となる。
- *   X valid_is_convertible "$headers" 'int arr[!std::is_convertible<int,void>::value?1:-1];'
+ * StandardHeaders=
+ * [[ $MWGCONF_HEADER_TR1_TYPE_TRAITS ]] && StandardHeaders="$StandardHeaders tr1/type_traits"
+ * [[ $MWGCONF_HEADER_TYPE_TRAITS     ]] && StandardHeaders="$StandardHeaders type_traits"
+ * if [[ $StandardHeaders ]]; then
+ *   if X -t'"TR1 in namespace std?"' -o - "$StandardHeaders" 'int a=std::is_same<int,int>::value;'; then
+ *     Namespace=std
+ *   else
+ *     Namespace=std::tr1
+ *   fi
  * fi
  *
- * if test -n "$MWGCONF_HEADER_TYPE_TRAITS"; then
+ * # valid is_const
+ * if [[ $StandardHeaders ]]; then
+ *   HeaderInvalid=
  *
+ *   if X - '' 'int&& a=1;'; then
+ *     if ! X -t"(vcbug) $Namespace::is_const<int&&>::value" -o - "$StandardHeaders" "int a=$Namespace::is_const<int&&>::value;"; then
+ *       D MWGCONF_INVALID_STD_IS_CONST 1
+ *       HeaderInvalid=1
+ *     fi
+ *   fi
+ *
+ *   D MWGCONF_INVALID_HEADER_TYPE_TRAITS "$HeaderInvalid"
+ * fi
+ *
+ * # is_convertible
+ * if [[ $StandardHeaders ]]; then
+ *   X add_lvalue_reference "$StandardHeaders" "typedef std::add_lvalue_reference<int>::type a;"
+ *   X tr1_add_reference    "$StandardHeaders" "typedef std::tr1::add_reference<int>::type a;"
+ *
+ *   # libstdc++ の特定の version で is_convertible<int,void> が true となる。
+ *   X valid_is_convertible "$StandardHeaders" 'int arr[!std::is_convertible<int,void>::value?1:-1];'
+ * fi
+ *
+ * # is_constructible
+ * if [[ $MWGCONF_HEADER_TYPE_TRAITS ]]; then
  *   # type_traits
- *   X is_constructible                   "$headers" "int a=std::is_constructible<int,int>::value;"
- *   X is_trivially_constructible         "$headers" "int a=std::is_trivially_constructible<int,int>::value;"
- *   X is_nothrow_constructible           "$headers" "int a=std::is_nothrow_constructible<int,int>::value;"
- *   X is_default_constructible           "$headers" "int a=std::is_default_constructible<int>::value;"
- *   X is_trivially_default_constructible "$headers" "int a=std::is_trivially_default_constructible<int>::value;"
- *   X is_nothrow_default_constructible   "$headers" "int a=std::is_nothrow_default_constructible<int>::value;"
- *   X is_copy_constructible              "$headers" "int a=std::is_copy_constructible<int>::value;"
- *   X is_trivially_copy_constructible    "$headers" "int a=std::is_trivially_copy_constructible<int>::value;"
- *   X is_nothrow_copy_constructible      "$headers" "int a=std::is_nothrow_copy_constructible<int>::value;"
+ *   X is_constructible                   "$StandardHeaders" "int a=std::is_constructible<int,int>::value;"
+ *   X is_trivially_constructible         "$StandardHeaders" "int a=std::is_trivially_constructible<int,int>::value;"
+ *   X is_nothrow_constructible           "$StandardHeaders" "int a=std::is_nothrow_constructible<int,int>::value;"
+ *   X is_default_constructible           "$StandardHeaders" "int a=std::is_default_constructible<int>::value;"
+ *   X is_trivially_default_constructible "$StandardHeaders" "int a=std::is_trivially_default_constructible<int>::value;"
+ *   X is_nothrow_default_constructible   "$StandardHeaders" "int a=std::is_nothrow_default_constructible<int>::value;"
+ *   X is_copy_constructible              "$StandardHeaders" "int a=std::is_copy_constructible<int>::value;"
+ *   X is_trivially_copy_constructible    "$StandardHeaders" "int a=std::is_trivially_copy_constructible<int>::value;"
+ *   X is_nothrow_copy_constructible      "$StandardHeaders" "int a=std::is_nothrow_copy_constructible<int>::value;"
  *
- *   X is_assignable                      "$headers" "int a=std::is_assignable<int,int>::value;"
- *   X is_trivially_assignable            "$headers" "int a=std::is_trivially_assignable<int,int>::value;"
- *   X is_nothrow_assignable              "$headers" "int a=std::is_nothrow_assignable<int,int>::value;"
- *   X is_copy_assignable                 "$headers" "int a=std::is_copy_assignable<int>::value;"
- *   X is_trivially_copy_assignable       "$headers" "int a=std::is_trivially_copy_assignable<int>::value;"
- *   X is_nothrow_copy_assignable         "$headers" "int a=std::is_nothrow_copy_assignable<int>::value;"
+ *   X is_assignable                      "$StandardHeaders" "int a=std::is_assignable<int,int>::value;"
+ *   X is_trivially_assignable            "$StandardHeaders" "int a=std::is_trivially_assignable<int,int>::value;"
+ *   X is_nothrow_assignable              "$StandardHeaders" "int a=std::is_nothrow_assignable<int,int>::value;"
+ *   X is_copy_assignable                 "$StandardHeaders" "int a=std::is_copy_assignable<int>::value;"
+ *   X is_trivially_copy_assignable       "$StandardHeaders" "int a=std::is_trivially_copy_assignable<int>::value;"
+ *   X is_nothrow_copy_assignable         "$StandardHeaders" "int a=std::is_nothrow_copy_assignable<int>::value;"
  *
- *   X is_trivially_destructible          "$headers" "int a=std::is_trivially_destructible<int>::value;"
- *   X has_virtual_destructor             "$headers" "int a=std::has_virtual_destructor<int>::value;"
+ *   X is_trivially_destructible          "$StandardHeaders" "int a=std::is_trivially_destructible<int>::value;"
+ *   X has_virtual_destructor             "$StandardHeaders" "int a=std::has_virtual_destructor<int>::value;"
  * fi
  *
  */
+#if MWGCONF_HEADER_STD>=2011&&!defined(MWGCONF_INVALID_HEADER_TYPE_TRAITS)
+# include <type_traits>
+#else
+//HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+#pragma%[ArN=10]
 #pragma%x begin_check
 #include <mwg/except.h>
 #include <mwg/std/cstdint>
@@ -185,7 +208,7 @@ namespace stdm{
   //
   //    requires is_reference
   //
-#ifdef MWG_STDM_TYPE_TRAITS_WithTr1Header
+#if defined(MWG_STDM_TYPE_TRAITS_WithTr1Header)&&!defined(MWGCONF_INVALID_STD_IS_CONST)
   using ::std::tr1::is_const;
   using ::std::tr1::is_volatile;
   using ::std::tr1::add_const;
@@ -221,6 +244,18 @@ namespace stdm{
 #endif
 #pragma%x begin_check
 
+  void check_is_volatile(){
+    mwg_check(!(mwg::stdm::is_volatile<int>::value));
+    mwg_check(!(mwg::stdm::is_volatile<int const>::value));
+    mwg_check( (mwg::stdm::is_volatile<int volatile>::value));
+    mwg_check( (mwg::stdm::is_volatile<int volatile const>::value));
+    mwg_check(!(mwg::stdm::is_volatile<int&>::value));
+    mwg_check(!(mwg::stdm::is_volatile<int volatile&>::value));
+#ifdef MWGCONF_STD_RVALUE_REFERENCES
+    mwg_check(!(mwg::stdm::is_volatile<int&&>::value));
+    mwg_check(!(mwg::stdm::is_volatile<int volatile&&>::value));
+#endif
+  }
   void check_remove_cv(){
     mwg_check(( mwg::stdm::is_same<int,mwg::stdm::remove_cv<const int>::type>::value));
     mwg_check(( mwg::stdm::is_same<int,mwg::stdm::remove_cv<volatile int>::type>::value));
@@ -1371,6 +1406,7 @@ void check_is_default_constructible(){
 #pragma%x begin_check
 
 int main(){
+  check_is_volatile();
   check_remove_cv();
   check_add_lvalue_reference();
   check_is_integral();

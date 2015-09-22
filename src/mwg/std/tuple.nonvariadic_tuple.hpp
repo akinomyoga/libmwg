@@ -121,6 +121,48 @@ namespace detail{
 //fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 // get
 
+namespace tuple_detail{
+  template<typename T>
+  struct element_traits{
+    typedef T stored_type;
+
+    // T* stored_type::operator&() const;
+    //
+    //   The stored_type should define operator& to get an address.
+    //   If T is a reference, operator& returns the address of target.
+    //   If T is a non-reference type,
+    //   operator& returns the address of the tuple element.
+    //
+  };
+
+#if defined(_MSC_VER)&&defined(MWGCONF_STD_RVALUE_REFERENCES)
+  // vcbug workaround 2015-09-22
+  //
+  //   VC10 では参照変数を初期化しようとすると
+  //   勝手に一時オブジェクトへのアドレスに変わってしまう。
+  //
+  template<typename T>
+  struct rvalue_reference_wrapper{
+    T* rvalue;
+    rvalue_reference_wrapper(T& _value):rvalue(&_value){}
+    rvalue_reference_wrapper(T&& _value):rvalue(&_value){}
+
+    // operator T&&() const{return static_cast<T&&>(*this->rvalue);}
+    T&& get() const{return static_cast<T&&>(*this->rvalue);}
+    T* operator&() const{return this->rvalue;}
+
+  private:
+    // 右辺値参照はコピーできない。その動作を真似る。
+    rvalue_reference_wrapper(rvalue_reference_wrapper const&);
+  };
+  template<typename T>
+  struct element_traits<T&&>{
+    typedef rvalue_reference_wrapper<T> stored_type;
+    static T&& ref(stored_type const& wrapper){return wrapper.get();}
+  };
+#endif
+}
+
 namespace detail{
   // template<std::size_t I,typename R,typename TT> struct tuple_get_impl;
   //   R には右辺値参照または左辺値参照が指定される。
@@ -128,7 +170,17 @@ namespace detail{
 #pragma%expand
   template<typename R,typename TT>
   struct tuple_get_impl<K,R,TT>{
-    static R _get(TT t){return mwg::stdm::forward<R>(t.m_valueK);}
+    static R _get(TT t){
+      // vcbug workaround 2015-09-22
+      //
+      //   Visual Studio 2010 では cv qualifiers の変更などが伴うと、
+      //   どうしても右辺値参照を勝手にローカルの一時オブジェクトに move する。
+      //   すると戻り値の寿命が既に切れている状態になる。
+      //   仕様がないので一旦ポインタに変換してキャストしてから返す。
+      //
+      typedef typename stdm::remove_reference<R>::type value_type;
+      return R(*(value_type*)(&t.m_valueK));
+    }
   };
 #pragma%end.f/K/0/ArN/
   template<typename R,typename A0,typename A1>
@@ -159,14 +211,10 @@ namespace detail{
 #endif
 }
   template<std::size_t I,typename TT>
-  typename add_lvalue_reference<
-    typename add_const<typename tuple_element<I,TT>::type>::type
-    >::type
+  typename stdx::add_const_reference<typename tuple_element<I,TT>::type>::type
   get(const TT& t){
     typedef const TT& argument_type;
-    typedef typename add_lvalue_reference<
-      typename add_const<typename tuple_element<I,TT>::type>::type
-      >::type return_type;
+    typedef typename stdx::add_const_reference<typename tuple_element<I,TT>::type>::type return_type;
     return detail::tuple_get_impl<I,return_type,argument_type>::_get(t);
   }
   template<std::size_t I,typename TT>
@@ -257,11 +305,10 @@ namespace detail{
     tuple& operator=(const tuple& other){mwg_unused(other);return *this;}
     void swap(tuple& other){mwg_unused(other);}
   };
-#pragma%end
-#pragma%expand
+#pragma%m DeclareTupleWithArity
   template<$".for/K/0/%Ar%/typename TK/,">
   class tuple<$".for/K/0/%Ar%/TK/,">{$".for/K/0/%Ar%/
-    TK m_valueK;/"
+    typename tuple_detail::element_traits<TK>::stored_type m_valueK;/"
     template<$".for/K/0/ArN/typename UK/,"> friend class tuple;
     template<std::size_t I,typename R,typename TT> friend struct detail::tuple_get_impl;
   public:
@@ -337,25 +384,10 @@ namespace detail{
     // TODO: swap(tuple<...>&&)
     // TODO: swap(pair&&)
   };
-#pragma%end.f/%Ar%/1/ArN/
-  // TODO: copy above and modify
-  template<$".for/K/0/ArN/typename TK/,">
-  class tuple{$".for/K/0/ArN/
-    TK m_valueK;/"
-    template<$".for/K/0/ArN/typename UK/,"> friend class tuple;
-    template<std::size_t I,typename R,typename TT> friend struct detail::tuple_get_impl;
-  public:
-    tuple($".for/K/0/ArN/const TK& argK/,")
-      :$".for/K/0/ArN/m_valueK(argK)/,"{}
-    tuple& operator=(const tuple& other){$".for/K/0/ArN/
-      this->m_valueK=other.m_valueK;/"
-      return *this;
-    }
-    void swap(tuple& other){
-      using namespace std;$".for/K/0/ArN/
-      swap(this->m_valueK,other.m_valueK);/"
-    }
-  };
+#pragma%end
+#pragma%x DeclareTupleWithArity.f/%Ar%/1/ArN/
+#pragma%x DeclareTupleWithArity.r/%Ar%/ArN/.r/class tuple<[^<>]*>\{/class tuple{/
+#pragma%end
 //fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 // F: tuple<> tie();
 //-----------------------------------------------------------------------------
@@ -370,6 +402,24 @@ namespace detail{
     typedef tuple<$".for/K/0/%Ar%/typename decay<TK>::type/,"> return_type;
     return return_type($".for/K/0/%Ar%/forward<TK>(argK)/,");
   }
+#pragma%end.f/%Ar%/1/ArN+1/
+#ifdef _MSC_VER
+  // vcbug workaround 2015-09-22
+  //
+  //   return 上で構築すると何故かコンストラクタに渡される右辺値参照が一時オブジェクトを指す。
+  //   仕様がないので一旦 ret 上で初期化してその後で move する事にする。
+  //
+#pragma%expand
+  template<$".for/K/0/%Ar%/typename TK/,">
+  tuple<$".for/K/0/%Ar%/TK&&/,">
+  forward_as_tuple($".for/K/0/%Ar%/TK&& argK/,"){
+    typedef tuple<$".for/K/0/%Ar%/TK&&/,"> return_type;
+    return_type ret($".for/K/0/%Ar%/forward<TK>(argK)/,");
+    return move(ret);
+  }
+#pragma%end.f/%Ar%/1/ArN+1/
+#else
+#pragma%expand
   template<$".for/K/0/%Ar%/typename TK/,">
   tuple<$".for/K/0/%Ar%/TK&&/,">
   forward_as_tuple($".for/K/0/%Ar%/TK&& argK/,"){
@@ -377,6 +427,7 @@ namespace detail{
     return return_type($".for/K/0/%Ar%/forward<TK>(argK)/,");
   }
 #pragma%end.f/%Ar%/1/ArN+1/
+#endif
 #else
 #pragma%expand
   template<$".for/K/0/%Ar%/typename TK/,">
