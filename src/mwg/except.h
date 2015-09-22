@@ -1,4 +1,16 @@
 // -*- mode:C++;coding:utf-8 -*-
+//
+// ----- Usage of mwg/except.h as a standalone header file --------------------
+//
+// If you are using this file without entire libmwg,
+// please define STANDALONE_MWG_EXCEPT_H before includes.
+// For example, with this file placed into `mwg' sub directory,
+// you can include it as follows:
+//
+// #define STANDALONE_MWG_EXCEPT_H
+// #include "mwg/except.h"
+//
+// ---------------------------------------------------------------------------
 #pragma once
 #ifndef MWG_EXCEPT_H
 #define MWG_EXCEPT_H
@@ -295,6 +307,8 @@ mwg_check/mwg_assert
 
 #if defined(__unix__)
 # include <unistd.h>
+#elif defined(_WIN32)
+# include <cstdlib>
 #endif
 
 namespace mwg{
@@ -310,6 +324,12 @@ namespace except_detail{
   public:
 #if defined(__unix__)
     dbgput(FILE* file):file(file),m_isatty(isatty(fileno(file))){}
+#elif defined(_WIN32)
+    dbgput(FILE* file):file(file),m_isatty(false){
+      const char* envterm=std::getenv("TERM");
+      if(envterm&&*envterm)
+        this->m_isatty=true;
+    }
 #else
     dbgput(FILE* file):file(file),m_isatty(false){}
 #endif

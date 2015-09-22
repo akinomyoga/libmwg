@@ -127,7 +127,7 @@ namespace tuple_detail{
     typedef T stored_type;
   };
 
-#if defined(_MSC_VER)&&!defined(MWGCONF_STD_RVALUE_REFERENCES)
+#if defined(_MSC_VER)&&defined(MWGCONF_STD_RVALUE_REFERENCES)
 # define MWG_STD_TUPLE_NONVARIADIC_TUPLE_HPP__NonTrivialElementTraits
   //
   // REQUIRE: T* stored_type::operator&() const;
