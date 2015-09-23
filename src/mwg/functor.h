@@ -59,6 +59,14 @@ struct Str{
 #include <mwg/concept.h>
 #include "funcsig.h"
 #include "functor.proto.h"
+
+#define mwg_attribute(X) mwg_attribute_##X
+#if MWGCONF_GCC_VER>30300
+# define mwg_attribute_may_alias __attribute__((may_alias))
+#else
+# define mwg_attribute_may_alias
+#endif
+
 namespace mwg{
 
 #%include "bits/functor/functor.variadic.pp"
@@ -437,26 +445,30 @@ namespace functor_detail{
 //TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
 //  interface functor_case
 //------------------------------------------------------------------------------
-#%define 1
+#pragma%define 1
   template<typename R %s_typenames%>
   struct functor_case<R(%types%)>{
     virtual R call(%types%) const=0;
     virtual ~functor_case(){}
     virtual functor_case* placement_clone(void* ptr) const=0;
   };
-#%define end
-#%expand mwg::functor::arities
+#pragma%define end
+#pragma%expand mwg::functor::arities
   template<typename S,typename T,bool INTERIOR>
   class functor_case_data:public functor_case<S>{
-    char buff[sizeof(T)];
-  protected:
-    functor_case_data(const T& value){new(buff) T(value);}
-    ~functor_case_data(){get_ref().~T();}
+    char m_data[sizeof(T)];
+  private:
 #if defined(__GNUC__)&&MWGCONF_GCC_VER<40000
-    const T& get_ref() const{return *(const T*)(this->buff);}
+    const T* ptr() const{return (const T*)(&this->m_data);}
+    T* ptr(){return (T*)(&this->m_data);}
 #else
-    const T& get_ref() const{return *reinterpret_cast<const T*>(this->buff);}
+    const T* ptr() const{return reinterpret_cast<const T*>(&this->m_data);}
+    T* ptr(){return reinterpret_cast<T*>(&this->m_data);}
 #endif
+  protected:
+    functor_case_data(const T& value){new(this->ptr()) T(value);}
+    ~functor_case_data(){get_ref().~T();}
+    const T& get_ref() const{return *this->ptr();}
   private:
     functor_case_data& operator=(const functor_case_data&) mwg_std_deleted;
   };
@@ -471,7 +483,7 @@ namespace functor_detail{
   private:
     functor_case_data& operator=(const functor_case_data&) mwg_std_deleted;
   };
-#%define 1
+#pragma%define 1
   template<typename Tr,typename R %s_typenames%>
   class functor_case_impl<R(%types%),Tr>
     :public functor_case_data<R(%types%),typename Tr::case_data>
@@ -491,8 +503,8 @@ namespace functor_detail{
       return new(ptr) functor_case_impl(this->get_ref());
     }
   };
-#%define end
-#%expand mwg::functor::arities
+#pragma%define end
+#pragma%expand mwg::functor::arities
 
 //TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
 //  interface functor_base

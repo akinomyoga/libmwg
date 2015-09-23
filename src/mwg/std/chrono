@@ -446,9 +446,9 @@ int test(){
   mwg_assert((s1.count()==1));
   mwg_assert((ns::chrono::duration_cast<ns::chrono::milliseconds>(s1).count()==1000));
 
-  ns::chrono::duration<double,ns::ratio<1> > s2(1.234);
-  double a=1.234;
-  mwg_assert((s2.count()==1.234));
+  double a=1.2341;
+  ns::chrono::duration<double,ns::ratio<1> > s2(a);
+  mwg_assert((s2.count()==a));
   mwg_assert((ns::chrono::duration_cast<ns::chrono::milliseconds>(s2).count()==int(a*1000)));
 
   //---------------------------------------------------------------------------

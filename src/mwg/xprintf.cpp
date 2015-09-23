@@ -549,7 +549,18 @@ namespace xprintf_detail{
     const char* digits;
   public:
     floating_point_converter(fmtspec const& spec)
-      :spec(spec),type(fptype_fixed),echar('?'),radix(10),_log2(M_LN2/M_LN10),digits(digitsLower){}
+      :spec(spec),type(fptype_fixed),echar('?'),radix(10),_log2(M_LN2/M_LN10),digits(digitsLower)
+    {
+      // 作業変数の初期化。不要だが文句を言うコンパイラがいるので。
+      this->pd_pos     =0;
+      this->isGrouped  =false;
+      this->hasPoint   =false;
+      this->hasExponent=false;
+      this->frac       =0.0;
+      this->exp        =0;
+      this->fprec      =0;
+      this->iprec      =0;
+    }
 
     void set_type(char ch,char exponentChar){
       this->type=ch;

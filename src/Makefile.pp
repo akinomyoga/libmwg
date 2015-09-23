@@ -124,7 +124,7 @@ all: $(source_files) $(library_files)
 check: all $(check_files)
 install: $(install_files)
 
-#%x DefineRuleDoc
+#%x DefineRuleDoc.r/%LANG\y/cpp/
 
 .PHONY: scan-check
 scan-check:

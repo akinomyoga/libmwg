@@ -154,7 +154,7 @@ $(CFGDIR)/include/%file%: $(config_files) | $(CFGDIR)/include
 # mmake/src.mk/DefineRuleDoc
 .PHONY: doc
 doc: $(lwiki_files)
-	@echo 'DOC lwiki'; $(MMAKECMD) lwiki
+	@echo 'DOC lwiki'; export LWIKI_ENABLE_PROG=%LANG; $(MMAKECMD) lwiki
 
 #%end
 

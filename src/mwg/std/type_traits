@@ -583,19 +583,19 @@ namespace stdm{
 # pragma GCC diagnostic ignored "-Wtype-limits"
 #endif
   template<typename T>
-  void check_is_signed__for_type(){
-    mwg_check( (mwg::stdm::is_signed<T>::value==(mwg::stdm::is_arithmetic<T>::value&&(T(-1)<T(0)))));
-    mwg_check( (mwg::stdm::is_unsigned<T>::value==(mwg::stdm::is_arithmetic<T>::value&&(T(0)<T(-1)))));
+  void check_is_signed__for_type(bool _signed){
+    mwg_check( (mwg::stdm::is_signed<T>::value==(mwg::stdm::is_arithmetic<T>::value&&_signed)));
+    mwg_check( (mwg::stdm::is_unsigned<T>::value==(mwg::stdm::is_arithmetic<T>::value&&!_signed)));
   }
   void check_is_signed(){
-    check_is_signed__for_type<bool>();
-    check_is_signed__for_type<char>();
-    check_is_signed__for_type<signed>();
-    check_is_signed__for_type<unsigned>();
+    check_is_signed__for_type<bool>(false);
+    check_is_signed__for_type<char>(char(-1)<char(0));
+    check_is_signed__for_type<signed>(true);
+    check_is_signed__for_type<unsigned>(false);
 
-    check_is_signed__for_type<float>();
-    check_is_signed__for_type<double>();
-    check_is_signed__for_type<long double>();
+    check_is_signed__for_type<float>(true);
+    check_is_signed__for_type<double>(true);
+    check_is_signed__for_type<long double>(true);
 
     mwg_check(( mwg::stdm::is_signed<int>::value));
     mwg_check(( mwg::stdm::is_signed<float>::value));

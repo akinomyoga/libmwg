@@ -8,6 +8,8 @@
 
 2015-09-23
 
+* mwg/functor.h: functor_case の alignment は一体どうなっているのか…。
+
 2015-09-22
 
 * tuple のテスト達。今は #if 0 ... #endif で囲んでいる。

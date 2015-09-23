@@ -78,14 +78,29 @@
  *   引数を指定します。
  * :@fn '''xputf-temp''' mwg::''xputf''(fmt,args...);
  * :@fn '''xputf-temp''' mwg::''vxputf''(fmt,tuple);
+ *  書式指定オブジェクトを生成します。
  *  :@param[in] template<typename... Args> Args... ''args'';
  *  :@param[in] template<typename... Args> std::tuple<Args...> ''tuple'';
- *  :@class '''xputf-temp'''
- *   :@fn std::size_t '''xputf-temp'''::''count''() const;
- *   :@fn std::string '''xputf-temp'''::''str''() const;
- *   :@fn explicit '''xputf-temp'''::''operator'' std::string() const;
  *  :@fn Buff& ''operator<<''(buff,'''xputf-temp''');
  *   :@param[in,out] template<typename Buff> Buff& ''buff'';
+ *  :@class '''xputf-temp'''
+ *   `xputf`, `vxputf` の戻り値の一時オブジェクトです。
+ *   :@fn std::size_t '''xputf-temp'''::''count''() const;
+ *    出力結果として想定される文字数を取得します。
+ *   :@fn std::string '''xputf-temp'''::''str''() const;
+ *   :@fn explicit '''xputf-temp'''::''operator'' std::string() const;
+ *    出力結果を `std::string` として取得します。
+ *  &pre(!cpp){
+ * // 書式指定オブジェクト
+ * int c = mwg::xputf("1: %03d\n", i).count();
+ * std::string str1 = mwg::xputf("1: %03d\n", i);
+ * std::string str2 = mwg::xputf("1: %03d\n", i).str();
+ *
+ * // ストリーム演算子 << による追記
+ * str1 << mwg::xputf("2: %03d\n", i);
+ * stdout << mwg::xputf("1: %03d\n", i);
+ * std::cout << mwg::xputf("2: %03d", i) << std::endl;
+ * }
  *
  * *注意
  * **xputf の戻り値の参照は複製しない
