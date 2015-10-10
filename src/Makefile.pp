@@ -108,9 +108,9 @@ endif
 source_files+=$(CFGDIR)/include/mwg_config.stamp $(CPPDIR)/mwg/config.h
 install_files+=$(INS_INCCFG)/mwg_config.h $(INS_INCCFG)/mwg/config.h
 $(INS_INCCFG)/mwg_config.h: $(CFGDIR)/include/mwg_config.stamp
-	@echo 'INS header ${file}'; $(MMAKECMD) install-header $(CFGDIR)/include/mwg_config.h $@
+	@echo 'INS header $(CFGDIR)/include/mwg_config.h'; $(MMAKECMD) install-header $(CFGDIR)/include/mwg_config.h $@
 $(INS_INCCFG)/mwg/config.h: $(CPPDIR)/mwg/config.h
-	@echo 'INS header ${file}'; $(MMAKECMD) install-header $< $@
+	@echo 'INS header $<'; $(MMAKECMD) install-header $< $@
 
 $(CFGDIR)/libmwg.a: $(object_files)
 	@echo 'AR $@'; $(MWGCXXAR) $@ $^
@@ -119,15 +119,22 @@ install_files+=$(INS_LIBDIR)/libmwg.a
 $(INS_LIBDIR)/libmwg.a: $(CFGDIR)/libmwg.a
 	$(BASE)/mmake/make_command.sh install $< $@
 
-.PHONY: all check install
+.PHONY: all check install show-install-message
 all: $(source_files) $(library_files)
 check: all $(check_files)
-install: $(install_files)
+install: show-install-message $(install_files)
+show-install-message:
+	@target='$(INSDIR)'; printf 'install target = %q\n' "$${target:-$(BASE)/out}"
 
 #%x DefineRuleDoc.r/%LANG\y/cpp/
 
-.PHONY: scan-check
+_libmwg_scan_target:=for key in $$($(BASE)/mmake/mcxx/cxx +prefix list|awk '{print $$2}'); do printf '\e[48;5;189;1m%-79s\e[m\n' "$$ CXXKEY=$$key make TARGET"; CXXKEY="$$key" make TARGET; done
+.PHONY: scan-check scan-install scan-all
 scan-check:
 	@for key in $$($(BASE)/mmake/mcxx/cxx +prefix list|awk '{print $$2}'); do printf '\e[48;5;189;1m%-79s\e[m\n' "$$ CXXKEY=$$key make check"; CXXKEY="$$key" make check; done
+scan-install:
+	@$(subst TARGET,install,$(_libmwg_scan_target))
+scan-all:
+	@$(subst TARGET,all,$(_libmwg_scan_target))
 
 #%x epilogue

@@ -93,7 +93,7 @@
  *  &pre(!cpp){
  * // 書式指定オブジェクト
  * int c = mwg::xputf("1: %03d\n", i).count();
- * std::string str1 = mwg::xputf("1: %03d\n", i);
+ * std::string str1(mwg::xputf("1: %03d\n", i)); // calls 'explicit operator std::string() const;'
  * std::string str2 = mwg::xputf("1: %03d\n", i).str();
  *
  * // ストリーム演算子 << による追記
@@ -562,6 +562,19 @@ namespace xprintf_detail{
     void put(std::wint_t) const{}
   };
 
+  struct array_writer{
+    mutable char* p;
+    char* const term;
+  public:
+    array_writer(char* p,char* term):p(p),term(term){}
+    ~array_writer(){
+      *p='\0';
+    }
+    void put(std::wint_t ch) const{
+      if(p<term)*p++=ch;
+    }
+  };
+
   struct cfile_writer{
     std::FILE* file;
   public:
@@ -600,6 +613,11 @@ namespace xprintf_detail{
   inline xprintf_detail::string_writer create_xprintf_writer(std::string& str,bool flagClear,adl_helper){
     if(flagClear)str="";
     return xprintf_detail::string_writer(str);
+  }
+  template<std::size_t N>
+  inline xprintf_detail::array_writer create_xprintf_writer(char (&buff)[N],bool flagClear,adl_helper){
+    mwg_unused(flagClear);
+    return xprintf_detail::array_writer(buff,buff+N-1);
   }
 
 }

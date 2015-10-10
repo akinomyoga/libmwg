@@ -321,20 +321,35 @@ namespace detail{
     template<$".for/K/0/ArN/typename UK/,"> friend class tuple;
     template<std::size_t I,typename R,typename TT> friend struct detail::tuple_get_impl;
   public:
+    // memberwise construction
     explicit tuple($".for/K/0/%Ar%/typename stdx::add_const_reference<TK>::type argK/,")
       :$".for/K/0/%Ar%/m_valueK(argK)/,"{}
     template<$".for/K/0/%Ar%/typename BK/,">
     explicit tuple($".for/K/0/%Ar%/BK mwg_forward_rvalue argK/,")
       :$".for/K/0/%Ar%/m_valueK(mwg::stdm::forward<BK>(argK))/,"{}
-    // tuple(const tuple& other) mwg_std_default;
+
+    // copy constructors
+#ifdef MWGCONF_STD_DEFAULTED_FUNCTIONS
+    tuple(const tuple& other) = default;
+#else
+    tuple(const tuple& other)
+      :$".for/K/0/%Ar%/m_valueK(get<K>(other))/,"{}
+#endif
     template<$".for/K/0/%Ar%/typename BK/,">
-    tuple(const tuple<$".for/K/0/%Ar%/BK/,">& tuplet)
-      :$".for/K/0/%Ar%/m_valueK(get<K>(tuplet))/,"{}
+    tuple(const tuple<$".for/K/0/%Ar%/BK/,">& other)
+      :$".for/K/0/%Ar%/m_valueK(get<K>(other))/,"{}
+
+    // move constructor
 #ifdef MWGCONF_STD_RVALUE_REFERENCES
-    // tuple(tuple&& other) mwg_std_default;
+# ifdef MWGCONF_STD_DEFAULTED_FUNCTIONS
+    tuple(tuple&& other) = default;
+# else
+    tuple(tuple&& other)
+      :$".for/K/0/%Ar%/m_valueK(get<K>(std::move(other)))/,"{}
+# endif
     template<$".for/K/0/%Ar%/typename BK/,">
-    tuple(tuple<$".for/K/0/%Ar%/BK/,">&& tuplet)
-      :$".for/K/0/%Ar%/m_valueK(get<K>(mwg::stdm::move(tuplet)))/,"{}
+    tuple(tuple<$".for/K/0/%Ar%/BK/,">&& other)
+      :$".for/K/0/%Ar%/m_valueK(get<K>(mwg::stdm::move(other)))/,"{}
 #endif
     // TODO: tuple()
     // TODO: tuple(const pair&)

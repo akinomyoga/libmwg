@@ -20,6 +20,8 @@ ifeq ($(CXXCFG),)
   CXXCFG:=default
 endif
 -include $(BASE)/config.mk
+$(BASE)/config.mk:
+	cp $(BASE)/config.mk.new $(BASE)/config.mk
 
 # project settings
 SRCENC:=utf-8

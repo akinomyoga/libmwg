@@ -106,13 +106,11 @@ namespace stat{
     template<typename... UBs>
     product_binning(UBs mwg_forward_rvalue ... args)
       :data(mwg::stdm::forward<UBs>(args)...){}
-    product_binning(const product_binning& other){
-      this->data=other.data;
-    }
+    product_binning(const product_binning& other)
+      :data(other.data){}
 # if defined(MWGCONF_STD_RVALUE_REFERENCES)
-    product_binning(product_binning&& other){
-      this->data=mwg::stdm::move(other.data);
-    }
+    product_binning(product_binning&& other)
+      :data(mwg::stdm::move(other.data)){}
 # endif
   public:
     std::size_t size() const{

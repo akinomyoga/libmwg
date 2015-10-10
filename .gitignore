@@ -3,6 +3,9 @@
 /out
 /src/Makefile
 
+# user configurations
+/config.mk
+
 # tests/temporaries
 /test
 .clang-completion-error
