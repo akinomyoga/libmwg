@@ -27,6 +27,8 @@ namespace histogram_impl2_detail{
     typedef typename TBinning::domain_type domain_type;
     typedef TAcc bin_type;
   public:
+    histogram():part(),data(new TAcc[part.size()+1]),ptr(&data[1]){}
+
     template<typename T>
     explicit histogram(const T& binning)
       :part(binning),data(new TAcc[binning.size()+1]),ptr(&data[1])
@@ -46,6 +48,15 @@ namespace histogram_impl2_detail{
   private:
     histogram(const histogram&) mwg_std_deleted;
     histogram& operator=(const histogram&) mwg_std_deleted;
+
+  public:
+    template<typename T>
+    void resize(const T& binning){
+      this->part=binning;
+      this->data.reset(new TAcc[binning.size()+1]);
+      this->ptr=&data[1];
+    }
+
   public:
     const bin_type& operator[](bindex index) const{
       return ptr[index];
