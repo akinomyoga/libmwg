@@ -1342,6 +1342,21 @@ namespace stdx{
 #endif
 
   //
+  // struct copy_reference<T,From>
+  //
+#ifdef MWGCONF_STD_RVALUE_REFERENCES
+  template<typename To,typename From> struct copy_reference
+    :conditional<
+      is_rvalue_reference<From>::value,typename add_rvalue_reference<To>::type,
+      typename conditional<
+        is_lvalue_reference<From>::value,typename add_lvalue_reference<To>::type,
+        To>::type>{};
+#else
+  template<typename To,typename From> struct copy_reference
+    :conditional<is_lvalue_reference<From>::value,typename add_lvalue_reference<To>::type,To>{};
+#endif
+
+  //
   // ice_and
   // ice_or
   // is_convertible_pack<Ts...>

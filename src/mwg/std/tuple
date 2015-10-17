@@ -106,7 +106,6 @@ void test(){
     int,int,int,int,int,
     int,int,int,int,int> t10m(1,2,3,4,5,6,7,8,9,10);
 
-#if 0
   // make_tuple, get
   stdm::tuple<> t0a=stdm::make_tuple();
   stdm::tuple<int> t0b=stdm::make_tuple(3);
@@ -132,9 +131,11 @@ void test(){
   std::pair<int,int> p1=stdm::make_pair(19,21);
   mwg_assert((stdm::get<0>(p1)==19));
   mwg_assert((stdm::get<1>(p1)==21));
+  mwg_unused(t0a);
 
   mwg::identity<stdm::tuple_element<0,stdm::tuple<const int&> >::type> ttt1;
   stdm::get<0>(stdm::tuple<const int&>(1));
+  mwg_unused(ttt1);
 
   // tuple_cat
   {
@@ -142,6 +143,10 @@ void test(){
     stdm::tuple<int,int,int> _t1=stdm::tuple_cat(t1);
     stdm::tuple<int,int,int,int,int,int> _t2=stdm::tuple_cat(t1,t1);
     stdm::tuple<int,int,int,int,int,int,int,int,int> _t3=stdm::tuple_cat(t1,t1,t1);
+    mwg_unused(_t0);
+    mwg_unused(_t1);
+    mwg_unused(_t2);
+    mwg_unused(_t3);
   }
   stdm::tuple<int,int,int> t4=stdm::tuple_cat(t1);
   //mwg_printd("t4 = (%d %d %d)",stdm::get<0>(t4),stdm::get<1>(t4),stdm::get<2>(t4));
@@ -213,7 +218,6 @@ void test(){
   // operator>=()
   // operator<()
   // operator>()
-#endif
 }
 
 int main(){
