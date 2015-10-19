@@ -207,6 +207,10 @@ namespace tuple_detail{
   private:
     // 右辺値参照はコピー構築できない。その動作を真似る。
     rvalue_reference_wrapper(rvalue_reference_wrapper const&);
+
+  public:
+    // vc2010 では copy assign があると move assign が消える?
+    rvalue_reference_wrapper(rvalue_reference_wrapper&& rhs){this->rvalue=rhs.rvalue;}
   };
   template<typename T>
   struct element_traits<T&&>{
