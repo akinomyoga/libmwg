@@ -1474,6 +1474,8 @@ function include_file(file, _line,_lines,_i,_n,_dir,_originalFile,_originalLine)
     print_error("could not open the include file '" file "'");
   close(file);
 
+  dependency_add(file);
+
   _originalFile=m_lineno_cfile;
   _originalLine=m_lineno_cline;
   for(_i=0;_i<_n;_i++){
@@ -1618,7 +1620,7 @@ function process_line(line,_line,_text,_ind,_len,_directive, _cap){
   if(m_comment_cpp)
     sub(/^\/\//,"#",_line);
   if(m_comment_pragma)
-    sub(/^\#pragma/,"#",_line);
+    sub(/^[[:space:]]*\#[[:space:]]*pragma/,"#",_line);
   if(m_comment_c&&match(_line,/^\/\*(.+)\*\/$/,_cap)>0)
     _line="#" _cap[1];
 
@@ -1695,6 +1697,10 @@ BEGIN{
   m_lineno        =int(ENVIRON["PPLINENO"])!=0;
 
   INCLUDE_DIRECTORY=ENVIRON["HOME"] "/.mwg/mwgpp/include"
+
+  m_dependency_count=0
+  m_dependency_guard[""]=1;
+  m_dependency[0]="";
 }
 
 {
@@ -1709,4 +1715,35 @@ BEGIN{
   process_line($1);
 }
 
-END{if(global_errorCount)exit(1);}
+function dependency_add(file){
+  if(!m_dependency_guard[file]){
+    m_dependency_guard[file]=1;
+    m_dependency[m_dependency_count++]=file;
+  }
+}
+function dependency_generate(output,target, _i,_iMax){
+  if(!target){
+    target=m_rfile;
+    sub(/\.pp$/,"",target);
+    target=target ".out";
+  }
+
+  if(m_dependency_count==0){
+    print target ": " m_rfile > output
+  }else{
+    print target ": " m_rfile " \\" > output
+    _iMax=m_dependency_count-1;
+    for(_i=0;_i<_iMax;_i++)
+      print "  " m_dependency[_i] " \\" >> output;
+    print "  " m_dependency[_iMax] >> output;
+  }
+}
+
+END{
+  # output dependencies
+  DEPENDENCIES_OUTPUT=ENVIRON["DEPENDENCIES_OUTPUT"];
+  if(DEPENDENCIES_OUTPUT)
+    dependency_generate(DEPENDENCIES_OUTPUT,ENVIRON["DEPENDENCIES_TARGET"]);
+
+  if(global_errorCount)exit(1);
+}
