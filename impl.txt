@@ -10,6 +10,36 @@
 
 * tuple 再設計
 
+  * 現状の operator= の実装だと `tuple<int&> a,b; a=b` が参照ではなくて値をコピーする事になる。
+    (これは旧来の実装でも同じ問題を抱えていた。)
+
+    結局正しくコピーを実装する為には reference_wrapper を使用するしかないのだろうか。
+    というか標準ライブラリの代入演算子は一体どの様になっているのか??
+    →
+
+    と思ったが、寧ろ値をコピーするという動作の方が正しいのかも知れない。
+    というのも std::tie(x,y)=std::make_tuple(a,b); の様な使い方をするからである。
+    もしかしてそもそも C++ 構造体の参照メンバの代入について勘違いをしている???
+    →どうやら勘違いをしていた様である。そもそも参照メンバが存在している時はクラスの代入演算子は削除される。
+      std::tuple の場合は代入演算子を敢えて定義して、参照先に値を代入できる様にしている事に注意する。
+
+  そもそも何故 vc で左辺値も lvalue_reference_wrapper を使って実装する様に変更したのか?
+  →これは右辺値参照の時と同様に以下のエラーが出たからである。
+    reference member is initialized to a temporary that doesn't persist after the constructor exits
+    例えば const int& を int& で初期化すると新しい一時オブジェクトが生成されて
+    その一時オブジェクトに対するポインタが代入されてしまう。
+
+
+  tuple 実装上の注意:
+
+    コピー代入演算子について
+
+      通常参照をメンバに持つクラスはコピー代入演算子を持たない。
+      tuple の場合は特別にコピー代入演算子を定義して参照先の値を書き換える動作として実装する。
+      これによって std::tie(x, y) = std::make_tuple(1, 2); の様な使い方が可能になる。
+
+  * tuple_cat は tuple_push/tuple_unshift ではなくて tuple_pop/tuple_shift を使って実装する方が自然である。
+
   ToDo: memberwise construction は各メンバ copy constructible である必要があるのではないか?
     何れにしても template で初期化する様にしたので、memberwise のコンストラクタを呼び出さない限りはエラーにはならない。
 

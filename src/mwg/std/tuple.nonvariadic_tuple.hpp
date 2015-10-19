@@ -34,6 +34,11 @@ namespace detail{
   class tuple;
 #pragma%end
 
+  static struct ignore_type{
+    ignore_type(){}
+    template<typename T> void operator=(T) const{}
+  } const ignore;
+
 //fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
   template<typename TT>
   class tuple_size{};
@@ -86,11 +91,11 @@ namespace detail{
     struct tuple_element_nocv<I,tuple<T0,T1s...> >
       :tuple_element_nocv<I-1,tuple<T1s...> >{};
 #pragma%else
-    template<$".for:K:0:ArN:typename TK:,">
-    struct tuple_element_nocv<0,tuple<$".for:K:0:ArN:TK:,"> >
+    template<$".for:K:0:ArN:typename TK:,",bool B>
+    struct tuple_element_nocv<0,tuple<$".for:K:0:ArN:TK:,",B> >
       :mwg::identity<T0>{};
-    template<std::size_t I$".for:K:0:ArN:,typename TK:">
-    struct tuple_element_nocv<I,tuple<$".for:K:0:ArN:TK:,"> >
+    template<std::size_t I$".for:K:0:ArN:,typename TK:",bool B>
+    struct tuple_element_nocv<I,tuple<$".for:K:0:ArN:TK:,",B> >
       :tuple_element_nocv<I-1,tuple<$".for:K:1:ArN:TK:,"> >{};
 #pragma%end
     template<>
@@ -140,7 +145,7 @@ namespace tuple_detail{
     typedef T stored_type;
   };
 
-#if defined(_MSC_VER)&&defined(MWGCONF_STD_RVALUE_REFERENCES)
+#if defined(_MSC_VER)
 # define MWG_STD_TUPLE_NONVARIADIC_TUPLE_HPP__NonTrivialElementTraits
   //
   // REQUIRE: T* stored_type::operator&() const;
@@ -150,12 +155,41 @@ namespace tuple_detail{
   //   If T is a non-reference type,
   //   operator& returns the address of the tuple element.
   //
+  // REQUIRE: stored_type& stored_type::operator=(...);
   //
   // 2015-09-22 vcbug workaround
   //
   //   VC10 では参照変数を初期化しようとすると
   //   勝手に一時オブジェクトへのアドレスに変わってしまう。
   //
+
+  template<typename T,typename U> struct assign_enabler
+    :stdm::integral_constant<bool,
+      stdm::is_convertible<U,T>::value&&!stdm::is_const<T>::value
+      ||stdm::is_same<stdm::ignore_type,typename stdm::remove_cv<T>::type>::value>{};
+  // :stdm::integral_constant<bool,stdm::is_assignable<T,U>::value>{};
+  // ■(上記)is_assignable が未だ実装されていないので
+  //   is_convertible, is_const で代わりに判定している。
+
+  template<typename T>
+  struct lvalue_reference_wrapper{
+    T* lvalue;
+    lvalue_reference_wrapper(T& _value):lvalue(&_value){}
+
+    // operator T&&() const{return static_cast<T&&>(*this->lvalue);}
+    // T&& get() const{return static_cast<T&&>(*this->lvalue);}
+    T* operator&() const{return this->lvalue;}
+
+    template<typename U>
+    typename stdm::enable_if<assign_enabler<T,U>::value,lvalue_reference_wrapper&>::type
+    operator=(U mwg_forward_rvalue value){*this->lvalue=stdm::forward<U>(value);return *this;}
+  };
+  template<typename T>
+  struct element_traits<T&>{
+    typedef lvalue_reference_wrapper<T> stored_type;
+  };
+
+# if defined(MWGCONF_STD_RVALUE_REFERENCES)
   template<typename T>
   struct rvalue_reference_wrapper{
     T* rvalue;
@@ -166,14 +200,19 @@ namespace tuple_detail{
     // T&& get() const{return static_cast<T&&>(*this->rvalue);}
     T* operator&() const{return this->rvalue;}
 
+    template<typename U>
+    typename stdm::enable_if<assign_enabler<T,U>::value,rvalue_reference_wrapper&>::type
+    operator=(U mwg_forward_rvalue value){*this->rvalue=stdm::forward<U>(value);return *this;}
+
   private:
-    // 右辺値参照はコピーできない。その動作を真似る。
+    // 右辺値参照はコピー構築できない。その動作を真似る。
     rvalue_reference_wrapper(rvalue_reference_wrapper const&);
   };
   template<typename T>
   struct element_traits<T&&>{
     typedef rvalue_reference_wrapper<T> stored_type;
   };
+# endif
 #endif
 }
 
@@ -445,7 +484,7 @@ namespace detail{
 #endif
     template<typename TT>
     tuple(const TT& other,typename stdm::enable_if<tuple_size<TT>::value==tuple_size<tuple>::value,detail::sfinae_parameter*>::type=0)
-      :m_head(other.m_head)
+      :m_head(get<0>(other))
 #pragma%%if has_rest
       ,m_rest(other.m_rest)
 #pragma%%end
@@ -473,7 +512,7 @@ namespace detail{
 # endif
     template<typename TT>
     tuple(TT&& other,typename stdm::enable_if<tuple_size<TT>::value==tuple_size<tuple>::value,detail::sfinae_parameter*>::type=0)
-      :m_head(mwg::stdm::move(other.m_head))
+      :m_head(get<0>(mwg::stdm::move(other)))
 # pragma%%if has_rest
       ,m_rest(mwg::stdm::move(other.m_rest))
 # pragma%%end
@@ -481,8 +520,8 @@ namespace detail{
 # pragma%%if has_rest
     template<typename U0,typename U1>
     tuple(pair<U0,U1>&& other,typename stdm::enable_if<tuple_size<pair<U0,U1> >::value==tuple_size<tuple>::value,detail::sfinae_parameter*>::type=0)
-      :m_head(mwg::stdm::move(other.first))
-      ,m_rest(mwg::stdm::move(other.second)){}
+      :m_head(mwg::stdm::forward<U0>(other.first))
+      ,m_rest(mwg::stdm::forward<U1>(other.second)){}
 # pragma%%end
 #endif
 
@@ -504,7 +543,7 @@ namespace detail{
     template<typename TT>
     typename stdm::enable_if<tuple_size<TT>::value==tuple_size<tuple>::value,tuple&>::type
     operator=(const TT& other){
-      this->m_head=other.m_head;
+      this->m_head=get<0>(other);
 #pragma%%if has_rest
       this->m_rest=other.m_rest;
 #pragma%%end
@@ -528,7 +567,7 @@ namespace detail{
 
     // operator=(tuple&&)
     tuple& operator=(tuple&& other){
-      this->m_head=stdm::move(other.m_head);
+      this->m_head=stdm::forward<head_type>(other.m_head);
 # pragma%%if has_rest
       this->m_rest=stdm::move(other.m_rest);
 # pragma%%end
@@ -539,7 +578,7 @@ namespace detail{
     template<typename TT>
     typename stdm::enable_if<tuple_size<TT>::value==tuple_size<tuple>::value,tuple&>::type
     operator=(TT&& other){
-      this->m_head=stdm::move(other.m_head);
+      this->m_head=get<0>(stdm::move(other));
 # pragma%%if has_rest
       this->m_rest=stdm::move(other.m_rest);
 # pragma%%end
@@ -551,8 +590,8 @@ namespace detail{
     template<typename A0,typename A1>
     typename stdm::enable_if<tuple_size<pair<A0,A1> >::value==tuple_size<tuple>::value,tuple&>::type
     operator=(pair<A0,A1>&& other){
-      this->m_head=stdm::move(other.first);
-      this->m_rest.m_head=stdm::move(other.second);
+      this->m_head=stdm::forward<A0>(other.first);
+      this->m_rest.m_head=stdm::forward<A1>(other.second);
       return *this;
     }
 # pragma%%end
@@ -667,11 +706,6 @@ namespace detail{
   }
 #pragma%end.f/%Ar%/1/ArN+1/
 
-  static struct ignore_type{
-    ignore_type(){}
-    template<typename T> void operator=(T) const{}
-  } const ignore;
-
 //fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 // operators
 namespace detail{
@@ -773,13 +807,27 @@ namespace detail{
   // tuple_push
   template<typename TT,typename T>
   struct tuple_push_type{};
-#pragma%expand
+#ifdef _MSC_VER
+  // vc10bug workaround 2015-10-18
+  //
+#pragma%x
+  template<$".for/K/0/%Ar%/typename TK,/"bool B>
+  struct tuple_push_type<tuple<$".for/K/0/%Ar%-1/TK,/"$".for/K/%Ar%-1/ArN/void,/"B>,T$".eval:m=%Ar%-1">
+    :mwg::identity<tuple<$".for/K/0/%Ar%/TK/,"> >{};
+#pragma%end.f/%Ar%/1/ArN+1/
+#else
+#pragma%x
   template<$".for/K/0/%Ar%/typename TK/,">
   struct tuple_push_type<tuple<$".for/K/0/%Ar%-1/TK/,">,T$".eval:m=%Ar%-1">
     :mwg::identity<tuple<$".for/K/0/%Ar%/TK/,"> >{};
-  template<typename T$"m"$".for/K/0/%Ar%-1/,typename TK/">
+#pragma%end.f/%Ar%/1/ArN+1/
+#endif
+#pragma%x
+  template<typename T$".eval:m=%Ar%-1"$".for/K/0/%Ar%-1/,typename TK/">
   tuple<$".for/K/0/%Ar%/TK/,"> tuple_push(const tuple<$".for/K/0/%Ar%-1/TK/,">& tuplet,T$"m" arg$"m"){
+#pragma%%if %Ar%==1
     mwg_unused(tuplet); // Ar=1 の時には使われない
+#pragma%%end
     return tuple<$".for/K/0/%Ar%/TK/,">($".for/K/0/%Ar%-1/get<K>(tuplet),/"arg$"m");
   }
 #pragma%end.f/%Ar%/1/ArN+1/
