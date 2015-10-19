@@ -242,14 +242,22 @@ namespace detail{
   struct tuple_get_impl<0,R,TT>{
     static R _get(TT t){
 #ifdef MWG_STD_TUPLE_NONVARIADIC_TUPLE_HPP__NonTrivialElementTraits
-    // 2015-09-22 (tuple_get_impl<K,R,TT>::_get): vcbug workaround
-    //
-    //   Visual Studio 2010 では cv qualifiers の変更などが伴うと、
-    //   どうしても右辺値参照を勝手にローカルの一時オブジェクトに move する。
-    //   すると戻り値の寿命が既に切れている状態になる。
-    //   仕様がないので一旦ポインタに変換してキャストしてから返す。
+      // 2015-09-22 (tuple_get_impl<K,R,TT>::_get): vcbug workaround
+      //
+      //   Visual Studio 2010 では cv qualifiers の変更などが伴うと、
+      //   どうしても右辺値参照を勝手にローカルの一時オブジェクトに move する。
+      //   すると戻り値の寿命が既に切れている状態になる。
+      //   仕様がないので一旦ポインタに変換してキャストしてから返す。
+      //
+      // 2015-10-19: vcbug workaround
+      //
+      //   R が右辺値参照の時、
+      //   一旦ローカル変数 (ref) に参照を代入してから右辺値参照にキャストしないと、
+      //   その場に新しい一時オブジェクトが生成されてそのアドレスが返されてしまう。
+      //
       typedef typename stdm::remove_reference<R>::type value_type;
-      return R(*(value_type*)(&t.m_head));
+      value_type& ref(*(value_type*)(&t.m_head));
+      return static_cast<R>(ref);
 #else
       return mwg::stdm::forward<R>(t.m_head);
 #endif
@@ -655,6 +663,10 @@ namespace detail{
   tuple<$".for/K/0/%Ar%/typename decay<TK>::type/,">
   make_tuple($".for/K/0/%Ar%/TK&& argK/,"){
     typedef tuple<$".for/K/0/%Ar%/typename decay<TK>::type/,"> return_type;
+    // // vc2010bug workaround
+    // //   一旦変数に入れてから初期化しないと変な値になる? ■
+    // return_type result($".for/K/0/%Ar%/forward<TK>(argK)/,")
+    // return result;
     return return_type($".for/K/0/%Ar%/forward<TK>(argK)/,");
   }
 #pragma%end.f/%Ar%/1/ArN+1/
