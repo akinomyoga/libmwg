@@ -620,9 +620,9 @@ namespace apply{
     mwg_assert((!is_add_operator_available<A,int>::value));
     mwg_assert((!is_add_operator_available<int,A>::value));
     mwg_assert((!is_add_operator_available<A,A>::value));
-    mwg_assert(( is_add_operator_available<A1,int>::value));
-    mwg_assert(( is_add_operator_available<A1,char>::value));
-    mwg_assert(( is_add_operator_available<A1,double>::value));
+    mwg_assert_nothrow(( is_add_operator_available<A1,int>::value));
+    mwg_assert_nothrow(( is_add_operator_available<A1,char>::value));
+    mwg_assert_nothrow(( is_add_operator_available<A1,double>::value));
     mwg_assert((!is_add_operator_available<int,A1>::value));
     mwg_assert((!is_add_operator_available<double,A1>::value));
 

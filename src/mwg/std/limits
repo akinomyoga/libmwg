@@ -97,11 +97,13 @@ namespace stdm{
     static const int max_digits10=17;
     static_assert(std::numeric_limits<double>::digits==53,"Not IEEE734 double precision"); // IEEE734
   };
+#if !(defined(MWGCONF_MSC_VER)&&(MWGCONF_MSC_VER<160020506))
   template<> struct numeric_limits<long double>:std::numeric_limits<long double>{
     static mwg_constexpr long double lowest(){return -LDBL_MAX;};
     static const int max_digits10=21;
     static_assert(std::numeric_limits<long double>::digits==64,"Not IEEE734 extended double precision"); // IEEE734
   };
+#endif
 
 }
 }

@@ -6,6 +6,14 @@
   ToDo
 ------------------------------------------------------------------------------
 
+2015-10-19
+
+* vc9 support
+
+  - is_default_constructible for `struct Test1{Test1();};`
+  - mwg/concept.h: has_add_operator 関連を正しく実現する方法を模索する。
+  - mwg/std/limits: long double に対するサポート。
+
 2015-09-23
 
 * mwg/functor.h: functor_case の alignment は一体どうなっているのか…。

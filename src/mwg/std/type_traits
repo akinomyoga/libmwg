@@ -235,8 +235,18 @@ namespace stdm{
   template<typename T>       struct is_volatile<volatile T[]> :true_type{};
   template<typename T,int N> struct is_volatile<volatile T[N]>:true_type{};
 
-  template<typename T> struct add_const:conditional<is_reference<T>::value,T,const T>{};
-  template<typename T> struct add_volatile:conditional<is_reference<T>::value,T,volatile T>{};
+  namespace detail{
+    template<typename T,bool IsReference=is_reference<T>::value>
+    struct add_const_impl:mwg::identity<const T>{};
+    template<typename T,bool IsReference=is_reference<T>::value>
+    struct add_volatile_impl:mwg::identity<volatile T>{};
+
+    // T: reference の場合に T const/volatile と書くと vc9 が警告を発するので。
+    template<typename T> struct add_const_impl<T,true>:mwg::identity<T>{};
+    template<typename T> struct add_volatile_impl<T,true>:mwg::identity<T>{};
+  }
+  template<typename T> struct add_const:detail::add_const_impl<T>{};
+  template<typename T> struct add_volatile:detail::add_volatile_impl<T>{};
   template<typename T> struct add_cv:add_const<typename add_volatile<T>::type>{};
 
   template<typename T>        struct remove_const             :mwg::identity<T>{};

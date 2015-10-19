@@ -132,7 +132,7 @@ namespace stdm{
 namespace mwg{
   namespace detail{
     template<bool B,int LINE>
-    struct static_assert_tester;
+    struct static_assert_tester{};
     template<int LINE>
     struct static_assert_tester<true,LINE>{
       static_assert_tester(...){} /* to suppress unused warnings */
