@@ -458,12 +458,13 @@ namespace functor_detail{
   class functor_case_data:public functor_case<S>{
     char m_data[sizeof(T)];
   private:
+    typedef typename mwg::stdm::remove_cv<T>::type data_type;
 #if defined(__GNUC__)&&MWGCONF_GCC_VER<40000
-    const T* ptr() const{return (const T*)(&this->m_data);}
-    T* ptr(){return (T*)(&this->m_data);}
+    const data_type* ptr() const{return (const data_type*)(&this->m_data);}
+    data_type* ptr(){return (data_type*)(&this->m_data);}
 #else
-    const T* ptr() const{return reinterpret_cast<const T*>(&this->m_data);}
-    T* ptr(){return reinterpret_cast<T*>(&this->m_data);}
+    const data_type* ptr() const{return reinterpret_cast<const data_type*>(&this->m_data);}
+    data_type* ptr(){return reinterpret_cast<data_type*>(&this->m_data);}
 #endif
   protected:
     functor_case_data(const T& value){new(this->ptr()) T(value);}
