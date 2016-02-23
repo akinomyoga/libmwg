@@ -1,6 +1,6 @@
 #include <mwg/except.h>
 #include <mwg/functor.h>
-#include "tech-stringlib-001.h"
+#include <mwg/string.h>
 
 void test(){
   mwg_assert( (mwg::stradp<char>("hello")=="hello"));

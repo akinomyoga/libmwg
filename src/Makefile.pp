@@ -50,6 +50,7 @@ Makefile: Makefile.pp
 
 #%x AddCxxHeader.r|%file%|mwg/xprintf.h|
 #%x AddCxxSource.r|%file%|mwg/xprintf.cpp|
+#%x AddCxxHeader.r|%file%|mwg/string.h|
 
 #%x AddCxxHeader.r|%file%|mwg/char.h|
 #%x AddCxxHeader.r|%file%|mwg/cast.h|

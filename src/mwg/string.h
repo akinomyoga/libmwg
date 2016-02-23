@@ -1,7 +1,7 @@
 // -*- mode:C++;coding:utf-8-dos -*-
 #pragma once
-#ifndef MWG_EXP_STRING3_STRING_H
-#define MWG_EXP_STRING3_STRING_H
+#ifndef MWG_STRING_H
+#define MWG_STRING_H
 //HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 #include <cstddef>
 #include <cstring>
@@ -264,7 +264,12 @@ public:
   strbase(As mwg_forward_rvalue... args)
     :data(mwg::stdm::forward<As>(args)...){}
 #else
-# include "i001.strbase_constructor_variadic.inl"
+#pragma%[AN=10]
+#pragma%x (
+  template<$".for/@/0/An/typename A@/,">
+  strbase($".for/@/0/An/A@ mwg_forward_rvalue arg@/,")
+    :data($".for/@/0/An/mwg::stdm::forward<A@>(arg@)/,"){}
+#pragma%).f/An/1/AN+1/.i
 #endif
 
   typedef typename policy_type::char_at_type char_at_type;

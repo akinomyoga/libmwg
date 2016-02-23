@@ -1,25 +1,25 @@
 # -*- makefile-gmake -*-
 
-CXX=CXXKEY=i cxx -fast
-CXXFLAGS=-ipo -O3
-
 all:
 .PHONY: all clean
 
-files+=i001.strbase_constructor_variadic.inl
-i001.strbase_constructor_variadic.inl: i001.strbase_constructor_variadic.hpp
-	mwg_pp.awk $< > $@
+BASE=../../..
+include $(BASE)/mmake/vars.mk
+
+CXX=$(MWGCXX)
+CXXFLAGS= -I $(INS_INCDIR) -I $(INS_INCCFG)
 
 objfiles+=i001-bench1.o
 i001-bench1.o: i001-bench1.cpp
-	$(CXX) -c -o$@ $(CXXFLAGS) $<
+	$(CXX) $(CXXFLAGS) -c -o$@ $<
 
 objfiles+=i001-bench2.o
 i001-bench2.o: i001-bench2.cpp
-	$(CXX) -c -o$@ $(CXXFLAGS) $<
+	$(CXX) $(CXXFLAGS) -c -o$@ $<
 
-i001$(EXEEXT): i001.cpp i001.h
-	$(CXX) -o$@ $<
+files+=i001$(EXEEXT)
+i001$(EXEEXT): i001.cpp
+	$(CXX) $(CXXFLAGS) -o$@ $<
 
 all: $(files) $(objfiles)
 clean:
