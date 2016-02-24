@@ -1,4 +1,4 @@
-#include "i001.h"
+#include <mwg/string.h>
 
 namespace string_bench{
   int test_compare1(){

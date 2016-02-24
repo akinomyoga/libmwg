@@ -17,10 +17,6 @@ objfiles+=i001-bench2.o
 i001-bench2.o: i001-bench2.cpp
 	$(CXX) $(CXXFLAGS) -c -o$@ $<
 
-files+=i001$(EXEEXT)
-i001$(EXEEXT): i001.cpp
-	$(CXX) $(CXXFLAGS) -o$@ $<
-
-all: $(files) $(objfiles)
+all: $(objfiles)
 clean:
 	-rm -f *.o
