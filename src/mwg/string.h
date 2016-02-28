@@ -9,11 +9,11 @@
 #include <mwg/std/utility>
 #include <mwg/std/type_traits>
 #include <mwg/std/memory>
-#include <mwg/mpl.h>           /* mwg::mpl::integral_limits */
+#include <mwg/std/limits>
 #include <mwg/range.h>
+#include <mwg/functor.h>
 #pragma%x begin_check
 #include <mwg/except.h>
-#include <mwg/functor.h>
 #include <mwg/string.h>
 #pragma%x end_check
 namespace mwg{
@@ -49,11 +49,12 @@ namespace string3_detail{
   struct _strtmp_cat_policy;
   template<typename Str>
   struct _strtmp_pad_policy;
-
+  template<typename Str>
+  struct _strtmp_reverse_policy;
 }
 
-  static const std::ptrdiff_t npos
-    =mwg::mpl::integral_limits<std::ptrdiff_t>::min_value;
+  static const mwg_constexpr std::ptrdiff_t npos
+    =mwg::stdm::numeric_limits<std::ptrdiff_t>::lowest();
 }
 namespace mwg{
 namespace string3_detail{
@@ -277,6 +278,21 @@ public:
 #pragma%).f/An/1/AN+1/.i
 #endif
 
+#pragma%m mwg::string::strbase::doc
+  /*?lwiki
+   * :@op s==[==index==]==;
+   *  指定した位置にある文字を返します。
+   * :@fn s.==length==();
+   *  文字列の長さを取得します。
+   * :@fn s.==empty==();
+   *  空文字列かどうかを取得します。
+   *  c.f. `empty` (C++), <?rb empty??> (Ruby)
+   * :@fn s.==begin==();
+   * :@fn s.==end==();
+   *  文字データの先頭と末端を指すイテレータを返します。
+   */
+#pragma%end
+public:
   typedef typename policy_type::char_at_type char_at_type;
   char_at_type operator[](std::size_t index) const{
     return data[index];
@@ -299,25 +315,26 @@ public:
   //---------------------------------------------------------------------------
 #pragma%m mwg::string::slice::doc
   /*?lwiki
-   * :@fn s1.==slice==(i);
-   * :@fn s1.==slice==(i,j);
-   * :@fn s1.==slice==(r);
+   * :@fn s1.==slice==('''range-spec''');
    * :@fn s1.==substr==(i,len);
+   *  文字列の指定した範囲を部分文字列として返します。
    *  c.f. <?cpp substr?> (C++), <?cs Substring?> (CLR), <?java subSequence?>/<?java substring?> (Java), \
    *  <?cpp Slice?>/<?cpp Substr?> (mwg-string), <?js slice?>/<?js substr?>/<?js substring?> (JavaScript), \
    *  <?pl substr?> (Perl), <?rb slice?> (Ruby), <?awk substr?> (awk)
-   * :@fn s1.==head==();  // 最初の文字
+   * :@fn s1.==head==();
+   *  最初の文字を取得します。
+   *  c.f. <?pl chr?>/<?pl ord?> (Perl), <?rb chr?>/<?rb ord?> (Ruby)
+   * :@fn s1.==tail==();
+   *  最後の文字を取得します。
    * :@fn s1.==head==(n); // 先頭文字列
-   *  文字列の先頭 n 文字部分を取り出します。
-   *  c.f. find_head (Boost), Head (mwg-string), chr/ord (Perl), chr/ord (Ruby)
-   * :@fn s1.==tail==();  // 最後の文字
-   * :@fn s1.==tail==(n); // 末端文字列
-   *  文字列の末尾 n 文字部分を取り出します。
-   *  c.f. find_tail (Boost), Tail (mwg-string)
-   * :@fn s.==remove==(i);
-   * :@fn s.==remove==(i,j);
-   * :@fn s.==remove==(r);
-   *  c.f. erase (C++), Remove (CLR)
+   *  文字列の先頭 n 文字を部分文字列として取得します。
+   *  c.f. `find_head` (Boost), `Head` (mwg-string)
+   * :@fn s1.==tail==(n);
+   *  文字列の末尾 n 文字を部分文字列として取得します。
+   *  c.f. `find_tail` (Boost), `Tail` (mwg-string)
+   * :@fn s.==remove==('''range-spec''');
+   *  文字列の指定した範囲を取り除いて得られる文字列を返します。
+   *  c.f. `erase` (C++), `Remove` (CLR)
    */
 #pragma%end
 public:
@@ -400,31 +417,26 @@ public:
   //---------------------------------------------------------------------------
   //
   // mwg::string::map
+  //   characterwise operations
+  //   tolower, toupper
   //
   //---------------------------------------------------------------------------
 #pragma%m mwg::string::map::doc
   /*?lwiki
-   * :@fn s.==lower==();
-   * :@fn s.==lower==(i);
-   * :@fn s.==lower==(i,j);
-   * :@fn s.==lower==(r);
+   * :@fn s.==tolower==(&color(red){[}'''range-spec'''&color(red){]});
    *  文字列内の英大文字を英小文字に変換します。
    *  c.f. `tolower` (C), `to_lower` (Boost), <?cs ToLower?> (CLR), <?java toLowerCase?> (Java), \
    *  `ToLower` (mwg-string), <?js toLowerCase?> (JavaScript), \
    *  <?pl lc?> (Perl), <?rb downcase?> (Ruby), <?awk tolower?> (awk), <?php strtolower?> (PHP)
-   * :@fn s.==upper==();
-   * :@fn s.==upper==(i);
-   * :@fn s.==upper==(i,j);
-   * :@fn s.==upper==(r);
+   * :@fn s.==toupper==(&color(red){[}'''range-spec'''&color(red){]});
    *  文字列内の英小文字を英大文字に変換します。
    *  c.f. `toupper` (C), `to_upper` (Boost), <?cs ToUpper?> (CLR), <?java toUpperCase?> (Java), \
    *  `ToUpper` (mwg-string), <?js toUpperCase?> (JavaScript), <?pl uc?> (Perl), \
    *  <?rb upcase?> (Ruby), <?awk toupper?> (awk), <?php strtoupper?> (PHP)
-   * :@fn s.==map==(filter);
-   * :@fn s.==map==(filter,i);
-   * :@fn s.==map==(filter,i,j);
-   * :@fn s.==map==(filter,r);
+   * :@fn s.==map==(filter,&color(red){[}'''range-spec'''&color(red){]});
    *  c.f. `std::transform` (C++), <?cs System.Array.ConvertAll?> (CLR), `Map` (mwg-string)
+   * :@fn s.reverse()
+   *  c.f. `Reverse` (mwg-string), <?rb reverse?> (Ruby), <?php strrev?> (PHP)
    * :参考
    *  c.f. <?cs ToLowerInvariant?>/<?cs ToUpperInvariant?> (CLR), \
    *  <?pl ucfirst?>/<?pl lcfirst?> (Perl), <?rb capitalize?>/<?rb tr?>/<?rb swapcase?> (Ruby), \
@@ -488,6 +500,13 @@ public:
   typename ranged_map_enabler<F>::type map(F const& filter,mwg::range_i const& r) const{
     return map(filter,r.begin(),r.end());
   }
+
+private:
+  typedef strbase<_strtmp_reverse_policy<strbase<policy_type> > > reverse_return_type;
+public:
+  reverse_return_type reverse() const{
+    return reverse_return_type(*this);
+  }
 #pragma%x begin_check
   void test_map(){
     typedef mwg::stradp<char> _a;
@@ -499,6 +518,7 @@ public:
     mwg_assert( (_a("HELLO").tolower(2)=="HEllo"));
     mwg_assert( (_a("HELLO").tolower(1,-1)=="HellO"));
     mwg_assert( (_a("HELLO").tolower(mwg::make_range(1,-2))=="HelLO"));
+    mwg_assert( (_a("HELLO").reverse()=="OLLEH"));
   }
 #pragma%x end_check
 
@@ -760,8 +780,8 @@ public:
   //---------------------------------------------------------------------------
 #pragma%m mwg::string::find::doc
   /*?lwiki
-   * :@fn s.==find==(str&color(red){|}ch&color(red){|}pred&color(red){|}reg,&color(red){[}r&color(red){]|[}i,&color(red){[}j&color(red){]]});
-   * :@fn s.==rfind==(str&color(red){|}ch&color(red){|}pred&color(red){|}reg,&color(red){[}r&color(red){]|[}i,&color(red){[}j&color(red){]]});
+   * :@fn s.==find==(str&color(red){|}ch&color(red){|}pred&color(red){|}reg,&color(red){[}'''range-spec'''&color(red){]});
+   * :@fn s.==rfind==(str&color(red){|}ch&color(red){|}pred&color(red){|}reg,&color(red){[}'''range-spec'''&color(red){]});
    *  指定した文字列を検索して最初に見付かった開始位置を返します。
    *  `find` は範囲先頭から検索を開始し、`rfind` は範囲末端から検索を開始します。
    *  第一引数に検索対象を指定します。第二引数に検索範囲を指定します。検索範囲の指定を省略した場合、文字列全体が検索範囲になります。
@@ -773,25 +793,19 @@ public:
    *   文字判定関数を指定します。条件に合致する文字を検索します。
    *  :@param[in] //TODO: '''regex''' reg;
    *   検索パターンを正規表現で指定します
-   *  :@param[in] std::ptrdiff_t i,j;
-   *   検索範囲開始位置・終端位置を指定します。
-   *   負の値を指定した場合、文字列末端からの位置と解釈します。`mwg::npos` を指定した場合、文字列末端と解釈します。
-   *   終端位置を省略した場合、文字列末端を終端位置とします。
-   *  :@param[in] mwg::range_i r;
-   *   検索範囲を指定します。
    *  -`find` -> c.f. `strstr`/`strchr` (C), `find` (C++), `find_first`/`find_regex` (Boost), <?cs IndexOf?> (CLR), <?java indexOf?> (Java), \
    *   `IndexOf` (mwg-string), <?js indexOf?>/<?js search?> (JavaScript), <?pl index?> (Perl), <?rb index?> (Ruby), <?awk index?>/<?awk match?> (awk)
    *  -`rfind` -> c.f. `strrstr` (C), `rfind` (C++), `find_last` (Boost), <?cs LastIndexOf?> (CLR), <?java lastIndexOf?> (Java), \
    *   `IndexOfR` (mwg-string), <?js lastIndexOf?> (JavaScript), <?pl rindex?> (Perl), <?rb rindex?> (Ruby)
-   * :@fn s.==find_any==(s2,&color(red){[}r&color(red){]|[}i,&color(red){[}j&color(red){]]});
-   * :@fn s.==rfind_any==(s2,&color(red){[}r&color(red){]|[}i,&color(red){[}j&color(red){]]});
+   * :@fn s.==find_any==(s2,&color(red){[}'''range-spec'''&color(red){]});
+   * :@fn s.==rfind_any==(s2,&color(red){[}'''range-spec'''&color(red){]});
    *  文字集合の何れかの文字の位置を返します。
    *  :@param[in] s2
    *   文字集合を指定します。
    *  find_any -> c.f. strpbrk/strcspn (C), find_first_of (C++), IndexOfAny (CLR), IndexOfAny (mwg-string)
    *  rfind_any -> c.f. find_last_of (C++), LastIndexOfAny (CLR), IndexOfAnyR (mwg-string)
-   * :@fn s.==find_not==(s2,&color(red){[}r&color(red){]|[}i,&color(red){[}j&color(red){]]});
-   * :@fn s.==rfind_not==(s2,&color(red){[}r&color(red){]|[}i,&color(red){[}j&color(red){]]});
+   * :@fn s.==find_not==(s2,&color(red){[}'''range-spec'''&color(red){]});
+   * :@fn s.==rfind_not==(s2,&color(red){[}'''range-spec'''&color(red){]});
    *  最初に見付かった、文字集合に含まれない文字の位置を返します。
    *  -`find_not` -> c.f. strspn (C), find_first_not_of (C++), IndexOfNot (mwg-string)
    *  -`rfind_not` -> c.f. find_last_not_of (C++), IndexOfNotR (mwg-string)
@@ -982,19 +996,14 @@ public:
 
   //---------------------------------------------------------------------------
   //
-  // mwg::string::replace
+  // mwg::string::insert
   //
   //---------------------------------------------------------------------------
-#pragma%m mwg::string::replace::doc
+#pragma%m mwg::string::insert::doc
   /*?lwiki
-   * :@fn s.==replace==(c1,c2);
-   * :@fn s.==replace==(c1,c2,i);
-   * :@fn s.==replace==(c1,c2,i,j);
-   * :@fn s.==replace==(c1,c2,r);
+   * :@fn s.==replace==(c1,c2,&color(red){[}'''range-spec'''&color(red){]});
    *  指定した範囲の文字を全て置換します。
-   * :@fn s.==replace==(i,  s2);
-   * :@fn s.==replace==(i,j,s2);
-   * :@fn s.==replace==(r  ,s2);
+   * :@fn s.==replace==('''range-spec''',s2);
    *  指定した範囲を別の文字列に置換します。
    * :@fn s1.==insert==(i,str);
    *  指定した位置に文字列を挿入します。
@@ -1442,7 +1451,7 @@ public:
 
 template<typename Str>
 struct _strtmp_pad_policy{
-  typedef _strtmp_pad_policy                 policy_type;
+  typedef _strtmp_pad_policy                      policy_type;
   typedef typename Str::policy_type::char_type    char_type;
   typedef typename Str::policy_type::char_at_type char_at_type;
   static const bool has_get_ptr=false;
@@ -1622,6 +1631,32 @@ operator+(XStr1 const& lhs,strbase<StrP2> const& rhs){
 }
 
 //-----------------------------------------------------------------------------
+// reverse
+
+template<typename Str>
+struct _strtmp_reverse_policy{
+  typedef _strtmp_reverse_policy                  policy_type;
+  typedef typename Str::policy_type::char_type    char_type;
+  typedef typename Str::policy_type::char_at_type char_at_type;
+  static const bool has_get_ptr=false;
+
+  typedef default_const_iterator<policy_type> const_iterator;
+
+  struct buffer_type{
+    Str const& str;
+  public:
+    buffer_type(Str const& str):str(str){}
+  public:
+    char_at_type operator[](std::size_t index) const{
+      return this->str[this->str.length()-1-index];
+    }
+    std::size_t    length() const{return this->str.length();}
+    const_iterator begin()  const{return const_iterator(*this,0);}
+    const_iterator end()    const{return const_iterator(*this,this->length());}
+  };
+};
+
+//-----------------------------------------------------------------------------
 // 関係演算子
 
 template<typename StrP1,typename StrP2,typename Ret>
@@ -1768,7 +1803,24 @@ struct adapter_traits<std::basic_string<XCH,Tr,Alloc> >{
   using string3_detail::strsub;
   using string3_detail::stradp;
 } /* end of namespace mwg */
+#pragma%x mwg::string::strbase::doc
 /*?lwiki
+ * ***定義: <?cpp* '''range-spec'''?>
+ * 以下繰り返し現れる仮引数として <?cpp* '''range-spec'''?> を定義する。
+ * <?cpp* '''range-spec'''?> は、文字列内部の範囲を指定するために用いられる。
+ * <?cpp* function('''range-spec''')?> は、関数が以下の3つの多重定義を持つことを表す。
+ * -`function(i)`
+ * -`function(i,j)`
+ * -`function(r)`
+ * それぞれの仮引数は以下の様に指定する。
+ * :@param[in] std::ptrdiff_t i,j;
+ *  それぞれ範囲の開始位置と終端位置を指定する。
+ *  負の数が指定された場合は文字列末端からの相対位置と解釈する。
+ *  `mwg::npos` が指定された場合は文字列末端と解釈する。
+ *  終端位置が省略された場合は、文字列末端を意味する。
+ * :@param[in] mwg::range_i r;
+ *  範囲を指定する。開始位置、終端位置は上記 `i`, `j` と同様に解釈される。
+ *
  * **連結・切り出し・挿入・削除
  * :@op s1==+==s2
  *  文字列を連結します。
@@ -1777,7 +1829,10 @@ struct adapter_traits<std::basic_string<XCH,Tr,Alloc> >{
  *  c.f. Repeat (mwg-string), operator* (Ruby)
  */
 #pragma%x mwg::string::slice::doc
+#pragma%x mwg::string::insert::doc
 /*?lwiki
+ *
+ * **分割・結合
  * :@fn [TODO] s.split(i=-1,opt=0);     // i 最大分割数; opt オプション trim/remove_empty_string
  * :@fn [TODO] s.split(s1,i=-1,opt=0);  // s1  分割文字列
  * :@fn [TODO] s.split(reg,i=-1,opt=0); // reg 分割子の正規表現
@@ -1821,7 +1876,6 @@ struct adapter_traits<std::basic_string<XCH,Tr,Alloc> >{
  * **検索・置換
  */
 #pragma%x mwg::string::find::doc
-#pragma%x mwg::string::replace::doc
 /*?lwiki
  * :@fn [TODO] s.==replace==(s1 ,s2); // 文字列を置換
  * :@fn [TODO] s.==replace==(reg,s2); // reg 正規表現
@@ -1838,10 +1892,10 @@ struct adapter_traits<std::basic_string<XCH,Tr,Alloc> >{
  *   erase_tail, erase_first, erase_last, erase_nth, \
  *   ierase_first, ierase_last, ierase_nth, ierase_all \
  *   に対応する関数は置換後の文字列に "" を指定すれば良いだけなので提供しない。
- * :@fn [TODO] s1.==match==(reg,&color(red){[}r&color(red){]|[}i,&color(red){[}j&color(red){]]}); // reg 正規表現
- * :@fn [TODO] s1.==rmatch==(reg,&color(red){[}r&color(red){]|[}i,&color(red){[}j&color(red){]]});
- * :@fn [TODO] s1.==match_at==(reg,&color(red){[}r&color(red){]|[}i,&color(red){[}j&color(red){]]});
- * :@fn [TODO] s1.==rmatch_at==(reg,&color(red){[}r&color(red){]|[}i,&color(red){[}j&color(red){]]});
+ * :@fn [TODO] s1.==match==(reg,&color(red){[}'''range-spec'''&color(red){]}); // reg 正規表現
+ * :@fn [TODO] s1.==rmatch==(reg,&color(red){[}'''range-spec'''&color(red){]});
+ * :@fn [TODO] s1.==match_at==(reg,&color(red){[}'''range-spec'''&color(red){]});
+ * :@fn [TODO] s1.==rmatch_at==(reg,&color(red){[}'''range-spec'''&color(red){]});
  *  正規表現に対する一致を試す。
  *  -match: 先頭から順に一致を試す。
  *  -rmatch: 末尾から順に一致を試す。
@@ -1854,10 +1908,6 @@ struct adapter_traits<std::basic_string<XCH,Tr,Alloc> >{
  * **他
  * :format, operator%
  *  c.f. sprintf (C), Format (CLR), format (Java), sprintf (Perl), operator% (Ruby), sprintf (awk)
- * :reverse
- *  `Reverse` (mwg-string), <?rb reverse?> (Ruby), <?php strrev?> (PHP)
- * :empty
- *  `empty` (C++), <?rb empty??> (Ruby)
  * :参考
  *  -mwg-string: ReverseMap
  *  -Perl: chop chomp, hex oct,
