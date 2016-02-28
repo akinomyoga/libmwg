@@ -51,6 +51,8 @@ namespace string3_detail{
   struct _strtmp_pad_policy;
   template<typename Str>
   struct _strtmp_reverse_policy;
+  template<typename Str>
+  struct _strtmp_repeat_policy;
 }
 
   static const mwg_constexpr std::ptrdiff_t npos
@@ -416,6 +418,104 @@ public:
 
   //---------------------------------------------------------------------------
   //
+  // mwg::string::insert
+  //
+  //---------------------------------------------------------------------------
+#pragma%m mwg::string::insert::doc
+  /*?lwiki
+   * :@fn s.==replace==('''range-spec''',s2);
+   *  指定した範囲を別の文字列に置換します。
+   * :@fn s1.==insert==(i,str);
+   *  指定した位置に文字列を挿入します。
+   *  c.f. insert (C++), Insert (CLR), Insert (mwg-string), insert (Ruby)
+   */
+#pragma%end
+private:
+  template<typename A1>
+  struct range_replace_switch
+    :mwg::stdm::integral_constant<int,
+      mwg::stdm::is_base_of<strbase_tag<char_type>,A1>::value?1:
+      adapter_traits<A1,char_type>::adaptable?2:
+      0>{};
+  template<typename A1,int S>
+  struct range_replace_enabler
+    :mwg::stdm::enable_if<
+      S==range_replace_switch<A1>::value,
+      typename mwg::stdm::conditional<
+        S==1,strbase<_strtmp_cat_policy<slice_return_type,A1 const&,slice_return_type> >,
+        typename mwg::stdm::conditional<
+          S==2,strbase<_strtmp_cat_policy<slice_return_type,stradp<char_type>,slice_return_type> >,
+          void
+        >::type
+      >::type
+    >{};
+
+  template<typename T,int S,typename T_>
+  typename range_replace_enabler<T,S>::type
+  _replace_impl(std::size_t _start,std::size_t _end,T_ const& str) const{
+    std::size_t const _len=this->length();
+    return typename range_replace_enabler<T,S>::type(
+      slice_return_type(this->data,0,_start),
+      str,
+      slice_return_type(this->data,_end,_len-_end)
+    );
+  }
+public:
+  template<typename T>
+  typename range_replace_enabler<T,1>::type
+  replace(std::ptrdiff_t start,std::ptrdiff_t end,T const& str) const{
+    std::size_t const _len=this->length();
+    std::size_t _start=canonicalize_index(start,_len);
+    std::size_t _end=canonicalize_index(end,_len);
+    if(_end<_start)std::swap(_start,_end);
+    return _replace_impl<T,1>(_start,_end,str);
+  }
+  template<typename T>
+  typename range_replace_enabler<T,2>::type
+  replace(std::ptrdiff_t start,std::ptrdiff_t end,T const& str) const{
+    std::size_t const _len=this->length();
+    std::size_t _start=canonicalize_index(start,_len);
+    std::size_t _end=canonicalize_index(end,_len);
+    if(_end<_start)std::swap(_start,_end);
+    return _replace_impl<T,2>(_start,_end,str);
+  }
+  template<typename T>
+  typename range_replace_enabler<T,1>::type
+  replace(mwg::range_i const& r,T const& str) const{
+    return this->replace(r.begin(),r.end(),str);
+  }
+  template<typename T>
+  typename range_replace_enabler<T,2>::type
+  replace(mwg::range_i const& r,T const& str) const{
+    return this->replace(r.begin(),r.end(),str);
+  }
+  template<typename T>
+  typename range_replace_enabler<T,1>::type
+  insert(std::ptrdiff_t index,T const& str) const{
+    std::size_t const _len=this->length();
+    std::size_t const _index=canonicalize_index(index,_len);
+    return _replace_impl<T,1>(_index,_index,str);
+  }
+  template<typename T>
+  typename range_replace_enabler<T,2>::type
+  insert(std::ptrdiff_t index,T const& str) const{
+    std::size_t const _len=this->length();
+    std::size_t const _index=canonicalize_index(index,_len);
+    return _replace_impl<T,2>(_index,_index,str);
+  }
+#pragma%x begin_check
+  void test_insert(){
+    typedef mwg::stradp<char> _a;
+    mwg_assert((_a("hello").replace(1,-3,"icon")=="hiconllo"));
+    mwg_assert((_a("hello").replace(1,-3,_a("icon"))=="hiconllo"));
+    mwg_assert((_a("hello").replace(mwg::make_range(1,-3),"icon")=="hiconllo"));
+    mwg_assert((_a("hello").insert(1,"icon")=="hiconello"));
+    mwg_assert((_a("hello").insert(1,_a("icon"))=="hiconello"));
+  }
+#pragma%x end_check
+
+  //---------------------------------------------------------------------------
+  //
   // mwg::string::map
   //   characterwise operations
   //   tolower, toupper
@@ -435,8 +535,8 @@ public:
    *  <?rb upcase?> (Ruby), <?awk toupper?> (awk), <?php strtoupper?> (PHP)
    * :@fn s.==map==(filter,&color(red){[}'''range-spec'''&color(red){]});
    *  c.f. `std::transform` (C++), <?cs System.Array.ConvertAll?> (CLR), `Map` (mwg-string)
-   * :@fn s.reverse()
-   *  c.f. `Reverse` (mwg-string), <?rb reverse?> (Ruby), <?php strrev?> (PHP)
+   * :@fn s.==replace==(c1,c2,&color(red){[}'''range-spec'''&color(red){]});
+   *  指定した範囲の文字を全て置換します。
    * :参考
    *  c.f. <?cs ToLowerInvariant?>/<?cs ToUpperInvariant?> (CLR), \
    *  <?pl ucfirst?>/<?pl lcfirst?> (Perl), <?rb capitalize?>/<?rb tr?>/<?rb swapcase?> (Ruby), \
@@ -502,11 +602,23 @@ public:
   }
 
 private:
-  typedef strbase<_strtmp_reverse_policy<strbase<policy_type> > > reverse_return_type;
+  typedef strbase<_strtmp_map_policy<policy_type,_filt_replace_char<char_type> > >        char_replace_return_type;
+  typedef strbase<_strtmp_ranged_map_policy<policy_type,_filt_replace_char<char_type> > > ranged_char_replace_return_type;
 public:
-  reverse_return_type reverse() const{
-    return reverse_return_type(*this);
+  char_replace_return_type replace(char_type const& before,char_type const& after) const{
+    return char_replace_return_type(this->data,_filt_replace_char<char_type>(before,after));
   }
+  ranged_char_replace_return_type replace(char_type const& before,char_type const& after,std::ptrdiff_t start,std::ptrdiff_t end=mwg::npos) const{
+    std::size_t const _len=this->length();
+    std::size_t const _start=canonicalize_index(start,_len);
+    std::size_t _end=canonicalize_index(end,_len);
+    if(_end<_start)_end=_start;
+    return ranged_char_replace_return_type(this->data,_filt_replace_char<char_type>(before,after),_start,_end);
+  }
+  ranged_char_replace_return_type replace(char_type const& before,char_type const& after,mwg::range_i const& r) const{
+    return this->replace(before,after,r.begin(),r.end());
+  }
+
 #pragma%x begin_check
   void test_map(){
     typedef mwg::stradp<char> _a;
@@ -518,7 +630,10 @@ public:
     mwg_assert( (_a("HELLO").tolower(2)=="HEllo"));
     mwg_assert( (_a("HELLO").tolower(1,-1)=="HellO"));
     mwg_assert( (_a("HELLO").tolower(mwg::make_range(1,-2))=="HelLO"));
-    mwg_assert( (_a("HELLO").reverse()=="OLLEH"));
+    mwg_assert( (_a("hello").replace('l','c')=="hecco"));
+    mwg_assert( (_a("hello").replace('l','p').replace('e','i')=="hippo"));
+    mwg_assert( (_a("hello").replace('l','p',-2)=="helpo"));
+    mwg_assert( (_a("hello").replace('l','r',0,3)=="herlo"));
   }
 #pragma%x end_check
 
@@ -573,7 +688,7 @@ public:
   typename trim_enabler<FPred,3>::type
   trim(FPred const& pred) const{
     typedef mwg::functor_traits<FPred,bool(char_type)> _f;
-    std::size_t _len=this->length();
+    std::size_t const _len=this->length();
     std::size_t i=0;
     while(i<_len&&_f::invoke(pred,data[i]))i++;
     std::size_t j=_len-1;
@@ -597,7 +712,7 @@ public:
   typename trim_enabler<FPred,3>::type
   ltrim(FPred const& pred) const{
     typedef mwg::functor_traits<FPred,bool(char_type)> _f;
-    std::size_t _len=this->length();
+    std::size_t const _len=this->length();
     std::size_t i=0;
     while(i<_len&&_f::invoke(pred,data[i]))i++;
     return slice_return_type(this->data,i,_len-i);
@@ -619,7 +734,7 @@ public:
   typename trim_enabler<FPred,3>::type
   rtrim(FPred const& pred) const{
     typedef mwg::functor_traits<FPred,bool(char_type)> _f;
-    std::size_t _len=this->length();
+    std::size_t const _len=this->length();
     std::size_t j=_len-1;
     while(j>=0&&_f::invoke(pred,data[j]))j--;
     return slice_return_type(this->data,0,j+1);
@@ -996,124 +1111,35 @@ public:
 
   //---------------------------------------------------------------------------
   //
-  // mwg::string::insert
+  // mwg::string::find
   //
   //---------------------------------------------------------------------------
-#pragma%m mwg::string::insert::doc
+#pragma%m mwg::string::misc::doc
   /*?lwiki
-   * :@fn s.==replace==(c1,c2,&color(red){[}'''range-spec'''&color(red){]});
-   *  指定した範囲の文字を全て置換します。
-   * :@fn s.==replace==('''range-spec''',s2);
-   *  指定した範囲を別の文字列に置換します。
-   * :@fn s1.==insert==(i,str);
-   *  指定した位置に文字列を挿入します。
-   *  c.f. insert (C++), Insert (CLR), Insert (mwg-string), insert (Ruby)
+   * :@fn s.==reverse==();
+   *  c.f. `Reverse` (mwg-string), <?rb reverse?> (Ruby), <?php strrev?> (PHP)
+   * :@fn s.==repeat==(n);
+   * :@fn [TODO] s*n;
+   *  c.f. `Repeat` (mwg-string), <?rb operator*?> (Ruby)
    */
 #pragma%end
 private:
-  typedef strbase<_strtmp_map_policy<policy_type,_filt_replace_char<char_type> > >        char_replace_return_type;
-  typedef strbase<_strtmp_ranged_map_policy<policy_type,_filt_replace_char<char_type> > > ranged_char_replace_return_type;
+  typedef strbase<_strtmp_reverse_policy<strbase<policy_type> > > reverse_return_type;
 public:
-  char_replace_return_type replace(char_type const& before,char_type const& after) const{
-    return char_replace_return_type(this->data,_filt_replace_char<char_type>(before,after));
+  reverse_return_type reverse() const{
+    return reverse_return_type(*this);
   }
-  ranged_char_replace_return_type replace(char_type const& before,char_type const& after,std::ptrdiff_t start,std::ptrdiff_t end=mwg::npos) const{
-    std::size_t const _len=this->length();
-    std::size_t const _start=canonicalize_index(start,_len);
-    std::size_t _end=canonicalize_index(end,_len);
-    if(_end<_start)_end=_start;
-    return ranged_char_replace_return_type(this->data,_filt_replace_char<char_type>(before,after),_start,_end);
-  }
-  ranged_char_replace_return_type replace(char_type const& before,char_type const& after,mwg::range_i const& r) const{
-    return this->replace(before,after,r.begin(),r.end());
-  }
-
 private:
-  template<typename A1>
-  struct range_replace_switch
-    :mwg::stdm::integral_constant<int,
-      mwg::stdm::is_base_of<strbase_tag<char_type>,A1>::value?1:
-      adapter_traits<A1,char_type>::adaptable?2:
-      0>{};
-  template<typename A1,int S>
-  struct range_replace_enabler
-    :mwg::stdm::enable_if<
-      S==range_replace_switch<A1>::value,
-      typename mwg::stdm::conditional<
-        S==1,strbase<_strtmp_cat_policy<slice_return_type,A1 const&,slice_return_type> >,
-        typename mwg::stdm::conditional<
-          S==2,strbase<_strtmp_cat_policy<slice_return_type,stradp<char_type>,slice_return_type> >,
-          void
-        >::type
-      >::type
-    >{};
-
-  template<typename T,int S,typename T_>
-  typename range_replace_enabler<T,S>::type
-  _replace_impl(std::size_t _start,std::size_t _end,T_ const& str) const{
-    std::size_t const _len=this->length();
-    return typename range_replace_enabler<T,S>::type(
-      slice_return_type(this->data,0,_start),
-      str,
-      slice_return_type(this->data,_end,_len-_end)
-    );
-  }
+  typedef strbase<_strtmp_repeat_policy<strbase<policy_type> > > repeat_return_type;
 public:
-  template<typename T>
-  typename range_replace_enabler<T,1>::type
-  replace(std::ptrdiff_t start,std::ptrdiff_t end,T const& str) const{
-    std::size_t const _len=this->length();
-    std::size_t _start=canonicalize_index(start,_len);
-    std::size_t _end=canonicalize_index(end,_len);
-    if(_end<_start)std::swap(_start,_end);
-    return _replace_impl<T,1>(_start,_end,str);
-  }
-  template<typename T>
-  typename range_replace_enabler<T,2>::type
-  replace(std::ptrdiff_t start,std::ptrdiff_t end,T const& str) const{
-    std::size_t const _len=this->length();
-    std::size_t _start=canonicalize_index(start,_len);
-    std::size_t _end=canonicalize_index(end,_len);
-    if(_end<_start)std::swap(_start,_end);
-    return _replace_impl<T,2>(_start,_end,str);
-  }
-  template<typename T>
-  typename range_replace_enabler<T,1>::type
-  replace(mwg::range_i const& r,T const& str) const{
-    return this->replace(r.begin(),r.end(),str);
-  }
-  template<typename T>
-  typename range_replace_enabler<T,2>::type
-  replace(mwg::range_i const& r,T const& str) const{
-    return this->replace(r.begin(),r.end(),str);
-  }
-  template<typename T>
-  typename range_replace_enabler<T,1>::type
-  insert(std::ptrdiff_t index,T const& str) const{
-    std::size_t const _len=this->length();
-    std::size_t const _index=canonicalize_index(index,_len);
-    return _replace_impl<T,1>(_index,_index,str);
-  }
-  template<typename T>
-  typename range_replace_enabler<T,2>::type
-  insert(std::ptrdiff_t index,T const& str) const{
-    std::size_t const _len=this->length();
-    std::size_t const _index=canonicalize_index(index,_len);
-    return _replace_impl<T,2>(_index,_index,str);
+  repeat_return_type repeat(std::size_t count) const{
+    return repeat_return_type(*this,count);
   }
 #pragma%x begin_check
-  void test_replace(){
+  void test_misc(){
     typedef mwg::stradp<char> _a;
-    mwg_assert((_a("hello").replace('l','c')=="hecco"));
-    mwg_assert((_a("hello").replace('l','p').replace('e','i')=="hippo"));
-    mwg_assert((_a("hello").replace('l','p',-2)=="helpo"));
-    mwg_assert((_a("hello").replace('l','r',0,3)=="herlo"));
-
-    mwg_assert((_a("hello").replace(1,-3,"icon")=="hiconllo"));
-    mwg_assert((_a("hello").replace(1,-3,_a("icon"))=="hiconllo"));
-    mwg_assert((_a("hello").replace(mwg::make_range(1,-3),"icon")=="hiconllo"));
-    mwg_assert((_a("hello").insert(1,"icon")=="hiconello"));
-    mwg_assert((_a("hello").insert(1,_a("icon"))=="hiconello"));
+    mwg_assert( (_a("HELLO").reverse()=="OLLEH"));
+    mwg_assert( (_a("HELLO").repeat(3)=="HELLOHELLOHELLO"));
   }
 #pragma%x end_check
 };
@@ -1630,6 +1656,15 @@ operator+(XStr1 const& lhs,strbase<StrP2> const& rhs){
   return return_type(lhs,rhs);
 }
 
+#pragma%x begin_check
+void test_concat(){
+  typedef mwg::stradp<char> _a;
+  mwg_assert((_a("hello")+_a(" world")=="hello world"));
+  mwg_assert((_a("hello")+" world"=="hello world"));
+  mwg_assert(("hello"+_a(" world")+"!"=="hello world!"));
+}
+#pragma%x end_check
+
 //-----------------------------------------------------------------------------
 // reverse
 
@@ -1651,6 +1686,31 @@ struct _strtmp_reverse_policy{
       return this->str[this->str.length()-1-index];
     }
     std::size_t    length() const{return this->str.length();}
+    const_iterator begin()  const{return const_iterator(*this,0);}
+    const_iterator end()    const{return const_iterator(*this,this->length());}
+  };
+};
+
+template<typename Str>
+struct _strtmp_repeat_policy{
+  typedef _strtmp_repeat_policy                   policy_type;
+  typedef typename Str::policy_type::char_type    char_type;
+  typedef typename Str::policy_type::char_at_type char_at_type;
+  static const bool has_get_ptr=false;
+
+  typedef default_const_iterator<policy_type> const_iterator;
+
+  struct buffer_type{
+    Str const& m_str;
+    std::size_t m_repeatCount;
+  public:
+    buffer_type(Str const& str,std::size_t repeatCount)
+      :m_str(str),m_repeatCount(repeatCount){}
+  public:
+    char_at_type operator[](std::size_t index) const{
+      return this->m_str[index%this->m_str.length()];
+    }
+    std::size_t    length() const{return this->m_str.length()*this->m_repeatCount;}
     const_iterator begin()  const{return const_iterator(*this,0);}
     const_iterator end()    const{return const_iterator(*this,this->length());}
   };
@@ -1803,6 +1863,9 @@ struct adapter_traits<std::basic_string<XCH,Tr,Alloc> >{
   using string3_detail::strsub;
   using string3_detail::stradp;
 } /* end of namespace mwg */
+/*?lwiki
+ * *文字列基本機能 (`mwg::string3_detail::strbase`)
+ */
 #pragma%x mwg::string::strbase::doc
 /*?lwiki
  * ***定義: <?cpp* '''range-spec'''?>
@@ -1824,9 +1887,6 @@ struct adapter_traits<std::basic_string<XCH,Tr,Alloc> >{
  * **連結・切り出し・挿入・削除
  * :@op s1==+==s2
  *  文字列を連結します。
- * :@fn [TODO] s.repeat(n); // n 繰り返し回数
- * :@fn [TODO] s*n;
- *  c.f. Repeat (mwg-string), operator* (Ruby)
  */
 #pragma%x mwg::string::slice::doc
 #pragma%x mwg::string::insert::doc
@@ -1906,6 +1966,9 @@ struct adapter_traits<std::basic_string<XCH,Tr,Alloc> >{
  *  c.f. find_all/iter_find (Boost), scan (Ruby), match (JavaScript)
  *
  * **他
+ */
+#pragma%x mwg::string::misc::doc
+/*?lwiki
  * :format, operator%
  *  c.f. sprintf (C), Format (CLR), format (Java), sprintf (Perl), operator% (Ruby), sprintf (awk)
  * :参考
@@ -1947,12 +2010,6 @@ void test(){
   mwg_assert( (s1=="21345"));
 }
 
-void test_concat(){
-  typedef mwg::stradp<char> _a;
-  mwg_assert((_a("hello")+_a(" world")=="hello world"));
-  mwg_assert((_a("hello")+" world"=="hello world"));
-  mwg_assert(("hello"+_a(" world")+"!"=="hello world!"));
-}
 // namespace string_bench{
 //   int test_compare1();
 //   void test(){
@@ -1963,14 +2020,18 @@ void test_concat(){
 
 int main(){
   test();
-  test_map();
-  test_concat();
   test_slice();
+  test_insert();
+  test_map();
   test_trim();
   test_pad();
   test_starts();
   test_find();
-  test_replace();
+  test_concat();
+  test_misc();
+
+  typedef mwg::stradp<char> _a;
+  mwg_assert( (_a("HELLO").repeat(3).tolower(5,-3).reverse()=="OLLehollehOLLEH"));
 
   return 0;
 }
