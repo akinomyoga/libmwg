@@ -29,6 +29,24 @@ namespace string3_detail{
   class stradp;
   template<typename XCH>
   class string;
+  /*?lwiki
+   * :@class class mwg::==string==<XCH> : strbase<...>;
+   *  `mwg::string` における標準の文字列型です。
+   *  `std::shared_ptr` による参照管理の対象です。
+   * :@class class mwg::==stradp==<XCH> : strbase<...>;
+   *  他の型の文字列に対する `mwg::string` インターフェイスを提供します。
+   *  -`XCH[N]`
+   *  -`const XCH[N]`
+   *  -`XCH*`
+   *  -`const XCH*`
+   *  -`std::basic_string<XCH>`
+   * :@class class mwg::==strsub==<XCH> : strbase<...>;
+   *  他の文字列の部分文字列を保持します。
+   * :@class class mwg::string3_detail::==strbase==<...>;
+   *  文字列に対する操作を提供する基底クラスです。
+   *  また、部分式の評価結果として `strbase` の様々な特殊化が使用されます。
+   *
+   */
 
   template<typename XCH,typename C,typename Ret>
   struct adapter_enabler;
@@ -292,6 +310,11 @@ public:
    * :@fn s.==begin==();
    * :@fn s.==end==();
    *  文字データの先頭と末端を指すイテレータを返します。
+   * :@fn s.==front==();
+   *  最初の文字を取得します。
+   *  c.f. <?pl chr?>/<?pl ord?> (Perl), <?rb chr?>/<?rb ord?> (Ruby)
+   * :@fn s.==back==();
+   *  最後の文字を取得します。
    */
 #pragma%end
 public:
@@ -310,6 +333,15 @@ public:
   const_iterator begin() const{return data.begin();}
   const_iterator end()   const{return data.end();}
 
+  char_type front() const{
+    std::size_t const _len=this->length();
+    return _len==0?char_traits_type::null():data[0];
+  }
+  char_type back() const{
+    std::size_t const _len=this->length();
+    return _len==0?char_traits_type::null():data[_len-1];
+  }
+
   //---------------------------------------------------------------------------
   //
   // mwg::string::slice
@@ -323,11 +355,6 @@ public:
    *  c.f. <?cpp substr?> (C++), <?cs Substring?> (CLR), <?java subSequence?>/<?java substring?> (Java), \
    *  <?cpp Slice?>/<?cpp Substr?> (mwg-string), <?js slice?>/<?js substr?>/<?js substring?> (JavaScript), \
    *  <?pl substr?> (Perl), <?rb slice?> (Ruby), <?awk substr?> (awk)
-   * :@fn s1.==head==();
-   *  最初の文字を取得します。
-   *  c.f. <?pl chr?>/<?pl ord?> (Perl), <?rb chr?>/<?rb ord?> (Ruby)
-   * :@fn s1.==tail==();
-   *  最後の文字を取得します。
    * :@fn s1.==head==(n); // 先頭文字列
    *  文字列の先頭 n 文字を部分文字列として取得します。
    *  c.f. `find_head` (Boost), `Head` (mwg-string)
@@ -359,18 +386,10 @@ public:
     if(_start>_end)_end=_start;
     return slice_return_type(this->data,_start,_end-_start);
   }
-  char_type head() const{
-    std::size_t const _len=this->length();
-    return _len==0?char_traits_type::null():data[0];
-  }
   slice_return_type head(std::size_t len) const{
     std::size_t const _len=this->length();
     if(len>_len)len=_len;
     return slice_return_type(this->data,0,len);
-  }
-  char_type tail() const{
-    std::size_t const _len=this->length();
-    return _len==0?char_traits_type::null():data[_len-1];
   }
   slice_return_type tail(std::size_t len) const{
     std::size_t const _len=this->length();
@@ -401,14 +420,14 @@ public:
 #pragma%x begin_check
   void test_slice(){
     typedef mwg::stradp<char> _a;
-    mwg_assert((mwg::stradp<char>("hello").slice(2,4)=="ll"));
-    mwg_assert((mwg::stradp<char>("hello").slice(1,-2)=="el"));
-    mwg_assert((mwg::stradp<char>("hello").slice(3)=="lo"));
+    mwg_assert((_a("hello").slice(2,4)=="ll"));
+    mwg_assert((_a("hello").slice(1,-2)=="el"));
+    mwg_assert((_a("hello").slice(3)=="lo"));
 
-    mwg_assert((mwg::stradp<char>("0123456789").slice(-6,-3)=="456"));
-    mwg_assert((mwg::stradp<char>("0123456789").slice(-3)=="789"));
-    mwg_assert((mwg::stradp<char>("0123456789").slice(6,4)==""));
-    mwg_assert((mwg::stradp<char>("0123456789").slice(6,-6)==""));
+    mwg_assert((_a("0123456789").slice(-6,-3)=="456"));
+    mwg_assert((_a("0123456789").slice(-3)=="789"));
+    mwg_assert((_a("0123456789").slice(6,4)==""));
+    mwg_assert((_a("0123456789").slice(6,-6)==""));
 
     mwg_assert((_a("hello").remove(3)=="hel"));
     mwg_assert((_a("hello").remove(1,-2)=="hlo"));
@@ -944,7 +963,7 @@ private:
     return -1;
   }
 public:
-#define MWG_STRING2_STRING_H__define_find_overloads(FIND) \
+#define MWG_STRING3_STRING_H__define_find_overloads(FIND) \
   std::ptrdiff_t FIND(char_type const& ch) const{ \
     return this->_##FIND##_impl(ch,0,this->length()); \
   } \
@@ -956,9 +975,9 @@ public:
     return this->FIND(ch,r.begin(),r.end()); \
   }
 
-  MWG_STRING2_STRING_H__define_find_overloads(find );
-  MWG_STRING2_STRING_H__define_find_overloads(rfind);
-#undef MWG_STRING2_STRING_H__define_find_overloads
+  MWG_STRING3_STRING_H__define_find_overloads(find );
+  MWG_STRING3_STRING_H__define_find_overloads(rfind);
+#undef MWG_STRING3_STRING_H__define_find_overloads
 
 private:
   template<typename A1,int Swch>
@@ -986,7 +1005,7 @@ private:
     return -1;
   }
 public:
-#define MWG_STRING2_STRING_H__define_find_overloads(FIND) \
+#define MWG_STRING3_STRING_H__define_find_overloads(FIND) \
   template<typename T> \
   typename find_enabler<T,3>::type FIND(T const& pred) const{ \
     return this->_##FIND##_pred(pred,0,this->length()); \
@@ -1001,9 +1020,9 @@ public:
     return this->FIND(pred,r.begin(),r.end()); \
   }
 
-  MWG_STRING2_STRING_H__define_find_overloads(find );
-  MWG_STRING2_STRING_H__define_find_overloads(rfind);
-#undef MWG_STRING2_STRING_H__define_find_overloads
+  MWG_STRING3_STRING_H__define_find_overloads(find );
+  MWG_STRING3_STRING_H__define_find_overloads(rfind);
+#undef MWG_STRING3_STRING_H__define_find_overloads
 
 private:
   template<typename StrP>
@@ -1045,7 +1064,7 @@ private:
     return this->_rfind_pred(_pred_not_of_str<char_type,strbase<StrP> >(str),i,iN);
   }
 public:
-#define MWG_STRING2_STRING_H__define_find_overloads(FIND) \
+#define MWG_STRING3_STRING_H__define_find_overloads(FIND) \
   template<typename T> \
   typename find_enabler<T,1>::type FIND(T const& str) const{ \
     return this->_##FIND##_impl(str,0,this->length()); \
@@ -1072,13 +1091,13 @@ public:
     return this->FIND(stradp<char_type>(str),r.begin(),r.end()); \
   }
 
-  MWG_STRING2_STRING_H__define_find_overloads(find);
-  MWG_STRING2_STRING_H__define_find_overloads(find_any);
-  MWG_STRING2_STRING_H__define_find_overloads(find_not);
-  MWG_STRING2_STRING_H__define_find_overloads(rfind);
-  MWG_STRING2_STRING_H__define_find_overloads(rfind_any);
-  MWG_STRING2_STRING_H__define_find_overloads(rfind_not);
-#undef MWG_STRING2_STRING_H__define_find_overloads
+  MWG_STRING3_STRING_H__define_find_overloads(find);
+  MWG_STRING3_STRING_H__define_find_overloads(find_any);
+  MWG_STRING3_STRING_H__define_find_overloads(find_not);
+  MWG_STRING3_STRING_H__define_find_overloads(rfind);
+  MWG_STRING3_STRING_H__define_find_overloads(rfind_any);
+  MWG_STRING3_STRING_H__define_find_overloads(rfind_not);
+#undef MWG_STRING3_STRING_H__define_find_overloads
 
 #pragma%x begin_check
   void test_find(){
@@ -1119,7 +1138,6 @@ public:
    * :@fn s.==reverse==();
    *  c.f. `Reverse` (mwg-string), <?rb reverse?> (Ruby), <?php strrev?> (PHP)
    * :@fn s.==repeat==(n);
-   * :@fn [TODO] s*n;
    *  c.f. `Repeat` (mwg-string), <?rb operator*?> (Ruby)
    */
 #pragma%end
@@ -1145,6 +1163,7 @@ public:
 };
 
 //-----------------------------------------------------------------------------
+// strsub, stradp
 
 template<typename XCH>
 struct strsub_policy{
@@ -1208,6 +1227,7 @@ public:
 };
 
 //-----------------------------------------------------------------------------
+// string
 
 template<typename XCH>
 struct string_policy{
@@ -1346,6 +1366,9 @@ public:
 };
 
 //-----------------------------------------------------------------------------
+// _strtmp_sub_policy
+// _strtmp_map_policy, _strtmp_ranged_map_policy
+// _strtmp_pad_policy
 
 template<typename StrP1>
 struct _strtmp_sub_policy{
@@ -1513,6 +1536,7 @@ struct _strtmp_pad_policy{
 };
 
 //-----------------------------------------------------------------------------
+// _strtmp_cat_policy, operator+
 
 template<typename Str1,typename Str2,typename Str3>
 struct _strtmp_cat_policy{
@@ -1666,7 +1690,7 @@ void test_concat(){
 #pragma%x end_check
 
 //-----------------------------------------------------------------------------
-// reverse
+// reverse. repeat
 
 template<typename Str>
 struct _strtmp_reverse_policy{
@@ -1719,9 +1743,43 @@ struct _strtmp_repeat_policy{
 //-----------------------------------------------------------------------------
 // 関係演算子
 
+#pragma%m mwg::string::compare::doc
+/*?lwiki
+ * :@op s1=={==}==s2;
+ * :@op s1=={!=}==s2;
+ * :@op s1=={<=}==s2;
+ * :@op s1=={>=}==s2;
+ * :@op s1==<==s2;
+ * :@op s1==>==s2;
+ *  文字列を比較します。
+ * :@fn ==compare==(s1,s2);
+ *  二つの文字列を比較します。`s1>s2` の時 `1`, `s1==s2` の時 `0`, `s1<s2` の時 `-1` を返します。
+ *  c.f. `strcmp`/`strncmp` (C), `lexicographical_compare` (Boost), <?cs CompareOriginal?> (CLR), <?java compareTo?> (Java), <?rb operator<=>?> (Ruby)
+ * :@fn ==icompare==(s1,s2);
+ *  ASCII 大文字・小文字を区別せずに、二つの文字列を比較します。
+ *  c.f. `stricmp`/`strcasecmp`/`strnicmp`/`strncasecmp` (C), `ilexicographical_compare` (Boost), <?cs Compare?> (CLR), <?java compareToIgnoreCase?> (Java), <?rb casecmp?> (Ruby)
+ */
+#pragma%end
+
 template<typename StrP1,typename StrP2,typename Ret>
 struct compare_enabler:mwg::stdm::enable_if<
   mwg::stdm::is_same<typename StrP1::char_type,typename StrP2::char_type>::value,Ret>{};
+
+template<typename StrP1,typename StrP2>
+typename compare_enabler<StrP1,StrP2,int>::type
+compare(strbase<StrP1> const& lhs,strbase<StrP2> const& rhs){
+  typename StrP1::const_iterator i=lhs.begin(),iN=lhs.end();
+  typename StrP2::const_iterator j=rhs.begin(),jN=rhs.end();
+  for(;i!=iN&&j!=jN;++i,++j)
+    if(*i!=*j)return *i>*j?1:-1;
+  return i!=iN?1: j!=jN?-1: 0;
+}
+
+template<typename StrP1,typename StrP2>
+typename compare_enabler<StrP1,StrP2,int>::type
+icompare(strbase<StrP1> const& lhs,strbase<StrP2> const& rhs){
+  return compare(lhs.tolower(),rhs.tolower());
+}
 
 template<typename StrP1,typename StrP2>
 typename compare_enabler<StrP1,StrP2,bool>::type
@@ -1773,24 +1831,80 @@ template<typename StrP1,typename XStr,typename Ret>
 struct compare_enabler2:mwg::stdm::enable_if<
   adapter_traits<XStr,typename StrP1::char_type>::adaptable,Ret>{};
 
-#define MWG_STRING2_STRING_H__define_relational_operator(Op) \
+#define MWG_STRING3_STRING_H__overload_compare_adapter(Return,FunctionName) \
 template<typename StrP1,typename XStr> \
-typename compare_enabler2<StrP1,XStr,bool>::type \
-operator Op(strbase<StrP1> const& lhs,XStr const& rhs){ \
-  return lhs Op stradp<typename StrP1::char_type>(rhs); \
+typename compare_enabler2<StrP1,XStr,Return>::type \
+FunctionName(strbase<StrP1> const& lhs,XStr const& rhs){ \
+  return FunctionName(lhs,stradp<typename StrP1::char_type>(rhs)); \
 } \
 template<typename StrP1,typename XStr> \
-typename compare_enabler2<StrP1,XStr,bool>::type \
-operator Op(XStr const& lhs,strbase<StrP1> const& rhs){ \
-  return stradp<typename StrP1::char_type>(lhs) Op rhs; \
+typename compare_enabler2<StrP1,XStr,Return>::type \
+FunctionName(XStr const& lhs,strbase<StrP1> const& rhs){ \
+  return FunctionName(stradp<typename StrP1::char_type>(lhs),rhs); \
 }
-  MWG_STRING2_STRING_H__define_relational_operator(==)
-  MWG_STRING2_STRING_H__define_relational_operator(!=)
-  MWG_STRING2_STRING_H__define_relational_operator(<=)
-  MWG_STRING2_STRING_H__define_relational_operator(>=)
-  MWG_STRING2_STRING_H__define_relational_operator(<)
-  MWG_STRING2_STRING_H__define_relational_operator(>)
-#undef MWG_STRING2_STRING_H__define_relational_operator
+  MWG_STRING3_STRING_H__overload_compare_adapter(int,compare)
+  MWG_STRING3_STRING_H__overload_compare_adapter(int,icompare)
+  MWG_STRING3_STRING_H__overload_compare_adapter(bool,operator==)
+  MWG_STRING3_STRING_H__overload_compare_adapter(bool,operator!=)
+  MWG_STRING3_STRING_H__overload_compare_adapter(bool,operator<=)
+  MWG_STRING3_STRING_H__overload_compare_adapter(bool,operator>=)
+  MWG_STRING3_STRING_H__overload_compare_adapter(bool,operator<)
+  MWG_STRING3_STRING_H__overload_compare_adapter(bool,operator>)
+#undef MWG_STRING3_STRING_H__overload_compare_adapter
+
+#pragma%x begin_check
+void test_compare(){
+  typedef mwg::stradp<char> _a;
+
+  mwg_assert(compare(_a("hello"),_a("hello"))== 0);
+  mwg_assert(compare(_a("hello"),   "hello" )== 0);
+  mwg_assert(compare(   "hello" ,_a("hello"))== 0);
+  mwg_assert(compare(_a("hello"),_a("world"))==-1);
+  mwg_assert(compare(_a("hello"),   "world" )==-1);
+  mwg_assert(compare(   "hello" ,_a("world"))==-1);
+  mwg_assert(compare(_a("world"),_a("hello"))== 1);
+  mwg_assert(compare(   "world" ,_a("hello"))== 1);
+  mwg_assert(compare(_a("world"),   "hello" )== 1);
+  mwg_assert(compare(_a("hello"),   "hell"  )== 1);
+  mwg_assert(compare(_a("hell" ),   "hello ")==-1);
+
+  // assume ASCII codes
+  mwg_assert( compare(_a("hello"),_a("HELLO"))== 1);
+  mwg_assert( compare(_a("hello"),_a("WORLD"))== 1);
+  mwg_assert( compare(_a("WORLD"),_a("hello"))==-1);
+  mwg_assert(icompare(_a("hello"),_a("HELLO"))== 0);
+  mwg_assert(icompare(_a("hello"),_a("WORLD"))==-1);
+  mwg_assert(icompare(_a("WORLD"),_a("hello"))== 1);
+
+  mwg_assert( (_a("hello")=="hello"));
+  mwg_assert(!(_a("hello")!="hello"));
+  mwg_assert(!(_a("hello")=="world"));
+  mwg_assert( (_a("hello")!="world"));
+  mwg_assert(!(_a("hello")=="hell"));
+  mwg_assert( (_a("hello")!="hell"));
+
+  mwg_assert(!(_a("hello")<"hello"));
+  mwg_assert(!(_a("hello")>"hello"));
+  mwg_assert( (_a("hello")<"world"));
+  mwg_assert(!(_a("hello")>"world"));
+  mwg_assert(!(_a("hello")<"hell"));
+  mwg_assert( (_a("hello")>"hell"));
+
+  mwg_assert( (_a("hello")<="hello"));
+  mwg_assert( (_a("hello")>="hello"));
+  mwg_assert( (_a("hello")<="world"));
+  mwg_assert(!(_a("hello")>="world"));
+  mwg_assert(!(_a("hello")<="hell"));
+  mwg_assert( (_a("hello")>="hell"));
+
+  mwg::string<char> s1;
+  mwg_assert( (s1==""));
+  mwg::string<char> s2="012345";
+  mwg_assert( (s2=="012345"));
+  s1="21345";
+  mwg_assert( (s1=="21345"));
+}
+#pragma%x end_check
 
 //-----------------------------------------------------------------------------
 // default specializations
@@ -1869,20 +1983,20 @@ struct adapter_traits<std::basic_string<XCH,Tr,Alloc> >{
 #pragma%x mwg::string::strbase::doc
 /*?lwiki
  * ***定義: <?cpp* '''range-spec'''?>
- * 以下繰り返し現れる仮引数として <?cpp* '''range-spec'''?> を定義する。
- * <?cpp* '''range-spec'''?> は、文字列内部の範囲を指定するために用いられる。
- * <?cpp* function('''range-spec''')?> は、関数が以下の3つの多重定義を持つことを表す。
+ * 以下に繰り返し現れる仮引数として <?cpp* '''range-spec'''?> を定義します。
+ * <?cpp* function('''range-spec''')?> は、関数が以下の3つの多重定義を持つことを表します。
  * -`function(i)`
  * -`function(i,j)`
  * -`function(r)`
- * それぞれの仮引数は以下の様に指定する。
+ * 仮引数 <?cpp* '''range-spec'''?> は、文字列内部の範囲を指定するために用います。
+ * それぞれの仮引数は以下の様に指定します。
  * :@param[in] std::ptrdiff_t i,j;
- *  それぞれ範囲の開始位置と終端位置を指定する。
- *  負の数が指定された場合は文字列末端からの相対位置と解釈する。
- *  `mwg::npos` が指定された場合は文字列末端と解釈する。
- *  終端位置が省略された場合は、文字列末端を意味する。
+ *  それぞれ範囲の開始位置と終端位置を指定します。
+ *  負の数が指定された場合は文字列末端からの相対位置と解釈します。
+ *  `mwg::npos` が指定された場合は文字列末端と解釈します。
+ *  終端位置が省略された場合は、文字列末端を意味します。
  * :@param[in] mwg::range_i r;
- *  範囲を指定する。開始位置、終端位置は上記 `i`, `j` と同様に解釈される。
+ *  範囲を指定します。開始位置、終端位置は上記 `i`, `j` と同様に解釈されます。
  *
  * **連結・切り出し・挿入・削除
  * :@op s1==+==s2
@@ -1918,18 +2032,8 @@ struct adapter_traits<std::basic_string<XCH,Tr,Alloc> >{
 /*?lwiki
  *
  * **判定
- * :@op s1==s2;
- * :@op s1!=s2;
- * :@op s1<=s2;
- * :@op s1>=s2;
- * :@op s1<s2;
- * :@op s1>s2;
- *  文字列を比較します。
- * :@fn [TODO] compare
- *  c.f. strcmp/strncmp (C), lexicographical_compare (Boost), CompareOriginal (CLR), compareTo (Java), operator<=> (Ruby)
- * :@fn [TODO] icompare
- *  c.f. stricmp/strcasecmp/strnicmp/strncasecmp (C), ilexicographical_compare (Boost). Compare (CLR), compareToIgnoreCase (Java), casecmp (Ruby)
  */
+#pragma%x mwg::string::compare::doc
 #pragma%x mwg::string::starts::doc
 /*?lwiki
  *
@@ -1938,6 +2042,8 @@ struct adapter_traits<std::basic_string<XCH,Tr,Alloc> >{
 #pragma%x mwg::string::find::doc
 /*?lwiki
  * :@fn [TODO] s.==replace==(s1 ,s2); // 文字列を置換
+ *
+ * **正規表現
  * :@fn [TODO] s.==replace==(reg,s2); // reg 正規表現
  * :@fn [TODO] s.==replace==(reg,fun); // fun 置換後の文字列を決める関数
  *  c.f. replace_all/replace_regex/replace_first/replace_last (Boost), Relace (CLR), \
@@ -1981,33 +2087,19 @@ struct adapter_traits<std::basic_string<XCH,Tr,Alloc> >{
 #endif
 #pragma%x begin_check
 void test(){
-  mwg_assert( (mwg::stradp<char>("hello")=="hello"));
-  mwg_assert(!(mwg::stradp<char>("hello")!="hello"));
-  mwg_assert(!(mwg::stradp<char>("hello")=="world"));
-  mwg_assert( (mwg::stradp<char>("hello")!="world"));
-  mwg_assert(!(mwg::stradp<char>("hello")=="hell"));
-  mwg_assert( (mwg::stradp<char>("hello")!="hell"));
+  test_slice();
+  test_insert();
+  test_map();
+  test_trim();
+  test_pad();
+  test_starts();
+  test_find();
+  test_concat();
+  test_misc();
+  test_compare();
 
-  mwg_assert(!(mwg::stradp<char>("hello")<"hello"));
-  mwg_assert(!(mwg::stradp<char>("hello")>"hello"));
-  mwg_assert( (mwg::stradp<char>("hello")<"world"));
-  mwg_assert(!(mwg::stradp<char>("hello")>"world"));
-  mwg_assert(!(mwg::stradp<char>("hello")<"hell"));
-  mwg_assert( (mwg::stradp<char>("hello")>"hell"));
-
-  mwg_assert( (mwg::stradp<char>("hello")<="hello"));
-  mwg_assert( (mwg::stradp<char>("hello")>="hello"));
-  mwg_assert( (mwg::stradp<char>("hello")<="world"));
-  mwg_assert(!(mwg::stradp<char>("hello")>="world"));
-  mwg_assert(!(mwg::stradp<char>("hello")<="hell"));
-  mwg_assert( (mwg::stradp<char>("hello")>="hell"));
-
-  mwg::string<char> s1;
-  mwg_assert( (s1==""));
-  mwg::string<char> s2="012345";
-  mwg_assert( (s2=="012345"));
-  s1="21345";
-  mwg_assert( (s1=="21345"));
+  typedef mwg::stradp<char> _a;
+  mwg_assert( (_a("HELLO").repeat(3).tolower(5,-3).reverse()=="OLLehollehOLLEH"));
 }
 
 // namespace string_bench{
@@ -2020,19 +2112,6 @@ void test(){
 
 int main(){
   test();
-  test_slice();
-  test_insert();
-  test_map();
-  test_trim();
-  test_pad();
-  test_starts();
-  test_find();
-  test_concat();
-  test_misc();
-
-  typedef mwg::stradp<char> _a;
-  mwg_assert( (_a("HELLO").repeat(3).tolower(5,-3).reverse()=="OLLehollehOLLEH"));
-
   return 0;
 }
 #pragma%x end_check
