@@ -101,7 +101,16 @@ struct str_policy{
     char_at_type operator*() const;
 
     const_iterator& operator++();
-    const_iterator operator++(int);
+    const_iterator  operator++(int);
+    const_iterator& operator--();
+    const_iterator  operator--(int);
+
+    bool operator==(const_iterator const&) const;
+    bool operator!=(const_iterator const&) const;
+
+    const_iterator  operator+(std::ptrdiff_t) const;
+    const_iterator  operator-(std::ptrdiff_t) const;
+    std::ptrdiff_t  operator-(const_iterator const&) const;
   };
 
   struct buffer_type{
@@ -113,7 +122,7 @@ struct str_policy{
     const_iterator begin() const;
     const_iterator end() const;
 
-    [[if(has_get_ptr)]]
+    // 以下の関数は str_policy::has_get_ptr==true の時にだけ定義される
     const char_type* get_ptr() const;
   };
 };
@@ -262,6 +271,16 @@ public:
   bool operator>=(default_const_iterator const& rhs) const{
     return this->index>=rhs.index;
   }
+
+  std::ptrdiff_t operator-(default_const_iterator const& rhs) const{
+    return (std::ptrdiff_t)this.index-(std::ptrdiff_t)rhs.index;
+  }
+  default_const_iterator operator+(std::ptrdiff_t offset) const{
+    return default_const_iterator(this->data,this->index+offset);
+  }
+  default_const_iterator operator-(std::ptrdiff_t offset) const{
+    return default_const_iterator(this->data,this->index-offset);
+  }
 };
 
 //-----------------------------------------------------------------------------
@@ -330,9 +349,6 @@ public:
     return data.length()==0;
   }
 
-  const_iterator begin() const{return data.begin();}
-  const_iterator end()   const{return data.end();}
-
   char_type front() const{
     std::size_t const _len=this->length();
     return _len==0?char_traits_type::null():data[0];
@@ -341,6 +357,11 @@ public:
     std::size_t const _len=this->length();
     return _len==0?char_traits_type::null():data[_len-1];
   }
+
+  const_iterator begin() const{return data.begin();}
+  const_iterator end()   const{return data.end();}
+private:
+  const_iterator _beginAt(std::size_t offset) const{return data.begin()+offset;}
 
   //---------------------------------------------------------------------------
   //
@@ -420,9 +441,14 @@ public:
 #pragma%x begin_check
   void test_slice(){
     typedef mwg::stradp<char> _a;
-    mwg_assert((_a("hello").slice(2,4)=="ll"));
+    mwg_assert((_a("hello").slice(2,4) =="ll"));
     mwg_assert((_a("hello").slice(1,-2)=="el"));
-    mwg_assert((_a("hello").slice(3)=="lo"));
+    mwg_assert((_a("hello").slice(3)   =="lo"));
+
+    // slice of strtmp with `!has_get_ptr`
+    mwg_assert((_a("hello").toupper().slice(2,4) =="LL"));
+    mwg_assert((_a("hello").toupper().slice(1,-2)=="EL"));
+    mwg_assert((_a("hello").toupper().slice(3)   =="LO"));
 
     mwg_assert((_a("0123456789").slice(-6,-3)=="456"));
     mwg_assert((_a("0123456789").slice(-3)=="789"));
@@ -707,12 +733,10 @@ public:
   typename trim_enabler<FPred,3>::type
   trim(FPred const& pred) const{
     typedef mwg::functor_traits<FPred,bool(char_type)> _f;
-    std::size_t const _len=this->length();
-    std::size_t i=0;
-    while(i<_len&&_f::invoke(pred,data[i]))i++;
-    std::size_t j=_len-1;
-    while(j>i&&_f::invoke(pred,data[j]))j--;
-    return slice_return_type(this->data,i,j+1-i);
+    const_iterator i=this->begin(),j=this->end(),jm;
+    while(i!=j&&_f::invoke(pred,*i))++i;
+    while(j!=i&&_f::invoke(pred,*(jm=j-1)))j=jm;
+    return slice_return_type(this->data,i-this->begin(),j-i);
   }
   slice_return_type ltrim() const{
     return this->ltrim(isspace_predicator<char_type>());
@@ -731,10 +755,9 @@ public:
   typename trim_enabler<FPred,3>::type
   ltrim(FPred const& pred) const{
     typedef mwg::functor_traits<FPred,bool(char_type)> _f;
-    std::size_t const _len=this->length();
-    std::size_t i=0;
-    while(i<_len&&_f::invoke(pred,data[i]))i++;
-    return slice_return_type(this->data,i,_len-i);
+    const_iterator i=this->begin(),j=this->end();
+    while(i!=j&&_f::invoke(pred,*i))++i;
+    return slice_return_type(this->data,i-this->begin(),j-i);
   }
   slice_return_type rtrim() const{
     return this->rtrim(isspace_predicator<char_type>());
@@ -753,10 +776,9 @@ public:
   typename trim_enabler<FPred,3>::type
   rtrim(FPred const& pred) const{
     typedef mwg::functor_traits<FPred,bool(char_type)> _f;
-    std::size_t const _len=this->length();
-    std::size_t j=_len-1;
-    while(j>=0&&_f::invoke(pred,data[j]))j--;
-    return slice_return_type(this->data,0,j+1);
+    const_iterator i=this->begin(),j=this->end(),jm;
+    while(j!=i&&_f::invoke(pred,*(jm=j-1)))j=jm;
+    return slice_return_type(this->data,0,j-i);
   }
 #pragma%x begin_check
   void test_trim(){
@@ -877,11 +899,12 @@ public:
   }
   template<typename StrP>
   bool ends(strbase<StrP> const& str) const{
-    std::ptrdiff_t i=this->length()-str.length();
-    if(i<0)return false;
+    std::ptrdiff_t offset=this->length()-str.length();
+    if(offset<0)return false;
+    const_iterator i=this->_beginAt(offset);
     typename strbase<StrP>::const_iterator j=str.begin(),jN=str.end();
     for(;j!=jN;++i,++j)
-      if(this->data[i]!=*j)return false;
+      if(*i!=*j)return false;
     return true;
   }
   template<typename XStr>
@@ -953,13 +976,15 @@ public:
 
 private:
   std::ptrdiff_t _find_impl(char_type const& ch,std::ptrdiff_t i,std::ptrdiff_t j) const{
+    const_iterator p=this->_beginAt(i);
     for(;i<j;++i)
-      if(this->data[i]==ch)return i;
+      if(*p++==ch)return i;
     return -1;
   }
   std::ptrdiff_t _rfind_impl(char_type const& ch,std::ptrdiff_t i,std::ptrdiff_t j) const{
+    const_iterator p=this->_beginAt(j);
     for(;--j>=i;)
-      if(this->data[j]==ch)return j;
+      if(*--p==ch)return j;
     return -1;
   }
 public:
@@ -993,15 +1018,17 @@ private:
   template<typename Pred>
   std::ptrdiff_t _find_pred(Pred const& pred,std::ptrdiff_t i,std::ptrdiff_t j) const{
     typedef mwg::functor_traits<Pred,bool(char_type)> _f;
+    const_iterator p=this->_beginAt(i);
     for(;i<j;++i)
-      if(_f::invoke(pred,this->data[i]))return i;
+      if(_f::invoke(pred,*p++))return i;
     return -1;
   }
   template<typename Pred>
   std::ptrdiff_t _rfind_pred(Pred const& pred,std::ptrdiff_t i,std::ptrdiff_t j) const{
     typedef mwg::functor_traits<Pred,bool(char_type)> _f;
+    const_iterator p=this->_beginAt(j);
     for(;--j>=i;)
-      if(_f::invoke(pred,this->data[j]))return j;
+      if(_f::invoke(pred,*--p))return j;
     return -1;
   }
 public:
@@ -1027,10 +1054,10 @@ public:
 private:
   template<typename StrP>
   bool _find_match_at(std::size_t index,strbase<StrP> const& str) const{
-    typename strbase<StrP>::const_iterator j=str.begin(),jN=str.end();
-    for(;j!=jN;++index,++j)
-      if(this->data[index]!=*j)
-        return false;
+    const_iterator p=this->_beginAt(index);
+    typename strbase<StrP>::const_iterator q=str.begin();
+    for(std::size_t end=index+str.length();index<end;index++)
+      if(*p++!=*q++)return false;
     return true;
   }
   template<typename StrP>
@@ -1383,22 +1410,22 @@ struct _strtmp_sub_policy{
   struct buffer_type{
     const typename StrP1::buffer_type& buff;
     std::size_t start;
-    std::size_t len;
+    std::size_t m_length;
   public:
     buffer_type(const typename StrP1::buffer_type& buff,std::size_t start,std::size_t length)
-      :buff(buff),start(start),len(length){}
+      :buff(buff),start(start),m_length(length){}
   public:
     char_at_type operator[](std::size_t index) const{
       return buff[start+index];
     }
     std::size_t length() const{
-      return this->length;
+      return this->m_length;
     }
     const_iterator begin() const{
       return const_iterator(*this,0);
     }
     const_iterator end() const{
-      return const_iterator(*this,this->len);
+      return const_iterator(*this,this->m_length);
     }
   };
 };
