@@ -783,7 +783,7 @@ public:
     typedef mwg::functor_traits<FPred,bool(char_type)> _f;
     const_iterator i=this->begin(),j=this->end();
     while(i!=j&&_f::invoke(pred,*i))++i;
-    while(j!=i&&_f::invoke(pred,*(j-1)))--j;
+    while(j!=i)if(!_f::invoke(pred,*--j)){++j;break;}
     return slice_return_type(this->data,i-this->begin(),j-i);
   }
   slice_return_type ltrim() const{
@@ -825,7 +825,7 @@ public:
   rtrim(FPred const& pred) const{
     typedef mwg::functor_traits<FPred,bool(char_type)> _f;
     const_iterator i=this->begin(),j=this->end();
-    while(j!=i&&_f::invoke(pred,*(j-1)))--j;
+    while(j!=i)if(!_f::invoke(pred,*--j)){++j;break;}
     return slice_return_type(this->data,0,j-i);
   }
 #pragma%x begin_check

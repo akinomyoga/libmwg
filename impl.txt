@@ -8,38 +8,6 @@
 
 2016-03-01
 
-* string: trim, rtrim で j-1, --j と同じ操作を2回行っている。
-  1回だけしか行わないように修正できないか?
-
-  a const_iterator に default constructor を要求する。
-    一時変数として jtmp を作って、jtmp=j-1 とする。
-    後で j=jtmp とする。
-
-    | const_iterator jtmp;
-    | while(j!=i&&_f::invoke(pred,*(jtmp=j-1)))j=jtmp;
-
-    毎回 jtmp -> j にコピーして書き込む作業が必要になる。
-    また jtmp=j-1 で新しい領域にコピーする手間もある。
-    更に const_iterator たちに default constructor を用意する必要もある。
-
-  b 一時変数として const_iterator jtmp(j); とする。
-    *--j 後に戻す必要が有れば j=jtmp とする。
-
-    | while(j!=i){
-    |   const_iterator jtmp(j);
-    |   if(!_f::invoke(pred,*--j)){j=jtmp;break;}
-    | }
-
-    毎回コピー構築を行う。最後に一回だけ戻す。
-
-  c そもそも一時変数に覚えて置かなくても、必要になった時に再計算すれば良い
-
-    | while(j!=i)if(!_f::invoke(pred,*--j)){++j;break;}
-
-    increment に関してはどの文字コードでもコストは小さいと思われる。
-    毎回コピーをしなくて済むので嬉しい。実装も簡潔である。
-
-
 2016-02-29
 
 * string: できるだけ operator[] ではなく iterator を使って処理を行う。
@@ -86,6 +54,14 @@
     しかし、連続的に移動するという情報を利用して効率化する為には、
     この operator[] の実装毎に、対応する最適化が必要になるからである。
 
+    > _strtmp_map_policy
+    > _strtmp_ranged_map_policy
+    - _strtmp_sub_policy
+    - _strtmp_pad_policy
+    - _strtmp_cat_policy<2>
+    - _strtmp_cat_policy<3>
+    - _strtmp_repeat_policy
+    - _strtmp_reverse_policy
 
 2016-02-27
 
@@ -558,6 +534,39 @@
 ------------------------------------------------------------------------------
   Done
 ------------------------------------------------------------------------------
+
+2016-03-01
+
+* string: trim, rtrim で j-1, --j と同じ操作を2回行っている。
+  1回だけしか行わないように修正できないか?
+
+  a const_iterator に default constructor を要求する。
+    一時変数として jtmp を作って、jtmp=j-1 とする。
+    後で j=jtmp とする。
+
+    | const_iterator jtmp;
+    | while(j!=i&&_f::invoke(pred,*(jtmp=j-1)))j=jtmp;
+
+    毎回 jtmp -> j にコピーして書き込む作業が必要になる。
+    また jtmp=j-1 で新しい領域にコピーする手間もある。
+    更に const_iterator たちに default constructor を用意する必要もある。
+
+  b 一時変数として const_iterator jtmp(j); とする。
+    *--j 後に戻す必要が有れば j=jtmp とする。
+
+    | while(j!=i){
+    |   const_iterator jtmp(j);
+    |   if(!_f::invoke(pred,*--j)){j=jtmp;break;}
+    | }
+
+    毎回コピー構築を行う。最後に一回だけ戻す。
+
+  c そもそも一時変数に覚えて置かなくても、必要になった時に再計算すれば良い
+
+    | while(j!=i)if(!_f::invoke(pred,*--j)){++j;break;}
+
+    increment に関してはどの文字コードでもコストは小さいと思われる。
+    毎回コピーをしなくて済むので嬉しい。実装も簡潔である。
 
 2015-10-19
 
