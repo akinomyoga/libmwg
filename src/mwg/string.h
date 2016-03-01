@@ -98,6 +98,9 @@ struct str_policy{
   static const bool has_get_ptr;
 
   struct const_iterator{
+    static const bool has_index;
+    std::ptrdiff_t index() const;
+
     char_at_type operator*() const;
 
     const_iterator& operator++();
@@ -219,68 +222,113 @@ struct _pred_not_of_str{
 
 //-----------------------------------------------------------------------------
 // default_const_iterator
+// pointer_const_iterator
+// indexible_const_iterator
 
-template<typename StrP1>
+template<typename Policy>
 class default_const_iterator{
-  typedef StrP1 policy_type;
-  typedef typename policy_type::char_at_type char_at_type;
-  typedef typename policy_type::buffer_type  buffer_type;
+  typedef default_const_iterator this_type;
+  typedef typename Policy::char_at_type char_at_type;
+  typedef typename Policy::buffer_type  buffer_type;
 
   buffer_type const& data;
-  std::size_t index;
+  std::ptrdiff_t m_index;
 public:
-  default_const_iterator(buffer_type const& data,std::size_t index)
-    :data(data),index(index){}
-  char_at_type operator*() const{
-    return data[index];
-  }
-  default_const_iterator& operator++(){
-    this->index++;
-    return *this;
-  }
-  default_const_iterator operator++(int){
-    default_const_iterator ret(*this);
-    this->index++;
-    return ret;
-  }
-  default_const_iterator& operator--(){
-    this->index--;
-    return *this;
-  }
-  default_const_iterator operator--(int){
-    default_const_iterator ret(*this);
-    this->index--;
-    return ret;
-  }
+  static const bool has_index=true;
+  std::ptrdiff_t index() const{return this->m_index;}
+  std::ptrdiff_t operator-(this_type const& rhs) const{return this->m_index-rhs.m_index;}
 
-  bool operator==(default_const_iterator const& rhs) const{
-    return this->index==rhs.index;
-  }
-  bool operator!=(default_const_iterator const& rhs) const{
-    return this->index!=rhs.index;
-  }
-  bool operator<(default_const_iterator const& rhs) const{
-    return this->index<rhs.index;
-  }
-  bool operator<=(default_const_iterator const& rhs) const{
-    return this->index<=rhs.index;
-  }
-  bool operator>(default_const_iterator const& rhs) const{
-    return this->index>rhs.index;
-  }
-  bool operator>=(default_const_iterator const& rhs) const{
-    return this->index>=rhs.index;
-  }
+public:
+  default_const_iterator(buffer_type const& data,std::ptrdiff_t index)
+    :data(data),m_index(index){}
+  char_at_type operator*() const{return data[m_index];}
 
-  std::ptrdiff_t operator-(default_const_iterator const& rhs) const{
-    return (std::ptrdiff_t)this.index-(std::ptrdiff_t)rhs.index;
-  }
-  default_const_iterator operator+(std::ptrdiff_t offset) const{
-    return default_const_iterator(this->data,this->index+offset);
-  }
-  default_const_iterator operator-(std::ptrdiff_t offset) const{
-    return default_const_iterator(this->data,this->index-offset);
-  }
+  this_type& operator++()   {++this->m_index;return *this;}
+  this_type& operator--()   {--this->m_index;return *this;}
+  this_type  operator++(int){this_type ret(*this);++this->m_index;return ret;}
+  this_type  operator--(int){this_type ret(*this);--this->m_index;return ret;}
+
+  this_type operator+(std::ptrdiff_t offset) const{return this_type(this->data,this->m_index+offset);}
+  this_type operator-(std::ptrdiff_t offset) const{return this_type(this->data,this->m_index-offset);}
+
+  bool operator==(this_type const& rhs) const{return this->m_index==rhs.m_index;}
+  bool operator!=(this_type const& rhs) const{return this->m_index!=rhs.m_index;}
+  bool operator< (this_type const& rhs) const{return this->m_index< rhs.m_index;}
+  bool operator<=(this_type const& rhs) const{return this->m_index<=rhs.m_index;}
+  bool operator> (this_type const& rhs) const{return this->m_index> rhs.m_index;}
+  bool operator>=(this_type const& rhs) const{return this->m_index>=rhs.m_index;}
+};
+
+template<typename Type>
+class pointer_const_iterator{
+  typedef pointer_const_iterator this_type;
+  typedef Type                   char_type;
+  typedef Type const&            char_at_type;
+
+  Type const* data;
+
+public:
+  static const bool has_index=false;
+
+public:
+  pointer_const_iterator(Type const* pointer):data(pointer){}
+
+  char_at_type operator*() const{return *data;}
+
+  this_type& operator++()   {++this->data;return *this;}
+  this_type  operator++(int){return this_type(this->data++);}
+  this_type& operator--()   {--this->data;return *this;}
+  this_type  operator--(int){return this_type(this->data--);}
+
+  bool operator==(this_type const& rhs) const{return this->data==rhs.data;}
+  bool operator!=(this_type const& rhs) const{return this->data!=rhs.data;}
+  bool operator< (this_type const& rhs) const{return this->data< rhs.data;}
+  bool operator<=(this_type const& rhs) const{return this->data<=rhs.data;}
+  bool operator> (this_type const& rhs) const{return this->data> rhs.data;}
+  bool operator>=(this_type const& rhs) const{return this->data>=rhs.data;}
+
+  std::ptrdiff_t operator-(this_type const& rhs) const{return this->data-rhs.data;}
+  this_type operator+(std::ptrdiff_t offset) const{return this_type(this->data+offset);}
+  this_type operator-(std::ptrdiff_t offset) const{return this_type(this->data-offset);}
+};
+
+template<typename Iter,bool IterHasIndex=Iter::has_index>
+class indexible_const_iterator:public Iter{
+  typedef Iter                     base;
+  typedef indexible_const_iterator this_type;
+
+  std::ptrdiff_t m_index;
+public:
+  static const bool has_index=true;
+  std::ptrdiff_t index() const{return this->m_index;}
+  std::ptrdiff_t operator-(this_type const& rhs) const{return this->m_index-rhs.m_index;}
+
+public:
+  indexible_const_iterator(base const& iter,std::size_t index)
+    :base(iter),m_index(index){}
+
+  this_type& operator++()   {this->base::operator++();++this->m_index;return *this;}
+  this_type& operator--()   {this->base::operator--();--this->m_index;return *this;}
+  this_type  operator++(int){this_type ret(*this);this->base::operator++();++this->m_index;return ret;}
+  this_type  operator--(int){this_type ret(*this);this->base::operator--();--this->m_index;return ret;}
+  this_type  operator+(std::ptrdiff_t offset) const{return this_type(this->base::operator+(offset),this->m_index+offset);}
+  this_type  operator-(std::ptrdiff_t offset) const{return this_type(this->base::operator-(offset),this->m_index-offset);}
+};
+
+template<typename Iter>
+class indexible_const_iterator<Iter,true>:public Iter{
+  typedef Iter                     base;
+  typedef indexible_const_iterator this_type;
+
+  indexible_const_iterator(base const& copye,std::ptrdiff_t):base(copye){}
+  indexible_const_iterator(base const& copye):base(copye){}
+
+  this_type& operator++()   {this->base::operator++();return *this;}
+  this_type& operator--()   {this->base::operator--();return *this;}
+  this_type  operator++(int){this_type ret(*this);this->base::operator++());return ret;}
+  this_type  operator--(int){this_type ret(*this);this->base::operator--());return ret;}
+  this_type  operator+(std::ptrdiff_t offset) const{return this_type(this->base::operator+(offset));}
+  this_type  operator-(std::ptrdiff_t offset) const{return this_type(this->base::operator-(offset));}
 };
 
 //-----------------------------------------------------------------------------
@@ -733,9 +781,9 @@ public:
   typename trim_enabler<FPred,3>::type
   trim(FPred const& pred) const{
     typedef mwg::functor_traits<FPred,bool(char_type)> _f;
-    const_iterator i=this->begin(),j=this->end(),jm;
+    const_iterator i=this->begin(),j=this->end();
     while(i!=j&&_f::invoke(pred,*i))++i;
-    while(j!=i&&_f::invoke(pred,*(jm=j-1)))j=jm;
+    while(j!=i&&_f::invoke(pred,*(j-1)))--j;
     return slice_return_type(this->data,i-this->begin(),j-i);
   }
   slice_return_type ltrim() const{
@@ -776,8 +824,8 @@ public:
   typename trim_enabler<FPred,3>::type
   rtrim(FPred const& pred) const{
     typedef mwg::functor_traits<FPred,bool(char_type)> _f;
-    const_iterator i=this->begin(),j=this->end(),jm;
-    while(j!=i&&_f::invoke(pred,*(jm=j-1)))j=jm;
+    const_iterator i=this->begin(),j=this->end();
+    while(j!=i&&_f::invoke(pred,*(j-1)))--j;
     return slice_return_type(this->data,0,j-i);
   }
 #pragma%x begin_check
@@ -1197,8 +1245,8 @@ struct strsub_policy{
   typedef XCH              char_type;
   typedef const char_type& char_at_type;
   typedef strsub_policy    policy_type;
-  typedef const char_type* const_iterator;
   static const bool has_get_ptr=true;
+  typedef pointer_const_iterator<char_type> const_iterator;
 
   struct buffer_type{
     const char_type* ptr;
@@ -1263,7 +1311,7 @@ struct string_policy{
   typedef const char_type& char_at_type;
   static const bool has_get_ptr=true;
 
-  typedef const char_type* const_iterator;
+  typedef pointer_const_iterator<char_type> const_iterator;
 
   typedef char_traits<char_type> char_traits_type;
 
@@ -1405,6 +1453,7 @@ struct _strtmp_sub_policy{
   static const bool has_get_ptr=false;
 
   struct buffer_type;
+
   typedef default_const_iterator<_strtmp_sub_policy> const_iterator;
 
   struct buffer_type{
@@ -1437,7 +1486,26 @@ struct _strtmp_map_policy{
   typedef char_type                char_at_type;
   static const bool has_get_ptr=false;
 
-  typedef default_const_iterator<_strtmp_map_policy> const_iterator;
+  typedef typename StrP::const_iterator base_const_iterator;
+  struct const_iterator:base_const_iterator{
+    Filter const& m_filter;
+
+    typedef typename StrP::const_iterator base;
+
+    const_iterator(base const& iter,Filter const& filter)
+      :base(iter),m_filter(filter){}
+    const_iterator(base const& iter,const_iterator const& origin)
+      :base(iter),m_filter(origin.m_filter){}
+    char_at_type operator*() const{return this->m_filter(this->base::operator*());}
+
+    const_iterator& operator++()   {this->base::operator++();return *this;}
+    const_iterator& operator--()   {this->base::operator--();return *this;}
+    const_iterator  operator++(int){return const_iterator(this->base::operator++(0),*this);}
+    const_iterator  operator--(int){return const_iterator(this->base::operator--(0),*this);}
+
+    const_iterator operator+(std::ptrdiff_t offset) const{return const_iterator(this->base::operator+(offset),*this);}
+    const_iterator operator-(std::ptrdiff_t offset) const{return const_iterator(this->base::operator-(offset),*this);}
+  };
 
   struct buffer_type{
     const typename StrP::buffer_type& buff;
@@ -1454,10 +1522,10 @@ struct _strtmp_map_policy{
       return this->buff.length();
     }
     const_iterator begin() const{
-      return const_iterator(*this,0);
+      return const_iterator(this->buff.begin(),this->filter);
     }
     const_iterator end() const{
-      return const_iterator(*this,this->length());
+      return const_iterator(this->buff.end(),this->filter);
     }
   };
 };
@@ -1469,7 +1537,34 @@ struct _strtmp_ranged_map_policy{
   typedef char_type                 char_at_type;
   static const bool has_get_ptr=false;
 
-  typedef default_const_iterator<policy_type> const_iterator;
+  typedef indexible_const_iterator<typename StrP::const_iterator> base_const_iterator;
+
+  struct const_iterator:base_const_iterator{
+    typedef base_const_iterator base;
+
+    Filter const& m_filter;
+    mwg::range<std::size_t> const& m_range;
+
+    const_iterator(base_const_iterator const& iter,Filter const& filter,mwg::range<std::size_t> const& r)
+      :base(iter),m_filter(filter),m_range(r){}
+    const_iterator(base_const_iterator const& iter,const_iterator const& origin)
+      :base(iter),m_filter(origin.m_filter),m_range(origin.m_range){}
+    char_at_type operator*() const{
+      if(this->m_range.contains(this->base::index()))
+        return this->m_filter(this->base::operator*());
+      else
+        return this->base::operator*();
+    }
+
+    const_iterator& operator++()   {this->base::operator++();return *this;}
+    const_iterator& operator--()   {this->base::operator--();return *this;}
+    const_iterator  operator++(int){return const_iterator(this->base::operator++(0),*this);}
+    const_iterator  operator--(int){return const_iterator(this->base::operator--(0),*this);}
+
+    std::ptrdiff_t operator-(const_iterator const& rhs) const{return this->m_iter-rhs.m_iter;}
+    const_iterator operator+(std::ptrdiff_t offset) const{return const_iterator(this->base::operator+(offset),*this);}
+    const_iterator operator-(std::ptrdiff_t offset) const{return const_iterator(this->base::operator-(offset),*this);}
+  };
 
   struct buffer_type{
     const typename StrP::buffer_type& buff;
@@ -1490,10 +1585,10 @@ struct _strtmp_ranged_map_policy{
       return this->buff.length();
     }
     const_iterator begin() const{
-      return const_iterator(*this,0);
+      return const_iterator(base_const_iterator(buff.begin(),0),filter,r);
     }
     const_iterator end() const{
-      return const_iterator(*this,this->length());
+      return const_iterator(base_const_iterator(buff.end(),buff.length()),filter,r);
     }
   };
 };
