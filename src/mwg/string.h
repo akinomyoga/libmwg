@@ -17,17 +17,25 @@
 #include <mwg/except.h>
 #include <mwg/string.h>
 
-struct tester{
+class managed_test{
+public:
   virtual void test()=0;
+  managed_test(){testerList.push_back(this);}
+
+private:
+  static std::vector<managed_test*> testerList;
+public:
+  static void run_tests(){
+    for(int i=0,iN=testerList.size();i<iN;i++)
+      testerList[i]->test();
+  }
 };
-std::vector<tester*> testerList;
-struct register_test:tester{
-  register_test(){testerList.push_back(this);}
-};
+std::vector<managed_test*> managed_test::testerList;
+
 #pragma%x end_check
 #pragma%m begin_test
 #pragma%%x begin_check
-class test_%NAME%:register_test{
+class test_%NAME%:managed_test{
 #pragma%%m end_test
 } test_%NAME%_instance;
 #pragma%%%x end_check
@@ -2403,8 +2411,7 @@ void test(){
   test_misc();
   test_compare();
 
-  for(int i=0,iN=testerList.size();i<iN;i++)
-    testerList[i]->test();
+  managed_test::run_tests();
 
   typedef mwg::stradp<char> _a;
   mwg_assert( (_a("HELLO").repeat(3).tolower(5,-3).reverse()=="OLLehollehOLLEH"));
