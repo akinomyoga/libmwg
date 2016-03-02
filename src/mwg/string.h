@@ -46,7 +46,7 @@ namespace string3_detail{
   template<typename XCH>
   struct char_traits;
   template<typename Policy>
-  struct strbase;
+  class strbase;
 
   template<typename XCH>
   class strsub;
@@ -126,7 +126,6 @@ namespace string3_detail{
       static const bool has_index;
       // 以下2関数は has_index==true の時にだけ定義される。
       std::ptrdiff_t index() const;
-      void reset_index(std::ptrdiff_t index);
 
       char_at_type operator*() const;
 
@@ -263,7 +262,6 @@ class default_const_iterator{
 public:
   static const bool has_index=true;
   std::ptrdiff_t index() const{return this->m_index;}
-  void reset_index(std::ptrdiff_t index){this->m_index=index;}
   std::ptrdiff_t operator-(this_type const& rhs) const{return this->m_index-rhs.m_index;}
 
 public:
@@ -329,7 +327,6 @@ class indexible_const_iterator:public Iter{
 public:
   static const bool has_index=true;
   std::ptrdiff_t index() const{return this->m_index;}
-  void reset_index(std::ptrdiff_t index){this->m_index=index;}
   std::ptrdiff_t operator-(this_type const& rhs) const{return this->m_index-rhs.m_index;}
 
 public:
@@ -349,6 +346,7 @@ class indexible_const_iterator<Iter,true>:public Iter{
   typedef Iter                     base;
   typedef indexible_const_iterator this_type;
 
+public:
   indexible_const_iterator(base const& copye,std::ptrdiff_t):base(copye){}
   indexible_const_iterator(base const& copye):base(copye){}
 
@@ -367,7 +365,7 @@ template<typename XCH>
 struct strbase_tag{};
 
 template<typename Policy>
-struct strbase:strbase_tag<typename Policy::char_type>{
+class strbase:public strbase_tag<typename Policy::char_type>{
 public:
   typedef Policy                               policy_type;
   typedef typename policy_type::char_type      char_type;
@@ -1310,7 +1308,7 @@ class strsub:public strbase<strsub_policy<XCH> >{
 
 private:
   template<typename StrP>
-  friend struct strbase;
+  friend class strbase;
 
   template<typename BufferType>
   strsub(BufferType const& data,std::size_t start,std::size_t length)
@@ -1490,14 +1488,13 @@ namespace string3_detail{
     typedef XCH char_at_type;
     static const bool has_get_ptr=false;
 
-    struct const_iterator{
+    class const_iterator{
       char_type value;
       std::ptrdiff_t m_index;
       typedef const_iterator this_type;
     public:
       static const bool has_index=true;
       std::ptrdiff_t index() const{return this->m_index;}
-      void reset_index(std::ptrdiff_t index){this->m_index=index;}
 
       const_iterator(char_type value,std::ptrdiff_t index):value(value),m_index(index){}
 
@@ -1515,7 +1512,8 @@ namespace string3_detail{
       bool           operator!=(this_type const& rhs) const{return this->m_index==rhs.m_index;}
     };
 
-    struct buffer_type{
+    class buffer_type{
+    private:
       char_type value;
       std::size_t m_length;
     public:
@@ -1536,66 +1534,78 @@ namespace string3_detail{
 #pragma%x end_check
 //-----------------------------------------------------------------------------
 // _strtmp_sub_policy
-// _strtmp_map_policy, _strtmp_ranged_map_policy
-// _strtmp_pad_policy
+
+template<typename Iter,bool IterHasIndex=Iter::has_index>
+class index_displaced_iterator{ /* not supported */ };
+
+template<typename Iter>
+class index_displaced_iterator<Iter,true>:public Iter{
+  typedef Iter base;
+  std::ptrdiff_t offset;
+
+public:
+  index_displaced_iterator(base const& iter,std::ptrdiff_t offset)
+    :base(iter),offset(offset){}
+
+  void index() const{
+    return this->base::index()-start;
+  }
+};
 
 template<typename Policy>
 struct _strtmp_sub_policy{
+public:
   typedef _strtmp_sub_policy            policy_type;
   typedef typename Policy::char_type    char_type;
   typedef typename Policy::char_at_type char_at_type;
   static const bool has_get_ptr=false;
 
-  typedef typename Policy::const_iterator const_iterator;
+private:
+  typedef typename Policy::const_iterator target_iterator;
 
-  struct buffer_type{
+public:
+  // target_iterator::has_index 分岐 (1/2)
+  typedef typename stdm::conditional<
+    target_iterator::has_index,index_displaced_iterator<target_iterator>,
+    target_iterator>::type const_iterator;
+
+  class buffer_type{
     const typename Policy::buffer_type& buff;
-    std::size_t start;
+    std::size_t m_start;
     std::size_t m_length;
+
   public:
     buffer_type(const typename Policy::buffer_type& buff,std::size_t start,std::size_t length)
-      :buff(buff),start(start),m_length(length){}
+      :buff(buff),m_start(start),m_length(length){}
+
   public:
     char_at_type operator[](std::size_t index) const{
-      return buff[start+index];
+      return buff[m_start+index];
     }
     std::size_t length() const{
       return this->m_length;
     }
 
   private:
-#ifdef MWGCONF_STD_RVALUE_REFERENCES
+    // target_iterator::has_index 分岐 (2/2)
     template<typename Iter>
-    typename stdm::enable_if<Iter::has_index,Iter&&>::type
-    static modify_iterator(Iter&& iter,std::ptrdiff_t index){
-      iter.reset_index(index);
-      return stdm::move(iter);
-    }
-    template<typename Iter>
-    typename stdm::enable_if<!Iter::has_index,Iter&&>::type
-    static modify_iterator(Iter&& iter,std::ptrdiff_t index){return stdm::move(iter);}
-#else
-    template<typename Iter>
-    typename stdm::enable_if<Iter::has_index,Iter>::type
-    static modify_iterator(Iter const& iter,std::ptrdiff_t index){
-      Iter ret(iter);
-      ret.reset_index(index);
-      return ret;
+    typename stdm::enable_if<Iter::has_index,const_iterator>::type
+    static modify_iterator(Iter const& iter,std::ptrdiff_t offset){
+      return const_iterator(iter,offset);
     }
     template<typename Iter>
     typename stdm::enable_if<!Iter::has_index,Iter const&>::type
-    static modify_iterator(Iter const& iter,std::ptrdiff_t index){return iter;}
-#endif
+    static modify_iterator(Iter const& iter,std::ptrdiff_t offset){return iter;}
 
   public:
     const_iterator begin() const{
-      return modify_iterator(buff.begin_at(start),0);
+      return modify_iterator(buff.begin_at(m_start),m_start);
     }
     const_iterator end() const{
-      return modify_iterator(buff.begin_at(start+m_length),m_length);
+      return modify_iterator(buff.begin_at(m_start+m_length),m_start);
     }
     const_iterator begin_at(std::ptrdiff_t index) const{
-      return modify_iterator(buff.begin_at(start+index),index);
+      return modify_iterator(buff.begin_at(m_start+index),m_start);
     }
   };
 };
@@ -1614,6 +1624,10 @@ struct _strtmp_sub_policy{
   }
 #pragma%x end_test
 
+//-----------------------------------------------------------------------------
+// _strtmp_map_policy, _strtmp_ranged_map_policy
+// _strtmp_pad_policy
+
 /* :@tp Filter
  *  Filter には filter を格納する形式を指定する。
  *  filter と結果文字列が同じ完全式の部分式である場合には、寿命が一致しているので参照を指定する。
@@ -1629,11 +1643,12 @@ struct _strtmp_map_policy{
 
   typedef typename Policy::const_iterator target_iterator;
   typedef typename mwg::stdm::remove_reference<Filter>::type filter_type;
-  struct const_iterator:target_iterator{
+  class const_iterator:public target_iterator{
     filter_type const& m_filter;
 
     typedef typename Policy::const_iterator base;
 
+  public:
     const_iterator(base const& iter,filter_type const& filter)
       :base(iter),m_filter(filter){}
     const_iterator(base const& iter,const_iterator const& origin)
@@ -1649,7 +1664,7 @@ struct _strtmp_map_policy{
     const_iterator operator-(std::ptrdiff_t offset) const{return const_iterator(this->base::operator-(offset),*this);}
   };
 
-  struct buffer_type{
+  class buffer_type{
     const typename Policy::buffer_type& buff;
     Filter filter;
   public:
@@ -1702,11 +1717,12 @@ private:
   typedef typename stdm::conditional<target_iterator::has_index,target_iterator,
     indexible_const_iterator<target_iterator> >::type indexed_iterator;
 public:
-  struct const_iterator:indexed_iterator{
+  class const_iterator:public indexed_iterator{
     typedef indexed_iterator base;
 
     ranged_filter const& m_filter;
 
+  public:
     const_iterator(indexed_iterator const& iter,ranged_filter const& filter)
       :base(iter),m_filter(filter){}
     const_iterator(indexed_iterator const& iter,const_iterator const& origin)
@@ -1725,7 +1741,7 @@ public:
     const_iterator operator-(std::ptrdiff_t offset) const{return const_iterator(this->base::operator-(offset),*this);}
   };
 
-  struct buffer_type{
+  class buffer_type{
     const typename Policy::buffer_type& buff;
     ranged_filter m_filter;
   public:
@@ -1801,7 +1817,7 @@ struct _strtmp_pad_policy{
 
   typedef default_const_iterator<policy_type> const_iterator;
 
-  struct buffer_type{
+  class buffer_type{
     Str const& str;
     std::size_t lpad_len;
     std::size_t m_length;
@@ -1855,7 +1871,7 @@ struct _strtmp_cat_policy{
   static const bool has_get_ptr=false;
   typedef default_const_iterator<policy_type> const_iterator;
 
-  struct buffer_type{
+  class buffer_type{
     Str1 str1;
     Str2 str2;
     Str3 str3;
@@ -1903,7 +1919,7 @@ struct _strtmp_cat_policy<Str1,Str2>{
 
   typedef default_const_iterator<policy_type> const_iterator;
 
-  struct buffer_type{
+  class buffer_type{
     Str1 str1;
     Str2 str2;
     std::size_t length1;
@@ -1986,7 +2002,7 @@ struct _strtmp_reverse_policy{
 
   typedef default_const_iterator<policy_type> const_iterator;
 
-  struct buffer_type{
+  class buffer_type{
     Str const& str;
   public:
     buffer_type(Str const& str):str(str){}
@@ -2010,7 +2026,7 @@ struct _strtmp_repeat_policy{
 
   typedef default_const_iterator<policy_type> const_iterator;
 
-  struct buffer_type{
+  class buffer_type{
     Str const& m_str;
     std::size_t m_repeatCount;
   public:
