@@ -1,0 +1,80 @@
+// -*- mode:C++;coding:utf-8 -*-
+#pragma once
+#ifndef MWG_STDM_CCTYPE
+#define MWG_STDM_CCTYPE
+#include <cctype>
+#include <mwg/defs.h>
+
+/*?lwiki
+:@fn int mwg::stdm::iscntrl(int);
+:@fn int mwg::stdm::isspace(int);
+:@fn int mwg::stdm::isblank(int);
+:@fn int mwg::stdm::isprint(int);
+:@fn int mwg::stdm::isgraph(int);
+:@fn int mwg::stdm::ispunct(int);
+:@fn int mwg::stdm::isalnum(int);
+:@fn int mwg::stdm::isalpha(int);
+:@fn int mwg::stdm::islower(int);
+:@fn int mwg::stdm::isupper(int);
+:@fn int mwg::stdm::isxdigit(int);
+:@fn int mwg::stdm::isdigit(int);
+:@fn int mwg::stdm::tolower(int);
+:@fn int mwg::stdm::toupper(int);
+:
+&pre*{
+    cntrl                 print
+ <--------->:<-------------------------------->
+            :                 graph
+            :      :<------------------------->
+            :      :
+            :      :  alnum
+            :      : +------------------------+
+            :      : |xdigit                  |
+    space   :      : +-------------+          |
+ +---------------+ : | digit       |  alpha   |
+ |      blank    | : |+-----+ +----|-------+  |
+ |\n\v +---------+ : || 0-9 | |+---|---+   |  |
+ |\f\r | \t : SP | : |+-----+ ||a-f|g-z|lower |
+ +---------------+ : |        |+---|---+   |  |
+            :      : |        ||A-F|G-Z|upper |
+            :      : |        |+---|---+   |  |
+            :      : |        +----|-------+  |
+            :      : +-------------+----------+
+  DEL       :      :
+  \0-\x8    :      : punct
+  \xE-\x1F  :      : +------------------------+
+            :      : |     !-/ :-@ [-_ &lbrace;-~    |
+            :      : +------------------------+
+}
+*/
+
+namespace mwg{
+namespace stdm{
+
+  // C99 Features
+  //?mconf X -t'std::isblank(x)' -oMWGCONF_HAS_STD_ISBLANK cctype "std::isblank('\t')"
+
+#if !defined(MWGCONF_HAS_STD_ISBLANK)
+  inline mwg_constexpr int isblank(int value){
+    return value=='\t'||value==' '?1:0;
+  }
+#endif
+
+}
+}
+
+#endif /* end of MWG_STDM_CCTYPE */
+#pragma%x begin_check
+#include <mwg/std/cctype>
+#include <mwg/except.h>
+int main(){
+  mwg_check( mwg::stdm::isblank(' '));
+  mwg_check( mwg::stdm::isblank('\t'));
+  mwg_check(!mwg::stdm::isblank('\n'));
+  mwg_check(!mwg::stdm::isblank('\v'));
+  mwg_check(!mwg::stdm::isblank('\f'));
+  mwg_check(!mwg::stdm::isblank('\r'));
+
+  return 0;
+}
+#pragma%x end_check

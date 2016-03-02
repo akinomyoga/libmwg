@@ -1,0 +1,62 @@
+// -*- mode:C++;coding:utf-8 -*-
+#pragma once
+#ifndef MWG_STDM_CWCTYPE
+#define MWG_STDM_CWCTYPE
+#include <cwctype>
+#include <mwg/defs.h>
+
+/*?lwiki
+:@class wint_t;
+:@def WEOF;
+:@class wctype_t;
+:@fn std::wctype_t mwg::stdm::wctype(const char*);
+:@fn int mwg::stdm::iswctype(std::wint_t,std::wctype_t);
+:@fn int mwg::stdm::iswcntrl(std::wint_t);
+:@fn int mwg::stdm::iswspace(std::wint_t);
+:@fn int mwg::stdm::iswblank(std::wint_t);
+:@fn int mwg::stdm::iswprint(std::wint_t);
+:@fn int mwg::stdm::iswgraph(std::wint_t);
+:@fn int mwg::stdm::iswpunct(std::wint_t);
+:@fn int mwg::stdm::iswalnum(std::wint_t);
+:@fn int mwg::stdm::iswalpha(std::wint_t);
+:@fn int mwg::stdm::iswlower(std::wint_t);
+:@fn int mwg::stdm::iswupper(std::wint_t);
+:@fn int mwg::stdm::iswxdigit(std::wint_t);
+:@fn int mwg::stdm::iswdigit(std::wint_t);
+:@class wctrans_t;
+:@fn std::wctrans_t mwg::stdm::wctrans(const char*);
+:@fn std::wint_t mwg::stdm::towctrans(std::wint_t,std::wctrans_t);
+:@fn std::wint_t mwg::stdm::towlower(std::wint_t);
+:@fn std::wint_t mwg::stdm::towupper(std::wint_t);
+*/
+
+namespace mwg{
+namespace stdm{
+
+  // C99 Features
+  //?mconf X -t'std::iswblank(x)' -oMWGCONF_HAS_STD_ISWBLANK cctype "std::iswblank('\t')"
+
+#if !defined(MWGCONF_HAS_STD_ISWBLANK)
+  inline mwg_constexpr int iswblank(std::wint_t value){
+    return value=='\t'||value==' '?1:0;
+  }
+#endif
+
+}
+}
+
+#endif /* end of MWG_STDM_CWCTYPE */
+#pragma%x begin_check
+#include <mwg/std/cwctype>
+#include <mwg/except.h>
+int main(){
+  mwg_check( mwg::stdm::iswblank(L' '));
+  mwg_check( mwg::stdm::iswblank(L'\t'));
+  mwg_check(!mwg::stdm::iswblank(L'\n'));
+  mwg_check(!mwg::stdm::iswblank(L'\v'));
+  mwg_check(!mwg::stdm::iswblank(L'\f'));
+  mwg_check(!mwg::stdm::iswblank(L'\r'));
+
+  return 0;
+}
+#pragma%x end_check

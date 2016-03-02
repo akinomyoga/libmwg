@@ -61,7 +61,7 @@ clean-cxx-check:
 clean-cxx: clean-cxx-config clean-cxx-cache clean-cxx-obj clean-cxx-lib clean-cxx-check
 .PHONY: clean-cxx clean-cxx-config clean-cxx-cache clean-cxx-obj clean-cxx-lib clean-cxx-check
 #
-clean: clean-cxx-obj
+clean: clean-cxx-obj clean-cxx-check
 clean-all: clean-src clean-cxx
 .PHONY: clean clean-src clean-all
 #

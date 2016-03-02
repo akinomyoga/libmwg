@@ -31,6 +31,8 @@ Makefile: Makefile.pp
 #%x AddCxxHeader.r|%file%|mwg/std/chrono|
 #%x AddCxxHeader.r|%file%|mwg/std/cmath|
 #%x AddCxxHeader.r|%file%|mwg/std/cstdint|
+#%x AddCxxHeader.r|%file%|mwg/std/cctype|
+#%x AddCxxHeader.r|%file%|mwg/std/cwctype|
 #%x AddCxxHeader.r|%file%|mwg/std/initializer_list|
 #%x AddCxxHeader.r|%file%|mwg/std/typeinfo|
 #%x AddCxxHeader.r|%file%|mwg/std/iterator|
