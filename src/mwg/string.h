@@ -13,9 +13,26 @@
 #include <mwg/range.h>
 #include <mwg/functor.h>
 #pragma%x begin_check
+#include <vector>
 #include <mwg/except.h>
 #include <mwg/string.h>
+
+struct tester{
+  virtual void test()=0;
+};
+std::vector<tester*> testerList;
+struct register_test:tester{
+  register_test(){testerList.push_back(this);}
+};
 #pragma%x end_check
+#pragma%m begin_test
+#pragma%%x begin_check
+class test_%NAME%:register_test{
+#pragma%%m end_test
+} test_%NAME%_instance;
+#pragma%%%x end_check
+#pragma%%end
+#pragma%end
 namespace mwg{
 namespace string3_detail{
   template<typename XCH>
@@ -89,49 +106,49 @@ namespace string3_detail{
       return (std::size_t)index<len?index:len;
   }
 
-#if 0
-struct str_policy{
-  typedef char        char_type;
-  typedef const char& char_at_type; // e.g. char, const char&
-  typedef str_policy  policy_type;
+#pragma%m mwg::string::policy_requirements
+  struct StringPolicy{
+    typedef char          char_type;
+    typedef const char&   char_at_type; // e.g. char, const char&
+    typedef StringPolicy  policy_type;
 
-  static const bool has_get_ptr;
+    static const bool has_get_ptr;
 
-  struct const_iterator{
-    static const bool has_index;
-    std::ptrdiff_t index() const;
-    void reset_index(std::ptrdiff_t index);
+    struct const_iterator{
+      static const bool has_index;
+      // 以下2関数は has_index==true の時にだけ定義される。
+      std::ptrdiff_t index() const;
+      void reset_index(std::ptrdiff_t index);
 
-    char_at_type operator*() const;
+      char_at_type operator*() const;
 
-    const_iterator& operator++();
-    const_iterator  operator++(int);
-    const_iterator& operator--();
-    const_iterator  operator--(int);
+      const_iterator& operator++();
+      const_iterator  operator++(int);
+      const_iterator& operator--();
+      const_iterator  operator--(int);
 
-    bool operator==(const_iterator const&) const;
-    bool operator!=(const_iterator const&) const;
+      bool operator==(const_iterator const&) const;
+      bool operator!=(const_iterator const&) const;
 
-    const_iterator  operator+(std::ptrdiff_t) const;
-    const_iterator  operator-(std::ptrdiff_t) const;
-    std::ptrdiff_t  operator-(const_iterator const&) const;
+      const_iterator  operator+(std::ptrdiff_t) const;
+      const_iterator  operator-(std::ptrdiff_t) const;
+      std::ptrdiff_t  operator-(const_iterator const&) const;
+    };
+
+    struct buffer_type{
+      char_at_type operator[](std::ptrdiff_t) const;
+
+      std::size_t length() const;
+
+      const_iterator begin() const;
+      const_iterator end() const;
+      const_iterator begin_at(std::ptrdiff_t) const;
+
+      // 以下の関数は StringPolicy::has_get_ptr==true の時にだけ定義される
+      const char_type* get_ptr() const;
+    };
   };
-
-  struct buffer_type{
-    char_at_type operator[]() const;
-    // or: const char_type& operator[]{} const;
-
-    std::size_t length() const;
-
-    const_iterator begin() const;
-    const_iterator end() const;
-    const_iterator begin_at(std::ptrdiff_t) const;
-
-    // 以下の関数は str_policy::has_get_ptr==true の時にだけ定義される
-    const char_type* get_ptr() const;
-  };
-};
-#endif
+#pragma%end
 
 //-----------------------------------------------------------------------------
 //  char_traits
@@ -1381,7 +1398,7 @@ struct string_policy{
     void copy_content(strbase<StrP> const& str){
       typename StrP::const_iterator j=str.begin();
       std::size_t const iN=str.length();
-      char* const data=ptr->data;
+      char_type* const data=ptr->data;
       for(std::size_t i=0;i<iN;++i,++j)
         data[i]=*j;
       data[iN]=char_traits_type::null();
@@ -1446,6 +1463,69 @@ public:
 
 };
 
+#pragma%x begin_check
+//-----------------------------------------------------------------------------
+// _strtest_repeated_chars_policy
+
+namespace mwg{
+namespace string3_detail{
+
+  /// @class _strtest_repeated_chars_policy
+  /// 同じ文字が指定した回数だけ繰り返される文字列。
+  /// これはデバグ用の StringPolicy である。
+  /// has_index に対する処理をテストする為に、
+  /// has_index な const_iterator の例として実装された。
+  template<typename XCH>
+  struct _strtest_repeated_chars_policy{
+    typedef _strtest_repeated_chars_policy policy_type;
+    typedef XCH char_type;
+    typedef XCH char_at_type;
+    static const bool has_get_ptr=false;
+
+    struct const_iterator{
+      char_type value;
+      std::ptrdiff_t m_index;
+      typedef const_iterator this_type;
+    public:
+      static const bool has_index=true;
+      std::ptrdiff_t index() const{return this->m_index;}
+      void reset_index(std::ptrdiff_t index){this->m_index=index;}
+
+      const_iterator(char_type value,std::ptrdiff_t index):value(value),m_index(index){}
+
+      char_at_type operator*() const{return value;}
+
+      this_type& operator++(){++this->m_index;return *this;}
+      this_type& operator--(){--this->m_index;return *this;}
+      this_type  operator++(int){return this_type(this->m_index++);}
+      this_type  operator--(int){return this_type(this->m_index--);}
+      this_type  operator+(std::ptrdiff_t offset) const{return this_type(this->m_index+offset);}
+      this_type  operator-(std::ptrdiff_t offset) const{return this_type(this->m_index-offset);}
+
+      std::ptrdiff_t operator- (this_type const& rhs) const{return this->m_index- rhs.m_index;}
+      bool           operator==(this_type const& rhs) const{return this->m_index==rhs.m_index;}
+      bool           operator!=(this_type const& rhs) const{return this->m_index==rhs.m_index;}
+    };
+
+    struct buffer_type{
+      char_type value;
+      std::size_t m_length;
+    public:
+      buffer_type(char_type value,std::size_t length)
+        :value(value),m_length(length){}
+
+      char_at_type operator[](std::ptrdiff_t index) const{return this->value;}
+      std::size_t length() const{return this->m_length;}
+
+      const_iterator begin() const{return const_iterator(this->value,0);}
+      const_iterator end() const{return const_iterator(this->value,this->m_length);}
+      const_iterator begin_at(std::ptrdiff_t offset) const{return const_iterator(this->value,offset);}
+    };
+  };
+}
+}
+
+#pragma%x end_check
 //-----------------------------------------------------------------------------
 // _strtmp_sub_policy
 // _strtmp_map_policy, _strtmp_ranged_map_policy
@@ -1511,6 +1591,20 @@ struct _strtmp_sub_policy{
     }
   };
 };
+
+#pragma%x begin_test.r/%NAME%/_strtmp_sub_policy/
+  void test(){
+    using namespace mwg::string3_detail;
+
+    // !has_index な基底 const_iterator から、const_iterator を初期化
+    typedef mwg::stradp<char> _a;
+    mwg_assert((strbase<_strtmp_sub_policy<_a::policy_type> >(_a::buffer_type("hello",5),1,3)=="ell"));
+
+    // has_index な基底 const_iterator から、const_iterator を初期化
+    typedef _strtest_repeated_chars_policy<char> _b;
+    mwg_assert((strbase<_strtmp_sub_policy<_b::policy_type> >(_b::buffer_type('A',5),1,3)=="AAA"));
+  }
+#pragma%x end_test
 
 /* :@tp Filter
  *  Filter には filter を格納する形式を指定する。
@@ -2267,6 +2361,32 @@ struct adapter_traits<std::basic_string<XCH,Tr,Alloc> >{
  *  -Perl: chop chomp, hex oct,
  *  -Ruby: chomp chop, count, crypt, delete, hash sum, \
  *   hex oct to_i to_f to_c to_r to_s to_str, succ next, squeeze tr_s
+ *
+ *
+ * *新しい文字列型を定義する方法
+mwg::string では、文字列の内部形式と文字列に対する操作を分離して実装しています。\
+文字列の内部形式は `StringPolicy` を用いて定義されます。\
+文字列に対する操作は `strbase<StringPolicy>` によって提供されます。\
+ここでは、`StringPolicy` を定義して、新しい文字列の内部形式を追加する方法を説明します。
+
+`StringPolicy` は以下の様なメンバを持つクラスとして定義します。
+&pre(!cpp){
+#pragma%x mwg::string::policy_requirements
+}
+:@class class StringPolicy;
+ :@class char_type;
+  単一の文字を表現する型です。
+ :@class char_at_type;
+  文字列中への文字を取得する際の型です。\
+  内部表現に対応するデータが存在する場合には、そのデータへの参照 (`char_type const&`) になります。\
+  それ以外の場合は、単に `char_type` になります。
+ :@class buffer_type;
+  文字列の内部表現を格納する型です。
+ :@class const_iterator;
+  文字列に含まれる文字を列挙する反復子です。
+ :@var static const bool has_get_ptr;
+  文字データが連続した領域に格納され、その先頭へのポインタが得られる場合に true を指定します。
+
  */
 //HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 #endif
@@ -2282,6 +2402,9 @@ void test(){
   test_concat();
   test_misc();
   test_compare();
+
+  for(int i=0,iN=testerList.size();i<iN;i++)
+    testerList[i]->test();
 
   typedef mwg::stradp<char> _a;
   mwg_assert( (_a("HELLO").repeat(3).tolower(5,-3).reverse()=="OLLehollehOLLEH"));
