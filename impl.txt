@@ -8,6 +8,26 @@
 
 2016-03-03
 
+* mwg::make_str()
+
+  わざわざ std::stradp<char> などの様に文字の型を指定しなくても、
+  自然な文字の型を推論する事ができる筈である。
+
+  これの実装に伴い adapter_traits を拡張して
+  必ずしも stradp を adapter としなければならない訳ではない様にする。
+  今後 adapter_traits は以下の3つを提供する。
+
+  - adapter_traits::available    文字列(mwg::string)に変換可能か
+  - adapter_traits::char_type    文字列(mwg::string)の要素の型
+  - adapter_traits::adapter_type 文字列(mwg::string)の型(アダプタ文字列型)
+
+  この変更により既存の使用箇所で不整合が起こっている可能性がある。
+  - adapter_enabler の使用箇所を確認・修正■
+  - 特に stradp のコンストラクタの SFINAE に注意する。■
+
+* mwg::make_str を実装したので、
+  寧ろ stradp が表に出て来る必要もないのではないか?
+
 * string: range_replace_enabler の switch を廃止する。
   switch 毎に処理を変えられる様にはしたが実際に処理は同じになっている様だ。
 
@@ -18,14 +38,16 @@
 * find_any, find_not, その他文字集合を指定する overload は、
   CLX の様に is_any_of() predicater か何かを用意すれば解決するのではないか。
 
-* mwg::make_str()
-
-  わざわざ std::stradp<char> などの様に文字の型を指定しなくても、
-  自然な文字の型を推論する事ができる筈である。
-
 * #include <mwg/string.interop.cstring.h>
 
 * mwg::string は std::string と衝突するので別の名前にするべき
+  例えば mwg::strfix など。
+  この様に変更すると最早 mwg::string という名前の型すらなくなるので、
+  ヘッダの名称を mwg/str.h 等に変更するべきな気もする。
+
+  しかしそうすると mwg::make_str を mwg::str にしたくもなるが、
+  そうすると、ローカル変数として str を使用した時に混乱を来す事になるので良くない。
+  <mwg/str.h> は様々な文字列クラス str... の接頭辞 str を表しているとして納得して貰う事にする。
 
 2016-03-02
 

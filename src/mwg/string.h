@@ -14,6 +14,7 @@
 #include <vector>
 #include <mwg/except.h>
 #include <mwg/string.h>
+#define _a mwg::make_str
 
 class managed_test{
 public:
@@ -64,11 +65,6 @@ namespace string3_detail{
    *  `std::shared_ptr` による参照管理の対象です。
    * :@class class mwg::==stradp==<XCH> : strbase<...>;
    *  他の型の文字列に対する `mwg::string` インターフェイスを提供します。
-   *  -`XCH[N]`
-   *  -`const XCH[N]`
-   *  -`XCH*`
-   *  -`const XCH*`
-   *  -`std::basic_string<XCH>`
    * :@class class mwg::==strsub==<XCH> : strbase<...>;
    *  他の文字列の部分文字列を保持します。
    * :@class class mwg::string3_detail::==strbase==<...>;
@@ -176,29 +172,94 @@ struct char_traits{
 //-----------------------------------------------------------------------------
 // adapter_traits
 
-template<typename C,typename XCH=void>
-struct adapter_traits:adapter_traits<C>{
-  static const bool adaptable
-    =mwg::stdm::is_same<typename adapter_traits<C>::char_type,XCH>::value;
-};
+/*?lwiki
+ * :@fn str mwg::==make_str==(obj);
+ *  指定したオブジェクトに対する mwg::string インターフェイスを取得します。
+ * :@class struct ==adapter_traits==<T>;
+ * :@class struct ==adapter_traits==<T,XCH>;
+ *  任意に与えられた型に対して mwg::string インターフェイスを提供する方法を定義します。
+ *  既定で以下の型に対して mwg::string インターフェイスが定義されています。
+ *  -`XCH[N]`
+ *  -`const XCH[N]`
+ *  -`XCH*`
+ *  -`const XCH*`
+ *  -`std::basic_string<XCH>`
+ *  `adapter_traits<T>` の特殊化を定義する事によって、\
+ *  新しい型に対して mwg::string インターフェイスを提供できます。
+ *  `adapter_traits<T>` の特殊化では以下のメンバを定義します。
+ *  &pre*(!cpp){
+ *  struct adapter_traits<T>{
+ *    static const bool available=true;
+ *    typedef something char_type;
+ *    class adapter_type{
+ *      adapter_type(T const&);
+ *    };
+ *  };
+ *  }
+ *  :@var static const bool ==available==;
+ *   mwg::string インターフェイスを提供できる場合に `true` を設定します。
+ *  :@class[opt] typename ==adapter_type==;
+ *   `available==true` の時にのみ定義します。SFINAE に使用されるので `available==false` の時は定義しないで下さい。
+ *   具体的に mwg::string を提供する型を指定します。
+ *   目的の型 `T` から直接構築できる必要があります。
+ *  :@class[opt] typename ==char_type==;
+ *   `available==true` の時にのみ定義します。SFINAE に使用されるので `available==false` の時は定義しないで下さい。
+ *   提供される文字列インターフェイスの文字型を指定します。
+ *  更に `adapter_traits<T,XCH>` を特殊化する事によって、\
+ *  明示的に文字型を指定した時の文字列インターフェイスを提供する方法を定義できます。
+ *  上記 `adapter_traits<T>` の時と同じメンバを定義します。\
+ *  但し、`char_type` は `XCH` に一致している必要があります。
+ */
+
+struct adapter_traits_empty{static const bool available=false;};
+
+template<typename T,typename XCH,bool IsString>
+struct _adapter_traits_2:adapter_traits_empty{};
+
+template<typename T,typename XCH=void>
+struct adapter_traits:_adapter_traits_2<T,XCH,adapter_traits<T>::available>{};
 template<typename T>
-struct adapter_traits<T>{
-  typedef void char_type;
+struct adapter_traits<T>:adapter_traits_empty{};
 
-  // typedef XCH char_type;
-  // static const XCH* pointer(C const& str);
-  // static std::size_t length(C const& str);
-};
+template<typename T,typename XCH>
+struct _adapter_traits_2<T,XCH,true>:stdm::conditional<
+  mwg::stdm::is_same<typename adapter_traits<T>::char_type,XCH>::value,
+  adapter_traits<T>,adapter_traits_empty
+  >::type{};
 
-template<typename XCH,typename C,typename Ret>
+
+template<typename T>
+typename adapter_traits<T>::adapter_type
+make_str(T const& value){return(value);}
+
+template<typename XCH,typename T,typename Ret>
 struct adapter_enabler
-  :mwg::stdm::enable_if<adapter_traits<C,XCH>::adaptable,Ret>{};
+  :mwg::stdm::enable_if<adapter_traits<T,XCH>::available,Ret>{};
 
-// default specializations
+//-----------------------------------------------------------------------------
+// adapter_traits<S> default specializations
+
+/*?lwiki
+ * :@class struct ==adapter_traits_stradp==<XCH>;
+ *  `adapter_traits` 実装の補助クラスです。\
+ *  指定した型から `XCH*` ポインタと長さのペアを取得できる場合に、\
+ *  `stradp<XCH>` をアダプタ型として利用します。
+ *  :@param[in] XCH
+ *   文字要素の型を指定します。
+ *  派生クラスで以下のメンバ関数を定義する必要があります。
+ *  -@fn static const char_type* pointer(C const& str);
+ *  -@fn static std::size_t length(C const& str);
+ */
+template<typename XCH>
+struct adapter_traits_stradp{
+  static const bool available=true;
+  typedef XCH char_type;
+  typedef stradp<XCH> adapter_type;
+
+};
 
 template<typename XCH,std::size_t N>
-struct adapter_traits<XCH[N]>{
-  typedef XCH char_type;
+struct adapter_traits<XCH[N]>:adapter_traits_stradp<XCH>{
   static const XCH* pointer(const XCH (&value)[N]){
     return value;
   }
@@ -214,8 +275,7 @@ struct adapter_traits<XCH[N]>{
  * T = char[N] ではなくて T = const char[N] になる。
  */
 template<typename XCH,std::size_t N>
-struct adapter_traits<const XCH[N]>{
-  typedef XCH char_type;
+struct adapter_traits<const XCH[N]>:adapter_traits_stradp<XCH>{
   static const XCH* pointer(const XCH (&value)[N]){
     return value;
   }
@@ -226,8 +286,7 @@ struct adapter_traits<const XCH[N]>{
 #endif
 
 template<typename XCH>
-struct adapter_traits<XCH*>{
-  typedef XCH char_type;
+struct adapter_traits<XCH*>:adapter_traits_stradp<XCH>{
   static const XCH* pointer(XCH* value){
     return value;
   }
@@ -237,8 +296,7 @@ struct adapter_traits<XCH*>{
 };
 
 template<typename XCH>
-struct adapter_traits<const XCH*>{
-  typedef XCH char_type;
+struct adapter_traits<const XCH*>:adapter_traits_stradp<XCH>{
   static const XCH* pointer(const XCH* value){
     return value;
   }
@@ -488,7 +546,7 @@ private:
    * :@fn s1.==slice==('''range-spec''');
    * :@fn s1.==substr==(i,len);
    *  文字列の指定した範囲を部分文字列として返します。
-   *  c.f. <`substr` (C++), `Mid` (ATL/MFC), <?cs Substring?> (CLR), `Slice`/`Substr` (mwg-string), \
+   *  c.f. `substr` (C++), `Mid` (ATL/MFC), <?cs Substring?> (CLR), `Slice`/`Substr` (mwg-string), \
    *  <?java subSequence?>/<?java substring?> (Java), <?js slice?>/<?js substr?>/<?js substring?> (JavaScript), \
    *  <?awk substr?> (awk, Perl), <?rb slice?> (Ruby)
    * :@fn s1.==head==(n);
@@ -555,7 +613,6 @@ public:
   }
 #pragma%x begin_test
   void test(){
-    typedef mwg::stradp<char> _a;
     mwg_assert((_a("hello").slice(2,4) =="ll"));
     mwg_assert((_a("hello").slice(1,-2)=="el"));
     mwg_assert((_a("hello").slice(3)   =="lo"));
@@ -596,7 +653,7 @@ private:
   struct range_replace_switch
     :mwg::stdm::integral_constant<int,
       mwg::stdm::is_base_of<strbase_tag<char_type>,A1>::value?1:
-      adapter_traits<A1,char_type>::adaptable?2:
+      adapter_traits<A1,char_type>::available?2:
       0>{};
   template<typename A1,int S>
   struct range_replace_enabler
@@ -666,7 +723,6 @@ public:
   }
 #pragma%x begin_test
   void test(){
-    typedef mwg::stradp<char> _a;
     mwg_assert((_a("hello").replace(1,-3,"icon")=="hiconllo"));
     mwg_assert((_a("hello").replace(1,-3,_a("icon"))=="hiconllo"));
     mwg_assert((_a("hello").replace(mwg::make_range(1,-3),"icon")=="hiconllo"));
@@ -785,7 +841,6 @@ public:
 
 #pragma%x begin_test
   void test(){
-    typedef mwg::stradp<char> _a;
     mwg_assert( (_a("hello").toupper()=="HELLO"));
     mwg_assert( (_a("hello").toupper(2)=="heLLO"));
     mwg_assert( (_a("hello").toupper(1,-1)=="hELLo"));
@@ -834,7 +889,7 @@ private:
     :mwg::stdm::enable_if<
     Swch==(
       mwg::stdm::is_base_of<strbase_tag<char_type>,A1>::value?1:
-      adapter_traits<A1,char_type>::adaptable?2:
+      adapter_traits<A1,char_type>::available?2:
       mwg::be_functor<A1,bool(char_type)>::value?3:0
     ),slice_return_type >{};
 public:
@@ -904,7 +959,6 @@ public:
   }
 #pragma%x begin_test
   void test(){
-    typedef mwg::stradp<char> _a;
     mwg_assert((_a("  hello   ").trim ()=="hello"));
     mwg_assert((_a("  hello   ").ltrim()=="hello   "));
     mwg_assert((_a("  hello   ").rtrim()=="  hello"));
@@ -974,7 +1028,6 @@ public:
   }
 #pragma%x begin_test
   void test(){
-    typedef mwg::stradp<char> _a;
     mwg_assert((_a("hello").pad(1)=="hello"));
     mwg_assert((_a("hello").lpad(1)=="hello"));
     mwg_assert((_a("hello").rpad(1)=="hello"));
@@ -1036,7 +1089,6 @@ public:
   }
 #pragma%x begin_test
   void test(){
-    typedef mwg::stradp<char> _a;
     mwg_assert( (_a("hello world").starts("hel")));
     mwg_assert( (_a("hello world").starts(_a("hel"))));
     mwg_assert(!(_a("hello world").starts("hal")));
@@ -1134,7 +1186,7 @@ private:
     :mwg::stdm::enable_if<
     Swch==(
       mwg::stdm::is_base_of<strbase_tag<char_type>,A1>::value?1:
-      adapter_traits<A1,char_type>::adaptable?2:
+      adapter_traits<A1,char_type>::available?2:
       mwg::be_functor<A1,bool(char_type)>::value?3:
       0
     ),std::ptrdiff_t>{};
@@ -1252,7 +1304,6 @@ public:
 
 #pragma%x begin_test
   void test(){
-    typedef mwg::stradp<char> _a;
     mwg_assert((_a("0123401234").find("012")==0));
     mwg_assert((_a("0123401234").find("234")==2));
     mwg_assert((_a("0123401234").find("021")<0));
@@ -1306,7 +1357,6 @@ public:
   }
 #pragma%x begin_test
   void test(){
-    typedef mwg::stradp<char> _a;
     mwg_assert( (_a("HELLO").reverse()=="OLLEH"));
     mwg_assert( (_a("HELLO").repeat(3)=="HELLOHELLOHELLO"));
   }
@@ -1664,12 +1714,12 @@ public:
     using namespace mwg::string3_detail;
 
     // !has_index な基底 const_iterator から、const_iterator を初期化
-    typedef mwg::stradp<char> _a;
-    mwg_assert((strbase<_strtmp_sub_policy<_a::policy_type> >(_a::buffer_type("hello",5),1,3)=="ell"));
+    typedef mwg::stradp<char> a;
+    mwg_assert((strbase<_strtmp_sub_policy<a::policy_type> >(a::buffer_type("hello",5),1,3)=="ell"));
 
     // has_index な基底 const_iterator から、const_iterator を初期化
-    typedef _strtest_repeated_chars_policy<char> _b;
-    mwg_assert((strbase<_strtmp_sub_policy<_b::policy_type> >(_b::buffer_type('A',5),1,3)=="AAA"));
+    typedef _strtest_repeated_chars_policy<char> b;
+    mwg_assert((strbase<_strtmp_sub_policy<b::policy_type> >(b::buffer_type('A',5),1,3)=="AAA"));
   }
 #pragma%x end_test
 
@@ -2004,12 +2054,12 @@ struct concat_enabler<strbase<StrP1>,strbase<StrP2> >:mwg::stdm::enable_if<
   >{};
 template<typename StrP1,typename XStr2>
 struct concat_enabler<strbase<StrP1>,XStr2 >:mwg::stdm::enable_if<
-  adapter_traits<XStr2,typename StrP1::char_type>::adaptable,
+  adapter_traits<XStr2,typename StrP1::char_type>::available,
   strbase<_strtmp_cat_policy<strbase<StrP1> const&,stradp<typename StrP1::char_type> > >
   >{};
 template<typename XStr1,typename StrP2>
 struct concat_enabler<XStr1,strbase<StrP2> >:mwg::stdm::enable_if<
-  adapter_traits<XStr1,typename StrP2::char_type>::adaptable,
+  adapter_traits<XStr1,typename StrP2::char_type>::available,
   strbase<_strtmp_cat_policy<stradp<typename StrP2::char_type>,strbase<StrP2> const&> >
   >{};
 
@@ -2034,7 +2084,6 @@ operator+(XStr1 const& lhs,strbase<StrP2> const& rhs){
 
 #pragma%x begin_test
 void test(){
-  typedef mwg::stradp<char> _a;
   mwg_assert((_a("hello")+_a(" world")=="hello world"));
   mwg_assert((_a("hello")+" world"=="hello world"));
   mwg_assert(("hello"+_a(" world")+"!"=="hello world!"));
@@ -2187,7 +2236,7 @@ operator>=(strbase<StrP1> const& lhs,strbase<StrP2> const& rhs){
 
 template<typename StrP1,typename XStr,typename Ret>
 struct compare_enabler2:mwg::stdm::enable_if<
-  adapter_traits<XStr,typename StrP1::char_type>::adaptable,Ret>{};
+  adapter_traits<XStr,typename StrP1::char_type>::available,Ret>{};
 
 #define MWG_STRING3_STRING_H__overload_compare_adapter(Return,FunctionName) \
 template<typename StrP1,typename XStr> \
@@ -2212,8 +2261,6 @@ FunctionName(XStr const& lhs,strbase<StrP1> const& rhs){ \
 
 #pragma%x begin_test
 void test(){
-  typedef mwg::stradp<char> _a;
-
   mwg_assert(compare(_a("hello"),_a("hello"))== 0);
   mwg_assert(compare(_a("hello"),   "hello" )== 0);
   mwg_assert(compare(   "hello" ,_a("hello"))== 0);
@@ -2269,6 +2316,8 @@ void test(){
   using string3_detail::string;
   using string3_detail::strsub;
   using string3_detail::stradp;
+
+  using string3_detail::make_str;
 } /* end of namespace mwg */
 
 //AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
@@ -2337,12 +2386,12 @@ struct char_traits<wchar_t>{
 
 #pragma%x begin_test
 void test(){
-  mwg_assert((mwg::stradp<wchar_t>(L"AbCdE").toupper(1,-1)==L"ABCDE"));
-  mwg_assert((mwg::stradp<wchar_t>(L"aBcDe").tolower(1,-1)==L"abcde"));
-  mwg_assert((mwg::stradp<wchar_t>(L"  hello  ").trim()==L"hello"));
-  mwg_assert((mwg::stradp<wchar_t>(L"  hello  ").ltrim()==L"hello  "));
-  mwg_assert((mwg::stradp<wchar_t>(L"  hello  ").rtrim()==L"  hello"));
-  mwg_assert((mwg::stradp<wchar_t>(L"world").pad(7)==L" world "));
+  mwg_assert((_a(L"AbCdE").toupper(1,-1)==L"ABCDE"));
+  mwg_assert((_a(L"aBcDe").tolower(1,-1)==L"abcde"));
+  mwg_assert((_a(L"  hello  ").trim()==L"hello"));
+  mwg_assert((_a(L"  hello  ").ltrim()==L"hello  "));
+  mwg_assert((_a(L"  hello  ").rtrim()==L"  hello"));
+  mwg_assert((_a(L"world").pad(7)==L" world "));
 }
 #pragma%x end_test
 
@@ -2356,8 +2405,7 @@ namespace mwg{
 namespace string3_detail{
 
 template<typename XCH,typename Tr,typename Alloc>
-struct adapter_traits<std::basic_string<XCH,Tr,Alloc> >{
-  typedef XCH char_type;
+struct adapter_traits<std::basic_string<XCH,Tr,Alloc> >:adapter_traits_stradp<XCH>{
   static const XCH* pointer(std::basic_string<XCH,Tr,Alloc> const& str){
     return str.c_str();
   }
@@ -2530,7 +2578,6 @@ mwg::string では、文字列の内部形式と文字列に対する操作を�
 #endif
 #pragma%x begin_test
 void test(){
-  typedef mwg::stradp<char> _a;
   mwg_assert( (_a("HELLO").repeat(3).tolower(5,-3).reverse()=="OLLehollehOLLEH"));
 }
 #pragma%x end_test
