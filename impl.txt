@@ -6,6 +6,27 @@
   ToDo
 ------------------------------------------------------------------------------
 
+2016-03-03
+
+* string: range_replace_enabler の switch を廃止する。
+  switch 毎に処理を変えられる様にはしたが実際に処理は同じになっている様だ。
+
+* string: strbase::insert(char_type c,range-spec) に対応する。
+
+  現在の replace の実装は寧ろ splice という関数名に変えた方が良いのではないか。
+
+* find_any, find_not, その他文字集合を指定する overload は、
+  CLX の様に is_any_of() predicater か何かを用意すれば解決するのではないか。
+
+* mwg::make_str()
+
+  わざわざ std::stradp<char> などの様に文字の型を指定しなくても、
+  自然な文字の型を推論する事ができる筈である。
+
+* #include <mwg/string.interop.cstring.h>
+
+* mwg::string は std::string と衝突するので別の名前にするべき
+
 2016-03-02
 
 * string: 現在の文字列インターフェイス (予定)
@@ -162,20 +183,33 @@
     <a href="http://www.boost.org/doc/libs/1_52_0/doc/html/string_algo/quickref.html">Quick Reference - 1.52.0</a>
     ※ Boost では基本的に破壊的操作を行う関数であり、
     _copy がついている物が新しいインスタンスを生成する関数である。
+
+  + ATL/MFC CStringT
+    [[CStringT Class>https://msdn.microsoft.com/en-us/library/5bzxfsea.aspx]]
   + CLR
     <a href="http://msdn.microsoft.com/ja-jp/library/7wtc81z6(v=vs.80).aspx">String メソッド (System)</a></li>
-  + Java
-    <a href="http://docs.oracle.com/javase/jp/6/api/java/lang/String.html">String (Java Platform SE 6)</a></li>
   + mwg-string
     <a href="../../dist/mwg-string/doc/document.htm">lib-string 更新履歴</a></li>
+    初期の実装。CLR と似たような形式で関数名を決めていた。
+
+  + Java
+    <a href="http://docs.oracle.com/javase/jp/6/api/java/lang/String.html">String (Java Platform SE 6)</a></li>
   + JavaScript/ECMAScript
     <a href="https://developer.mozilla.org/ja/docs/JavaScript/Reference/Global_Objects/String/prototype#Methods">String.prototype - JavaScript | MDN</a></li>
-  + Perl
+
+  + ToDo: Perl
     <a href="http://www.perlplus.jp/func/string/">文字列に関する関数 - Perl関数のリファレンス</a></li>
+  + ToDo: PHP
   + Ruby
     <a href="http://doc.ruby-lang.org/ja/1.9.2/class/String.html">class String</a></li>
-  + AWK (GAWK)
+  + CLX C++ Library
+    [[CLX C++ Libraries>http://clx.cielquis.net/]]
+    基本的には Ruby の命名を踏襲している様であるが、
+    多用な引数を受け取る様にして hoge_if などの様な関数も追加している。
+
+  + AWK (gawk)
     <a href="http://www.kt.rim.or.jp/~kbk/gawk/gawk_13.html">The GAWK Manual - 組込み関数</a></li>
+  + Makefile
 
 2015-10-19
 

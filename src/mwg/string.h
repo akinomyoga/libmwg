@@ -4,8 +4,6 @@
 #define MWG_STRING_H
 //HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 #include <cstddef>
-#include <cstring>
-#include <string>
 #include <mwg/std/utility>
 #include <mwg/std/type_traits>
 #include <mwg/std/memory>
@@ -164,7 +162,7 @@ namespace string3_detail{
 #pragma%end
 
 //-----------------------------------------------------------------------------
-//  char_traits
+// char_traits
 
 // Tr 要件
 template<typename XCH>
@@ -175,24 +173,8 @@ struct char_traits{
   static mwg_constexpr char_type null();
 };
 
-template<>
-struct char_traits<char>{
-  typedef char char_type;
-  static std::size_t strlen(const char_type* str){
-    return std::strlen(str);
-  }
-  static mwg_constexpr char_type null(){return '\0';}
-  static mwg_constexpr char_type space(){return ' ';}
-  static mwg_constexpr char_type tolower(char_type c){
-    return 'A'<=c&&c<='Z'?char_type(c+('a'-'A')):c;
-  }
-  static mwg_constexpr char_type toupper(char_type c){
-    return 'a'<=c&&c<='z'?char_type(c+('A'-'a')):c;
-  }
-  static mwg_constexpr bool isspace(char_type c){
-    return ::isspace(c);
-  }
-};
+//-----------------------------------------------------------------------------
+// adapter_traits
 
 template<typename C,typename XCH=void>
 struct adapter_traits:adapter_traits<C>{
@@ -212,8 +194,61 @@ template<typename XCH,typename C,typename Ret>
 struct adapter_enabler
   :mwg::stdm::enable_if<adapter_traits<C,XCH>::adaptable,Ret>{};
 
+// default specializations
+
+template<typename XCH,std::size_t N>
+struct adapter_traits<XCH[N]>{
+  typedef XCH char_type;
+  static const XCH* pointer(const XCH (&value)[N]){
+    return value;
+  }
+  static std::size_t length(const XCH (&value)[N]){
+    return value[N-1]!=char_traits<XCH>::null()?N:N-1;
+  }
+};
+
+#ifdef _MSC_VER
+/*
+ * 何故か vc では const char[N] を
+ * template<typename T> void f(T const&); で受け取ると、
+ * T = char[N] ではなくて T = const char[N] になる。
+ */
+template<typename XCH,std::size_t N>
+struct adapter_traits<const XCH[N]>{
+  typedef XCH char_type;
+  static const XCH* pointer(const XCH (&value)[N]){
+    return value;
+  }
+  static std::size_t length(const XCH (&value)[N]){
+    return value[N-1]!=char_traits<XCH>::null()?N:N-1;
+  }
+};
+#endif
+
+template<typename XCH>
+struct adapter_traits<XCH*>{
+  typedef XCH char_type;
+  static const XCH* pointer(XCH* value){
+    return value;
+  }
+  static std::size_t length(XCH* value){
+    return char_traits<XCH>::strlen(value);
+  }
+};
+
+template<typename XCH>
+struct adapter_traits<const XCH*>{
+  typedef XCH char_type;
+  static const XCH* pointer(const XCH* value){
+    return value;
+  }
+  static std::size_t length(const XCH* value){
+    return char_traits<XCH>::strlen(value);
+  }
+};
+
 //-----------------------------------------------------------------------------
-//  predicaters
+// predicaters
 
 template<typename XCH>
 struct isspace_predicator{
@@ -453,18 +488,18 @@ private:
    * :@fn s1.==slice==('''range-spec''');
    * :@fn s1.==substr==(i,len);
    *  文字列の指定した範囲を部分文字列として返します。
-   *  c.f. <?cpp substr?> (C++), <?cs Substring?> (CLR), <?java subSequence?>/<?java substring?> (Java), \
-   *  <?cpp Slice?>/<?cpp Substr?> (mwg-string), <?js slice?>/<?js substr?>/<?js substring?> (JavaScript), \
-   *  <?pl substr?> (Perl), <?rb slice?> (Ruby), <?awk substr?> (awk)
-   * :@fn s1.==head==(n); // 先頭文字列
+   *  c.f. <`substr` (C++), `Mid` (ATL/MFC), <?cs Substring?> (CLR), `Slice`/`Substr` (mwg-string), \
+   *  <?java subSequence?>/<?java substring?> (Java), <?js slice?>/<?js substr?>/<?js substring?> (JavaScript), \
+   *  <?awk substr?> (awk, Perl), <?rb slice?> (Ruby)
+   * :@fn s1.==head==(n);
    *  文字列の先頭 n 文字を部分文字列として取得します。
-   *  c.f. `find_head` (Boost), `Head` (mwg-string)
+   *  c.f. `find_head` (Boost), `Left` (ATL/MFC), `Head` (mwg-string)
    * :@fn s1.==tail==(n);
    *  文字列の末尾 n 文字を部分文字列として取得します。
-   *  c.f. `find_tail` (Boost), `Tail` (mwg-string)
+   *  c.f. `find_tail` (Boost), `Right` (ATL/MFC), `Tail` (mwg-string)
    * :@fn s.==remove==('''range-spec''');
    *  文字列の指定した範囲を取り除いて得られる文字列を返します。
-   *  c.f. `erase` (C++), `Remove` (CLR)
+   *  c.f. `erase` (C++), `Delete` (ATL/MFC), `Remove` (CLR)
    */
 #pragma%end
 public:
@@ -550,9 +585,10 @@ public:
   /*?lwiki
    * :@fn s.==replace==('''range-spec''',s2);
    *  指定した範囲を別の文字列に置換します。
+   *  c.f. `substr(s,i,len,s2)` (Perl)
    * :@fn s1.==insert==(i,str);
    *  指定した位置に文字列を挿入します。
-   *  c.f. insert (C++), Insert (CLR), Insert (mwg-string), insert (Ruby)
+   *  c.f. `insert` (C++), `Insert` (ATL/MFC), <?cs Insert?> (CLR), `Insert` (mwg-string), <?rb insert?> (Ruby)
    */
 #pragma%end
 private:
@@ -650,21 +686,24 @@ public:
   /*?lwiki
    * :@fn s.==tolower==(&color(red){[}'''range-spec'''&color(red){]});
    *  文字列内の英大文字を英小文字に変換します。
-   *  c.f. `tolower` (C), `to_lower` (Boost), <?cs ToLower?> (CLR), <?java toLowerCase?> (Java), \
+   *  c.f. `tolower` (C), `to_lower` (Boost), `MakeLower` (ATL/MFC), <?cs ToLower?> (CLR), <?java toLowerCase?> (Java), \
    *  `ToLower` (mwg-string), <?js toLowerCase?> (JavaScript), \
-   *  <?pl lc?> (Perl), <?rb downcase?> (Ruby), <?awk tolower?> (awk), <?php strtolower?> (PHP)
+   *  <?pl lc?> (Perl), <?rb downcase?> (Ruby, CLX), <?awk tolower?> (awk), <?php strtolower?> (PHP)
    * :@fn s.==toupper==(&color(red){[}'''range-spec'''&color(red){]});
    *  文字列内の英小文字を英大文字に変換します。
-   *  c.f. `toupper` (C), `to_upper` (Boost), <?cs ToUpper?> (CLR), <?java toUpperCase?> (Java), \
-   *  `ToUpper` (mwg-string), <?js toUpperCase?> (JavaScript), <?pl uc?> (Perl), \
-   *  <?rb upcase?> (Ruby), <?awk toupper?> (awk), <?php strtoupper?> (PHP)
+   *  c.f. `toupper` (C), `to_upper` (Boost), `MakeUpper` (ATL/MFC), <?cs ToUpper?> (CLR, mwg-string), \
+   *  <?java toUpperCase?> (Java, JavaScript), <?pl uc?> (Perl), \
+   *  <?rb upcase?> (Ruby, CLX), <?awk toupper?> (awk), <?php strtoupper?> (PHP)
    * :@fn s.==map==(filter,&color(red){[}'''range-spec'''&color(red){]});
    *  c.f. `std::transform` (C++), <?cs System.Array.ConvertAll?> (CLR), `Map` (mwg-string)
    * :@fn s.==replace==(c1,c2,&color(red){[}'''range-spec'''&color(red){]});
    *  指定した範囲の文字を全て置換します。
+   *  c.f. `Replace(c1,c2)` (ATL/MFC)
    * :参考
    *  c.f. <?cs ToLowerInvariant?>/<?cs ToUpperInvariant?> (CLR), \
-   *  <?pl ucfirst?>/<?pl lcfirst?> (Perl), <?rb capitalize?>/<?rb tr?>/<?rb swapcase?> (Ruby), \
+   *  <?pl ucfirst?>/<?pl lcfirst?> (Perl), \
+   *  <?rb capitalize?>/<?rb swapcase?> (Ruby, CLX), <?rb tr?> (Ruby), \
+   *  `upcase_if`/`downcase_if`/`swapcase_if`/`capitalize_if` (CLX), \
    *  <?php lcfirst?>/<?php ucfirst?>/<?php ucwords?> (PHP)
    */
 #pragma%end
@@ -773,17 +812,20 @@ public:
    * :@fn s1.==trim==(s2);   // s2   削除文字集合
    * :@fn s1.==trim==(pred); // pred 削除文字を判定する関数
    *  文字列の両端にある連続する空白を除去します。
-   *  c.f. trim (Boost), Trim (CLR), trim (Java), Trim/TrimAny (mwg-string), trim (JavaScript), strip (Ruby), strip (Makefile)
+   *  c.f. `trim` (Boost), `Trim` (ATL/MFC, CLR, mwg-string), `TrimAny` (mwg-string), <?java trim?> (Java, JavaScript), \
+   *  `strip` (Ruby, CLX), `strip_if` (CLX), strip (Makefile)
    * :@fn s1.==ltrim==();
    * :@fn s1.==ltrim==(s2);   // s2   削除文字集合
    * :@fn s1.==ltrim==(pred); // pred 削除文字を判定する関数
    *  文字列の先頭についている連続する空白を除去します。
-   *  c.f. trim_left/trim_left_if (Boost), TrimStart (CLR), TrimL/TrimAnyL (mwg-string), lstrip (Ruby)
+   *  c.f. `trim_left`/`trim_left_if` (Boost), `TrimLeft` (ATL/MFC), <?cs TrimStart?> (CLR), `TrimL`/`TrimAnyL` (mwg-string), \
+   *  <?rb lstrip?> (Ruby, CLX), `lstrip_if` (CLX)
    * :@fn s1.==rtrim==();
    * :@fn s1.==rtrim==(s2);   // s2   削除文字集合
    * :@fn s1.==rtrim==(pred); // pred 削除文字を判定する関数
    *  文字列の末端についている連続する空白を除去します。
-   *  c.f. trim_right/trim_right_if (Boost), TrimEnd (CLR), TrimR/TrimAnyR (mwg-string), rstrip (Ruby)
+   *  c.f. `trim_right`/`trim_right_if` (Boost), `TrimRight` (ATL/MFC), <?cs TrimEnd?> (CLR), `TrimR`/`TrimAnyR` (mwg-string), \
+   *  <?rb rstrip?> (Ruby, CLX), `rstrip_if` (CLX)
    */
 #pragma%end
 private:
@@ -889,13 +931,13 @@ public:
   /*?lwiki
    * :@fn s.==pad==(len);
    * :@fn s.==pad==(len,c);
-   *  c.f. center (Ruby)
+   *  c.f. <?rb center?> (Ruby, CLX)
    * :@fn s.==lpad==(len);
    * :@fn s.==lpad==(len,c);
-   *  c.f. PadLeft (CLR), ljust (Ruby)
+   *  c.f. <?cs PadLeft?> (CLR), <?rb ljust?> (Ruby, CLX)
    * :@fn s.==rpad==(len);
    * :@fn s.==rpad==(len,c);
-   *  c.f. PadRight (CLR), rjust (Ruby)
+   *  c.f. <?cs PadRight?> (CLR), <?rb rjust?> (Ruby, CLX)
    */
 #pragma%end
 public:
@@ -1030,17 +1072,19 @@ public:
    *   文字判定関数を指定します。条件に合致する文字を検索します。
    *  :@param[in] //TODO: '''regex''' reg;
    *   検索パターンを正規表現で指定します
-   *  -`find` -> c.f. `strstr`/`strchr` (C), `find` (C++), `find_first`/`find_regex` (Boost), <?cs IndexOf?> (CLR), <?java indexOf?> (Java), \
-   *   `IndexOf` (mwg-string), <?js indexOf?>/<?js search?> (JavaScript), <?pl index?> (Perl), <?rb index?> (Ruby), <?awk index?>/<?awk match?> (awk)
-   *  -`rfind` -> c.f. `strrstr` (C), `rfind` (C++), `find_last` (Boost), <?cs LastIndexOf?> (CLR), <?java lastIndexOf?> (Java), \
-   *   `IndexOfR` (mwg-string), <?js lastIndexOf?> (JavaScript), <?pl rindex?> (Perl), <?rb rindex?> (Ruby)
+   *  -`find` -> c.f. `strstr`/`strchr` (C), `find` (C++), `find_first`/`find_regex` (Boost), \
+   *   `Find` (ATL/MFC), <?cs IndexOf?> (CLR, mwg-string), <?java indexOf?> (Java),           \
+   *   <?js indexOf?>/<?js search?> (JavaScript), <?awk index?> (awk, Perl, Ruby), <?awk match?> (awk)
+   *  -`rfind` -> c.f. `strrstr` (C), `rfind` (C++), `find_last` (Boost), \
+   *   `ReverseFind` (ATL/MFC), <?cs LastIndexOf?> (CLR), `IndexOfR` (mwg-string), \
+   *   <?java lastIndexOf?> (Java, JavaScript), <?pl rindex?> (Perl, Ruby)
    * :@fn s.==find_any==(s2,&color(red){[}'''range-spec'''&color(red){]});
    * :@fn s.==rfind_any==(s2,&color(red){[}'''range-spec'''&color(red){]});
    *  文字集合の何れかの文字の位置を返します。
    *  :@param[in] s2
    *   文字集合を指定します。
-   *  find_any -> c.f. strpbrk/strcspn (C), find_first_of (C++), IndexOfAny (CLR), IndexOfAny (mwg-string)
-   *  rfind_any -> c.f. find_last_of (C++), LastIndexOfAny (CLR), IndexOfAnyR (mwg-string)
+   *  find_any -> c.f. `strpbrk`/`strcspn` (C), find_first_of (C++), `FindOneOf` (ATL/MFC), <?cs IndexOfAny?> (CLR, mwg-string)
+   *  rfind_any -> c.f. `find_last_of` (C++), <?cs LastIndexOfAny?> (CLR), `IndexOfAnyR` (mwg-string)
    * :@fn s.==find_not==(s2,&color(red){[}'''range-spec'''&color(red){]});
    * :@fn s.==rfind_not==(s2,&color(red){[}'''range-spec'''&color(red){]});
    *  最初に見付かった、文字集合に含まれない文字の位置を返します。
@@ -1828,7 +1872,7 @@ struct _strtmp_pad_policy{
     Str const& str;
     std::size_t lpad_len;
     std::size_t m_length;
-    char c;
+    char_type c;
   public:
     buffer_type(Str const& str,std::size_t lpad_len,std::size_t len,char_type c)
       :str(str),lpad_len(lpad_len),m_length(len),c(c){}
@@ -1838,7 +1882,7 @@ struct _strtmp_pad_policy{
       if(0<=index1&&(std::size_t)index1<this->str.length())
         return this->str[index1];
       else
-        return c;
+        return this->c;
     }
     std::size_t length() const{
       return this->m_length;
@@ -2064,10 +2108,14 @@ struct _strtmp_repeat_policy{
  *  文字列を比較します。
  * :@fn ==compare==(s1,s2);
  *  二つの文字列を比較します。`s1>s2` の時 `1`, `s1==s2` の時 `0`, `s1<s2` の時 `-1` を返します。
- *  c.f. `strcmp`/`strncmp` (C), `lexicographical_compare` (Boost), <?cs CompareOriginal?> (CLR), <?java compareTo?> (Java), <?rb operator<=>?> (Ruby)
+ *  c.f. `strcmp`/`strncmp` (C), `lexicographical_compare` (Boost), \
+ *  `Compare` (ATL/MFC), <?cs CompareOriginal?> (CLR), <?java compareTo?> (Java), <?rb operator<=>?> (Ruby)
  * :@fn ==icompare==(s1,s2);
  *  ASCII 大文字・小文字を区別せずに、二つの文字列を比較します。
- *  c.f. `stricmp`/`strcasecmp`/`strnicmp`/`strncasecmp` (C), `ilexicographical_compare` (Boost), <?cs Compare?> (CLR), <?java compareToIgnoreCase?> (Java), <?rb casecmp?> (Ruby)
+ *  c.f. `stricmp`/`strcasecmp`/`strnicmp`/`strncasecmp` (C), `ilexicographical_compare` (Boost), \
+ *  `CompareNoCase` (ATL/MFC), <?cs Compare?> (CLR), <?java compareToIgnoreCase?> (Java), <?rb casecmp?> (Ruby)
+ * :他
+ *  c.f. `strcoll`/`wcscoll` (C), `Collate`/`CollateNoCase` (ATL/MFC)
  */
 #pragma%end
 
@@ -2216,77 +2264,118 @@ void test(){
 }
 #pragma%x end_test
 
-//-----------------------------------------------------------------------------
-// default specializations
-
-template<typename XCH,std::size_t N>
-struct adapter_traits<XCH[N]>{
-  typedef XCH char_type;
-  static const XCH* pointer(const XCH (&value)[N]){
-    return value;
-  }
-  static std::size_t length(const XCH (&value)[N]){
-    return value[N-1]!=char_traits<XCH>::null()?N:N-1;
-  }
-};
-
-#ifdef _MSC_VER
-/*
- * 何故か vc では const char[N] を
- * template<typename T> void f(T const&); で受け取ると、
- * T = char[N] ではなくて T = const char[N] になる。
- */
-template<typename XCH,std::size_t N>
-struct adapter_traits<const XCH[N]>{
-  typedef XCH char_type;
-  static const XCH* pointer(const XCH (&value)[N]){
-    return value;
-  }
-  static std::size_t length(const XCH (&value)[N]){
-    return value[N-1]!=char_traits<XCH>::null()?N:N-1;
-  }
-};
-#endif
-
-template<typename XCH>
-struct adapter_traits<XCH*>{
-  typedef XCH char_type;
-  static const XCH* pointer(XCH* value){
-    return value;
-  }
-  static std::size_t length(XCH* value){
-    return char_traits<XCH>::strlen(value);
-  }
-};
-
-template<typename XCH>
-struct adapter_traits<const XCH*>{
-  typedef XCH char_type;
-  static const XCH* pointer(const XCH* value){
-    return value;
-  }
-  static std::size_t length(const XCH* value){
-    return char_traits<XCH>::strlen(value);
-  }
-};
-
-template<typename XCH,typename Tr,typename Alloc>
-struct adapter_traits<std::basic_string<XCH,Tr,Alloc> >{
-  typedef XCH char_type;
-  static const XCH* pointer(std::basic_string<XCH,Tr,Alloc> const& str){
-    return str.c_ptr();
-  }
-  static std::size_t length(std::basic_string<XCH,Tr,Alloc> const& str){
-    return str.length();
-  }
-};
-
 //NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN
 } /* end of namespace string3_detail */
   using string3_detail::string;
   using string3_detail::strsub;
   using string3_detail::stradp;
 } /* end of namespace mwg */
+
+//AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+//
+// char support
+//
+#include <cstring>
+#include <cctype>
+
+namespace mwg{
+namespace string3_detail{
+
+template<>
+struct char_traits<char>{
+  typedef char char_type;
+  static std::size_t strlen(const char_type* str){
+    return std::strlen(str);
+  }
+  static mwg_constexpr char_type null(){return '\0';}
+  static mwg_constexpr char_type space(){return ' ';}
+  static mwg_constexpr char_type tolower(char_type c){
+    return 'A'<=c&&c<='Z'?char_type(c+('a'-'A')):c;
+  }
+  static mwg_constexpr char_type toupper(char_type c){
+    return 'a'<=c&&c<='z'?char_type(c+('A'-'a')):c;
+  }
+  static mwg_constexpr bool isspace(char_type c){
+    return std::isspace(c);
+  }
+};
+
+}
+}
+
+//AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+//
+// wchar_t support
+//
+#include <cwchar>
+#include <cwctype>
+
+namespace mwg{
+namespace string3_detail{
+
+template<>
+struct char_traits<wchar_t>{
+  typedef wchar_t char_type;
+  static std::size_t strlen(const char_type* str){
+    return std::wcslen(str);
+  }
+  static mwg_constexpr char_type null(){return L'\0';}
+  static mwg_constexpr char_type space(){return L' ';}
+  static mwg_constexpr char_type tolower(char_type c){
+    return L'A'<=c&&c<=L'Z'?char_type(c+(L'a'-L'A')):c;
+  }
+  static mwg_constexpr char_type toupper(char_type c){
+    return L'a'<=c&&c<=L'z'?char_type(c+(L'A'-L'a')):c;
+  }
+  static mwg_constexpr bool isspace(char_type c){
+    return std::iswspace(c);
+  }
+};
+
+}
+}
+
+#pragma%x begin_test
+void test(){
+  mwg_assert((mwg::stradp<wchar_t>(L"AbCdE").toupper(1,-1)==L"ABCDE"));
+  mwg_assert((mwg::stradp<wchar_t>(L"aBcDe").tolower(1,-1)==L"abcde"));
+  mwg_assert((mwg::stradp<wchar_t>(L"  hello  ").trim()==L"hello"));
+  mwg_assert((mwg::stradp<wchar_t>(L"  hello  ").ltrim()==L"hello  "));
+  mwg_assert((mwg::stradp<wchar_t>(L"  hello  ").rtrim()==L"  hello"));
+  mwg_assert((mwg::stradp<wchar_t>(L"world").pad(7)==L" world "));
+}
+#pragma%x end_test
+
+//AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+//
+// std::basic_string support
+//
+#include <string>
+
+namespace mwg{
+namespace string3_detail{
+
+template<typename XCH,typename Tr,typename Alloc>
+struct adapter_traits<std::basic_string<XCH,Tr,Alloc> >{
+  typedef XCH char_type;
+  static const XCH* pointer(std::basic_string<XCH,Tr,Alloc> const& str){
+    return str.c_str();
+  }
+  static std::size_t length(std::basic_string<XCH,Tr,Alloc> const& str){
+    return str.length();
+  }
+};
+
+}
+}
+#pragma%x begin_test
+void test(){
+  std::string s1("hello");
+  mwg_assert((mwg::stradp<char>(s1).toupper(1,4)=="hELLo"));
+}
+#pragma%x end_test
+
+//AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 /*?lwiki
  * *文字列基本機能 (`mwg::string3_detail::strbase`)
  */
@@ -2317,18 +2406,29 @@ struct adapter_traits<std::basic_string<XCH,Tr,Alloc> >{
 /*?lwiki
  *
  * **分割・結合
- * :@fn [TODO] s.split(i=-1,opt=0);     // i 最大分割数; opt オプション trim/remove_empty_string
- * :@fn [TODO] s.split(s1,i=-1,opt=0);  // s1  分割文字列
- * :@fn [TODO] s.split(reg,i=-1,opt=0); // reg 分割子の正規表現
- * :@fn [TODO] s.rsplit(i=-1,opt=0);     // i 最大分割数; opt オプション trim/remove_empty_string
- * :@fn [TODO] s.rsplit(s1,i=-1,opt=0);  // s1  分割文字列
- * :@fn [TODO] s.rsplit(reg,i=-1,opt=0); // reg 分割子の正規表現
+ * :@fn [TODO] s.split(i=0,opt=0);
+ * :@fn [TODO] s.split(s1|reg|ch|pred,i=0,opt=0);
+ * :@fn [TODO] s.rsplit(i=0,opt=0);
+ * :@fn [TODO] s.rsplit(s1|reg|ch|pred,i=-1,opt=0);
  *  空白または指定された分割子で文字列を分割します。
- *  c.f. split/iter_split (Boost), Split (CLR), split (Java), split (JavaScript), split/partition/rpartition (Ruby), split (awk)
+ *  :@param[in] i
+ *   最大分割数を指定します。0 以下の場合には無制限であることを表します。
+ *  :@param[in] opt
+ *   オプション trim/remove_empty_string
+ *  :@param[in] s1
+ *   分割文字列
+ *  :@param[in] reg
+ *   分割子の正規表現
+ *  :@param[in] ch
+ *   分割文字
+ *  :@param[in] pred
+ *   文字判定子
+ *  c.f. split/iter_split (Boost), Split (CLR), split (Java), split (JavaScript), <?rb split?> (Ruby, CLX), \
+ *  <?rb partition?>/<?rb rpartition?> (Ruby), split (awk), `split_if` (CLX), `Tokenize(cset,int&)` (ATL/MFC)
  * :@fn [TODO] arr.==join==();
  * :@fn [TODO] arr.==join==(s1); // s1 分割文字列
  *  文字列の集合を連結します。
- *  c.f. join/join_if (Boost),
+ *  c.f. `join`/`join_if` (Boost), <?rb join?> (Ruby, CLX)
  *
  * **文字の変換
  */
@@ -2351,19 +2451,21 @@ struct adapter_traits<std::basic_string<XCH,Tr,Alloc> >{
  */
 #pragma%x mwg::string::find::doc
 /*?lwiki
- * :@fn [TODO] s.==replace==(s1 ,s2); // 文字列を置換
+ * :@fn [TODO] s.==replace==(s1,s2,n=mwg::npos); // 文字列を置換
+ * :@fn [TODO] s.==replace1==(s1,s2,n=0); // 文字列を置換
+ *  c.f. `Replace(s1,s2)` (ATL/MFC), `replace`/`replace_all` (CLX), <?js replace?> (JavaScript)
  *
  * **正規表現
  * :@fn [TODO] s.==replace==(reg,s2); // reg 正規表現
  * :@fn [TODO] s.==replace==(reg,fun); // fun 置換後の文字列を決める関数
- *  c.f. replace_all/replace_regex/replace_first/replace_last (Boost), Relace (CLR), \
- *    replace/replaceAll/replaceFirst (Java), \
- *    Replace (mwg-string), replace (JavaScript), gsub/sub (Ruby), \
- *    sub/gsub (awk), subst/patsubst (Makefile).
+ *  c.f. `replace_all`/`replace_regex`/`replace_first`/`replace_last` (Boost), <?cs Relace?> (CLR, mwg-string), \
+ *    <?java replace?> (Java, JavaScript), <?java replaceAll?>/<?java replaceFirst?> (Java), \
+ *    <?awk sub?>/<?awk gsub?> (awk, Ruby), <?mk subst?>/<?mk patsubst?> (Makefile).
  *  -Boost の replace_nth に対応する関数は、それ程有用とは思われないので提供しない。
  *  -Boost の replace_regex_all, replace_head, replace_tail, \
  *   ireplace_first, ireplace_last, ireplace_nth, ireplace_all \
  *   に対応する関数は正規表現及びそのフラグを用いて表現できるので提供しない。
+ *   ■→最適化の観点から行くと head, tail は有用かも知れない。
  *  -Boost の erase_all, erase_regex, erase_regex_all, erase_head, \
  *   erase_tail, erase_first, erase_last, erase_nth, \
  *   ierase_first, ierase_last, ierase_nth, ierase_all \
@@ -2386,13 +2488,18 @@ struct adapter_traits<std::basic_string<XCH,Tr,Alloc> >{
 #pragma%x mwg::string::misc::doc
 /*?lwiki
  * :format, operator%
- *  c.f. sprintf (C), Format (CLR), format (Java), sprintf (Perl), operator% (Ruby), sprintf (awk)
+ *  c.f. `sprintf` (C), `AppendFormat, Format, FormatV, FormatMessage, FormatMessageV` (ATL/MFC), `Format` (CLR), format (Java), <?awk sprintf?> (awk, Perl), operator% (Ruby)
  * :参考
+ *  -<?pl chop?>/<?pl chomp?> (Perl, Ruby, CLX)
  *  -mwg-string: ReverseMap
- *  -Perl: chop chomp, hex oct,
- *  -Ruby: chomp chop, count, crypt, delete, hash sum, \
+ *  -Perl: hex oct,
+ *  -Ruby: count, crypt, delete, hash sum, \
  *   hex oct to_i to_f to_c to_r to_s to_str, succ next, squeeze tr_s
- *
+ *  -CLX: `unique(s)`/`squeeze(s,c)`/`squeeze_if(s,pred)`
+ *  -ATL/MFC: `GetEnvironmentVariable`, `LoadString`, `BSTR AllocSysString() const, BSTR SetSysString(BSTR*) const`, `AnsiToOem, OemToAnsi`, 
+ *  -`splice` (JavaScript)
+ *  -`Remove(s,c)` (ATL/MFC), `remove(s,c), remove_if(s,pred)` (CLX)
+ *  -`SpanIncluding, SpanExcluding` (ATL/MFC)
  *
  * *新しい文字列型を定義する方法
 mwg::string では、文字列の内部形式と文字列に対する操作を分離して実装しています。\
