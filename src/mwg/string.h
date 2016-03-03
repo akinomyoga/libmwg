@@ -32,15 +32,21 @@ public:
 };
 std::vector<managed_test*> managed_test::testerList;
 
-#pragma%x end_check
+#pragma%[itest=0]
 #pragma%m begin_test
+#pragma%%[itest++]
 #pragma%%x begin_check
-class test_%NAME%:managed_test{
-#pragma%%m end_test
-} test_%NAME%_instance;
-#pragma%%%x end_check
-#pragma%%end
+#pragma%%x
+class _test$"itest":managed_test{
+#pragma%%end.i
 #pragma%end
+#pragma%m end_test
+#pragma%%x
+} _test$"itest"_instance;
+#pragma%%end.i
+#pragma%%x end_check
+#pragma%end
+#pragma%x end_check
 namespace mwg{
 namespace string3_detail{
   template<typename XCH>
@@ -186,7 +192,6 @@ struct char_traits<char>{
   static mwg_constexpr bool isspace(char_type c){
     return ::isspace(c);
   }
-
 };
 
 template<typename C,typename XCH=void>
@@ -384,7 +389,7 @@ public:
   strbase(As mwg_forward_rvalue... args)
     :data(mwg::stdm::forward<As>(args)...){}
 #else
-#pragma%[AN=10]
+#pragma%[AN=5]
 #pragma%x (
   template<$".for/@/0/An/typename A@/,">
   strbase($".for/@/0/An/A@ mwg_forward_rvalue arg@/,")
@@ -513,8 +518,8 @@ public:
   remove_return_type remove(mwg::range_i const& r) const{
     return this->remove(r.begin(),r.end());
   }
-#pragma%x begin_check
-  void test_slice(){
+#pragma%x begin_test
+  void test(){
     typedef mwg::stradp<char> _a;
     mwg_assert((_a("hello").slice(2,4) =="ll"));
     mwg_assert((_a("hello").slice(1,-2)=="el"));
@@ -534,7 +539,7 @@ public:
     mwg_assert((_a("hello").remove(1,-2)=="hlo"));
     mwg_assert((_a("hello").remove(mwg::make_range(-4,-1))=="ho"));
   }
-#pragma%x end_check
+#pragma%x end_test
 
   //---------------------------------------------------------------------------
   //
@@ -623,8 +628,8 @@ public:
     std::size_t const _index=canonicalize_index(index,_len);
     return _replace_impl<T,2>(_index,_index,str);
   }
-#pragma%x begin_check
-  void test_insert(){
+#pragma%x begin_test
+  void test(){
     typedef mwg::stradp<char> _a;
     mwg_assert((_a("hello").replace(1,-3,"icon")=="hiconllo"));
     mwg_assert((_a("hello").replace(1,-3,_a("icon"))=="hiconllo"));
@@ -632,7 +637,7 @@ public:
     mwg_assert((_a("hello").insert(1,"icon")=="hiconello"));
     mwg_assert((_a("hello").insert(1,_a("icon"))=="hiconello"));
   }
-#pragma%x end_check
+#pragma%x end_test
 
   //---------------------------------------------------------------------------
   //
@@ -739,8 +744,8 @@ public:
     return this->replace(before,after,r.begin(),r.end());
   }
 
-#pragma%x begin_check
-  void test_map(){
+#pragma%x begin_test
+  void test(){
     typedef mwg::stradp<char> _a;
     mwg_assert( (_a("hello").toupper()=="HELLO"));
     mwg_assert( (_a("hello").toupper(2)=="heLLO"));
@@ -755,7 +760,7 @@ public:
     mwg_assert( (_a("hello").replace('l','p',-2)=="helpo"));
     mwg_assert( (_a("hello").replace('l','r',0,3)=="herlo"));
   }
-#pragma%x end_check
+#pragma%x end_test
 
   //---------------------------------------------------------------------------
   //
@@ -855,8 +860,8 @@ public:
     while(j!=i)if(!_f::invoke(pred,*--j)){++j;break;}
     return slice_return_type(this->data,0,j-i);
   }
-#pragma%x begin_check
-  void test_trim(){
+#pragma%x begin_test
+  void test(){
     typedef mwg::stradp<char> _a;
     mwg_assert((_a("  hello   ").trim ()=="hello"));
     mwg_assert((_a("  hello   ").ltrim()=="hello   "));
@@ -873,7 +878,7 @@ public:
     mwg_assert((_a("012343210").rtrim([](char c){return '0'<=c&&c<='2';})=="012343"));
 #endif
   }
-#pragma%x end_check
+#pragma%x end_test
 
   //---------------------------------------------------------------------------
   //
@@ -925,8 +930,8 @@ public:
   pad_return_type rpad(std::size_t width) const{
     return this->rpad(width,char_traits_type::space());
   }
-#pragma%x begin_check
-  void test_pad(){
+#pragma%x begin_test
+  void test(){
     typedef mwg::stradp<char> _a;
     mwg_assert((_a("hello").pad(1)=="hello"));
     mwg_assert((_a("hello").lpad(1)=="hello"));
@@ -938,7 +943,7 @@ public:
     mwg_assert((_a("hello").lpad(10,'-')=="-----hello"));
     mwg_assert((_a("hello").rpad(10,'-')=="hello-----"));
   }
-#pragma%x end_check
+#pragma%x end_test
 
   //---------------------------------------------------------------------------
   //
@@ -987,8 +992,8 @@ public:
   ends(XStr const& str) const{
     return this->ends(stradp<char_type>(str));
   }
-#pragma%x begin_check
-  void test_starts(){
+#pragma%x begin_test
+  void test(){
     typedef mwg::stradp<char> _a;
     mwg_assert( (_a("hello world").starts("hel")));
     mwg_assert( (_a("hello world").starts(_a("hel"))));
@@ -1003,7 +1008,7 @@ public:
     mwg_assert(!(_a("hello world").ends("+hello world")));
     mwg_assert(!(_a("hello world").ends(_a("+hello world"))));
   }
-#pragma%x end_check
+#pragma%x end_test
 
   //---------------------------------------------------------------------------
   //
@@ -1201,8 +1206,8 @@ public:
   MWG_STRING3_STRING_H__define_find_overloads(rfind_not);
 #undef MWG_STRING3_STRING_H__define_find_overloads
 
-#pragma%x begin_check
-  void test_find(){
+#pragma%x begin_test
+  void test(){
     typedef mwg::stradp<char> _a;
     mwg_assert((_a("0123401234").find("012")==0));
     mwg_assert((_a("0123401234").find("234")==2));
@@ -1228,7 +1233,7 @@ public:
     mwg_assert((_a("0123401234").rfind_not("012")==9));
     mwg_assert((_a("0123401234").rfind_not("234")==6));
   }
-#pragma%x end_check
+#pragma%x end_test
 
   //---------------------------------------------------------------------------
   //
@@ -1255,13 +1260,13 @@ public:
   repeat_return_type repeat(std::size_t count) const{
     return repeat_return_type(*this,count);
   }
-#pragma%x begin_check
-  void test_misc(){
+#pragma%x begin_test
+  void test(){
     typedef mwg::stradp<char> _a;
     mwg_assert( (_a("HELLO").reverse()=="OLLEH"));
     mwg_assert( (_a("HELLO").repeat(3)=="HELLOHELLOHELLO"));
   }
-#pragma%x end_check
+#pragma%x end_test
 };
 
 //-----------------------------------------------------------------------------
@@ -1533,7 +1538,7 @@ namespace string3_detail{
 
 #pragma%x end_check
 //-----------------------------------------------------------------------------
-// _strtmp_sub_policy
+// _strtmp_sub_policy                                                  @tmp.sub
 
 template<typename Iter,bool IterHasIndex=Iter::has_index>
 class index_displaced_iterator{ /* not supported */ };
@@ -1610,7 +1615,7 @@ public:
   };
 };
 
-#pragma%x begin_test.r/%NAME%/_strtmp_sub_policy/
+#pragma%x begin_test
   void test(){
     using namespace mwg::string3_detail;
 
@@ -1625,8 +1630,7 @@ public:
 #pragma%x end_test
 
 //-----------------------------------------------------------------------------
-// _strtmp_map_policy, _strtmp_ranged_map_policy
-// _strtmp_pad_policy
+// _strtmp_map_policy, _strtmp_ranged_map_policy                       @tmp.map
 
 /* :@tp Filter
  *  Filter には filter を格納する形式を指定する。
@@ -1808,6 +1812,9 @@ public:
   }
 };
 
+//-----------------------------------------------------------------------------
+// _strtmp_pad_policy                                                  @tmp.pad
+
 template<typename Str>
 struct _strtmp_pad_policy{
   typedef _strtmp_pad_policy                      policy_type;
@@ -1843,7 +1850,7 @@ struct _strtmp_pad_policy{
 };
 
 //-----------------------------------------------------------------------------
-// _strtmp_cat_policy, operator+
+// _strtmp_cat_policy, operator+                                       @tmp.cat
 
 template<typename Str1,typename Str2,typename Str3>
 struct _strtmp_cat_policy{
@@ -1981,17 +1988,17 @@ operator+(XStr1 const& lhs,strbase<StrP2> const& rhs){
   return return_type(lhs,rhs);
 }
 
-#pragma%x begin_check
-void test_concat(){
+#pragma%x begin_test
+void test(){
   typedef mwg::stradp<char> _a;
   mwg_assert((_a("hello")+_a(" world")=="hello world"));
   mwg_assert((_a("hello")+" world"=="hello world"));
   mwg_assert(("hello"+_a(" world")+"!"=="hello world!"));
 }
-#pragma%x end_check
+#pragma%x end_test
 
 //-----------------------------------------------------------------------------
-// reverse. repeat
+// reverse, repeat                                         @tmp.rev @tmp.repeat
 
 template<typename Str>
 struct _strtmp_reverse_policy{
@@ -2044,7 +2051,7 @@ struct _strtmp_repeat_policy{
 };
 
 //-----------------------------------------------------------------------------
-// 関係演算子
+// 関係演算子                                                           @op.rel
 
 #pragma%m mwg::string::compare::doc
 /*?lwiki
@@ -2155,8 +2162,8 @@ FunctionName(XStr const& lhs,strbase<StrP1> const& rhs){ \
   MWG_STRING3_STRING_H__overload_compare_adapter(bool,operator>)
 #undef MWG_STRING3_STRING_H__overload_compare_adapter
 
-#pragma%x begin_check
-void test_compare(){
+#pragma%x begin_test
+void test(){
   typedef mwg::stradp<char> _a;
 
   mwg_assert(compare(_a("hello"),_a("hello"))== 0);
@@ -2207,7 +2214,7 @@ void test_compare(){
   s1="21345";
   mwg_assert( (s1=="21345"));
 }
-#pragma%x end_check
+#pragma%x end_test
 
 //-----------------------------------------------------------------------------
 // default specializations
@@ -2414,25 +2421,13 @@ mwg::string では、文字列の内部形式と文字列に対する操作を�
  */
 //HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 #endif
-#pragma%x begin_check
+#pragma%x begin_test
 void test(){
-  test_slice();
-  test_insert();
-  test_map();
-  test_trim();
-  test_pad();
-  test_starts();
-  test_find();
-  test_concat();
-  test_misc();
-  test_compare();
-
-  managed_test::run_tests();
-
   typedef mwg::stradp<char> _a;
   mwg_assert( (_a("HELLO").repeat(3).tolower(5,-3).reverse()=="OLLehollehOLLEH"));
 }
-
+#pragma%x end_test
+#pragma%x begin_check
 // namespace string_bench{
 //   int test_compare1();
 //   void test(){
@@ -2442,7 +2437,7 @@ void test(){
 // }
 
 int main(){
-  test();
+  managed_test::run_tests();
   return 0;
 }
 #pragma%x end_check
