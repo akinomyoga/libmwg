@@ -25,15 +25,16 @@ private:
   static std::vector<managed_test*> testerList;
 public:
   static void run_tests(){
-    for(int i=0,iN=testerList.size();i<iN;i++)
+    for(int i=0,iN=testerList.size();i<iN;i++){
+      // mwg_printd("_test%d",i);
       testerList[i]->test();
+    }
   }
 };
 std::vector<managed_test*> managed_test::testerList;
 
 #pragma%[itest=0]
 #pragma%m begin_test
-#pragma%%[itest++]
 #pragma%%x begin_check
 #pragma%%x
 class _test$"itest":managed_test{
@@ -44,12 +45,17 @@ class _test$"itest":managed_test{
 } _test$"itest"_instance;
 #pragma%%end.i
 #pragma%%x end_check
+#pragma%%[itest++]
 #pragma%end
 #pragma%x end_check
 namespace mwg{
 namespace string3_detail{
   template<typename XCH>
   struct char_traits;
+
+  // ※Dummy は struct strbase_tag<XCH> : strbase_tag<>{}; とするため。
+  template<typename XCH=void,int Dummy=0>
+  class strbase_tag;
   template<typename Policy>
   class strbase;
 
@@ -213,20 +219,27 @@ struct char_traits{
 
 struct adapter_traits_empty{static const bool available=false;};
 
+template<typename T,bool IsStr>
+struct _adapter_traits_1:adapter_traits_empty{};
 template<typename T,typename XCH,bool IsString>
 struct _adapter_traits_2:adapter_traits_empty{};
 
 template<typename T,typename XCH=void>
 struct adapter_traits:_adapter_traits_2<T,XCH,adapter_traits<T>::available>{};
 template<typename T>
-struct adapter_traits<T>:adapter_traits_empty{};
+struct adapter_traits<T>:_adapter_traits_1<T,stdm::is_base_of<strbase_tag<>,T>::value>{};
 
+template<typename T>
+struct _adapter_traits_1<T,true>{
+  static const bool available=true;
+  typedef T const& adapter_type;
+  typedef typename T::char_type char_type;
+};
 template<typename T,typename XCH>
 struct _adapter_traits_2<T,XCH,true>:stdm::conditional<
   mwg::stdm::is_same<typename adapter_traits<T>::char_type,XCH>::value,
   adapter_traits<T>,adapter_traits_empty
   >::type{};
-
 
 template<typename T>
 typename adapter_traits<T>::adapter_type
@@ -306,7 +319,7 @@ struct adapter_traits<const XCH*>:adapter_traits_stradp<XCH>{
 };
 
 //-----------------------------------------------------------------------------
-// predicaters
+// predicates
 
 template<typename XCH>
 struct isspace_predicator{
@@ -318,12 +331,12 @@ struct isspace_predicator{
 template<typename XCH,typename Str1>
 struct _pred_any_of_str{
   typedef XCH char_type;
-  Str1 const& str;
-  _pred_any_of_str(Str1 const& str)
+  typename stdx::add_const_reference<Str1>::type str;
+  _pred_any_of_str(typename stdx::add_const_reference<Str1>::type str)
     :str(str){}
 
   bool operator()(char_type c) const{
-    typename Str1::const_iterator i=str.begin(),iN=str.end();
+    typename stdm::remove_reference<Str1>::type::const_iterator i=str.begin(),iN=str.end();
     for(;i!=iN;++i)
       if(c==*i)return true;
     return false;
@@ -332,12 +345,12 @@ struct _pred_any_of_str{
 template<typename XCH,typename Str1>
 struct _pred_not_of_str{
   typedef XCH char_type;
-  Str1 const& str;
-  _pred_not_of_str(Str1 const& str)
+  typename stdx::add_const_reference<Str1>::type str;
+  _pred_not_of_str(typename stdx::add_const_reference<Str1>::type str)
     :str(str){}
 
   bool operator()(char_type c) const{
-    typename Str1::const_iterator i=str.begin(),iN=str.end();
+    typename stdm::remove_reference<Str1>::type::const_iterator i=str.begin(),iN=str.end();
     for(;i!=iN;++i)
       if(c==*i)return false;
     return true;
@@ -459,8 +472,10 @@ public:
 //-----------------------------------------------------------------------------
 // strbase
 
+template<>
+struct strbase_tag<>{};
 template<typename XCH>
-struct strbase_tag{};
+struct strbase_tag<XCH>:strbase_tag<>{};
 
 template<typename Policy>
 class strbase:public strbase_tag<typename Policy::char_type>{
@@ -495,7 +510,7 @@ public:
    * :@op s==[==index==]==;
    *  指定した位置にある文字を返します。
    * :@fn s.==length==();
-   *  文字列の長さを取得します。
+   *  文字列中の文字数を取得します。
    * :@fn s.==empty==();
    *  空文字列かどうかを取得します。
    *  c.f. `empty` (C++), <?rb empty??> (Ruby)
@@ -649,78 +664,55 @@ public:
    */
 #pragma%end
 private:
-  template<typename A1>
-  struct range_replace_switch
-    :mwg::stdm::integral_constant<int,
-      mwg::stdm::is_base_of<strbase_tag<char_type>,A1>::value?1:
-      adapter_traits<A1,char_type>::available?2:
-      0>{};
-  template<typename A1,int S>
-  struct range_replace_enabler
-    :mwg::stdm::enable_if<
-      S==range_replace_switch<A1>::value,
-      typename mwg::stdm::conditional<
-        S==1,strbase<_strtmp_cat_policy<slice_return_type,A1 const&,slice_return_type> >,
-        typename mwg::stdm::conditional<
-          S==2,strbase<_strtmp_cat_policy<slice_return_type,stradp<char_type>,slice_return_type> >,
-          void
-        >::type
-      >::type
-    >{};
 
-  template<typename T,int S,typename T_>
-  typename range_replace_enabler<T,S>::type
-  _replace_impl(std::size_t _start,std::size_t _end,T_ const& str) const{
+  template<
+    typename A,
+    bool isOK=adapter_traits<A,char_type>::available
+  > struct insert_enabler{};
+
+  template<typename A>
+  struct insert_enabler<A,true>:mwg::identity<
+    strbase<_strtmp_cat_policy<
+      slice_return_type,
+      typename adapter_traits<A,char_type>::adapter_type,
+      slice_return_type>
+    >
+  >{};
+
+  template<typename T>
+  typename insert_enabler<T>::type
+  _replace_impl(std::size_t _start,std::size_t _end,T const& str) const{
     std::size_t const _len=this->length();
-    return typename range_replace_enabler<T,S>::type(
+    return typename insert_enabler<T>::type(
       slice_return_type(this->data,0,_start),
       str,
       slice_return_type(this->data,_end,_len-_end)
     );
   }
+
 public:
   template<typename T>
-  typename range_replace_enabler<T,1>::type
+  typename insert_enabler<T>::type
   replace(std::ptrdiff_t start,std::ptrdiff_t end,T const& str) const{
     std::size_t const _len=this->length();
     std::size_t _start=canonicalize_index(start,_len);
     std::size_t _end=canonicalize_index(end,_len);
     if(_end<_start)std::swap(_start,_end);
-    return _replace_impl<T,1>(_start,_end,str);
+    return _replace_impl<T>(_start,_end,str);
   }
   template<typename T>
-  typename range_replace_enabler<T,2>::type
-  replace(std::ptrdiff_t start,std::ptrdiff_t end,T const& str) const{
-    std::size_t const _len=this->length();
-    std::size_t _start=canonicalize_index(start,_len);
-    std::size_t _end=canonicalize_index(end,_len);
-    if(_end<_start)std::swap(_start,_end);
-    return _replace_impl<T,2>(_start,_end,str);
-  }
-  template<typename T>
-  typename range_replace_enabler<T,1>::type
+  typename insert_enabler<T>::type
   replace(mwg::range_i const& r,T const& str) const{
     return this->replace(r.begin(),r.end(),str);
   }
   template<typename T>
-  typename range_replace_enabler<T,2>::type
-  replace(mwg::range_i const& r,T const& str) const{
-    return this->replace(r.begin(),r.end(),str);
-  }
-  template<typename T>
-  typename range_replace_enabler<T,1>::type
+  typename insert_enabler<T>::type
   insert(std::ptrdiff_t index,T const& str) const{
     std::size_t const _len=this->length();
     std::size_t const _index=canonicalize_index(index,_len);
-    return _replace_impl<T,1>(_index,_index,str);
+    return _replace_impl<T>(_index,_index,str);
   }
-  template<typename T>
-  typename range_replace_enabler<T,2>::type
-  insert(std::ptrdiff_t index,T const& str) const{
-    std::size_t const _len=this->length();
-    std::size_t const _index=canonicalize_index(index,_len);
-    return _replace_impl<T,2>(_index,_index,str);
-  }
+
 #pragma%x begin_test
   void test(){
     mwg_assert((_a("hello").replace(1,-3,"icon")=="hiconllo"));
@@ -883,80 +875,56 @@ public:
    *  <?rb rstrip?> (Ruby, CLX), `rstrip_if` (CLX)
    */
 #pragma%end
-private:
-  template<typename A1,int Swch>
-  struct trim_enabler
-    :mwg::stdm::enable_if<
-    Swch==(
-      mwg::stdm::is_base_of<strbase_tag<char_type>,A1>::value?1:
-      adapter_traits<A1,char_type>::available?2:
-      mwg::be_functor<A1,bool(char_type)>::value?3:0
-    ),slice_return_type >{};
 public:
-  slice_return_type trim() const{
-    return this->trim(isspace_predicator<char_type>());
-  }
-  template<typename StrP>
-  typename trim_enabler<strbase<StrP>,1>::type
-  trim(strbase<StrP> const& set) const{
-    return this->trim(_pred_any_of_str<char_type,strbase<StrP> >(set));
-  }
-  template<typename XStr>
-  typename trim_enabler<XStr,2>::type
-  trim(XStr const& set) const{
-    return this->trim(_pred_any_of_str<char_type,stradp<char_type> >(set));
-  }
-  template<typename FPred>
-  typename trim_enabler<FPred,3>::type
-  trim(FPred const& pred) const{
-    typedef mwg::functor_traits<FPred,bool(char_type)> _f;
+  slice_return_type trim () const{return this->trim (isspace_predicator<char_type>());}
+  slice_return_type ltrim() const{return this->ltrim(isspace_predicator<char_type>());}
+  slice_return_type rtrim() const{return this->rtrim(isspace_predicator<char_type>());}
+
+  template<typename Predicate>
+  typename stdm::enable_if<mwg::be_functor<Predicate,bool(char_type)>::value,slice_return_type>::type
+  trim(Predicate const& pred) const{
+    typedef mwg::functor_traits<Predicate,bool(char_type)> _f;
     const_iterator i=this->begin(),j=this->end();
     while(i!=j&&_f::invoke(pred,*i))++i;
     while(j!=i)if(!_f::invoke(pred,*--j)){++j;break;}
     return slice_return_type(this->data,i-this->begin(),j-i);
   }
-  slice_return_type ltrim() const{
-    return this->ltrim(isspace_predicator<char_type>());
-  }
-  template<typename StrP>
-  typename trim_enabler<strbase<StrP>,1>::type
-  ltrim(strbase<StrP> const& set) const{
-    return this->ltrim(_pred_any_of_str<char_type,strbase<StrP> >(set));
-  }
-  template<typename XStr>
-  typename trim_enabler<XStr,2>::type
-  ltrim(XStr const& set) const{
-    return this->ltrim(_pred_any_of_str<char_type,stradp<char_type> >(set));
-  }
-  template<typename FPred>
-  typename trim_enabler<FPred,3>::type
-  ltrim(FPred const& pred) const{
-    typedef mwg::functor_traits<FPred,bool(char_type)> _f;
+  template<typename Predicate>
+  typename stdm::enable_if<mwg::be_functor<Predicate,bool(char_type)>::value,slice_return_type>::type
+  ltrim(Predicate const& pred) const{
+    typedef mwg::functor_traits<Predicate,bool(char_type)> _f;
     const_iterator i=this->begin(),j=this->end();
     while(i!=j&&_f::invoke(pred,*i))++i;
     return slice_return_type(this->data,i-this->begin(),j-i);
   }
-  slice_return_type rtrim() const{
-    return this->rtrim(isspace_predicator<char_type>());
-  }
-  template<typename StrP>
-  typename trim_enabler<strbase<StrP>,1>::type
-  rtrim(strbase<StrP> const& set) const{
-    return this->rtrim(_pred_any_of_str<char_type,strbase<StrP> >(set));
-  }
-  template<typename XStr>
-  typename trim_enabler<XStr,2>::type
-  rtrim(XStr const& set) const{
-    return this->rtrim(_pred_any_of_str<char_type,stradp<char_type> >(set));
-  }
-  template<typename FPred>
-  typename trim_enabler<FPred,3>::type
-  rtrim(FPred const& pred) const{
-    typedef mwg::functor_traits<FPred,bool(char_type)> _f;
+  template<typename Predicate>
+  typename stdm::enable_if<mwg::be_functor<Predicate,bool(char_type)>::value,slice_return_type>::type
+  rtrim(Predicate const& pred) const{
+    typedef mwg::functor_traits<Predicate,bool(char_type)> _f;
     const_iterator i=this->begin(),j=this->end();
     while(j!=i)if(!_f::invoke(pred,*--j)){++j;break;}
     return slice_return_type(this->data,0,j-i);
   }
+
+  template<typename Str>
+  typename stdm::enable_if<adapter_traits<Str,char_type>::available,slice_return_type>::type
+  trim(Str const& set) const{
+    typedef typename adapter_traits<Str,char_type>::adapter_type adapter_type;
+    return this->trim(_pred_any_of_str<char_type,adapter_type>(set));
+  }
+  template<typename Str>
+  typename stdm::enable_if<adapter_traits<Str,char_type>::available,slice_return_type>::type
+  ltrim(Str const& set) const{
+    typedef typename adapter_traits<Str,char_type>::adapter_type adapter_type;
+    return this->ltrim(_pred_any_of_str<char_type,adapter_type>(set));
+  }
+  template<typename Str>
+  typename stdm::enable_if<adapter_traits<Str,char_type>::available,slice_return_type>::type
+  rtrim(Str const& set) const{
+    typedef typename adapter_traits<Str,char_type>::adapter_type adapter_type;
+    return this->rtrim(_pred_any_of_str<char_type,adapter_type>(set));
+  }
+
 #pragma%x begin_test
   void test(){
     mwg_assert((_a("  hello   ").trim ()=="hello"));
@@ -1058,34 +1026,34 @@ public:
    */
 #pragma%end
 public:
-  template<typename StrP>
-  bool starts(strbase<StrP> const& str) const{
+  template<typename XStr>
+  typename adapter_enabler<char_type,XStr,bool>::type
+  starts(XStr const& _str) const{
+    typedef typename adapter_traits<XStr>::adapter_type XAdp;
+    typedef typename stdm::remove_reference<XAdp>::type::const_iterator XItr;
+
+    XAdp str(_str);
     if(this->length()<str.length())return false;
     const_iterator i=this->begin();
-    typename strbase<StrP>::const_iterator j=str.begin(),jN=str.end();
+    XItr j=str.begin(),jN=str.end();
     for(;j!=jN;++i,++j)
       if(*i!=*j)return false;
     return true;
   }
   template<typename XStr>
   typename adapter_enabler<char_type,XStr,bool>::type
-  starts(XStr const& str) const{
-    return this->starts(stradp<char_type>(str));
-  }
-  template<typename StrP>
-  bool ends(strbase<StrP> const& str) const{
+  ends(XStr const& _str) const{
+    typedef typename adapter_traits<XStr>::adapter_type XAdp;
+    typedef typename stdm::remove_reference<XAdp>::type::const_iterator XItr;
+
+    XAdp str(_str);
     std::ptrdiff_t offset=this->length()-str.length();
     if(offset<0)return false;
     const_iterator i=this->_beginAt(offset);
-    typename strbase<StrP>::const_iterator j=str.begin(),jN=str.end();
+    XItr j=str.begin(),jN=str.end();
     for(;j!=jN;++i,++j)
       if(*i!=*j)return false;
     return true;
-  }
-  template<typename XStr>
-  typename adapter_enabler<char_type,XStr,bool>::type
-  ends(XStr const& str) const{
-    return this->ends(stradp<char_type>(str));
   }
 #pragma%x begin_test
   void test(){
@@ -1149,6 +1117,19 @@ public:
    *  c.f. Boost find_nth/ifind_first/ifind_last/ifind_nth
    */
 #pragma%end
+private:
+  template<bool A1,bool A2,bool A3=false>
+  struct _xor:stdm::integral_constant<bool,((A1?1:0)+(A2?1:0)+(A3?1:0)==1)>{};
+
+  template<typename T,bool HasChar,bool HasPredicate,bool HasString>
+  struct find_enabler:stdm::enable_if<
+    _xor<
+      HasChar&&stdm::is_same<T,char_type>::value,
+      HasPredicate&&mwg::be_functor<T,bool(char_type)>::value,
+      HasString&&adapter_traits<T,char_type>::available
+    >::value,
+    std::ptrdiff_t
+  >{};
 
 private:
   std::ptrdiff_t _find_impl(char_type const& ch,std::ptrdiff_t i,std::ptrdiff_t j) const{
@@ -1163,143 +1144,104 @@ private:
       if(*--p==ch)return j;
     return -1;
   }
-public:
-#define MWG_STRING3_STRING_H__define_find_overloads(FIND) \
-  std::ptrdiff_t FIND(char_type const& ch) const{ \
-    return this->_##FIND##_impl(ch,0,this->length()); \
-  } \
-  std::ptrdiff_t FIND(char_type const& ch,std::ptrdiff_t start,std::ptrdiff_t end=mwg::npos) const{ \
-    std::size_t const _len=this->length(); \
-    return this->_##FIND##_impl(ch,canonicalize_index(start,_len),canonicalize_index(end,_len)); \
-  } \
-  std::ptrdiff_t FIND(char_type const& ch,mwg::range_i const& r) const{ \
-    return this->FIND(ch,r.begin(),r.end()); \
-  }
-
-  MWG_STRING3_STRING_H__define_find_overloads(find );
-  MWG_STRING3_STRING_H__define_find_overloads(rfind);
-#undef MWG_STRING3_STRING_H__define_find_overloads
 
 private:
-  template<typename A1,int Swch>
-  struct find_enabler
-    :mwg::stdm::enable_if<
-    Swch==(
-      mwg::stdm::is_base_of<strbase_tag<char_type>,A1>::value?1:
-      adapter_traits<A1,char_type>::available?2:
-      mwg::be_functor<A1,bool(char_type)>::value?3:
-      0
-    ),std::ptrdiff_t>{};
-
-  template<typename Pred>
-  std::ptrdiff_t _find_pred(Pred const& pred,std::ptrdiff_t i,std::ptrdiff_t j) const{
-    typedef mwg::functor_traits<Pred,bool(char_type)> _f;
+  template<typename Predicate>
+  typename find_enabler<Predicate,false,true,false>::type
+  _find_impl(Predicate const& pred,std::ptrdiff_t i,std::ptrdiff_t j) const{
+    typedef mwg::functor_traits<Predicate,bool(char_type)> _f;
     const_iterator p=this->_beginAt(i);
     for(;i<j;++i)
       if(_f::invoke(pred,*p++))return i;
     return -1;
   }
-  template<typename Pred>
-  std::ptrdiff_t _rfind_pred(Pred const& pred,std::ptrdiff_t i,std::ptrdiff_t j) const{
-    typedef mwg::functor_traits<Pred,bool(char_type)> _f;
+  template<typename Predicate>
+  typename find_enabler<Predicate,false,true,false>::type
+  _rfind_impl(Predicate const& pred,std::ptrdiff_t i,std::ptrdiff_t j) const{
+    typedef mwg::functor_traits<Predicate,bool(char_type)> _f;
     const_iterator p=this->_beginAt(j);
     for(;--j>=i;)
       if(_f::invoke(pred,*--p))return j;
     return -1;
   }
-public:
-#define MWG_STRING3_STRING_H__define_find_overloads(FIND) \
-  template<typename T> \
-  typename find_enabler<T,3>::type FIND(T const& pred) const{ \
-    return this->_##FIND##_pred(pred,0,this->length()); \
-  } \
-  template<typename T> \
-  typename find_enabler<T,3>::type FIND(T const& pred,std::ptrdiff_t start,std::ptrdiff_t end=mwg::npos) const{ \
-    std::size_t const _len=this->length(); \
-    return this->_##FIND##_pred(pred,canonicalize_index(start,_len),canonicalize_index(end,_len)); \
-  } \
-  template<typename T> \
-  typename find_enabler<T,3>::type FIND(T const& pred,mwg::range_i const& r) const{ \
-    return this->FIND(pred,r.begin(),r.end()); \
-  }
-
-  MWG_STRING3_STRING_H__define_find_overloads(find );
-  MWG_STRING3_STRING_H__define_find_overloads(rfind);
-#undef MWG_STRING3_STRING_H__define_find_overloads
 
 private:
-  template<typename StrP>
-  bool _find_match_at(std::size_t index,strbase<StrP> const& str) const{
+  template<typename Policy>
+  bool _find_match_at(std::size_t index,strbase<Policy> const& str) const{
     const_iterator p=this->_beginAt(index);
-    typename strbase<StrP>::const_iterator q=str.begin();
+    typename strbase<Policy>::const_iterator q=str.begin();
     for(std::size_t end=index+str.length();index<end;index++)
       if(*p++!=*q++)return false;
     return true;
   }
-  template<typename StrP>
-  std::ptrdiff_t _find_impl(strbase<StrP> const& str,std::ptrdiff_t _i0,std::ptrdiff_t _iM) const{
+  template<typename Str>
+  typename find_enabler<Str,false,false,true>::type
+  _find_impl(Str const& _str,std::ptrdiff_t _i0,std::ptrdiff_t _iM) const{
+    typename adapter_traits<Str,char_type>::adapter_type str(_str);
     _iM-=str.length();
     for(std::ptrdiff_t i=_i0;i<=_iM;++i)
       if(_find_match_at(i,str))return i;
     return -1;
   }
-  template<typename StrP>
-  std::ptrdiff_t _rfind_impl(strbase<StrP> const& str,std::ptrdiff_t _i0,std::ptrdiff_t _iM) const{
+  template<typename Str>
+  typename find_enabler<Str,false,false,true>::type
+  _rfind_impl(Str const& _str,std::ptrdiff_t _i0,std::ptrdiff_t _iM) const{
+    typename adapter_traits<Str,char_type>::adapter_type str(_str);
     _iM-=str.length();
     for(std::ptrdiff_t i=_iM;i>=_i0;--i)
       if(_find_match_at(i,str))return i;
     return -1;
   }
-  template<typename StrP>
-  std::ptrdiff_t _find_any_impl(strbase<StrP> const& str,std::ptrdiff_t i,std::ptrdiff_t iN) const{
-    return this->_find_pred(_pred_any_of_str<char_type,strbase<StrP> >(str),i,iN);
+  template<typename Str>
+  typename find_enabler<Str,false,false,true>::type
+  _find_any_impl(Str const& str,std::ptrdiff_t i,std::ptrdiff_t iN) const{
+    typedef typename adapter_traits<Str,char_type>::adapter_type adapter_type;
+    return this->_find_impl(_pred_any_of_str<char_type,adapter_type>(str),i,iN);
   }
-  template<typename StrP>
-  std::ptrdiff_t _find_not_impl(strbase<StrP> const& str,std::ptrdiff_t i,std::ptrdiff_t iN) const{
-    return this->_find_pred(_pred_not_of_str<char_type,strbase<StrP> >(str),i,iN);
+  template<typename Str>
+  typename find_enabler<Str,false,false,true>::type
+  _rfind_any_impl(Str const& str,std::ptrdiff_t i,std::ptrdiff_t iN) const{
+    typedef typename adapter_traits<Str,char_type>::adapter_type adapter_type;
+    return this->_rfind_impl(_pred_any_of_str<char_type,adapter_type>(str),i,iN);
   }
-  template<typename StrP>
-  std::ptrdiff_t _rfind_any_impl(strbase<StrP> const& str,std::ptrdiff_t i,std::ptrdiff_t iN) const{
-    return this->_rfind_pred(_pred_any_of_str<char_type,strbase<StrP> >(str),i,iN);
+  template<typename Str>
+  typename find_enabler<Str,false,false,true>::type
+  _find_not_impl(Str const& str,std::ptrdiff_t i,std::ptrdiff_t iN) const{
+    typedef typename adapter_traits<Str,char_type>::adapter_type adapter_type;
+    return this->_find_impl(_pred_not_of_str<char_type,adapter_type>(str),i,iN);
   }
-  template<typename StrP>
-  std::ptrdiff_t _rfind_not_impl(strbase<StrP> const& str,std::ptrdiff_t i,std::ptrdiff_t iN) const{
-    return this->_rfind_pred(_pred_not_of_str<char_type,strbase<StrP> >(str),i,iN);
-  }
-public:
-#define MWG_STRING3_STRING_H__define_find_overloads(FIND) \
-  template<typename T> \
-  typename find_enabler<T,1>::type FIND(T const& str) const{ \
-    return this->_##FIND##_impl(str,0,this->length()); \
-  } \
-  template<typename T> \
-  typename find_enabler<T,1>::type FIND(T const& str,std::ptrdiff_t start,std::ptrdiff_t end=mwg::npos) const{ \
-    std::size_t const _len=this->length(); \
-    return this->_##FIND##_impl(str,canonicalize_index(start,_len),canonicalize_index(end,_len)); \
-  } \
-  template<typename T> \
-  typename find_enabler<T,1>::type FIND(T const& str,mwg::range_i const& r) const{ \
-    return this->FIND(str,r.begin(),r.end()); \
-  } \
-  template<typename T> \
-  typename find_enabler<T,2>::type FIND(T const& str) const{ \
-    return this->FIND(stradp<char_type>(str)); \
-  } \
-  template<typename T> \
-  typename find_enabler<T,2>::type FIND(T const& str,std::ptrdiff_t start,std::ptrdiff_t end=mwg::npos) const{ \
-    return this->FIND(stradp<char_type>(str),start,end); \
-  } \
-  template<typename T> \
-  typename find_enabler<T,2>::type FIND(T const& str,mwg::range_i const& r) const{ \
-    return this->FIND(stradp<char_type>(str),r.begin(),r.end()); \
+  template<typename Str>
+  typename find_enabler<Str,false,false,true>::type
+  _rfind_not_impl(Str const& str,std::ptrdiff_t i,std::ptrdiff_t iN) const{
+    typedef typename adapter_traits<Str,char_type>::adapter_type adapter_type;
+    return this->_rfind_impl(_pred_not_of_str<char_type,adapter_type>(str),i,iN);
   }
 
-  MWG_STRING3_STRING_H__define_find_overloads(find);
-  MWG_STRING3_STRING_H__define_find_overloads(find_any);
-  MWG_STRING3_STRING_H__define_find_overloads(find_not);
-  MWG_STRING3_STRING_H__define_find_overloads(rfind);
-  MWG_STRING3_STRING_H__define_find_overloads(rfind_any);
-  MWG_STRING3_STRING_H__define_find_overloads(rfind_not);
+public:
+#define MWG_STRING3_STRING_H__define_find_overloads(FIND,hC,hP,hS) \
+  template<typename T> \
+  typename find_enabler<T,hC,hP,hS>::type \
+  FIND(T const& pred) const{ \
+    return this->_##FIND##_impl(pred,0,this->length()); \
+  } \
+  template<typename T> \
+  typename find_enabler<T,hC,hP,hS>::type \
+  FIND(T const& pred,std::ptrdiff_t start,std::ptrdiff_t end=mwg::npos) const{ \
+    std::size_t const _len=this->length(); \
+    return this->_##FIND##_impl(pred,canonicalize_index(start,_len),canonicalize_index(end,_len)); \
+  } \
+  template<typename T> \
+  typename find_enabler<T,hC,hP,hS>::type \
+  FIND(T const& pred,mwg::range_i const& r) const{ \
+    return this->FIND(pred,r.begin(),r.end()); \
+  }
+
+  MWG_STRING3_STRING_H__define_find_overloads(find     ,true ,true ,true);
+  MWG_STRING3_STRING_H__define_find_overloads(rfind    ,true ,true ,true);
+  MWG_STRING3_STRING_H__define_find_overloads(find_any ,false,false,true);
+  MWG_STRING3_STRING_H__define_find_overloads(rfind_any,false,false,true);
+  MWG_STRING3_STRING_H__define_find_overloads(find_not ,false,false,true);
+  MWG_STRING3_STRING_H__define_find_overloads(rfind_not,false,false,true);
 #undef MWG_STRING3_STRING_H__define_find_overloads
 
 #pragma%x begin_test
@@ -1332,7 +1274,7 @@ public:
 
   //---------------------------------------------------------------------------
   //
-  // mwg::string::find
+  // mwg::string::misc
   //
   //---------------------------------------------------------------------------
 #pragma%m mwg::string::misc::doc
@@ -1417,6 +1359,8 @@ private:
 template<typename XCH>
 class stradp:public strbase<strsub_policy<XCH> >{
   typedef strbase<strsub_policy<XCH> > base;
+
+public:
   using typename base::char_type;
 
 public:
@@ -1424,7 +1368,7 @@ public:
     :base(ptr,length){}
 
   template<typename T>
-  stradp(T const& value,typename adapter_enabler<char_type,T,int*>::type=0)
+  stradp(T const& value,typename stdm::enable_if<stdm::is_same<stradp,typename adapter_traits<T>::adapter_type>::value>::type* =0)
     :base(adapter_traits<T,char_type>::pointer(value),adapter_traits<T,char_type>::length(value)){}
 };
 
@@ -1533,6 +1477,8 @@ struct string_policy{
 template<typename XCH>
 class string:public strbase<string_policy<XCH> >{
   typedef strbase<string_policy<XCH> > base;
+
+public:
   using typename base::char_type;
 
 public:
@@ -1564,7 +1510,7 @@ public:
 
   template<typename T>
   string(T const& value,typename adapter_enabler<char_type,T,int*>::type=0)
-    :base(stradp<char_type>(value)){}
+    :base(make_str(value)){}
 
 };
 
@@ -2044,41 +1990,26 @@ struct _strtmp_cat_policy<Str1,Str2>{
   };
 };
 
-template<typename Str1,typename Str2>
-struct concat_enabler{};
+template<
+  typename X,typename Y,
+  bool OK=stdm::is_same<
+    typename adapter_traits<X>::char_type,
+    typename adapter_traits<Y>::char_type
+  >::value
+> struct concat_enabler{};
 
-template<typename StrP1,typename StrP2>
-struct concat_enabler<strbase<StrP1>,strbase<StrP2> >:mwg::stdm::enable_if<
-  mwg::stdm::is_same<typename StrP1::char_type,typename StrP2::char_type >::value,
-  strbase<_strtmp_cat_policy<strbase<StrP1> const&,strbase<StrP2> const&> >
-  >{};
-template<typename StrP1,typename XStr2>
-struct concat_enabler<strbase<StrP1>,XStr2 >:mwg::stdm::enable_if<
-  adapter_traits<XStr2,typename StrP1::char_type>::available,
-  strbase<_strtmp_cat_policy<strbase<StrP1> const&,stradp<typename StrP1::char_type> > >
-  >{};
-template<typename XStr1,typename StrP2>
-struct concat_enabler<XStr1,strbase<StrP2> >:mwg::stdm::enable_if<
-  adapter_traits<XStr1,typename StrP2::char_type>::available,
-  strbase<_strtmp_cat_policy<stradp<typename StrP2::char_type>,strbase<StrP2> const&> >
-  >{};
+template<typename X,typename Y>
+struct concat_enabler<X,Y,true>:mwg::identity<
+  strbase<_strtmp_cat_policy<
+    typename adapter_traits<X>::adapter_type,
+    typename adapter_traits<Y>::adapter_type
+  > >
+>{};
 
-template<typename StrP1,typename StrP2>
-typename concat_enabler<strbase<StrP1>,strbase<StrP2> >::type
-operator+(strbase<StrP1> const& lhs,strbase<StrP2> const& rhs){
-  typedef typename concat_enabler<strbase<StrP1>,strbase<StrP2> >::type return_type;
-  return return_type(lhs,rhs);
-}
-template<typename StrP1,typename XStr2>
-typename concat_enabler<strbase<StrP1>,XStr2 >::type
-operator+(strbase<StrP1> const& lhs,XStr2 const& rhs){
-  typedef typename concat_enabler<strbase<StrP1>,XStr2 >::type return_type;
-  return return_type(lhs,rhs);
-}
-template<typename XStr1,typename StrP2>
-typename concat_enabler<XStr1,strbase<StrP2> >::type
-operator+(XStr1 const& lhs,strbase<StrP2> const& rhs){
-  typedef typename concat_enabler<XStr1,strbase<StrP2> >::type return_type;
+template<typename X,typename Y>
+typename concat_enabler<X,Y>::type
+operator+(X const& lhs,Y const& rhs){
+  typedef typename concat_enabler<X,Y>::type return_type;
   return return_type(lhs,rhs);
 }
 
@@ -2168,96 +2099,83 @@ struct _strtmp_repeat_policy{
  */
 #pragma%end
 
-template<typename StrP1,typename StrP2,typename Ret>
-struct compare_enabler:mwg::stdm::enable_if<
-  mwg::stdm::is_same<typename StrP1::char_type,typename StrP2::char_type>::value,Ret>{};
+template<
+  typename X,typename Y,typename R,
+  bool isOK=stdm::is_same<
+    typename adapter_traits<X>::char_type,
+    typename adapter_traits<Y>::char_type
+  >::value
+> struct compare_enabler:mwg::identity<R>{};
 
-template<typename StrP1,typename StrP2>
-typename compare_enabler<StrP1,StrP2,int>::type
-compare(strbase<StrP1> const& lhs,strbase<StrP2> const& rhs){
-  typename StrP1::const_iterator i=lhs.begin(),iN=lhs.end();
-  typename StrP2::const_iterator j=rhs.begin(),jN=rhs.end();
+template<typename X,typename Y>
+typename compare_enabler<X,Y,int>::type
+compare(X const& _lhs,Y const& _rhs){
+  typedef typename adapter_traits<X>::adapter_type XAdp;
+  typedef typename adapter_traits<Y>::adapter_type YAdp;
+  typedef typename stdm::remove_reference<XAdp>::type::const_iterator XItr;
+  typedef typename stdm::remove_reference<YAdp>::type::const_iterator YItr;
+  XAdp lhs(_lhs);
+  YAdp rhs(_rhs);
+  XItr i=lhs.begin(),iN=lhs.end();
+  YItr j=rhs.begin(),jN=rhs.end();
   for(;i!=iN&&j!=jN;++i,++j)
     if(*i!=*j)return *i>*j?1:-1;
   return i!=iN?1: j!=jN?-1: 0;
 }
 
-template<typename StrP1,typename StrP2>
-typename compare_enabler<StrP1,StrP2,int>::type
-icompare(strbase<StrP1> const& lhs,strbase<StrP2> const& rhs){
+template<typename X,typename Y>
+typename compare_enabler<X,Y,int>::type
+icompare(X const& _lhs,Y const& _rhs){
+  typename adapter_traits<X>::adapter_type lhs(_lhs);
+  typename adapter_traits<Y>::adapter_type rhs(_rhs);
   return compare(lhs.tolower(),rhs.tolower());
 }
 
-template<typename StrP1,typename StrP2>
-typename compare_enabler<StrP1,StrP2,bool>::type
-operator==(strbase<StrP1> const& lhs,strbase<StrP2> const& rhs){
+template<typename X,typename Y>
+typename compare_enabler<X,Y,bool>::type
+operator==(X const& _lhs,Y const& _rhs){
+  typedef typename adapter_traits<X>::adapter_type XAdp;
+  typedef typename adapter_traits<Y>::adapter_type YAdp;
+  typedef typename stdm::remove_reference<XAdp>::type::const_iterator XItr;
+  typedef typename stdm::remove_reference<YAdp>::type::const_iterator YItr;
+  XAdp lhs(_lhs);
+  YAdp rhs(_rhs);
   if(lhs.length()!=rhs.length())return false;
-  typename StrP1::const_iterator i=lhs.begin(),iN=lhs.end();
-  typename StrP2::const_iterator j=rhs.begin();
+  XItr i=lhs.begin(),iN=lhs.end();
+  YItr j=rhs.begin();
   for(;i!=iN;++i,++j)
     if(*i!=*j)return false;
   return true;
 }
 
-template<typename StrP1,typename StrP2>
-typename compare_enabler<StrP1,StrP2,bool>::type
-operator!=(strbase<StrP1> const& lhs,strbase<StrP2> const& rhs){
-  return !(lhs==rhs);
-}
-
-template<typename StrP1,typename StrP2>
-typename compare_enabler<StrP1,StrP2,bool>::type
-operator<(strbase<StrP1> const& lhs,strbase<StrP2> const& rhs){
-  typename StrP1::const_iterator i=lhs.begin(),iN=lhs.end();
-  typename StrP2::const_iterator j=rhs.begin(),jN=rhs.end();
+template<typename X,typename Y>
+typename compare_enabler<X,Y,bool>::type
+operator<(X const& _lhs,Y const& _rhs){
+  typedef typename adapter_traits<X>::adapter_type XAdp;
+  typedef typename adapter_traits<Y>::adapter_type YAdp;
+  typedef typename stdm::remove_reference<XAdp>::type::const_iterator XItr;
+  typedef typename stdm::remove_reference<YAdp>::type::const_iterator YItr;
+  XAdp lhs(_lhs);
+  YAdp rhs(_rhs);
+  XItr i=lhs.begin(),iN=lhs.end();
+  YItr j=rhs.begin(),jN=rhs.end();
   for(;i!=iN&&j!=jN;++i,++j)
     if(*i!=*j)return *i<*j;
   return i==iN&&j!=jN;
 }
 
-template<typename StrP1,typename StrP2>
-typename compare_enabler<StrP1,StrP2,bool>::type
-operator>(strbase<StrP1> const& lhs,strbase<StrP2> const& rhs){
-  return rhs<lhs;
-}
-
-template<typename StrP1,typename StrP2>
-typename compare_enabler<StrP1,StrP2,bool>::type
-operator<=(strbase<StrP1> const& lhs,strbase<StrP2> const& rhs){
-  return !(rhs<lhs);
-}
-
-template<typename StrP1,typename StrP2>
-typename compare_enabler<StrP1,StrP2,bool>::type
-operator>=(strbase<StrP1> const& lhs,strbase<StrP2> const& rhs){
-  return !(lhs<rhs);
-}
-
-
-template<typename StrP1,typename XStr,typename Ret>
-struct compare_enabler2:mwg::stdm::enable_if<
-  adapter_traits<XStr,typename StrP1::char_type>::available,Ret>{};
-
-#define MWG_STRING3_STRING_H__overload_compare_adapter(Return,FunctionName) \
-template<typename StrP1,typename XStr> \
-typename compare_enabler2<StrP1,XStr,Return>::type \
-FunctionName(strbase<StrP1> const& lhs,XStr const& rhs){ \
-  return FunctionName(lhs,stradp<typename StrP1::char_type>(rhs)); \
-} \
-template<typename StrP1,typename XStr> \
-typename compare_enabler2<StrP1,XStr,Return>::type \
-FunctionName(XStr const& lhs,strbase<StrP1> const& rhs){ \
-  return FunctionName(stradp<typename StrP1::char_type>(lhs),rhs); \
-}
-  MWG_STRING3_STRING_H__overload_compare_adapter(int,compare)
-  MWG_STRING3_STRING_H__overload_compare_adapter(int,icompare)
-  MWG_STRING3_STRING_H__overload_compare_adapter(bool,operator==)
-  MWG_STRING3_STRING_H__overload_compare_adapter(bool,operator!=)
-  MWG_STRING3_STRING_H__overload_compare_adapter(bool,operator<=)
-  MWG_STRING3_STRING_H__overload_compare_adapter(bool,operator>=)
-  MWG_STRING3_STRING_H__overload_compare_adapter(bool,operator<)
-  MWG_STRING3_STRING_H__overload_compare_adapter(bool,operator>)
-#undef MWG_STRING3_STRING_H__overload_compare_adapter
+template<typename X,typename Y>
+typename compare_enabler<X,Y,bool>::type
+operator!=(X const& lhs,Y const& rhs){return !(lhs==rhs);}
+template<typename X,typename Y>
+typename compare_enabler<X,Y,bool>::type
+operator> (X const& lhs,Y const& rhs){return rhs<lhs;}
+template<typename X,typename Y>
+typename compare_enabler<X,Y,bool>::type
+operator<=(X const& lhs,Y const& rhs){return !(rhs<lhs);}
+template<typename X,typename Y>
+typename compare_enabler<X,Y,bool>::type
+operator>=(X const& lhs,Y const& rhs){return !(lhs<rhs);}
 
 #pragma%x begin_test
 void test(){

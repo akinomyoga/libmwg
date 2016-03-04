@@ -23,13 +23,15 @@
 
   この変更により既存の使用箇所で不整合が起こっている可能性がある。
   - adapter_enabler の使用箇所を確認・修正■
-  - 特に stradp のコンストラクタの SFINAE に注意する。■
+  - 特に stradp のコンストラクタの SFINAE に注意する。
+
+  ■adapter_traits に str 自身を定義する。strbase_tag を使用
+
+  ■stradp の SFINAE チェックが複雑になっている。
+    stradp を private クラスにすればこのチェックは省略できる。
 
 * mwg::make_str を実装したので、
   寧ろ stradp が表に出て来る必要もないのではないか?
-
-* string: range_replace_enabler の switch を廃止する。
-  switch 毎に処理を変えられる様にはしたが実際に処理は同じになっている様だ。
 
 * string: strbase::insert(char_type c,range-spec) に対応する。
 
@@ -452,6 +454,11 @@
 ------------------------------------------------------------------------------
   Done
 ------------------------------------------------------------------------------
+
+2016-03-04
+
+* string: range_replace_enabler の switch を廃止する。
+  switch 毎に処理を変えられる様にはしたが実際に処理は同じになっている様だ。
 
 2016-03-02
 
