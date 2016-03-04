@@ -62,15 +62,11 @@ namespace string3_detail{
   template<typename XCH>
   class strsub;
   template<typename XCH>
-  class stradp;
-  template<typename XCH>
   class string;
   /*?lwiki
    * :@class class mwg::==string==<XCH> : strbase<...>;
    *  `mwg::string` における標準の文字列型です。
    *  `std::shared_ptr` による参照管理の対象です。
-   * :@class class mwg::==stradp==<XCH> : strbase<...>;
-   *  他の型の文字列に対する `mwg::string` インターフェイスを提供します。
    * :@class class mwg::==strsub==<XCH> : strbase<...>;
    *  他の文字列の部分文字列を保持します。
    * :@class class mwg::string3_detail::==strbase==<...>;
@@ -78,6 +74,9 @@ namespace string3_detail{
    *  また、部分式の評価結果として `strbase` の様々な特殊化が使用されます。
    *
    */
+
+  template<typename XCH>
+  class _stradp_array;
 
   template<typename XCH,typename C,typename Ret>
   struct adapter_enabler;
@@ -253,10 +252,10 @@ struct adapter_enabler
 // adapter_traits<S> default specializations
 
 /*?lwiki
- * :@class struct ==adapter_traits_stradp==<XCH>;
+ * :@class struct ==adapter_traits_array==<XCH>;
  *  `adapter_traits` 実装の補助クラスです。\
- *  指定した型から `XCH*` ポインタと長さのペアを取得できる場合に、\
- *  `stradp<XCH>` をアダプタ型として利用します。
+ *  指定した型から `XCH*` ポインタと長さのペアを取得して、\
+ *  それを元にして mwg::string の文字列型を作成します。
  *  :@param[in] XCH
  *   文字要素の型を指定します。
  *  派生クラスで以下のメンバ関数を定義する必要があります。
@@ -264,15 +263,15 @@ struct adapter_enabler
  *  -@fn static std::size_t length(C const& str);
  */
 template<typename XCH>
-struct adapter_traits_stradp{
+struct adapter_traits_array{
   static const bool available=true;
   typedef XCH char_type;
-  typedef stradp<XCH> adapter_type;
+  typedef _stradp_array<XCH> adapter_type;
 
 };
 
 template<typename XCH,std::size_t N>
-struct adapter_traits<XCH[N]>:adapter_traits_stradp<XCH>{
+struct adapter_traits<XCH[N]>:adapter_traits_array<XCH>{
   static const XCH* pointer(const XCH (&value)[N]){
     return value;
   }
@@ -288,7 +287,7 @@ struct adapter_traits<XCH[N]>:adapter_traits_stradp<XCH>{
  * T = char[N] ではなくて T = const char[N] になる。
  */
 template<typename XCH,std::size_t N>
-struct adapter_traits<const XCH[N]>:adapter_traits_stradp<XCH>{
+struct adapter_traits<const XCH[N]>:adapter_traits_array<XCH>{
   static const XCH* pointer(const XCH (&value)[N]){
     return value;
   }
@@ -299,7 +298,7 @@ struct adapter_traits<const XCH[N]>:adapter_traits_stradp<XCH>{
 #endif
 
 template<typename XCH>
-struct adapter_traits<XCH*>:adapter_traits_stradp<XCH>{
+struct adapter_traits<XCH*>:adapter_traits_array<XCH>{
   static const XCH* pointer(XCH* value){
     return value;
   }
@@ -309,7 +308,7 @@ struct adapter_traits<XCH*>:adapter_traits_stradp<XCH>{
 };
 
 template<typename XCH>
-struct adapter_traits<const XCH*>:adapter_traits_stradp<XCH>{
+struct adapter_traits<const XCH*>:adapter_traits_array<XCH>{
   static const XCH* pointer(const XCH* value){
     return value;
   }
@@ -1306,7 +1305,7 @@ public:
 };
 
 //-----------------------------------------------------------------------------
-// strsub, stradp
+// strsub, _stradp_array
 
 template<typename XCH>
 struct strsub_policy{
@@ -1357,18 +1356,18 @@ private:
 };
 
 template<typename XCH>
-class stradp:public strbase<strsub_policy<XCH> >{
+class _stradp_array:public strbase<strsub_policy<XCH> >{
   typedef strbase<strsub_policy<XCH> > base;
 
 public:
   using typename base::char_type;
 
 public:
-  stradp(const char_type* ptr,std::size_t length)
+  _stradp_array(const char_type* ptr,std::size_t length)
     :base(ptr,length){}
 
   template<typename T>
-  stradp(T const& value,typename stdm::enable_if<stdm::is_same<stradp,typename adapter_traits<T>::adapter_type>::value>::type* =0)
+  _stradp_array(T const& value)
     :base(adapter_traits<T,char_type>::pointer(value),adapter_traits<T,char_type>::length(value)){}
 };
 
@@ -1660,7 +1659,7 @@ public:
     using namespace mwg::string3_detail;
 
     // !has_index な基底 const_iterator から、const_iterator を初期化
-    typedef mwg::stradp<char> a;
+    typedef _stradp_array<char> a;
     mwg_assert((strbase<_strtmp_sub_policy<a::policy_type> >(a::buffer_type("hello",5),1,3)=="ell"));
 
     // has_index な基底 const_iterator から、const_iterator を初期化
@@ -2233,7 +2232,6 @@ void test(){
 } /* end of namespace string3_detail */
   using string3_detail::string;
   using string3_detail::strsub;
-  using string3_detail::stradp;
 
   using string3_detail::make_str;
 } /* end of namespace mwg */
@@ -2323,7 +2321,7 @@ namespace mwg{
 namespace string3_detail{
 
 template<typename XCH,typename Tr,typename Alloc>
-struct adapter_traits<std::basic_string<XCH,Tr,Alloc> >:adapter_traits_stradp<XCH>{
+struct adapter_traits<std::basic_string<XCH,Tr,Alloc> >:adapter_traits_array<XCH>{
   static const XCH* pointer(std::basic_string<XCH,Tr,Alloc> const& str){
     return str.c_str();
   }
@@ -2337,7 +2335,7 @@ struct adapter_traits<std::basic_string<XCH,Tr,Alloc> >:adapter_traits_stradp<XC
 #pragma%x begin_test
 void test(){
   std::string s1("hello");
-  mwg_assert((mwg::stradp<char>(s1).toupper(1,4)=="hELLo"));
+  mwg_assert((mwg::make_str(s1).toupper(1,4)=="hELLo"));
 }
 #pragma%x end_test
 

@@ -8,30 +8,178 @@
 
 2016-03-03
 
-* mwg::make_str()
+* as_str
 
-  わざわざ std::stradp<char> などの様に文字の型を指定しなくても、
-  自然な文字の型を推論する事ができる筈である。
+  stradp 内部クラス化の項で議論したように、
+  今後文字列を受け取る関数を定義する際は adapter_traits を使用する事にした。
+  しかし、現状だと adapter_traits は使いにくいので、
+  adapter_traits を継承して更に色々の物を提供する公開クラスを作成する。
+  as_str である。
 
-  これの実装に伴い adapter_traits を拡張して
-  必ずしも stradp を adapter としなければならない訳ではない様にする。
-  今後 adapter_traits は以下の3つを提供する。
+* 実装の名前空間 (string3_detail) を公開するべきか
 
-  - adapter_traits::available    文字列(mwg::string)に変換可能か
-  - adapter_traits::char_type    文字列(mwg::string)の要素の型
-  - adapter_traits::adapter_type 文字列(mwg::string)の型(アダプタ文字列型)
+  ユーザが新しい文字列型を定義する為には strbase を使う必要がある。
+  また、ユーザが新しく別の型からのアダプターを追加したい場合には
+  adapter_traits の特殊化を定義する必要がある。
 
-  この変更により既存の使用箇所で不整合が起こっている可能性がある。
-  - adapter_enabler の使用箇所を確認・修正■
-  - 特に stradp のコンストラクタの SFINAE に注意する。
+  これらの strbase や adapter_traits は現在は namespace mwg に公開していない。
+  ここで、using を用いて namespace mwg に引っ張ってくるべきか、
+  拡張を定義したいユーザに対しては実装の名前空間を弄って貰う事にするか、
+  という選択肢が出来る。
 
-  ■adapter_traits に str 自身を定義する。strbase_tag を使用
+  a string3_detail 名前空間は公開しない。
 
-  ■stradp の SFINAE チェックが複雑になっている。
-    stradp を private クラスにすればこのチェックは省略できる。
+    strbase, str_adapter_traits を namespace mwg に公開する
 
-* mwg::make_str を実装したので、
-  寧ろ stradp が表に出て来る必要もないのではないか?
+    独自に文字列型を色々拡張をするとなると adapter_traits 等も拡張しなければならない。
+    それらも公開するとなると面倒である。先ず名前を変更しなくては為らない。
+    名前はより長く為るであろう。そして、その長い名前を毎回指定するのは大変だ。
+    といいつつ、結局 adapter_traits を元に定義された as_str 的なクラスを
+    通して使用する予定だから長くなっても余り違いはない気もする。
+    うーん。それならば、拡張する人には string3_detail (後で名前は変えるとして)
+    の内部を弄る事を許可してしまった方が良い気もする。
+
+    というかよく考えたら特殊化は元々定義された名前空間で行わなければならないので、
+    namespace mwg に引っ張ってきても意味がない。
+    →adapter_traits 自体を初めから namespace mwg の中で定義するという手がある。
+
+    更に、ADL が効く様にするためにはやはり string3_detail 内で関数を定義する必要がある。
+    ADL で呼び出せる様な文字列用の関数を定義したいという需要もあるだろうから
+    やはり string3_detail 名前空間は公開せざるを得ない気がする。
+    (strbase 自体を mwg 名前空間内で定義するという場合には、
+    ADL 用の関数を namespace mwg 内に書く事になる。
+    これは他の関数と混ざり合う可能性があるので、これは論外である。)
+
+  b string3_detail 名前空間を公開する。
+
+    名前は変更する必要がある。string3_detail は変である。
+
+  結局現実的には実装の名前空間を公開するという方法しかないように思う。
+  ユーザには以下を許可する。
+  - adapter_traits の特殊化を定義すること
+  - strbase を文字列型の基底クラスとして利用すること
+  - ADL を通して使うための文字列を受け取る関数を追加すること
+
+  ■ドキュメントに上記許可項目を追加
+  ■string3_detail の名称を変更
+
+
+* %%c_str() の実装。%% → fix() の実装
+
+  const XCH* を受け取る様な他の関数に指定する為に。
+  直接 c_str() で const XCH* とするのは難しい。
+  というのも、実際のデータを一時オブジェクトに結びつけなければ、
+  データが使用前に消えてしまうからである。
+  つまり、c_str() の呼び出し側に一時オブジェクトを作成しなければならない。
+
+  a 一つの方法は operator->() の連鎖で一時オブジェクトを呼び出し側に作成する。
+
+    | struct tmpbuff{
+    |   std::vector<char_type> data;
+    |
+    | public:
+    |   tmpbuff(...);
+    |
+    |   tmpbuff* operator->(){return this;}
+    |   tmpbuff const* operator->() const{return this;}
+    |
+    |   char_type const* c_str() const{return &data[0];}
+    | };
+    |
+    | struct strbase{
+    |   tmpbuff operator->() const{return tmpbuff(*this);}
+    | };
+    |
+    | mwg::make_str("hello").toupper()->c_str()
+
+    これは以下の様に解釈される。
+
+    | mwg::make_str("hello").toupper().operator->().operator->()->c_str()
+    |                                  ~~~~~~~~~~~~ ~~~~~~~~~~~~
+    |                                  バッファ構築 内部ptr取得
+
+    しかし乍ら、c_str() の時だけ -> を使ってアクセスしろ
+    というのも分かりにくいインターフェイスである。これは混乱を生む。
+
+  b 或いは、c_str() で一時オブジェクトを返し、
+    そこから operator const XCH*() const でポインタに変換して貰う。
+
+    | struct tmpbuff{
+    |   std::vector<char_type> data;
+    | public:
+    |   tmpbuff(...);
+    |
+    |   operator const char_type*() const{return &data[0];}
+    | };
+    |
+    | struct strbase{
+    |   tmpbuff c_str() const{return tmpbuff(*this);}
+    | };
+    |
+    | mwg::make_str("hello").toupper().c_str()
+
+    この方法は記述の仕方については一番自然である。
+
+    しかしながら、operator const char_type*() const が期待通りに呼び出されるかは不明である。
+
+    x 例えば、printf の引数に渡したい時には (...) に適合させる為に
+      const char_type* を自動的に呼び出してくれるという事はありえない。
+    x また、テンプレート引数 + SFINAE みたいな構造になっている関数の場合も、
+      テンプレートパラメータに tmpbuff が直接入ってしまってうまく行かない。
+
+    やはり色々と微妙な方法である事は否めない。
+
+  c 一番何もない方法は、ユーザに二段構えで呼び出して貰う事である。
+
+    つまり使用時に、
+
+    | mwg::make_str("hello").toupper().fix().c_str()
+
+    の様に指定して貰うことである。
+
+    というか途中で好きな時に現物バッファを作成できる、
+    という点で fix() という関数は有って然るべきと思われる。
+
+    それに、また fix() という関数を使わせる事によって、
+    ユーザに対して mwg::str がどの様な動作を内部でしているのかを理解して貰う良い機会になる。
+    多少学習コストは上がるかも知れないが、学習させずに隠蔽させてユーザに混乱を招くよりは良いだろう。
+
+  これはもう殆ど fix() 関数しかまともな選択肢はない。
+
+  ■fix()を定義する
+  ■string に限って fix を上書きして自分自身を返す様にする
+
+  % strsub についても fix で自分自身を返して良い気がする。
+  % となると fix という関数名はどうなのか…
+  % と思ったが、よく考えたら strsub は null 終端していないので
+  % c_str にはできない。バッファへのポインタは取得できるが。
+
+  なんか -> の方が良い気もしてきた…。
+
+  a s.fix();
+
+  b s(); // operator()();
+    s.fix() と毎回書くのが面倒であれば、
+    s() とだけ書けばよい様にしておいても良い。
+    しかし、たかが文字列バッファ構築に () を使ってしまうのは勿体ない気がする。
+    (といって、他のよりよい用途が思い付く訳ではない気がする)
+
+  c s++; // operator++(int);
+    後置演算子というのであればこれでも良いが、
+    意味的に変である。却下である。
+
+  d s->
+    こうなったら -> でも良いような気がしてきた。
+    後続する関数もそのまま呼び出せる。
+    何も関数を呼び出すつもりがない場合には単に s.fix() としておけば良い。
+    つまり、fix と operator-> を両方定義するということ。
+
+    但し、-> についてのドキュメントは丁寧に書くのがよい。
+    例えば、"メソッドチェインの途中で一旦バッファに文字列を構築するポイントを表す" 的な感じにする。
+
+  ■operator->() も追加する。
+    string については自身へのポインタを返す。
+  ■operator->() の説明を注意深く行う。
 
 * string: strbase::insert(char_type c,range-spec) に対応する。
 
@@ -456,6 +604,264 @@
 ------------------------------------------------------------------------------
 
 2016-03-04
+
+* stradp 内部クラス化?
+
+  mwg::make_str を実装したので、
+  寧ろ stradp が表に出て来る必要もないのではないか?
+
+  SFINAE チェックを省略することにする。
+  adapter_traits 経由でしか構築しないのであれば、
+  コンストラクタのチェックを行う意味はない筈である。
+
+  一方で、stradp はそもそもユーザが新しく文字列を受け取る様な関数を実装する際に、
+  引数の型として使用できるように定義した物であった。
+  しかし、現状の実装ではその役目を果たしていない。
+  というか、寧ろ template<typename T> stdbase<T> と stradp<char> の二つについて
+  定義を行わなければ為らず却って無意味である。それよりは、寧ろ新しく導入した
+  adapter_traits の仕組みを利用して、adapter_traits<>::available だったら実装を
+  提供するという方法の方が変に overload を作成しなくて済むので楽である。
+
+  しかしながら、SFINAE の条件を書くのが面倒であるのは否定できない。
+  現在自分で新しく関数を書くのだとしたら以下の様な可能性が考えられる。
+
+  | a strbase<> しか受け取らない:
+  |
+  |   template<typename P> void f(strbase<P> const&);
+  |
+  |   変な SFINAE をしなくても自動的に文字列だけを選択してくれるので良い。
+  |   mwg::str の文字列は全て strbase<P> の形をしている。
+  |   問題は mwg::str 以外の文字列であるが、これについては
+  |
+  |     f(make_str(s));
+  |
+  |   等の様に呼び出し側で配慮すれば良い様に思う。
+  |
+  |   →しかしながら、文字列の型の種類を区別するというのは面倒である。
+  |   実際に、const char* を渡すべきところに std::string を
+  |   直接渡そうとしてコンパイラに怒られたりという事はよくある。
+  |   また、std::string のまま渡しておけば良いのにわざわざ c_str()
+  |   してしまったせいで新しい std::string インスタンスを生成していた、
+  |   などという事もあるのではないかという気がする。
+  |
+  |
+  |   また、strbase<> だけを定義することの問題ではなくて、
+  |   strbase<> を使うこと自体の問題であるが、
+  |   typename P::char_type について SFINAE をしたい場合に、長くなってしまう。
+  |
+  |   | template<typename P>
+  |   | typename stdm::enable_if<stdm::is_same<char,typename P::char_type>::value,void>::type
+  |   | void f(strbase<P> const&);
+  |
+  |   →それ専用の enabler クラスを作成すれば問題ない。
+  |
+  |     | template<typename P>
+  |     | typename mwg::policy_enabler<P,char,void>::type
+  |     | void f(strbase<P> const&);
+  |
+  |     というか、policy 側に enabler を附属させれば良いのではないだろうか。
+  |
+  |     | template<typename P>
+  |     | typename P::enable_if_char_is<char,void>::type
+  |     | void f(strbase<P> const&);
+  |
+  |     何か余り短くなっていない気もするがこちらの方が分かり易いであろう。
+  |
+  |   →更に他のSFINAE も混ざってくるとこの方法は使えない?
+  |
+  |     そういう時は、入れ子にすれば良いだけである。例えば以下のように。
+  |
+  |     | template<typename P>
+  |     | typename P::enable_if_char_is<char,
+  |     |   typename stdm::enable_if<条件式,Ret>::type
+  |     | >::type
+  |     | void f(strbase<P> const&);
+  |
+  |     というか、今迄 enabler を入れ子にするという事を考えた事がなかった。
+  |     enable_if しか使わないのであれば単に && で繋げばよいが、
+  |     enabler を定義して、更にそれを組み合わせる場合には、
+  |     わざわざ新しいクラスを定義しなくても単に入れ子にすればよいのだ。
+  |     もしかすると今迄に整理したコードの中にもこの手法で
+  |     簡単に定義できる物が存在するのではないかという気がしてきた。
+  |
+  | b そもそも mwg::str を受け取る関数にしなくて良い?
+  |
+  |   標準ライブラリでも std::string を受け取る関数というのは実はほとんどない。
+  |   std::string を使っていても最終的には c_str() を用いて const char* に変換して、
+  |   その上で使うのである。そちらの方が分かりやすい。
+  |   分かりやすさが効率を上回る例である。
+  |
+  |   特に C++ に関しては標準的な一つの文字列型というものが存在しないのが問題である。
+  |   標準ライブラリには std::string と std::wstring があるし、
+  |   更に自分で Traits や Allocator を定義して新しい文字列型を定義できる。
+  |   更に、文字列の内部表現について (文字符号化方式など) 定められてもいないため、
+  |   同じ文字列型であっても更に色々な様相を見せる。
+  |
+  |   その様な滅茶苦茶な状態に於いて一つの標準形式として
+  |   const char* を採用するというのは悪くない選択肢のように思われる。
+  |   どうせ、他のユーザーフレンドリーな言語に於いては、
+  |   文字列と言えば必ずメモリに確保した一種類の型であるのだから、
+  |   C++ においても外部の関数に渡すときぐらいは、
+  |   その必然性が無くても新しくメモリに格納してもよいだろう。
+  |
+  |
+  |   この場合には strbase<> 側に c_str 的な関数を用意する必要がある。
+  |
+  |   | struct _tmp_cstr{
+  |   |   std::unique_ptr<const char[]> data;
+  |   | public:
+  |   |   operator const char*() const;
+  |   | };
+  |   | struct strbase{
+  |   |   _tmp_cstr c_str() const;
+  |   | };
+  |
+  | c adapter_traits を使って何でも受け取れる様にする
+  |
+  |   | template<typename S>
+  |   | typename stdm::enable_if<mwg::as_str<S>::value,void>::type f(S const&);
+  |
+  |   戻り値に char_type などを使いたければ、単純に
+  |
+  |   | template<typename S>
+  |   | typename mwg::as_str<S>::char_type f(S const&);
+  |
+  |   等の様にすれば良い。
+  |
+  |   % [SFINAE が面倒になる問題(可能性)]
+  |   %
+  |   % しかし更に複雑なことをしようとすると以下の様に面倒な事になるかも知れない。
+  |   %
+  |   % | template<typename S,bool=mwg::as_str<S>::value>
+  |   % | struct enabler{};
+  |   % | template<typename S>
+  |   % | struct enabler<S,true>:mwg::identity< 複雑な戻り値 >{};
+  |   % | template<typename S>
+  |   % | typename enabler<S>::type f(S const&);
+  |   %
+  |   % と思ったが、現実にこの様な面倒な指定をしなければならないのは、
+  |   % "enabler を作りたい" という場合だけの様な気もしてきた。
+  |   %
+  |   % enabler を作る場合には、内部で return_type を構築する必要がある。
+  |   % しかし内部で構築する場合には SFINAE が効かない。
+  |   % つまり、戻り値の型が不正な形式になるとコンパイルエラーになる。
+  |   % という事で、使えるかどうかの判定部分と、実際に戻り値の型を定義する部分を分離しなければならない。
+  |   % しかして、上記の様に条件と戻り値の型の定義が分かれて面倒な事になるのである。
+  |   %
+  |   % さて enabler ではなくても上記の様な形式を取る必要がある場合も存在する。
+  |   % つまり SFINAE が効かない様な内部で型の不整合が起こる場合である。
+  |   %
+  |   % | template<typename P>
+  |   % | struct hoge{typedef hoge_return<typename P::char_type>::type type;};
+  |   % | typename hoge<P>::type
+  |   %
+  |   % しかしこの様な場合については hoge 側で防御をするべきである。
+  |   %
+  |   % [結論]
+  |   % - enabler を作りたいという場合には、条件と戻り値の型を分離する必要があり面倒である
+  |   % - 通常の SFINAE ならば問題ないはずである。
+  |   %   呼び出した別のテンプレート内でエラーが起こるのであれば、それはそのテンプレート側で防御をするべきである。
+  |
+  |   [条件判定用クラスの名称]
+  |   mwg::string3_detail::adapter_traits は如何にも長いのでより短くて分かりやすい名前を考えたい。
+  |   例えば
+  |   - adapter_traits<S>::available    → mwg::as_str<S>::value
+  |   - adapter_traits<S>::adapter_type → mwg::as_str<S>::adapter
+  |       これの使い方は決まって typename mwg::as_str<S>::adapter str(s) である。
+  |       もっと短い書き方はない物だろうか。
+  |
+  |       % 実は auto str = make_str(s); でいける様な気もする。
+  |       % が、auto で受け取ると _strtmp も固定する事ができてしまったりして
+  |       % 初期化できてしまったりして問題が多い気がする。
+  |       % といって、ユーザに使用の制限を呼びかけたとしても通じるか分からない。
+  |       %
+  |       % やはり標準的な使い方は adapter str(s); であろう。
+  |
+  |   - adapter_traits<S>::char_type → mwg::as_str<S>::char_type
+  |
+  |   また、他に追加するとすれば:
+  |   - typename mwg::as_str<S>::const_iterator
+  |
+  |   % [mwg::str として受け取ると文字操作が面倒な可能性]
+  |   %
+  |   % 何でも受け取れる代わりに操作は限られる。ランダムアクセスできない。
+  |   % mbcs の効率を考えれば iterator を使って実装しなければならないので面倒。
+  |   %
+  |   % それならばいっその事 c_str にでも変換してから処理した方が良い?
+  |   % →×でも mbcs の場合には単に c_str にするだけだと結局処理が難しいから、
+  |   %     効率良く処理する為には wint_t 配列などにしなければならない。
+  |   %     そして const wint_t* の様な物を標準の交換形式にするのは考えがたい。
+  |   %
+  |   % 逆に言えば mbcs の処理も考えるのであれば iterator にならざるを得ず、
+  |   % もしそうだとするならば strbase<> に変換して処理するのは必然である。
+  |   % なので、これは別に気にすることではない。
+  |   %
+  |   % [結論]
+  |   % - mbcs の処理効率を考えるのだとすれば iterator を使って実装するのは当然である。
+  |   %   寧ろ面倒でもそれを強要する形になるのでよい。
+  |   % - ランダムアクセスを用いてより効率の良い処理をしたい場合もあるが、
+  |   %   それは元々、既定の実装をした後で、別に実装するべきものである。
+  |
+  | d strbase<> と後は stradp を受け取れる様にしておく。
+  |
+  |   | template<typename P> void f(strbase<P> const& str);
+  |   | void f(stradp<char> const& str){return f(static_cast<strbase<mwg::strsub_policy> >(str));}
+  |
+  |   或いは、strbase const& strbase::to_base() const; 等という関数を定義しておけば、
+  |
+  |   | template<typename P> void f(strbase<P> const& str);
+  |   | void f(stradp<char> const& str){return f(str.to_base());}
+  |
+  |   とすれば良い。
+  |
+  |   これは結構良さそうにも思うが、実際にやってみようとすると結構面倒だと分かった。
+  |   何が面倒かというと
+  |   1. 複数の引数があると 2 の累乗で定義するべきオーバーロードが増える。
+  |   2. 複雑な SFINAE がある場合に、何度も同じ様な SFINAE を書くのは綺麗ではない。
+  |     enabler にまとめようとすると、
+  |     今度は a の所で述べたような面倒(というか見にくいコード)が発生する。
+  |
+  |   とにかくこの方法は良い方法だとは思えない。
+
+  結論としては、
+  - mbcs 対応や効率を考えるのであれば adapter を用いる方法 c を使う。
+  - 次点として b の const XCH* で実装する方法を用いる。
+    結局これが一般的なインターフェイスであるから。
+    但し、c_str() を呼び出す様にするのを忘れないこと。
+
+    (あと、c_str() は未だ実装していなかった…→これは別項目で考察する)
+
+  これで d の様な stradp を使用する可能性は殆どなくなった。
+  従って、stradp を内部オブジェクトに変更する事にする。
+  また、a もしくは d の様な物を補正しない限りは strbase を使用しないので、
+  strbase は今迄通り公開しなくても良い?
+  →と思ったが、独自に新しい文字列型を実装する場合には strbase を使用する。
+    従ってやはり strbase は公開した方が良いのではないか?
+    これについては独立した項目を立てて考察する。
+
+* mwg::make_str()
+
+  わざわざ std::stradp<char> などの様に文字の型を指定しなくても、
+  自然な文字の型を推論する事ができる筈である。
+
+  これの実装に伴い adapter_traits を拡張して
+  必ずしも stradp を adapter としなければならない訳ではない様にする。
+  今後 adapter_traits は以下の3つを提供する。
+
+  - adapter_traits::available    文字列(mwg::string)に変換可能か
+  - adapter_traits::char_type    文字列(mwg::string)の要素の型
+  - adapter_traits::adapter_type 文字列(mwg::string)の型(アダプタ文字列型)
+
+  この変更により既存の使用箇所で不整合が起こっている可能性がある。
+  > adapter_enabler の使用箇所を確認・修正
+  > 特に stradp のコンストラクタの SFINAE に注意する。
+
+  > adapter_traits に str 自身を定義する。strbase_tag を使用
+
+  - stradp の SFINAE チェックが複雑になっている。
+    stradp を private な目的のクラスにすればこのチェックは省略できる。
+    stradp を内部使用のクラスにするかどうかについては、
+    これについては新しく項目を立てる事にする。
 
 * string: range_replace_enabler の switch を廃止する。
   switch 毎に処理を変えられる様にはしたが実際に処理は同じになっている様だ。
