@@ -75,11 +75,13 @@ namespace string3_detail{
    *
    */
 
+  template<typename T,typename XCH=void>
+  struct adapter_traits;
+  template<typename T,typename XCH=void>
+  struct as_str;
+
   template<typename XCH>
   class _stradp_array;
-
-  template<typename XCH,typename C,typename Ret>
-  struct adapter_enabler;
 
   template<typename StrP1>
   struct _strtmp_sub_policy;
@@ -203,11 +205,11 @@ struct char_traits{
  *  }
  *  :@var static const bool ==available==;
  *   mwg::string インターフェイスを提供できる場合に `true` を設定します。
- *  :@class[opt] typename ==adapter_type==;
+ *  :@typedef[opt] typename ==adapter_type==;
  *   `available==true` の時にのみ定義します。SFINAE に使用されるので `available==false` の時は定義しないで下さい。
  *   具体的に mwg::string を提供する型を指定します。
  *   目的の型 `T` から直接構築できる必要があります。
- *  :@class[opt] typename ==char_type==;
+ *  :@typedef[opt] typename ==char_type==;
  *   `available==true` の時にのみ定義します。SFINAE に使用されるので `available==false` の時は定義しないで下さい。
  *   提供される文字列インターフェイスの文字型を指定します。
  *  更に `adapter_traits<T,XCH>` を特殊化する事によって、\
@@ -223,7 +225,7 @@ struct _adapter_traits_1:adapter_traits_empty{};
 template<typename T,typename XCH,bool IsString>
 struct _adapter_traits_2:adapter_traits_empty{};
 
-template<typename T,typename XCH=void>
+template<typename T,typename XCH>
 struct adapter_traits:_adapter_traits_2<T,XCH,adapter_traits<T>::available>{};
 template<typename T>
 struct adapter_traits<T>:_adapter_traits_1<T,stdm::is_base_of<strbase_tag<>,T>::value>{};
@@ -240,13 +242,52 @@ struct _adapter_traits_2<T,XCH,true>:stdm::conditional<
   adapter_traits<T>,adapter_traits_empty
   >::type{};
 
+/*?lwiki
+ * :@class mwg::==as_str==<T,XCH>;
+ *  :@var static const bool ==value==;
+ *  :@var static const bool ==available==;
+ *   adapter が利用可能かどうかを保持します。
+ *  :@typedef[opt] ==enable==<R>::type  // value==true のとき
+ *  :@typedef[opt] ==disable==<R>::type // value==false のとき
+ *   SFINAE 用に型 R を返します。
+ *  :@typedef[opt] ==adapter==
+ *  :@typedef[opt] ==adapter_type==
+ *   adapter 型を提供します。
+ *  :@typedef[opt] ==policy_type==
+ *  :@typedef[opt] ==char_type==
+ *  :@typedef[opt] ==char_at_type==
+ *  :@typedef[opt] ==const_iterator==
+ *   adapter に関連する様々な型を提供します。
+ */
+
+template<typename T,typename XCH,bool=adapter_traits<T,XCH>::available>
+struct _as_str:adapter_traits<T,XCH>,stdm::false_type{
+  template<typename R=void> struct disable:mwg::identity<R>{};
+};
+template<typename T,typename XCH>
+struct _as_str<T,XCH,true>:adapter_traits<T,XCH>,stdm::true_type{
+  template<typename R=void> struct enable:mwg::identity<R>{};
+
+  typedef typename adapter_traits<T,XCH>::adapter_type adapter;
+
+  typedef typename stdm::remove_cv<
+    typename stdm::remove_reference<adapter>::type>::type::policy_type policy_type;
+
+  typedef typename policy_type::const_iterator const_iterator;
+  typedef typename policy_type::char_at_type   char_at_type;
+};
+
+template<typename T,typename XCH>
+struct as_str:_as_str<T,XCH>{};
+
+/*?lwiki
+ * :@fn str mwg::==make_str==(obj);
+ *  指定したオブジェクトに対する mwg::string インターフェイスを取得します。
+ */
+
 template<typename T>
 typename adapter_traits<T>::adapter_type
 make_str(T const& value){return(value);}
-
-template<typename XCH,typename T,typename Ret>
-struct adapter_enabler
-  :mwg::stdm::enable_if<adapter_traits<T,XCH>::available,Ret>{};
 
 //-----------------------------------------------------------------------------
 // adapter_traits<S> default specializations
@@ -267,7 +308,6 @@ struct adapter_traits_array{
   static const bool available=true;
   typedef XCH char_type;
   typedef _stradp_array<XCH> adapter_type;
-
 };
 
 template<typename XCH,std::size_t N>
@@ -666,14 +706,14 @@ private:
 
   template<
     typename A,
-    bool isOK=adapter_traits<A,char_type>::available
+    bool=as_str<A,char_type>::value
   > struct insert_enabler{};
 
   template<typename A>
   struct insert_enabler<A,true>:mwg::identity<
     strbase<_strtmp_cat_policy<
       slice_return_type,
-      typename adapter_traits<A,char_type>::adapter_type,
+      typename as_str<A,char_type>::adapter,
       slice_return_type>
     >
   >{};
@@ -906,22 +946,22 @@ public:
   }
 
   template<typename Str>
-  typename stdm::enable_if<adapter_traits<Str,char_type>::available,slice_return_type>::type
+  typename as_str<Str,char_type>::enable<slice_return_type>::type
   trim(Str const& set) const{
-    typedef typename adapter_traits<Str,char_type>::adapter_type adapter_type;
-    return this->trim(_pred_any_of_str<char_type,adapter_type>(set));
+    typedef typename as_str<Str,char_type>::adapter adapter;
+    return this->trim(_pred_any_of_str<char_type,adapter>(set));
   }
   template<typename Str>
-  typename stdm::enable_if<adapter_traits<Str,char_type>::available,slice_return_type>::type
+  typename as_str<Str,char_type>::enable<slice_return_type>::type
   ltrim(Str const& set) const{
-    typedef typename adapter_traits<Str,char_type>::adapter_type adapter_type;
-    return this->ltrim(_pred_any_of_str<char_type,adapter_type>(set));
+    typedef typename as_str<Str,char_type>::adapter adapter;
+    return this->ltrim(_pred_any_of_str<char_type,adapter>(set));
   }
   template<typename Str>
-  typename stdm::enable_if<adapter_traits<Str,char_type>::available,slice_return_type>::type
+  typename as_str<Str,char_type>::enable<slice_return_type>::type
   rtrim(Str const& set) const{
-    typedef typename adapter_traits<Str,char_type>::adapter_type adapter_type;
-    return this->rtrim(_pred_any_of_str<char_type,adapter_type>(set));
+    typedef typename as_str<Str,char_type>::adapter adapter;
+    return this->rtrim(_pred_any_of_str<char_type,adapter>(set));
   }
 
 #pragma%x begin_test
@@ -1026,30 +1066,24 @@ public:
 #pragma%end
 public:
   template<typename XStr>
-  typename adapter_enabler<char_type,XStr,bool>::type
+  typename as_str<XStr,char_type>::enable<bool>::type
   starts(XStr const& _str) const{
-    typedef typename adapter_traits<XStr>::adapter_type XAdp;
-    typedef typename stdm::remove_reference<XAdp>::type::const_iterator XItr;
-
-    XAdp str(_str);
+    typename as_str<XStr,char_type>::adapter str(_str);
     if(this->length()<str.length())return false;
     const_iterator i=this->begin();
-    XItr j=str.begin(),jN=str.end();
+    typename as_str<XStr,char_type>::const_iterator j=str.begin(),jN=str.end();
     for(;j!=jN;++i,++j)
       if(*i!=*j)return false;
     return true;
   }
   template<typename XStr>
-  typename adapter_enabler<char_type,XStr,bool>::type
+  typename as_str<XStr,char_type>::enable<bool>::type
   ends(XStr const& _str) const{
-    typedef typename adapter_traits<XStr>::adapter_type XAdp;
-    typedef typename stdm::remove_reference<XAdp>::type::const_iterator XItr;
-
-    XAdp str(_str);
+    typename as_str<XStr,char_type>::adapter str(_str);
     std::ptrdiff_t offset=this->length()-str.length();
     if(offset<0)return false;
     const_iterator i=this->_beginAt(offset);
-    XItr j=str.begin(),jN=str.end();
+    typename as_str<XStr,char_type>::const_iterator j=str.begin(),jN=str.end();
     for(;j!=jN;++i,++j)
       if(*i!=*j)return false;
     return true;
@@ -1125,7 +1159,7 @@ private:
     _xor<
       HasChar&&stdm::is_same<T,char_type>::value,
       HasPredicate&&mwg::be_functor<T,bool(char_type)>::value,
-      HasString&&adapter_traits<T,char_type>::available
+      HasString&&as_str<T,char_type>::value
     >::value,
     std::ptrdiff_t
   >{};
@@ -1176,7 +1210,7 @@ private:
   template<typename Str>
   typename find_enabler<Str,false,false,true>::type
   _find_impl(Str const& _str,std::ptrdiff_t _i0,std::ptrdiff_t _iM) const{
-    typename adapter_traits<Str,char_type>::adapter_type str(_str);
+    typename as_str<Str,char_type>::adapter str(_str);
     _iM-=str.length();
     for(std::ptrdiff_t i=_i0;i<=_iM;++i)
       if(_find_match_at(i,str))return i;
@@ -1185,7 +1219,7 @@ private:
   template<typename Str>
   typename find_enabler<Str,false,false,true>::type
   _rfind_impl(Str const& _str,std::ptrdiff_t _i0,std::ptrdiff_t _iM) const{
-    typename adapter_traits<Str,char_type>::adapter_type str(_str);
+    typename as_str<Str,char_type>::adapter str(_str);
     _iM-=str.length();
     for(std::ptrdiff_t i=_iM;i>=_i0;--i)
       if(_find_match_at(i,str))return i;
@@ -1194,26 +1228,26 @@ private:
   template<typename Str>
   typename find_enabler<Str,false,false,true>::type
   _find_any_impl(Str const& str,std::ptrdiff_t i,std::ptrdiff_t iN) const{
-    typedef typename adapter_traits<Str,char_type>::adapter_type adapter_type;
-    return this->_find_impl(_pred_any_of_str<char_type,adapter_type>(str),i,iN);
+    typedef typename as_str<Str,char_type>::adapter adapter;
+    return this->_find_impl(_pred_any_of_str<char_type,adapter>(str),i,iN);
   }
   template<typename Str>
   typename find_enabler<Str,false,false,true>::type
   _rfind_any_impl(Str const& str,std::ptrdiff_t i,std::ptrdiff_t iN) const{
-    typedef typename adapter_traits<Str,char_type>::adapter_type adapter_type;
-    return this->_rfind_impl(_pred_any_of_str<char_type,adapter_type>(str),i,iN);
+    typedef typename as_str<Str,char_type>::adapter adapter;
+    return this->_rfind_impl(_pred_any_of_str<char_type,adapter>(str),i,iN);
   }
   template<typename Str>
   typename find_enabler<Str,false,false,true>::type
   _find_not_impl(Str const& str,std::ptrdiff_t i,std::ptrdiff_t iN) const{
-    typedef typename adapter_traits<Str,char_type>::adapter_type adapter_type;
-    return this->_find_impl(_pred_not_of_str<char_type,adapter_type>(str),i,iN);
+    typedef typename as_str<Str,char_type>::adapter adapter;
+    return this->_find_impl(_pred_not_of_str<char_type,adapter>(str),i,iN);
   }
   template<typename Str>
   typename find_enabler<Str,false,false,true>::type
   _rfind_not_impl(Str const& str,std::ptrdiff_t i,std::ptrdiff_t iN) const{
-    typedef typename adapter_traits<Str,char_type>::adapter_type adapter_type;
-    return this->_rfind_impl(_pred_not_of_str<char_type,adapter_type>(str),i,iN);
+    typedef typename as_str<Str,char_type>::adapter adapter;
+    return this->_rfind_impl(_pred_not_of_str<char_type,adapter>(str),i,iN);
   }
 
 public:
@@ -1508,7 +1542,7 @@ public:
   }
 
   template<typename T>
-  string(T const& value,typename adapter_enabler<char_type,T,int*>::type=0)
+  string(T const& value,typename as_str<T,char_type>::enable<int*>::type=0)
     :base(make_str(value)){}
 
 };
@@ -1991,17 +2025,14 @@ struct _strtmp_cat_policy<Str1,Str2>{
 
 template<
   typename X,typename Y,
-  bool OK=stdm::is_same<
-    typename adapter_traits<X>::char_type,
-    typename adapter_traits<Y>::char_type
-  >::value
+  bool=as_str<X,typename as_str<Y>::char_type>::value
 > struct concat_enabler{};
 
 template<typename X,typename Y>
 struct concat_enabler<X,Y,true>:mwg::identity<
   strbase<_strtmp_cat_policy<
-    typename adapter_traits<X>::adapter_type,
-    typename adapter_traits<Y>::adapter_type
+    typename as_str<X>::adapter,
+    typename as_str<Y>::adapter
   > >
 >{};
 
@@ -2100,23 +2131,16 @@ struct _strtmp_repeat_policy{
 
 template<
   typename X,typename Y,typename R,
-  bool isOK=stdm::is_same<
-    typename adapter_traits<X>::char_type,
-    typename adapter_traits<Y>::char_type
-  >::value
+  bool=as_str<X,typename as_str<Y>::char_type>::value
 > struct compare_enabler:mwg::identity<R>{};
 
 template<typename X,typename Y>
 typename compare_enabler<X,Y,int>::type
 compare(X const& _lhs,Y const& _rhs){
-  typedef typename adapter_traits<X>::adapter_type XAdp;
-  typedef typename adapter_traits<Y>::adapter_type YAdp;
-  typedef typename stdm::remove_reference<XAdp>::type::const_iterator XItr;
-  typedef typename stdm::remove_reference<YAdp>::type::const_iterator YItr;
-  XAdp lhs(_lhs);
-  YAdp rhs(_rhs);
-  XItr i=lhs.begin(),iN=lhs.end();
-  YItr j=rhs.begin(),jN=rhs.end();
+  typename as_str<X>::adapter lhs(_lhs);
+  typename as_str<Y>::adapter rhs(_rhs);
+  typename as_str<X>::const_iterator i=lhs.begin(),iN=lhs.end();
+  typename as_str<Y>::const_iterator j=rhs.begin(),jN=rhs.end();
   for(;i!=iN&&j!=jN;++i,++j)
     if(*i!=*j)return *i>*j?1:-1;
   return i!=iN?1: j!=jN?-1: 0;
@@ -2125,23 +2149,19 @@ compare(X const& _lhs,Y const& _rhs){
 template<typename X,typename Y>
 typename compare_enabler<X,Y,int>::type
 icompare(X const& _lhs,Y const& _rhs){
-  typename adapter_traits<X>::adapter_type lhs(_lhs);
-  typename adapter_traits<Y>::adapter_type rhs(_rhs);
+  typename as_str<X>::adapter lhs(_lhs);
+  typename as_str<Y>::adapter rhs(_rhs);
   return compare(lhs.tolower(),rhs.tolower());
 }
 
 template<typename X,typename Y>
 typename compare_enabler<X,Y,bool>::type
 operator==(X const& _lhs,Y const& _rhs){
-  typedef typename adapter_traits<X>::adapter_type XAdp;
-  typedef typename adapter_traits<Y>::adapter_type YAdp;
-  typedef typename stdm::remove_reference<XAdp>::type::const_iterator XItr;
-  typedef typename stdm::remove_reference<YAdp>::type::const_iterator YItr;
-  XAdp lhs(_lhs);
-  YAdp rhs(_rhs);
+  typename as_str<X>::adapter lhs(_lhs);
+  typename as_str<Y>::adapter rhs(_rhs);
   if(lhs.length()!=rhs.length())return false;
-  XItr i=lhs.begin(),iN=lhs.end();
-  YItr j=rhs.begin();
+  typename as_str<X>::const_iterator i=lhs.begin(),iN=lhs.end();
+  typename as_str<Y>::const_iterator j=rhs.begin();
   for(;i!=iN;++i,++j)
     if(*i!=*j)return false;
   return true;
@@ -2150,14 +2170,10 @@ operator==(X const& _lhs,Y const& _rhs){
 template<typename X,typename Y>
 typename compare_enabler<X,Y,bool>::type
 operator<(X const& _lhs,Y const& _rhs){
-  typedef typename adapter_traits<X>::adapter_type XAdp;
-  typedef typename adapter_traits<Y>::adapter_type YAdp;
-  typedef typename stdm::remove_reference<XAdp>::type::const_iterator XItr;
-  typedef typename stdm::remove_reference<YAdp>::type::const_iterator YItr;
-  XAdp lhs(_lhs);
-  YAdp rhs(_rhs);
-  XItr i=lhs.begin(),iN=lhs.end();
-  YItr j=rhs.begin(),jN=rhs.end();
+  typename as_str<X>::adapter lhs(_lhs);
+  typename as_str<Y>::adapter rhs(_rhs);
+  typename as_str<X>::const_iterator i=lhs.begin(),iN=lhs.end();
+  typename as_str<Y>::const_iterator j=rhs.begin(),jN=rhs.end();
   for(;i!=iN&&j!=jN;++i,++j)
     if(*i!=*j)return *i<*j;
   return i==iN&&j!=jN;
@@ -2230,10 +2246,10 @@ void test(){
 
 //NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN
 } /* end of namespace string3_detail */
+  using string3_detail::as_str;
+  using string3_detail::make_str;
   using string3_detail::string;
   using string3_detail::strsub;
-
-  using string3_detail::make_str;
 } /* end of namespace mwg */
 
 //AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
