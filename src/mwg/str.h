@@ -633,7 +633,7 @@ public:
     if(_start>_end)_end=_start;
     return slice_return_type(this->data,_start,_end-_start);
   }
-  slice_return_type slice(mwg::range_i const& r) const{
+  slice_return_type slice(mwg::irange const& r) const{
     return slice(r.begin(),r.end());
   }
   slice_return_type substr(std::ptrdiff_t start,std::size_t length) const{
@@ -671,7 +671,7 @@ public:
       slice_return_type(this->data,_end,_len-_end)
     );
   }
-  remove_return_type remove(mwg::range_i const& r) const{
+  remove_return_type remove(mwg::irange const& r) const{
     return this->remove(r.begin(),r.end());
   }
 #pragma%x begin_test
@@ -750,7 +750,7 @@ public:
   }
   template<typename T>
   typename enable_insert<T>::type
-  replace(mwg::range_i const& r,T const& s) const{
+  replace(mwg::irange const& r,T const& s) const{
     return this->replace(r.begin(),r.end(),s);
   }
   template<typename T>
@@ -818,7 +818,7 @@ public:
     if(_end<_start)_end=_start;
     return ranged_tolower_return_type(this->data,_filt_tolower<char_type>(),_start,_end);
   }
-  ranged_tolower_return_type tolower(mwg::range_i const& r) const{
+  ranged_tolower_return_type tolower(mwg::irange const& r) const{
     return tolower(r.begin(),r.end());
   }
   toupper_return_type toupper() const{
@@ -831,7 +831,7 @@ public:
     if(_end<_start)_end=_start;
     return ranged_toupper_return_type(this->data,_filt_toupper<char_type>(),_start,_end);
   }
-  ranged_toupper_return_type toupper(mwg::range_i const& r) const{
+  ranged_toupper_return_type toupper(mwg::irange const& r) const{
     return toupper(r.begin(),r.end());
   }
 private:
@@ -857,7 +857,7 @@ public:
     return typename enable_ranged_map<F>::type(this->data,filter,_start,_end);
   }
   template<typename F>
-  typename enable_ranged_map<F>::type map(F const& filter,mwg::range_i const& r) const{
+  typename enable_ranged_map<F>::type map(F const& filter,mwg::irange const& r) const{
     return map(filter,r.begin(),r.end());
   }
 
@@ -875,7 +875,7 @@ public:
     if(_end<_start)_end=_start;
     return ranged_char_replace_return_type(this->data,_filt_replace_char<char_type>(before,after),_start,_end);
   }
-  ranged_char_replace_return_type replace(char_type const& before,char_type const& after,mwg::range_i const& r) const{
+  ranged_char_replace_return_type replace(char_type const& before,char_type const& after,mwg::irange const& r) const{
     return this->replace(before,after,r.begin(),r.end());
   }
 
@@ -1274,7 +1274,7 @@ public:
   } \
   template<typename T> \
   typename enable_find<T,hC,hP,hS>::type \
-  FIND(T const& pred,mwg::range_i const& r) const{ \
+  FIND(T const& pred,mwg::irange const& r) const{ \
     return this->FIND(pred,r.begin(),r.end()); \
   }
 
@@ -2379,7 +2379,7 @@ void test(){
  *  負の数が指定された場合は文字列末端からの相対位置と解釈します。
  *  `mwg::npos` が指定された場合は文字列末端と解釈します。
  *  終端位置が省略された場合は、文字列末端を意味します。
- * :@param[in] mwg::range_i r;
+ * :@param[in] mwg::irange r;
  *  範囲を指定します。開始位置、終端位置は上記 `i`, `j` と同様に解釈されます。
  *
  * **連結・切り出し・挿入・削除
