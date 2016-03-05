@@ -1,7 +1,7 @@
 // -*- mode:C++;coding:utf-8 -*-
 #pragma once
-#ifndef MWG_STRING_H
-#define MWG_STRING_H
+#ifndef MWG_STR_H
+#define MWG_STR_H
 //HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 #include <cstddef>
 #include <mwg/std/utility>
@@ -13,8 +13,8 @@
 #pragma%x begin_check
 #include <vector>
 #include <mwg/except.h>
-#include <mwg/string.h>
-#define _a mwg::make_str
+#include <mwg/str.h>
+#define _a mwg::str
 
 class managed_test{
 public:
@@ -49,7 +49,7 @@ class _test$"itest":managed_test{
 #pragma%end
 #pragma%x end_check
 namespace mwg{
-namespace string3_detail{
+namespace str_detail{
   template<typename XCH>
   struct char_traits;
 
@@ -59,26 +59,40 @@ namespace string3_detail{
   template<typename Policy>
   class strbase;
 
-  template<typename XCH>
-  class strsub;
-  template<typename XCH>
-  class strfix;
-  /*?lwiki
-   * :@class class mwg::==strfix==<XCH> : strbase<...>;
-   *  `mwg::string` における標準の文字列型です。
-   *  `std::shared_ptr` による参照管理の対象です。
-   * :@class class mwg::==strsub==<XCH> : strbase<...>;
-   *  他の文字列の部分文字列を保持します。
-   * :@class class mwg::string3_detail::==strbase==<...>;
-   *  文字列に対する操作を提供する基底クラスです。
-   *  また、部分式の評価結果として `strbase` の様々な特殊化が使用されます。
-   *
-   */
-
   template<typename T,typename XCH=void>
   struct adapter_traits;
   template<typename T,typename XCH=void>
   struct as_str;
+
+  /*?lwiki
+   * :@fn String mwg::==str==(obj);
+   *  指定したオブジェクトに対する mwg/str インターフェイスを取得します。\
+   *  mwg/str 文字列の操作に関しては後述の節『[[文字列基本機能>#strbase_interface]]』を参照して下さい。
+   *  ※`str` はローカル変数として一般的な識別子です。混乱を避けるために、\
+   *  `mwg::str` を利用する時は省略せずに `mwg::str(...)` の形で使用することを推奨します。
+   */
+  template<typename T>
+  typename adapter_traits<T>::adapter_type
+  str(T const& value){return typename adapter_traits<T>::adapter_type(value);}
+
+  /*?lwiki
+   * :@class class mwg::==strfix==<XCH> : str_detail::strbase<...>;
+   *  mwg/str における標準の文字列型です。
+   *  `std::shared_ptr` による参照管理の対象です。
+   * :@class class mwg::==strsub==<XCH> : str_detail::strbase<...>;
+   *  他の文字列の部分文字列を保持します。
+   * :@namespace mwg::==str_detail==;
+   *  実装用の名前空間です。
+   *  - mwg/str 文字列 (strbase<...>) に対する ADL 関数はこの名前空間内に定義して下さい。
+   * :@class class mwg::str_detail::==strbase==<...>;
+   *  mwg/str における文字列型は全てこの型から派生します。
+   *  文字列に対する操作を提供する基底クラスです。
+   *  また、部分式の評価結果として `strbase` の様々な特殊化が使用されます。
+   */
+  template<typename XCH>
+  class strsub;
+  template<typename XCH>
+  class strfix;
 
   template<typename XCH>
   class _stradp_array;
@@ -107,13 +121,13 @@ namespace string3_detail{
   static const mwg_constexpr std::ptrdiff_t npos
     =mwg::stdm::numeric_limits<std::ptrdiff_t>::lowest();
 
-  using string3_detail::as_str;
-  using string3_detail::make_str;
-  using string3_detail::strfix;
-  using string3_detail::strsub;
+  using str_detail::as_str;
+  using str_detail::str;
+  using str_detail::strfix;
+  using str_detail::strsub;
 }
 namespace mwg{
-namespace string3_detail{
+namespace str_detail{
 //NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN
   inline std::size_t canonicalize_index(std::ptrdiff_t const& index,std::size_t const& len){
     if(index==mwg::npos){
@@ -125,47 +139,49 @@ namespace string3_detail{
       return (std::size_t)index<len?index:len;
   }
 
-#pragma%m mwg::string::policy_requirements
-  struct StringPolicy{
-    typedef char          char_type;
-    typedef const char&   char_at_type; // e.g. char, const char&
-    typedef StringPolicy  policy_type;
+#pragma%m mwg_str::policy_requirements
+/*?lwiki
+struct StringPolicy{
+  typedef char          char_type;
+  typedef const char&   char_at_type; // e.g. char, const char&
+  typedef StringPolicy  policy_type;
 
-    static const bool has_get_ptr;
+  static const bool has_get_ptr;
 
-    struct const_iterator{
-      static const bool has_index;
-      // 以下2関数は has_index==true の時にだけ定義される。
-      std::ptrdiff_t index() const;
+  struct const_iterator{
+    static const bool has_index;
+    // 以下2関数は has_index==true の時にだけ定義される。
+    std::ptrdiff_t index() const;
 
-      char_at_type operator*() const;
+    char_at_type operator*() const;
 
-      const_iterator& operator++();
-      const_iterator  operator++(int);
-      const_iterator& operator--();
-      const_iterator  operator--(int);
+    const_iterator& operator++();
+    const_iterator  operator++(int);
+    const_iterator& operator--();
+    const_iterator  operator--(int);
 
-      bool operator==(const_iterator const&) const;
-      bool operator!=(const_iterator const&) const;
+    bool operator==(const_iterator const&) const;
+    bool operator!=(const_iterator const&) const;
 
-      const_iterator  operator+(std::ptrdiff_t) const;
-      const_iterator  operator-(std::ptrdiff_t) const;
-      std::ptrdiff_t  operator-(const_iterator const&) const;
-    };
-
-    struct buffer_type{
-      char_at_type operator[](std::ptrdiff_t) const;
-
-      std::size_t length() const;
-
-      const_iterator begin() const;
-      const_iterator end() const;
-      const_iterator begin_at(std::ptrdiff_t) const;
-
-      // 以下の関数は StringPolicy::has_get_ptr==true の時にだけ定義される
-      const char_type* get_ptr() const;
-    };
+    const_iterator  operator+(std::ptrdiff_t) const;
+    const_iterator  operator-(std::ptrdiff_t) const;
+    std::ptrdiff_t  operator-(const_iterator const&) const;
   };
+
+  struct buffer_type{
+    char_at_type operator[](std::ptrdiff_t) const;
+
+    std::size_t length() const;
+
+    const_iterator begin() const;
+    const_iterator end() const;
+    const_iterator begin_at(std::ptrdiff_t) const;
+
+    // 以下の関数は StringPolicy::has_get_ptr==true の時にだけ定義される
+    const char_type* get_ptr() const;
+  };
+};
+*/
 #pragma%end
 
 //-----------------------------------------------------------------------------
@@ -176,7 +192,7 @@ template<typename XCH>
 struct char_traits{
   typedef XCH char_type;
 
-  static std::size_t strlen(const char_type* str);
+  static std::size_t strlen(const char_type* s);
   static mwg_constexpr char_type null();
 };
 
@@ -184,19 +200,17 @@ struct char_traits{
 // adapter_traits
 
 /*?lwiki
- * :@fn str mwg::==make_str==(obj);
- *  指定したオブジェクトに対する mwg::string インターフェイスを取得します。
- * :@class struct ==adapter_traits==<T>;
- * :@class struct ==adapter_traits==<T,XCH>;
- *  任意に与えられた型に対して mwg::string インターフェイスを提供する方法を定義します。
- *  既定で以下の型に対して mwg::string インターフェイスが定義されています。
+ * :@class struct mwg::str_detail::==adapter_traits==<T>;
+ * :@class struct mwg::str_detail::==adapter_traits==<T,XCH>;
+ *  任意に与えられた型に対して mwg/str インターフェイスを提供する方法を定義します。
+ *  既定で以下の型に対して mwg/str インターフェイスが定義されています。
  *  -`XCH[N]`
  *  -`const XCH[N]`
  *  -`XCH*`
  *  -`const XCH*`
  *  -`std::basic_string<XCH>`
  *  `adapter_traits<T>` の特殊化を定義する事によって、\
- *  新しい型に対して mwg::string インターフェイスを提供できます。
+ *  新しい型に対して mwg/str インターフェイスを提供できます。
  *  `adapter_traits<T>` の特殊化では以下のメンバを定義します。
  *  &pre*(!cpp){
  *  struct adapter_traits<T>{
@@ -208,10 +222,10 @@ struct char_traits{
  *  };
  *  }
  *  :@var static const bool ==available==;
- *   mwg::string インターフェイスを提供できる場合に `true` を設定します。
+ *   mwg/str インターフェイスを提供できる場合に `true` を設定します。
  *  :@typedef[opt] typename ==adapter_type==;
  *   `available==true` の時にのみ定義します。SFINAE に使用されるので `available==false` の時は定義しないで下さい。
- *   具体的に mwg::string を提供する型を指定します。
+ *   具体的に mwg/str を提供する型を指定します。
  *   目的の型 `T` から直接構築できる必要があります。
  *  :@typedef[opt] typename ==char_type==;
  *   `available==true` の時にのみ定義します。SFINAE に使用されるので `available==false` の時は定義しないで下さい。
@@ -284,15 +298,6 @@ struct _as_str<T,XCH,true>:adapter_traits<T,XCH>,stdm::true_type{
 template<typename T,typename XCH>
 struct as_str:_as_str<T,XCH>{};
 
-/*?lwiki
- * :@fn str mwg::==make_str==(obj);
- *  指定したオブジェクトに対する mwg::string インターフェイスを取得します。
- */
-
-template<typename T>
-typename adapter_traits<T>::adapter_type
-make_str(T const& value){return(value);}
-
 //-----------------------------------------------------------------------------
 // adapter_traits<S> default specializations
 
@@ -300,12 +305,12 @@ make_str(T const& value){return(value);}
  * :@class struct ==adapter_traits_array==<XCH>;
  *  `adapter_traits` 実装の補助クラスです。\
  *  指定した型から `XCH*` ポインタと長さのペアを取得して、\
- *  それを元にして mwg::string の文字列型を作成します。
+ *  それを元にして mwg/str の文字列型を作成します。
  *  :@param[in] XCH
  *   文字要素の型を指定します。
  *  派生クラスで以下のメンバ関数を定義する必要があります。
- *  -@fn static const char_type* pointer(C const& str);
- *  -@fn static std::size_t length(C const& str);
+ *  -@fn static const char_type* pointer(C const& s);
+ *  -@fn static std::size_t length(C const& s);
  */
 template<typename XCH>
 struct adapter_traits_array{
@@ -374,12 +379,12 @@ struct isspace_predicator{
 template<typename XCH,typename Str1>
 struct _pred_any_of_str{
   typedef XCH char_type;
-  typename stdx::add_const_reference<Str1>::type str;
-  _pred_any_of_str(typename stdx::add_const_reference<Str1>::type str)
-    :str(str){}
+  typename stdx::add_const_reference<Str1>::type s;
+  _pred_any_of_str(typename stdx::add_const_reference<Str1>::type s)
+    :s(s){}
 
   bool operator()(char_type c) const{
-    typename stdm::remove_reference<Str1>::type::const_iterator i=str.begin(),iN=str.end();
+    typename stdm::remove_reference<Str1>::type::const_iterator i=s.begin(),iN=s.end();
     for(;i!=iN;++i)
       if(c==*i)return true;
     return false;
@@ -388,12 +393,12 @@ struct _pred_any_of_str{
 template<typename XCH,typename Str1>
 struct _pred_not_of_str{
   typedef XCH char_type;
-  typename stdx::add_const_reference<Str1>::type str;
-  _pred_not_of_str(typename stdx::add_const_reference<Str1>::type str)
-    :str(str){}
+  typename stdx::add_const_reference<Str1>::type s;
+  _pred_not_of_str(typename stdx::add_const_reference<Str1>::type s)
+    :s(s){}
 
   bool operator()(char_type c) const{
-    typename stdm::remove_reference<Str1>::type::const_iterator i=str.begin(),iN=str.end();
+    typename stdm::remove_reference<Str1>::type::const_iterator i=s.begin(),iN=s.end();
     for(;i!=iN;++i)
       if(c==*i)return false;
     return true;
@@ -548,7 +553,7 @@ public:
 #pragma%).f/An/1/AN+1/.i
 #endif
 
-#pragma%m mwg::string::strbase::doc
+#pragma%m mwg_str::strbase::doc
   /*?lwiki
    * :@op s==[==index==]==;
    *  指定した位置にある文字を返します。
@@ -596,10 +601,10 @@ private:
 
   //---------------------------------------------------------------------------
   //
-  // mwg::string::slice
+  // mwg_str::slice
   //
   //---------------------------------------------------------------------------
-#pragma%m mwg::string::slice::doc
+#pragma%m mwg_str::slice::doc
   /*?lwiki
    * :@fn s1.==slice==('''range-spec''');
    * :@fn s1.==substr==(i,len);
@@ -693,15 +698,15 @@ public:
 
   //---------------------------------------------------------------------------
   //
-  // mwg::string::insert
+  // mwg_str::insert
   //
   //---------------------------------------------------------------------------
-#pragma%m mwg::string::insert::doc
+#pragma%m mwg_str::insert::doc
   /*?lwiki
    * :@fn s.==replace==('''range-spec''',s2);
    *  指定した範囲を別の文字列に置換します。
    *  c.f. `substr(s,i,len,s2)` (Perl)
-   * :@fn s1.==insert==(i,str);
+   * :@fn s1.==insert==(i,s);
    *  指定した位置に文字列を挿入します。
    *  c.f. `insert` (C++), `Insert` (ATL/MFC), <?cs Insert?> (CLR), `Insert` (mwg-string), <?rb insert?> (Ruby)
    */
@@ -724,11 +729,11 @@ private:
 
   template<typename T>
   typename enable_insert<T>::type
-  _replace_impl(std::size_t _start,std::size_t _end,T const& str) const{
+  _replace_impl(std::size_t _start,std::size_t _end,T const& s) const{
     std::size_t const _len=this->length();
     return typename enable_insert<T>::type(
       slice_return_type(this->data,0,_start),
-      str,
+      s,
       slice_return_type(this->data,_end,_len-_end)
     );
   }
@@ -736,24 +741,24 @@ private:
 public:
   template<typename T>
   typename enable_insert<T>::type
-  replace(std::ptrdiff_t start,std::ptrdiff_t end,T const& str) const{
+  replace(std::ptrdiff_t start,std::ptrdiff_t end,T const& s) const{
     std::size_t const _len=this->length();
     std::size_t _start=canonicalize_index(start,_len);
     std::size_t _end=canonicalize_index(end,_len);
     if(_end<_start)std::swap(_start,_end);
-    return _replace_impl<T>(_start,_end,str);
+    return _replace_impl<T>(_start,_end,s);
   }
   template<typename T>
   typename enable_insert<T>::type
-  replace(mwg::range_i const& r,T const& str) const{
-    return this->replace(r.begin(),r.end(),str);
+  replace(mwg::range_i const& r,T const& s) const{
+    return this->replace(r.begin(),r.end(),s);
   }
   template<typename T>
   typename enable_insert<T>::type
-  insert(std::ptrdiff_t index,T const& str) const{
+  insert(std::ptrdiff_t index,T const& s) const{
     std::size_t const _len=this->length();
     std::size_t const _index=canonicalize_index(index,_len);
-    return _replace_impl<T>(_index,_index,str);
+    return _replace_impl<T>(_index,_index,s);
   }
 
 #pragma%x begin_test
@@ -768,12 +773,12 @@ public:
 
   //---------------------------------------------------------------------------
   //
-  // mwg::string::map
+  // mwg_str::map
   //   characterwise operations
   //   tolower, toupper
   //
   //---------------------------------------------------------------------------
-#pragma%m mwg::string::map::doc
+#pragma%m mwg_str::map::doc
   /*?lwiki
    * :@fn s.==tolower==(&color(red){[}'''range-spec'''&color(red){]});
    *  文字列内の英大文字を英小文字に変換します。
@@ -893,10 +898,10 @@ public:
 
   //---------------------------------------------------------------------------
   //
-  // mwg::string::trim
+  // mwg_str::trim
   //
   //---------------------------------------------------------------------------
-#pragma%m mwg::string::trim::doc
+#pragma%m mwg_str::trim::doc
   /*?lwiki
    * :@fn s1.==trim==();
    * :@fn s1.==trim==(s2);   // s2   削除文字集合
@@ -989,10 +994,10 @@ public:
 
   //---------------------------------------------------------------------------
   //
-  // mwg::string::pad
+  // mwg_str::pad
   //
   //---------------------------------------------------------------------------
-#pragma%m mwg::string::pad::doc
+#pragma%m mwg_str::pad::doc
   /*?lwiki
    * :@fn s.==pad==(len);
    * :@fn s.==pad==(len,c);
@@ -1053,10 +1058,10 @@ public:
 
   //---------------------------------------------------------------------------
   //
-  // mwg::string::starts
+  // mwg_str::starts
   //
   //---------------------------------------------------------------------------
-#pragma%m mwg::string::starts::doc
+#pragma%m mwg_str::starts::doc
   /*?lwiki
    * :@fn s.==starts==(s1); // s1 文字列
    *  文字列が指定された文字列で始まっているかを判定します。
@@ -1071,23 +1076,23 @@ public:
 public:
   template<typename XStr>
   typename as_str<XStr,char_type>::enable<bool>::type
-  starts(XStr const& _str) const{
-    typename as_str<XStr,char_type>::adapter str(_str);
-    if(this->length()<str.length())return false;
+  starts(XStr const& _s) const{
+    typename as_str<XStr,char_type>::adapter s(_s);
+    if(this->length()<s.length())return false;
     const_iterator i=this->begin();
-    typename as_str<XStr,char_type>::const_iterator j=str.begin(),jN=str.end();
+    typename as_str<XStr,char_type>::const_iterator j=s.begin(),jN=s.end();
     for(;j!=jN;++i,++j)
       if(*i!=*j)return false;
     return true;
   }
   template<typename XStr>
   typename as_str<XStr,char_type>::enable<bool>::type
-  ends(XStr const& _str) const{
-    typename as_str<XStr,char_type>::adapter str(_str);
-    std::ptrdiff_t offset=this->length()-str.length();
+  ends(XStr const& _s) const{
+    typename as_str<XStr,char_type>::adapter s(_s);
+    std::ptrdiff_t offset=this->length()-s.length();
     if(offset<0)return false;
     const_iterator i=this->_beginAt(offset);
-    typename as_str<XStr,char_type>::const_iterator j=str.begin(),jN=str.end();
+    typename as_str<XStr,char_type>::const_iterator j=s.begin(),jN=s.end();
     for(;j!=jN;++i,++j)
       if(*i!=*j)return false;
     return true;
@@ -1111,17 +1116,17 @@ public:
 
   //---------------------------------------------------------------------------
   //
-  // mwg::string::find
+  // mwg_str::find
   //
   //---------------------------------------------------------------------------
-#pragma%m mwg::string::find::doc
+#pragma%m mwg_str::find::doc
   /*?lwiki
-   * :@fn s.==find==(str&color(red){|}ch&color(red){|}pred&color(red){|}reg,&color(red){[}'''range-spec'''&color(red){]});
-   * :@fn s.==rfind==(str&color(red){|}ch&color(red){|}pred&color(red){|}reg,&color(red){[}'''range-spec'''&color(red){]});
+   * :@fn s.==find==(s&color(red){|}ch&color(red){|}pred&color(red){|}reg,&color(red){[}'''range-spec'''&color(red){]});
+   * :@fn s.==rfind==(s&color(red){|}ch&color(red){|}pred&color(red){|}reg,&color(red){[}'''range-spec'''&color(red){]});
    *  指定した文字列を検索して最初に見付かった開始位置を返します。
    *  `find` は範囲先頭から検索を開始し、`rfind` は範囲末端から検索を開始します。
    *  第一引数に検索対象を指定します。第二引数に検索範囲を指定します。検索範囲の指定を省略した場合、文字列全体が検索範囲になります。
-   *  :@param[in] '''string''' str;
+   *  :@param[in] String s;
    *   検索対象の文字列を指定します
    *  :@param[in] XCH ch;
    *   検索対象の文字を指定します
@@ -1204,54 +1209,54 @@ private:
 
 private:
   template<typename Policy>
-  bool _find_match_at(std::size_t index,strbase<Policy> const& str) const{
+  bool _find_match_at(std::size_t index,strbase<Policy> const& s) const{
     const_iterator p=this->_beginAt(index);
-    typename strbase<Policy>::const_iterator q=str.begin();
-    for(std::size_t end=index+str.length();index<end;index++)
+    typename strbase<Policy>::const_iterator q=s.begin();
+    for(std::size_t end=index+s.length();index<end;index++)
       if(*p++!=*q++)return false;
     return true;
   }
   template<typename Str>
   typename enable_find<Str,false,false,true>::type
-  _find_impl(Str const& _str,std::ptrdiff_t _i0,std::ptrdiff_t _iM) const{
-    typename as_str<Str,char_type>::adapter str(_str);
-    _iM-=str.length();
+  _find_impl(Str const& _s,std::ptrdiff_t _i0,std::ptrdiff_t _iM) const{
+    typename as_str<Str,char_type>::adapter s(_s);
+    _iM-=s.length();
     for(std::ptrdiff_t i=_i0;i<=_iM;++i)
-      if(_find_match_at(i,str))return i;
+      if(_find_match_at(i,s))return i;
     return -1;
   }
   template<typename Str>
   typename enable_find<Str,false,false,true>::type
-  _rfind_impl(Str const& _str,std::ptrdiff_t _i0,std::ptrdiff_t _iM) const{
-    typename as_str<Str,char_type>::adapter str(_str);
-    _iM-=str.length();
+  _rfind_impl(Str const& _s,std::ptrdiff_t _i0,std::ptrdiff_t _iM) const{
+    typename as_str<Str,char_type>::adapter s(_s);
+    _iM-=s.length();
     for(std::ptrdiff_t i=_iM;i>=_i0;--i)
-      if(_find_match_at(i,str))return i;
+      if(_find_match_at(i,s))return i;
     return -1;
   }
   template<typename Str>
   typename enable_find<Str,false,false,true>::type
-  _find_any_impl(Str const& str,std::ptrdiff_t i,std::ptrdiff_t iN) const{
+  _find_any_impl(Str const& s,std::ptrdiff_t i,std::ptrdiff_t iN) const{
     typedef typename as_str<Str,char_type>::adapter adapter;
-    return this->_find_impl(_pred_any_of_str<char_type,adapter>(str),i,iN);
+    return this->_find_impl(_pred_any_of_str<char_type,adapter>(s),i,iN);
   }
   template<typename Str>
   typename enable_find<Str,false,false,true>::type
-  _rfind_any_impl(Str const& str,std::ptrdiff_t i,std::ptrdiff_t iN) const{
+  _rfind_any_impl(Str const& s,std::ptrdiff_t i,std::ptrdiff_t iN) const{
     typedef typename as_str<Str,char_type>::adapter adapter;
-    return this->_rfind_impl(_pred_any_of_str<char_type,adapter>(str),i,iN);
+    return this->_rfind_impl(_pred_any_of_str<char_type,adapter>(s),i,iN);
   }
   template<typename Str>
   typename enable_find<Str,false,false,true>::type
-  _find_not_impl(Str const& str,std::ptrdiff_t i,std::ptrdiff_t iN) const{
+  _find_not_impl(Str const& s,std::ptrdiff_t i,std::ptrdiff_t iN) const{
     typedef typename as_str<Str,char_type>::adapter adapter;
-    return this->_find_impl(_pred_not_of_str<char_type,adapter>(str),i,iN);
+    return this->_find_impl(_pred_not_of_str<char_type,adapter>(s),i,iN);
   }
   template<typename Str>
   typename enable_find<Str,false,false,true>::type
-  _rfind_not_impl(Str const& str,std::ptrdiff_t i,std::ptrdiff_t iN) const{
+  _rfind_not_impl(Str const& s,std::ptrdiff_t i,std::ptrdiff_t iN) const{
     typedef typename as_str<Str,char_type>::adapter adapter;
-    return this->_rfind_impl(_pred_not_of_str<char_type,adapter>(str),i,iN);
+    return this->_rfind_impl(_pred_not_of_str<char_type,adapter>(s),i,iN);
   }
 
 public:
@@ -1311,10 +1316,10 @@ public:
 
   //---------------------------------------------------------------------------
   //
-  // mwg::string::misc
+  // mwg_str::misc
   //
   //---------------------------------------------------------------------------
-#pragma%m mwg::string::misc::doc
+#pragma%m mwg_str::misc::doc
   /*?lwiki
    * :@fn s.==reverse==();
    *  c.f. `Reverse` (mwg-string), <?rb reverse?> (Ruby), <?php strrev?> (PHP)
@@ -1451,7 +1456,7 @@ struct strfix_policy{
       void allocate(std::size_t length){
         /* 同じ長さでも必ず再確保する。
          * というのも、自分自身を参照しながら自分自身を更新する事があるから:
-         * | str = str.reverse()
+         * | s = s.reverse()
          */
         // if(this->len==length)return;
 
@@ -1469,21 +1474,21 @@ struct strfix_policy{
 
   public:
     template<typename StrP>
-    buffer_type(strbase<StrP> const& str)
-      :ptr(new bucket(str.length()))
+    buffer_type(strbase<StrP> const& s)
+      :ptr(new bucket(s.length()))
     {
-      this->copy_content(str);
+      this->copy_content(s);
     }
     template<typename StrP>
-    void reset(strbase<StrP> const& str){
-      this->ptr->reset(str.length());
-      this->copy_content(str);
+    void reset(strbase<StrP> const& s){
+      this->ptr->reset(s.length());
+      this->copy_content(s);
     }
   private:
     template<typename StrP>
-    void copy_content(strbase<StrP> const& str){
-      typename StrP::const_iterator j=str.begin();
-      std::size_t const iN=str.length();
+    void copy_content(strbase<StrP> const& s){
+      typename StrP::const_iterator j=s.begin();
+      std::size_t const iN=s.length();
       char_type* const data=ptr->data;
       for(std::size_t i=0;i<iN;++i,++j)
         data[i]=*j;
@@ -1521,15 +1526,15 @@ public:
 public:
   strfix(){}
 
-  strfix(strfix const& str)
-    :base(str.data){}
+  strfix(strfix const& s)
+    :base(s.data){}
   strfix& operator=(strfix const& rhs){
     this->data=rhs.data;
     return *this;
   }
 #ifdef MWGCONF_STD_RVALUE_REFERENCES
-  strfix(strfix&& str)
-    :base(mwg::stdm::move(str.data)){}
+  strfix(strfix&& s)
+    :base(mwg::stdm::move(s.data)){}
   strfix& operator=(strfix&& rhs){
     this->data=mwg::stdm::move(rhs.data);
     return *this;
@@ -1537,17 +1542,17 @@ public:
 #endif
 
   template<typename StrP>
-  strfix(strbase<StrP> const& str)
-    :base(str){}
+  strfix(strbase<StrP> const& s)
+    :base(s){}
   template<typename StrP>
-  strfix& operator=(strbase<StrP> const& str){
-    this->data.reset(str);
+  strfix& operator=(strbase<StrP> const& s){
+    this->data.reset(s);
     return *this;
   }
 
   template<typename T>
   strfix(T const& value,typename as_str<T,char_type>::enable<int*>::type=0)
-    :base(make_str(value)){}
+    :base(mwg::str(value)){}
 
 };
 
@@ -1556,7 +1561,7 @@ public:
 // _strtest_repeated_chars_policy
 
 namespace mwg{
-namespace string3_detail{
+namespace str_detail{
 
   /// @class _strtest_repeated_chars_policy
   /// 同じ文字が指定した回数だけ繰り返される文字列。
@@ -1694,7 +1699,7 @@ public:
 
 #pragma%x begin_test
   void test(){
-    using namespace mwg::string3_detail;
+    using namespace mwg::str_detail;
 
     // !has_index な基底 const_iterator から、const_iterator を初期化
     typedef _stradp_array<char> a;
@@ -1902,18 +1907,18 @@ struct _strtmp_pad_policy{
   typedef default_const_iterator<policy_type> const_iterator;
 
   class buffer_type{
-    Str const& str;
+    Str const& s;
     std::size_t lpad_len;
     std::size_t m_length;
     char_type c;
   public:
-    buffer_type(Str const& str,std::size_t lpad_len,std::size_t len,char_type c)
-      :str(str),lpad_len(lpad_len),m_length(len),c(c){}
+    buffer_type(Str const& s,std::size_t lpad_len,std::size_t len,char_type c)
+      :s(s),lpad_len(lpad_len),m_length(len),c(c){}
   public:
     char_at_type operator[](std::size_t index) const{
       std::ptrdiff_t index1=std::ptrdiff_t(index)-this->lpad_len;
-      if(0<=index1&&(std::size_t)index1<this->str.length())
-        return this->str[index1];
+      if(0<=index1&&(std::size_t)index1<this->s.length())
+        return this->s[index1];
       else
         return this->c;
     }
@@ -2068,14 +2073,14 @@ struct _strtmp_reverse_policy{
   typedef default_const_iterator<policy_type> const_iterator;
 
   class buffer_type{
-    Str const& str;
+    Str const& s;
   public:
-    buffer_type(Str const& str):str(str){}
+    buffer_type(Str const& s):s(s){}
   public:
     char_at_type operator[](std::size_t index) const{
-      return this->str[this->str.length()-1-index];
+      return this->s[this->s.length()-1-index];
     }
-    std::size_t    length() const{return this->str.length();}
+    std::size_t    length() const{return this->s.length();}
     const_iterator begin()  const{return const_iterator(*this,0);}
     const_iterator end()    const{return const_iterator(*this,this->length());}
     const_iterator begin_at(std::ptrdiff_t index) const{return const_iterator(*this,index);}
@@ -2095,8 +2100,8 @@ struct _strtmp_repeat_policy{
     Str const& m_str;
     std::size_t m_repeatCount;
   public:
-    buffer_type(Str const& str,std::size_t repeatCount)
-      :m_str(str),m_repeatCount(repeatCount){}
+    buffer_type(Str const& s,std::size_t repeatCount)
+      :m_str(s),m_repeatCount(repeatCount){}
   public:
     char_at_type operator[](std::size_t index) const{
       return this->m_str[index%this->m_str.length()];
@@ -2111,7 +2116,7 @@ struct _strtmp_repeat_policy{
 //-----------------------------------------------------------------------------
 // 関係演算子                                                           @op.rel
 
-#pragma%m mwg::string::compare::doc
+#pragma%m mwg_str::compare::doc
 /*?lwiki
  * :@op s1=={==}==s2;
  * :@op s1=={!=}==s2;
@@ -2249,7 +2254,7 @@ void test(){
 #pragma%x end_test
 
 //NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN
-} /* end of namespace string3_detail */
+} /* end of namespace str_detail */
 } /* end of namespace mwg */
 
 //AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
@@ -2260,13 +2265,13 @@ void test(){
 #include <cctype>
 
 namespace mwg{
-namespace string3_detail{
+namespace str_detail{
 
 template<>
 struct char_traits<char>{
   typedef char char_type;
-  static std::size_t strlen(const char_type* str){
-    return std::strlen(str);
+  static std::size_t strlen(const char_type* s){
+    return std::strlen(s);
   }
   static mwg_constexpr char_type null(){return '\0';}
   static mwg_constexpr char_type space(){return ' ';}
@@ -2292,13 +2297,13 @@ struct char_traits<char>{
 #include <cwctype>
 
 namespace mwg{
-namespace string3_detail{
+namespace str_detail{
 
 template<>
 struct char_traits<wchar_t>{
   typedef wchar_t char_type;
-  static std::size_t strlen(const char_type* str){
-    return std::wcslen(str);
+  static std::size_t strlen(const char_type* s){
+    return std::wcslen(s);
   }
   static mwg_constexpr char_type null(){return L'\0';}
   static mwg_constexpr char_type space(){return L' ';}
@@ -2334,15 +2339,15 @@ void test(){
 #include <string>
 
 namespace mwg{
-namespace string3_detail{
+namespace str_detail{
 
 template<typename XCH,typename Tr,typename Alloc>
 struct adapter_traits<std::basic_string<XCH,Tr,Alloc> >:adapter_traits_array<XCH>{
-  static const XCH* pointer(std::basic_string<XCH,Tr,Alloc> const& str){
-    return str.c_str();
+  static const XCH* pointer(std::basic_string<XCH,Tr,Alloc> const& s){
+    return s.c_str();
   }
-  static std::size_t length(std::basic_string<XCH,Tr,Alloc> const& str){
-    return str.length();
+  static std::size_t length(std::basic_string<XCH,Tr,Alloc> const& s){
+    return s.length();
   }
 };
 
@@ -2351,15 +2356,15 @@ struct adapter_traits<std::basic_string<XCH,Tr,Alloc> >:adapter_traits_array<XCH
 #pragma%x begin_test
 void test(){
   std::string s1("hello");
-  mwg_assert((mwg::make_str(s1).toupper(1,4)=="hELLo"));
+  mwg_assert((mwg::str(s1).toupper(1,4)=="hELLo"));
 }
 #pragma%x end_test
 
 //AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 /*?lwiki
- * *文字列基本機能 (`mwg::string3_detail::strbase`)
+ * *文字列基本機能 (`mwg::str_detail::strbase`) #strbase_interface
  */
-#pragma%x mwg::string::strbase::doc
+#pragma%x mwg_str::strbase::doc
 /*?lwiki
  * ***定義: <?cpp* '''range-spec'''?>
  * 以下に繰り返し現れる仮引数として <?cpp* '''range-spec'''?> を定義します。
@@ -2381,8 +2386,8 @@ void test(){
  * :@op s1==+==s2
  *  文字列を連結します。
  */
-#pragma%x mwg::string::slice::doc
-#pragma%x mwg::string::insert::doc
+#pragma%x mwg_str::slice::doc
+#pragma%x mwg_str::insert::doc
 /*?lwiki
  *
  * **分割・結合
@@ -2412,24 +2417,24 @@ void test(){
  *
  * **文字の変換
  */
-#pragma%x mwg::string::map::doc
+#pragma%x mwg_str::map::doc
 /*?lwiki
  *
  * **空白・幅調節
  */
-#pragma%x mwg::string::trim::doc
-#pragma%x mwg::string::pad::doc
+#pragma%x mwg_str::trim::doc
+#pragma%x mwg_str::pad::doc
 /*?lwiki
  *
  * **判定
  */
-#pragma%x mwg::string::compare::doc
-#pragma%x mwg::string::starts::doc
+#pragma%x mwg_str::compare::doc
+#pragma%x mwg_str::starts::doc
 /*?lwiki
  *
  * **検索・置換
  */
-#pragma%x mwg::string::find::doc
+#pragma%x mwg_str::find::doc
 /*?lwiki
  * :@fn [TODO] s.==replace==(s1,s2,n=mwg::npos); // 文字列を置換
  * :@fn [TODO] s.==replace1==(s1,s2,n=0); // 文字列を置換
@@ -2465,7 +2470,7 @@ void test(){
  *
  * **他
  */
-#pragma%x mwg::string::misc::doc
+#pragma%x mwg_str::misc::doc
 /*?lwiki
  * :format, operator%
  *  c.f. `sprintf` (C), `AppendFormat, Format, FormatV, FormatMessage, FormatMessageV` (ATL/MFC), `Format` (CLR), format (Java), <?awk sprintf?> (awk, Perl), operator% (Ruby)
@@ -2482,30 +2487,31 @@ void test(){
  *  -`SpanIncluding, SpanExcluding` (ATL/MFC)
  *
  * *新しい文字列型を定義する方法
-mwg::string では、文字列の内部形式と文字列に対する操作を分離して実装しています。\
+mwg/str では、文字列の内部形式と文字列に対する操作を分離して実装しています。\
 文字列の内部形式は `StringPolicy` を用いて定義されます。\
 文字列に対する操作は `strbase<StringPolicy>` によって提供されます。\
 ここでは、`StringPolicy` を定義して、新しい文字列の内部形式を追加する方法を説明します。
 
 `StringPolicy` は以下の様なメンバを持つクラスとして定義します。
 &pre(!cpp){
-#pragma%x mwg::string::policy_requirements
+*/
+#pragma%x mwg_str::policy_requirements
+/*?lwiki
 }
 :@class class StringPolicy;
- :@class char_type;
+ :@typedef buffer_type;
+  文字列の内部表現を格納する型です。
+ :@typedef const_iterator;
+  文字列に含まれる文字を列挙する反復子です。
+ :@typedef char_type;
   単一の文字を表現する型です。
- :@class char_at_type;
-  文字列中への文字を取得する際の型です。\
+ :@typedef char_at_type;
+  文字列の文字を `buffer_type::operator[]` や `const_iterator::operator*` を通して取得する際の型です。\
   内部表現に対応するデータが存在する場合には、そのデータへの参照 (`char_type const&`) になります。\
   それ以外の場合は、単に `char_type` になります。
- :@class buffer_type;
-  文字列の内部表現を格納する型です。
- :@class const_iterator;
-  文字列に含まれる文字を列挙する反復子です。
  :@var static const bool has_get_ptr;
   文字データが連続した領域に格納され、その先頭へのポインタが得られる場合に true を指定します。
-
- */
+*/
 //HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 #endif
 #pragma%x begin_test
