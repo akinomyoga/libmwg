@@ -47,19 +47,24 @@ namespace concept_detail{
 #define mwg_concept_is_assignable(T,expr) \
   mwg_concept_bool_eval(mwg::concept_detail::is_assignable_impl<T>::eval(mwg_concept_void2t(expr)))
 //-----------------------------------------------------------------------------
-//  macro: mwg_requires          (boolean_expr,T)
+//  [obsoleted] macro: mwg_requires(boolean_expr,T)
+//-----------------------------------------------------------------------------
+#ifdef MWG_STD_VA_ARGS
+# define mwg_requires(CONDITION,...) typename mwg::stdm::enable_if<CONDITION,__VA_ARGS__>::type
+#else
+# define mwg_requires(CONDITION,EXPR) typename mwg::stdm::enable_if<CONDITION,EXPR>::type
+#endif
+//-----------------------------------------------------------------------------
 //  macro: mwg_concept_condition (boolean_expr)
 //  macro: mwg_concept_nest      (name,T,X,boolean_expr,declarations)
 //-----------------------------------------------------------------------------
 #ifdef MWG_STD_VA_ARGS
-# define mwg_requires(CONDITION,...) typename mwg::stdm::enable_if<CONDITION,__VA_ARGS__>::type
 # define mwg_concept_condition(...) static const bool value=(__VA_ARGS__)
 # define mwg_concept_nest(name,T,X,cond,...)                                  \
   template<typename X,bool B> struct name##_mwg_1{static const bool value=B;};\
   template<typename X>        struct name##_mwg_1<X,true>{__VA_ARGS__};       \
   struct name{mwg_concept_condition(name##_impl_<T,cond>::value);}         /**/
 #else
-# define mwg_requires(CONDITION,EXPR) typename mwg::stdm::enable_if<CONDITION,EXPR>::type
 # define mwg_concept_condition(EXPR) static const bool value=(EXPR)
 # define mwg_concept_nest(name,T,X,cond,EXPR)                                 \
   template<typename X,bool B> struct name##_mwg_1{static const bool value=B;};\
@@ -295,9 +300,13 @@ namespace concept_detail{
     mwg_concept_has_member(c1,T,X,operator(),int (X::*)(const XCH*,int));
     mwg_concept_has_member(c2,T,X,operator(),int (X::*)(const XCH*,int) const);
     mwg_concept_condition(c1::value||c2::value);
+
+    template<typename R> struct enable :stdm::enable_if< value,R>{};
+    template<typename R> struct disable:stdm::enable_if<!value,R>{};
   };
-  template<typename DMatch> mwg_requires((TIndexOfMatch<XCH,DMatch>::value),
-  int) IndexOf (const DMatch& matcher) const{
+  template<typename DMatch>
+  typename TIndexOfMatch<XCH,DMatch>::enable<int>::type
+  IndexOf (const DMatch& matcher) const{
     return Impl::IndexOf(EX_STR(*this),matcher);
   }
 #endif

@@ -11,39 +11,33 @@
 namespace mwg{
 namespace exp{
 //NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN
-  template<typename T,typename I=unsigned int>
+
+  // このクラスは現在は使われていない
+  // x C++03 では、その型のコンパイル時定数を宣言することができない
+  // x CRTP::enum_t を代替として定数を宣言しても、
+  //   underlying_type とサイズが異なるかもしれない。
+  template<typename CRTP,typename I=unsigned int>
   class enum_class_base{
   public:
     typedef I underlying_type;
-    explicit enum_class_base(const I& value):value(value){}
+    mwg_constexpr explicit enum_class_base(const underlying_type& value):value(value){}
 
-    bool operator==(const T& r) const{return this->value==r.value;}
-    bool operator!=(const T& r) const{return this->value!=r.value;}
-    T operator&(const T& r) const{return this->value&r.value;}
-    T operator^(const T& r) const{return this->value^r.value;}
-    T operator|(const T& r) const{return this->value|r.value;}
-    T operator~() const{return ~this->value;}
+    typedef typename CRTP::enum_t enum_type;
+    mwg_constexpr enum_class_base(const enum_type& value):value(value){}
 
-    /*
-    typedef typename T::enum_t enum_type;
-    enum_class_base(const enum_type& value):value(value){}
-    operator enum_type() const{return (enum_type)value;}
+    bool operator==(const CRTP& r) const{return this->value==r.value;}
+    bool operator!=(const CRTP& r) const{return this->value!=r.value;}
+    CRTP operator&(const CRTP& r) const{return this->value&r.value;}
+    CRTP operator^(const CRTP& r) const{return this->value^r.value;}
+    CRTP operator|(const CRTP& r) const{return this->value|r.value;}
+    CRTP operator~() const{return ~this->value;}
 
-    template<typename X> mwg_requires((stdm::is_same<X,typename std::conditional<true,T,X>::type::enum_t>::value),
-    bool) operator==(const X& r) const{return this->value==(I)r;}
-    template<typename X> mwg_requires((stdm::is_same<X,typename std::conditional<true,T,X>::type::enum_t>::value),
-    bool) operator!=(const X& r) const{return this->value!=(I)r;}
-    template<typename X> mwg_requires((stdm::is_same<X,typename std::conditional<true,T,X>::type::enum_t>::value),
-    T) operator&(const X& r) const{return this->value&(I)r;}
-    template<typename X> mwg_requires((stdm::is_same<X,typename std::conditional<true,T,X>::type::enum_t>::value),
-    T) operator^(const X& r) const{return this->value^(I)r;}
-    template<typename X> mwg_requires((stdm::is_same<X,typename std::conditional<true,T,X>::type::enum_t>::value),
-    T) operator|(const X& r) const{return this->value|(I)r;}
-    */
+    // // sizeof(underlying_type) > sizeof(enum_type) の時に危険
+    // operator enum_type() const{return (enum_type)value;}
 
-    static bool equals(const enum_class_base& l,const I& r){return l.value==r;}
+    static bool equals(const enum_class_base& l,const underlying_type& r){return l.value==r;}
   protected:
-    I value;
+    underlying_type value;
   };
 
   template<typename T,typename I>
@@ -62,6 +56,19 @@ namespace exp{
   bool operator!=(const typename T::enum_t& r,const enum_class_base<T,I>& l){
     return !enum_class_base<T,I>::equals(l,(I)r);
   }
+
+  template<typename T,typename I> 
+  T operator&(enum_class_base<T,I> const& lhs,typename T::enum_t const& rhs){return enum_class_base<T,I>(rhs)&lhs;}
+  template<typename T,typename I> 
+  T operator&(typename T::enum_t const& lhs,enum_class_base<T,I> const& rhs){return enum_class_base<T,I>(lhs)&rhs;}
+  template<typename T,typename I> 
+  T operator|(enum_class_base<T,I> const& lhs,typename T::enum_t const& rhs){return enum_class_base<T,I>(rhs)|lhs;}
+  template<typename T,typename I> 
+  T operator|(typename T::enum_t const& lhs,enum_class_base<T,I> const& rhs){return enum_class_base<T,I>(lhs)|rhs;}
+  template<typename T,typename I> 
+  T operator^(enum_class_base<T,I> const& lhs,typename T::enum_t const& rhs){return enum_class_base<T,I>(rhs)^lhs;}
+  template<typename T,typename I> 
+  T operator^(typename T::enum_t const& lhs,enum_class_base<T,I> const& rhs){return enum_class_base<T,I>(lhs)^rhs;}
 
 //TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
 //  static_flags
