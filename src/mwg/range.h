@@ -121,7 +121,7 @@ make_range(const T& begin,int len){
   return range<T>(begin,begin+len);
 }
 
-typedef range<int> range_i;
+typedef range<int> irange;
 
 //==============================================================================
 }
