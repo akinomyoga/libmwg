@@ -62,9 +62,9 @@ namespace string3_detail{
   template<typename XCH>
   class strsub;
   template<typename XCH>
-  class string;
+  class strfix;
   /*?lwiki
-   * :@class class mwg::==string==<XCH> : strbase<...>;
+   * :@class class mwg::==strfix==<XCH> : strbase<...>;
    *  `mwg::string` における標準の文字列型です。
    *  `std::shared_ptr` による参照管理の対象です。
    * :@class class mwg::==strsub==<XCH> : strbase<...>;
@@ -104,9 +104,13 @@ namespace string3_detail{
   template<typename Str>
   struct _strtmp_repeat_policy;
 }
-
   static const mwg_constexpr std::ptrdiff_t npos
     =mwg::stdm::numeric_limits<std::ptrdiff_t>::lowest();
+
+  using string3_detail::as_str;
+  using string3_detail::make_str;
+  using string3_detail::strfix;
+  using string3_detail::strsub;
 }
 namespace mwg{
 namespace string3_detail{
@@ -707,10 +711,10 @@ private:
   template<
     typename A,
     bool=as_str<A,char_type>::value
-  > struct insert_enabler{};
+  > struct enable_insert{};
 
   template<typename A>
-  struct insert_enabler<A,true>:mwg::identity<
+  struct enable_insert<A,true>:mwg::identity<
     strbase<_strtmp_cat_policy<
       slice_return_type,
       typename as_str<A,char_type>::adapter,
@@ -719,10 +723,10 @@ private:
   >{};
 
   template<typename T>
-  typename insert_enabler<T>::type
+  typename enable_insert<T>::type
   _replace_impl(std::size_t _start,std::size_t _end,T const& str) const{
     std::size_t const _len=this->length();
-    return typename insert_enabler<T>::type(
+    return typename enable_insert<T>::type(
       slice_return_type(this->data,0,_start),
       str,
       slice_return_type(this->data,_end,_len-_end)
@@ -731,7 +735,7 @@ private:
 
 public:
   template<typename T>
-  typename insert_enabler<T>::type
+  typename enable_insert<T>::type
   replace(std::ptrdiff_t start,std::ptrdiff_t end,T const& str) const{
     std::size_t const _len=this->length();
     std::size_t _start=canonicalize_index(start,_len);
@@ -740,12 +744,12 @@ public:
     return _replace_impl<T>(_start,_end,str);
   }
   template<typename T>
-  typename insert_enabler<T>::type
+  typename enable_insert<T>::type
   replace(mwg::range_i const& r,T const& str) const{
     return this->replace(r.begin(),r.end(),str);
   }
   template<typename T>
-  typename insert_enabler<T>::type
+  typename enable_insert<T>::type
   insert(std::ptrdiff_t index,T const& str) const{
     std::size_t const _len=this->length();
     std::size_t const _index=canonicalize_index(index,_len);
@@ -827,28 +831,28 @@ public:
   }
 private:
   template<typename Filter>
-  struct map_enabler
+  struct enable_map
     :mwg::stdm::enable_if<mwg::be_functor<Filter,char_type(char_type)>::value,
                           strbase<_strtmp_map_policy<policy_type,Filter const&> > >{};
   template<typename Filter>
-  struct ranged_map_enabler
+  struct enable_ranged_map
     :mwg::stdm::enable_if<mwg::be_functor<Filter,char_type(char_type)>::value,
                           strbase<_strtmp_ranged_map_policy<policy_type,Filter const&> > >{};
 public:
   template<typename F>
-  typename map_enabler<F>::type map(F const& filter) const{
-    return typename map_enabler<F>::type(this->data,filter);
+  typename enable_map<F>::type map(F const& filter) const{
+    return typename enable_map<F>::type(this->data,filter);
   }
   template<typename F>
-  typename ranged_map_enabler<F>::type map(F const& filter,std::ptrdiff_t start,std::ptrdiff_t end=mwg::npos) const{
+  typename enable_ranged_map<F>::type map(F const& filter,std::ptrdiff_t start,std::ptrdiff_t end=mwg::npos) const{
     std::size_t const _len=this->length();
     std::size_t const _start=canonicalize_index(start,_len);
     std::size_t _end=canonicalize_index(end,_len);
     if(_end<_start)_end=_start;
-    return typename ranged_map_enabler<F>::type(this->data,filter,_start,_end);
+    return typename enable_ranged_map<F>::type(this->data,filter,_start,_end);
   }
   template<typename F>
-  typename ranged_map_enabler<F>::type map(F const& filter,mwg::range_i const& r) const{
+  typename enable_ranged_map<F>::type map(F const& filter,mwg::range_i const& r) const{
     return map(filter,r.begin(),r.end());
   }
 
@@ -1155,7 +1159,7 @@ private:
   struct _xor:stdm::integral_constant<bool,((A1?1:0)+(A2?1:0)+(A3?1:0)==1)>{};
 
   template<typename T,bool HasChar,bool HasPredicate,bool HasString>
-  struct find_enabler:stdm::enable_if<
+  struct enable_find:stdm::enable_if<
     _xor<
       HasChar&&stdm::is_same<T,char_type>::value,
       HasPredicate&&mwg::be_functor<T,bool(char_type)>::value,
@@ -1180,7 +1184,7 @@ private:
 
 private:
   template<typename Predicate>
-  typename find_enabler<Predicate,false,true,false>::type
+  typename enable_find<Predicate,false,true,false>::type
   _find_impl(Predicate const& pred,std::ptrdiff_t i,std::ptrdiff_t j) const{
     typedef mwg::functor_traits<Predicate,bool(char_type)> _f;
     const_iterator p=this->_beginAt(i);
@@ -1189,7 +1193,7 @@ private:
     return -1;
   }
   template<typename Predicate>
-  typename find_enabler<Predicate,false,true,false>::type
+  typename enable_find<Predicate,false,true,false>::type
   _rfind_impl(Predicate const& pred,std::ptrdiff_t i,std::ptrdiff_t j) const{
     typedef mwg::functor_traits<Predicate,bool(char_type)> _f;
     const_iterator p=this->_beginAt(j);
@@ -1208,7 +1212,7 @@ private:
     return true;
   }
   template<typename Str>
-  typename find_enabler<Str,false,false,true>::type
+  typename enable_find<Str,false,false,true>::type
   _find_impl(Str const& _str,std::ptrdiff_t _i0,std::ptrdiff_t _iM) const{
     typename as_str<Str,char_type>::adapter str(_str);
     _iM-=str.length();
@@ -1217,7 +1221,7 @@ private:
     return -1;
   }
   template<typename Str>
-  typename find_enabler<Str,false,false,true>::type
+  typename enable_find<Str,false,false,true>::type
   _rfind_impl(Str const& _str,std::ptrdiff_t _i0,std::ptrdiff_t _iM) const{
     typename as_str<Str,char_type>::adapter str(_str);
     _iM-=str.length();
@@ -1226,25 +1230,25 @@ private:
     return -1;
   }
   template<typename Str>
-  typename find_enabler<Str,false,false,true>::type
+  typename enable_find<Str,false,false,true>::type
   _find_any_impl(Str const& str,std::ptrdiff_t i,std::ptrdiff_t iN) const{
     typedef typename as_str<Str,char_type>::adapter adapter;
     return this->_find_impl(_pred_any_of_str<char_type,adapter>(str),i,iN);
   }
   template<typename Str>
-  typename find_enabler<Str,false,false,true>::type
+  typename enable_find<Str,false,false,true>::type
   _rfind_any_impl(Str const& str,std::ptrdiff_t i,std::ptrdiff_t iN) const{
     typedef typename as_str<Str,char_type>::adapter adapter;
     return this->_rfind_impl(_pred_any_of_str<char_type,adapter>(str),i,iN);
   }
   template<typename Str>
-  typename find_enabler<Str,false,false,true>::type
+  typename enable_find<Str,false,false,true>::type
   _find_not_impl(Str const& str,std::ptrdiff_t i,std::ptrdiff_t iN) const{
     typedef typename as_str<Str,char_type>::adapter adapter;
     return this->_find_impl(_pred_not_of_str<char_type,adapter>(str),i,iN);
   }
   template<typename Str>
-  typename find_enabler<Str,false,false,true>::type
+  typename enable_find<Str,false,false,true>::type
   _rfind_not_impl(Str const& str,std::ptrdiff_t i,std::ptrdiff_t iN) const{
     typedef typename as_str<Str,char_type>::adapter adapter;
     return this->_rfind_impl(_pred_not_of_str<char_type,adapter>(str),i,iN);
@@ -1253,18 +1257,18 @@ private:
 public:
 #define MWG_STRING3_STRING_H__define_find_overloads(FIND,hC,hP,hS) \
   template<typename T> \
-  typename find_enabler<T,hC,hP,hS>::type \
+  typename enable_find<T,hC,hP,hS>::type \
   FIND(T const& pred) const{ \
     return this->_##FIND##_impl(pred,0,this->length()); \
   } \
   template<typename T> \
-  typename find_enabler<T,hC,hP,hS>::type \
+  typename enable_find<T,hC,hP,hS>::type \
   FIND(T const& pred,std::ptrdiff_t start,std::ptrdiff_t end=mwg::npos) const{ \
     std::size_t const _len=this->length(); \
     return this->_##FIND##_impl(pred,canonicalize_index(start,_len),canonicalize_index(end,_len)); \
   } \
   template<typename T> \
-  typename find_enabler<T,hC,hP,hS>::type \
+  typename enable_find<T,hC,hP,hS>::type \
   FIND(T const& pred,mwg::range_i const& r) const{ \
     return this->FIND(pred,r.begin(),r.end()); \
   }
@@ -1406,11 +1410,11 @@ public:
 };
 
 //-----------------------------------------------------------------------------
-// string
+// strfix
 
 template<typename XCH>
-struct string_policy{
-  typedef string_policy    policy_type;
+struct strfix_policy{
+  typedef strfix_policy    policy_type;
   typedef XCH              char_type;
   typedef const char_type& char_at_type;
   static const bool has_get_ptr=true;
@@ -1421,7 +1425,7 @@ struct string_policy{
 
   class buffer_type{
   private:
-    friend class string<char_type>;
+    friend class strfix<char_type>;
 
     struct bucket{
       char_type* data;
@@ -1508,41 +1512,41 @@ struct string_policy{
 };
 
 template<typename XCH>
-class string:public strbase<string_policy<XCH> >{
-  typedef strbase<string_policy<XCH> > base;
+class strfix:public strbase<strfix_policy<XCH> >{
+  typedef strbase<strfix_policy<XCH> > base;
 
 public:
   using typename base::char_type;
 
 public:
-  string(){}
+  strfix(){}
 
-  string(string const& str)
+  strfix(strfix const& str)
     :base(str.data){}
-  string& operator=(string const& rhs){
+  strfix& operator=(strfix const& rhs){
     this->data=rhs.data;
     return *this;
   }
 #ifdef MWGCONF_STD_RVALUE_REFERENCES
-  string(string&& str)
+  strfix(strfix&& str)
     :base(mwg::stdm::move(str.data)){}
-  string& operator=(string&& rhs){
+  strfix& operator=(strfix&& rhs){
     this->data=mwg::stdm::move(rhs.data);
     return *this;
   }
 #endif
 
   template<typename StrP>
-  string(strbase<StrP> const& str)
+  strfix(strbase<StrP> const& str)
     :base(str){}
   template<typename StrP>
-  string& operator=(strbase<StrP> const& str){
+  strfix& operator=(strbase<StrP> const& str){
     this->data.reset(str);
     return *this;
   }
 
   template<typename T>
-  string(T const& value,typename as_str<T,char_type>::enable<int*>::type=0)
+  strfix(T const& value,typename as_str<T,char_type>::enable<int*>::type=0)
     :base(make_str(value)){}
 
 };
@@ -2026,10 +2030,10 @@ struct _strtmp_cat_policy<Str1,Str2>{
 template<
   typename X,typename Y,
   bool=as_str<X,typename as_str<Y>::char_type>::value
-> struct concat_enabler{};
+> struct enable_concat{};
 
 template<typename X,typename Y>
-struct concat_enabler<X,Y,true>:mwg::identity<
+struct enable_concat<X,Y,true>:mwg::identity<
   strbase<_strtmp_cat_policy<
     typename as_str<X>::adapter,
     typename as_str<Y>::adapter
@@ -2037,9 +2041,9 @@ struct concat_enabler<X,Y,true>:mwg::identity<
 >{};
 
 template<typename X,typename Y>
-typename concat_enabler<X,Y>::type
+typename enable_concat<X,Y>::type
 operator+(X const& lhs,Y const& rhs){
-  typedef typename concat_enabler<X,Y>::type return_type;
+  typedef typename enable_concat<X,Y>::type return_type;
   return return_type(lhs,rhs);
 }
 
@@ -2132,10 +2136,10 @@ struct _strtmp_repeat_policy{
 template<
   typename X,typename Y,typename R,
   bool=as_str<X,typename as_str<Y>::char_type>::value
-> struct compare_enabler:mwg::identity<R>{};
+> struct enable_compare:mwg::identity<R>{};
 
 template<typename X,typename Y>
-typename compare_enabler<X,Y,int>::type
+typename enable_compare<X,Y,int>::type
 compare(X const& _lhs,Y const& _rhs){
   typename as_str<X>::adapter lhs(_lhs);
   typename as_str<Y>::adapter rhs(_rhs);
@@ -2147,7 +2151,7 @@ compare(X const& _lhs,Y const& _rhs){
 }
 
 template<typename X,typename Y>
-typename compare_enabler<X,Y,int>::type
+typename enable_compare<X,Y,int>::type
 icompare(X const& _lhs,Y const& _rhs){
   typename as_str<X>::adapter lhs(_lhs);
   typename as_str<Y>::adapter rhs(_rhs);
@@ -2155,7 +2159,7 @@ icompare(X const& _lhs,Y const& _rhs){
 }
 
 template<typename X,typename Y>
-typename compare_enabler<X,Y,bool>::type
+typename enable_compare<X,Y,bool>::type
 operator==(X const& _lhs,Y const& _rhs){
   typename as_str<X>::adapter lhs(_lhs);
   typename as_str<Y>::adapter rhs(_rhs);
@@ -2168,7 +2172,7 @@ operator==(X const& _lhs,Y const& _rhs){
 }
 
 template<typename X,typename Y>
-typename compare_enabler<X,Y,bool>::type
+typename enable_compare<X,Y,bool>::type
 operator<(X const& _lhs,Y const& _rhs){
   typename as_str<X>::adapter lhs(_lhs);
   typename as_str<Y>::adapter rhs(_rhs);
@@ -2180,16 +2184,16 @@ operator<(X const& _lhs,Y const& _rhs){
 }
 
 template<typename X,typename Y>
-typename compare_enabler<X,Y,bool>::type
+typename enable_compare<X,Y,bool>::type
 operator!=(X const& lhs,Y const& rhs){return !(lhs==rhs);}
 template<typename X,typename Y>
-typename compare_enabler<X,Y,bool>::type
+typename enable_compare<X,Y,bool>::type
 operator> (X const& lhs,Y const& rhs){return rhs<lhs;}
 template<typename X,typename Y>
-typename compare_enabler<X,Y,bool>::type
+typename enable_compare<X,Y,bool>::type
 operator<=(X const& lhs,Y const& rhs){return !(rhs<lhs);}
 template<typename X,typename Y>
-typename compare_enabler<X,Y,bool>::type
+typename enable_compare<X,Y,bool>::type
 operator>=(X const& lhs,Y const& rhs){return !(lhs<rhs);}
 
 #pragma%x begin_test
@@ -2235,9 +2239,9 @@ void test(){
   mwg_assert(!(_a("hello")<="hell"));
   mwg_assert( (_a("hello")>="hell"));
 
-  mwg::string<char> s1;
+  mwg::strfix<char> s1;
   mwg_assert( (s1==""));
-  mwg::string<char> s2="012345";
+  mwg::strfix<char> s2="012345";
   mwg_assert( (s2=="012345"));
   s1="21345";
   mwg_assert( (s1=="21345"));
@@ -2246,10 +2250,6 @@ void test(){
 
 //NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN
 } /* end of namespace string3_detail */
-  using string3_detail::as_str;
-  using string3_detail::make_str;
-  using string3_detail::string;
-  using string3_detail::strsub;
 } /* end of namespace mwg */
 
 //AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
