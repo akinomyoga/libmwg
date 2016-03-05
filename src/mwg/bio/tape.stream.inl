@@ -337,9 +337,9 @@ class shared_ref{
   template<class U> friend class shared_ref;
 public:
   template<typename U>
-  shared_ref(U* ptr,mwg_requires((stdm::is_convertible<U*,T*>::value),void*) =0):ptr(ptr){}
+  shared_ref(U* ptr,typename stdm::enable_if<stdm::is_convertible<U*,T*>::value,mwg::invalid_type*>::type=0):ptr(ptr){}
   template<typename U>
-  explicit shared_ref(const shared_ref<U>& ref,mwg_requires((stdm::is_convertible<U*,T*>::value),void*) =0):ptr(ref.ptr){}
+  explicit shared_ref(const shared_ref<U>& ref,typename stdm::enable_if<stdm::is_convertible<U*,T*>::value,mwg::invalid_type*>::type=0):ptr(ref.ptr){}
   template<typename U>
   explicit shared_ref(const U& value):ptr(new T(value)){}
   operator T&() const{return *this->ptr;}

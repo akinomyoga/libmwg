@@ -540,11 +540,11 @@ namespace functor_detail{
     }
   public:
     template<typename F>
-    functor_ref(const F& f,mwg_requires((is_functor<F,S>::value),void*) =nullptr){
+    functor_ref(const F& f,typename stdm::enable_if<is_functor<F,S>::value,mwg::invalid_type*>::type=nullptr){
       this->init<F,functor_case_impl<S,typename functor_traits<F>::ref_tr> >(f);
     }
     template<typename F>
-    explicit functor_ref(const F& f,mwg_requires((!is_functor<F,S>::value&&be_functor<F,S>::value),void*) =nullptr){
+    explicit functor_ref(const F& f,typename stdm::enable_if<!is_functor<F,S>::value&&be_functor<F,S>::value,mwg::invalid_type*>::type=nullptr){
       this->init<F,functor_case_impl<S,typename functor_traits<F,S>::ref_tr> >(f);
     }
     ~functor_ref(){this->free();}
@@ -564,8 +564,9 @@ namespace functor_detail{
       this->h=f.h->placement_clone(this->buffer);
       return *this;
     }
-    template<typename F> mwg_requires((!is_functor<F,S>::value&&be_functor<F,S>::value),
-    functor_ref&) operator=(const F& f){
+    template<typename F>
+    typename stdm::enable_if<!is_functor<F,S>::value&&be_functor<F,S>::value,functor_ref&>::type
+    operator=(const F& f){
       this->free();
       this->init<F,functor_case_impl<S,typename functor_traits<F,S>::ref_tr> >(f);
       return *this;
@@ -595,11 +596,11 @@ namespace functor_detail{
   public:
     vfunctor_ref() mwg_std_deleted;
     template<typename F>
-    vfunctor_ref(const F& f,mwg_requires((is_functor<S,F>::value),void*) =nullptr){
+    vfunctor_ref(const F& f,typename stdm::enable_if<is_functor<S,F>::value,mwg::invalid_type*>::type=nullptr){
       this->template init<F,functor_case_impl<S,typename functor_traits<F>::ref_tr> >(f);
     }
     template<typename F>
-    vfunctor_ref(const F& f,mwg_requires((!is_functor<S,F>::value&&be_functor<F,S>::value),void*) =nullptr){
+    vfunctor_ref(const F& f,typename stdm::enable_if<!is_functor<S,F>::value&&be_functor<F,S>::value,mwg::invalid_type*>::type=nullptr){
       this->template init<F,functor_case_impl<S,typename functor_traits<F,S>::ref_tr> >(f);
     }
   };
