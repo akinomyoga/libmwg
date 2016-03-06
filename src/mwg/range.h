@@ -116,7 +116,7 @@ range<T> make_range(const T& begin,const T& end,bool inclusive=false){
   return range<T>(begin,end,inclusive);
 }
 template<typename T>
-typename stdm::enable_if<!mwg::std_::is_same<T,int>::value,range<T> >::type
+typename stdm::enable_if<!mwg::stdm::is_same<T,int>::value,range<T> >::type
 make_range(const T& begin,int len){
   return range<T>(begin,begin+len);
 }

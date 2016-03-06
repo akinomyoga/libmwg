@@ -25,7 +25,6 @@ namespace mwg{
     using namespace ::std;
     // using namespace ::std::tr1;
   }
-  namespace std_=stdm;
 
 #   define MWG_PREPROC_ADDLINE__(H,L) H##L
 #   define MWG_PREPROC_ADDLINE_(H,L)  MWG_PREPROC_ADDLINE__(H,L)

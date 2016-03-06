@@ -714,8 +714,8 @@ void debug_support_functor_object(){
   // debug
   typedef mwg::functor_detail::functor_case_traits_FunctorRef<F> case_tr;
   typedef mwg::functor_detail::functor_case_impl<void(int),case_tr> case_t;
-  mwg_check((mwg::std_::is_same<case_tr::case_data,const F*>::value));
-  mwg_check((mwg::std_::is_same<case_t::base,mwg::functor_detail::functor_case_data<void(int),const F*,true> >::value));
+  mwg_check((mwg::stdm::is_same<case_tr::case_data,const F*>::value));
+  mwg_check((mwg::stdm::is_same<case_t::base,mwg::functor_detail::functor_case_data<void(int),const F*,true> >::value));
   //case_t::base x(reinterpret_cast<const F*>(0));
 #endif
 }
