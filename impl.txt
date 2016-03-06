@@ -6,7 +6,23 @@
   ToDo
 ------------------------------------------------------------------------------
 
-2016-03-05
+2016-03-07
+
+* mwg/str: char_at_type を reference などに名称変更?
+
+  今後文字列の表現として、データの要素の型と文字コードの型を分ける可能性がある。
+  単に reference となっているとその時に不都合がある。
+  現状の実装は寧ろデータの要素の型(の参照)ではなくて、
+  文字コード(への参照)を char_at_type としている。
+  この辺りは後で総合的に考える必要がある。
+
+* pointer_const_iterator はやはり単なる pointer でも良いのではないかという気がする。
+
+  const_iterator::has_index
+  const_iterator::some_type
+
+  さえ適当にテンプレートを経由して取得できる様にしてしまえば何も問題はない。
+  但し、基底クラスにするためだけに wrapper をかませる。
 
 2016-03-03
 
@@ -540,9 +556,108 @@
   Done
 ------------------------------------------------------------------------------
 
+2016-03-07
+
+* mwg/str: _tmpobj_arrow_operator のテストをしていない。
+  →テストを追加した。まあ、動いている。OK
+
+* mwg/str: const_iterator を BidirectionalIterator にする。
+
+  mwg/str で実装している const_iterator を、他の STL に対応した関数に渡す時には、
+  Iterator の要件を満たす様にしなければならない。
+
+  - 特に value_type, iterator_category などのメンバには、
+    std::iterator_traits<> から派生させることで対応できる。
+
+  - iterator_category としては、特に、BidirectionalIterator に該当する。
+
+  - 対応していない機能として、operator-> がある。
+
+  - また、BidirectionalIterator の為に DefaultConstructible でなければならない。
+
+  - *i の戻り値の要件
+
+    % また、Iterator の要件で満たせない物として、
+    % *i が %%dereferencable でなければならない (*i は参照である)%% という物がある。
+
+    混乱があった。dereferencable というのは間接参照できる事である。
+    つまり、*i という標記自体の事である。
+    そしてドキュメントに dereferencable と書かれているのは、
+    「i の現在の状態が間接参照可能な状態である場合に」という意味であった。
+    (終端を表す iterator や、既定コンストラクタで作った iterator は間接参照可能な状態にない)
+
+    この条件を改めて見てみると以下の事の様である:
+
+      *i の戻り値の型は std::iterator_traits<Iter>::reference でなければならない。
+
+    そして、std::iterator_traits<Iter>::reference が
+    どの様な要件を満たしているべきかについては何も書かれていない気がする。
+    少なくとも value_type に変換可能であれば良いようにも書かれている。
+    そしてまた、OutputIterator の場合には (使用しないため)
+    reference は void にして良いという事になっている。
+    やはり、reference が (目的に合わせて) 多少変な型であっても良いということだろうか。
+
+  という訳で以下の実装を行う。
+
+  > - std::iterator<std::bidirectional_iterator_tag, char_type, std::ptrdiff_t, char_type*, char_at_type>
+  > - 先ず reference は char_at_type である
+  > - operator-> を追加する
+  >   →char_type はどうせ整数型しか来ないのだから、
+  >     operator-> を定義しても意味無いのではないだろうか。
+  >
+  >     何か特殊な機能を文字型に付加してその文字型を使いたいとしても、
+  >     文字列の汎用 const_iterator を受け取るような関数でその機能を使う事は無い。
+  >     但し、特殊な文字型を使った文字列を定義して、
+  >     更にその特殊な文字型専用の関数で処理を行いたい場合には必要になる。
+  >     →どうせ使わないだろうとは思うが実装しておく事にする。
+  >
+  > - DefaultConstructible にする
+  >   →実装した。参照メンバはポインタにする。
+  > - const_iterator 内部では std::ptrdiff_t の代わりに difference_type を使用する。
+  > - StringPolicy 要件部分で bidirectional_iterator を要件として掲げる。
+
+  # 余談
+  #
+  # ところで、std::iterator_traits<Iter>::pointer は何の為にあるのだろう?
+  # iterator 要件には何処にも出てきていない様に見える。
+  # そして pointer 自身、何であるか説明していないので、規格上は何の制限もない無意味な型という事になるのでは?
+  # 一応 operator-> を自分で実装するとすれば pointer を内部的に使うという事は考えられるが、
+  # std::iterator_traits<T*>::pointer の場合には operator-> ではなく builtin の -> なので、
+  # Iterator の要件には明示的には出てこない。それに pointer とは別に勝手に operator-> を定義しても良い。
+
+  更に後で以下の項目についても考える。
+
+  > - pointer_const_iterator は std::random_access_iterator_tag にしたいが、これについては後で考える。
+  >   →別項目で議論することにした。
+  >
+  > - char_at_type の名称を別の名称に変更する。
+  >   というか普通に reference で良い気がする。
+  >   →これも別項目で。
+
+* mwg/str: const_iterator は std::random_access_iterator_tag にするべきか?
+
+  然し、現在の実装を見てみるに殆ど RandomAccessIterator の機能を備えている様にも見える。
+  先ず、operator+(ptrdiff_t) や operator-(ptrdiff_t) を保持している。(operator+=, operator-= も自動的に定義されるであろう。)
+  更に、operator-(const_iterator) もある。一部の const_iterator は不等号演算子についても備えている。
+  これに加えて operator[] を定義すれば random_access_iterator にする事ができる。
+
+  どうせ operator+/- を定義するのであれば、要件を RandomAccessIterator にまで厳しくしてしまっても良いのではないか。
+
+  x 調べてみたが実は operator+/- を使っている箇所は殆どない。というか、trim の中だけである。
+    なので、RandomAccessIterator である事を要求するのは新しい文字列の形式を実装しにくくするだけなので良くない。
+  x 特に mbcs において RandomAccess は非効率である。
+    無理に RandomAccessIterator を実装してしまうと、STL 等の関数で RandomAccessIterator 用の実装が選択されてしまい、
+    RandomAccess できない場合に最適化されたコードが選択されるのを阻害してしまう事になる。よくない。
+  x もともとは pointer_access_iterator 等の
+    RandomAccessIterator を自然に満たせる物については、
+    stdm::random_access_iterator_tag にした方が効率が良いのではないかという事であった。
+    しかし、これは個別に対応すれば良い話で、全ての const_iterator に対して要求する理由には為らない。
+
+  結果、この提案は却下する事にする。
+
 2016-03-05
 
-* 実装の名前空間 (string3_detail) を公開するべきか
+* mwg/str: 実装の名前空間 (string3_detail) を公開するべきか
 
   ユーザが新しい文字列型を定義する為には strbase を使う必要がある。
   また、ユーザが新しく別の型からのアダプターを追加したい場合には
@@ -604,7 +719,7 @@
   これは今迄の名前に慣れてしまっているからの様に思う。
   実際 mwg::str という関数が中心になっていると思えばこれは自然である。
 
-* ヘッダファイル名 mwg/string.h の変更?
+* string: ヘッダファイル名 mwg/string.h の変更?
 
   a mwg/string.h は分かりやすい。
     しかし実際に string という型は定義していないという点で分かりにくいかも。
@@ -643,9 +758,9 @@
     →そもそもそんなに使用している箇所はなかった。内部使用は1箇所だけであった。
   > 上記注意点をドキュメントに追記する。
 
-* enabler という用語は別の手法を想起するので変える。
+* string: enabler という用語は別の手法を想起するので変える。
 
-* クラス名変更 mwg::string → mwg::strfix
+* string: クラス名変更 mwg::string → mwg::strfix
 
   mwg::string は std::string と衝突するので別の名前にするべき
   例えば mwg::strfix など。
@@ -661,7 +776,7 @@
 
 2016-03-04
 
-* mwg::as_str 追加
+* string: mwg::as_str 追加
 
   stradp 内部クラス化の項で議論したように、
   今後文字列を受け取る関数を定義する際は adapter_traits を使用する事にした。
@@ -673,7 +788,7 @@
   as_str を用いて定義する様に変更する。
   そして namespace mwg に公開する。
 
-* stradp 内部クラス化?
+* string: stradp 内部クラス化?
 
   mwg::make_str を実装したので、
   寧ろ stradp が表に出て来る必要もないのではないか?
@@ -907,7 +1022,7 @@
     従ってやはり strbase は公開した方が良いのではないか?
     これについては独立した項目を立てて考察する。
 
-* mwg::make_str()
+* string: mwg::make_str()
 
   わざわざ std::stradp<char> などの様に文字の型を指定しなくても、
   自然な文字の型を推論する事ができる筈である。
