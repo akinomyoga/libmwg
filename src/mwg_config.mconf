@@ -193,13 +193,24 @@ elif M compiler_gcc   '' __GNUC__; then
   c_gcc=1
 elif M compiler_vc    '' _MSC_VER; then
   # _MSC_FULL_VER
-  #   VC6.0         SP6? SP5? :  12008804
-  #   VC7.0  VS2002           :  13009466
-  #   VC7.1  VS2003           :  13103077
-  #   VC8.0  VS2005 ???       : 140050125
+  #   VC6.0         SP5, SP6  :  12008804
+  #   Win DDK (2600.1106)     :  13009176 http://computer-programming-forum.com/81-vc/76c9facd30c701b4.htm
+  #   VC7.0  VS2002 SP1?      :  13009466
+  #   Visual C++ Toolkit 2003 :  13103052 http://rayflood.org/mozilla/msvc_version.html
+  #   Win Server 2003 DDK     :  13102179
+  #   Win Server 2003 SP1 DDK :  13104035 http://rayflood.org/mozilla/msvc_version.html
+  #   VC7.1  VS2003 Alpha?    :  13102140
+  #                 ?         :  13102196
+  #                 Beta      :  13102292
+  #                 Release   :  13103077
+  #                 SP1       :  13106030
+  #   Win Server 2003 SP1 SDK : 140040310 (cl.exe for AMD64, not default) http://www.virtualdub.org/blog/pivot/entry.php?id=47
+  #   VC8.0  VS2005 Beta 1    : 140040607
+  #                 Beta 2    : 140050215
   #                 Release   : 140050320
   #                 SP1       : 140050727
-  #   VC9.0  VS2008 Release   : 150021022
+  #   VC9.0  VS2008 Beta 2    : 150020706
+  #                 Release   : 150021022
   #                 SP1       : 150030729
   #   VC10.0 VS2010 Beta1     : 160020506
   #                 Beta2     : 160021003
@@ -207,11 +218,22 @@ elif M compiler_vc    '' _MSC_VER; then
   #                 SP1       : 160040219
   #   VC11.0 VS2012 RTM       : 170050727
   #                 NovCTP    : 170051025
+  #                 Update 1  : 170051106
+  #                 Update 2  : 170060315
+  #                 Update 3  : 170060610
+  #                 Update 4  : 170061030
   #   VC12.0 VS2013 Preview   : 180020617
   #                 RC        : 180020827
-  #                 Release   : 180021005
+  #                 RTM, Upd1 : 180021005
   #                 NovCTP    : 180021114
-  #                 SP2 RC    : 180030324
+  #                 Update2RC : 180030324
+  #                 Update 2  : 180030501
+  #                 Update 3  : 180030723
+  #                 Update 4  : 180031101
+  #                 Update 5  : 180040629
+  #   VC12.0 VS2013 RTM       : 190023026
+  #                 Update 1  : 190023506
+  #                 Update2RC : 190023824
   #   
   # C++11 Features
   #   https://msdn.microsoft.com/en-us/library/hh567368.aspx
@@ -220,6 +242,7 @@ elif M compiler_vc    '' _MSC_VER; then
   # References
   #   http://d.hatena.ne.jp/yohhoy/20121106/p1
   #   http://sourceforge.net/p/predef/wiki/Compilers/
+  #   [[_MSC_VERと_MSC_FULLVERをまとめる - Qiita>http://qiita.com/yumetodo/items/8c112fca0a8e6b47072d]]
   c_vc=1
 fi
 

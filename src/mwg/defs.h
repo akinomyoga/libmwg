@@ -23,6 +23,10 @@ namespace std{namespace tr1{}}
 namespace mwg{
   namespace stdm{
     using namespace ::std;
+
+    // ※以下は元々 C++03 with TR1 の環境のための物だが問題がある。
+    //   処理系によって std, std::tr1 の両方で同名の異なるメンバが定義されている。
+    //   その場合、以下をすると名前解決ができなくなってしまう。
     // using namespace ::std::tr1;
   }
 
@@ -139,7 +143,9 @@ namespace mwg{
       static const int value=LINE;
     };
   }
-// 依存型・非依存型で typename が必要だったりそうでなかったりするので駄目
+
+// 以下は、C++03 において依存型・非依存型で
+// typename が必要だったりそうでなかったりするので駄目
 /*
 # define static_assert(C,...)                                     \
     struct static_assert_line##__LINE__{                          \
