@@ -84,7 +84,7 @@ namespace str_detail{
    *  他の文字列の部分文字列を保持します。
    * :@namespace mwg::==str_detail==;
    *  実装用の名前空間です。
-   *  - mwg/str 文字列 (strbase<...>) に対する ADL 関数はこの名前空間内に定義して下さい。
+   *  mwg/str 文字列 (`strbase<...>`) に対して ADL を介して呼び出す関数はこの名前空間内に定義して下さい。
    * :@class class mwg::str_detail::==strbase==<...>;
    *  mwg/str における文字列型は全てこの型から派生します。
    *  文字列に対する操作を提供する基底クラスです。
@@ -591,8 +591,8 @@ public:
 
   this_type& operator++()   {this->base::operator++();return *this;}
   this_type& operator--()   {this->base::operator--();return *this;}
-  this_type  operator++(int){this_type ret(*this);this->base::operator++());return ret;}
-  this_type  operator--(int){this_type ret(*this);this->base::operator--());return ret;}
+  this_type  operator++(int){this_type ret(*this);this->base::operator++();return ret;}
+  this_type  operator--(int){this_type ret(*this);this->base::operator--();return ret;}
   this_type  operator+(difference_type offset) const{return this_type(this->base::operator+(offset));}
   this_type  operator-(difference_type offset) const{return this_type(this->base::operator-(offset));}
 };
@@ -631,6 +631,18 @@ public:
   strbase($".for/@/0/An/A@ mwg_forward_rvalue arg@/,")
     :data($".for/@/0/An/mwg::stdm::forward<A@>(arg@)/,"){}
 #pragma%).f/An/1/AN+1/.i
+#endif
+
+protected:
+  template<typename P2>
+  friend class strbase;
+
+  // copy/move constructor is protected
+  strbase(strbase const& source)
+    :data(source.data){}
+#ifdef MWGCONF_STD_RVALUE_REFERENCES
+  strbase(strbase&& source)
+    :data(stdm::move(source.data)){}
 #endif
 
 #pragma%m mwg_str::strbase::doc
@@ -1035,19 +1047,19 @@ public:
   }
 
   template<typename Str>
-  typename as_str<Str,char_type>::enable<slice_return_type>::type
+  typename as_str<Str,char_type>::template enable<slice_return_type>::type
   trim(Str const& set) const{
     typedef typename as_str<Str,char_type>::adapter adapter;
     return this->trim(_pred_any_of_str<char_type,adapter>(set));
   }
   template<typename Str>
-  typename as_str<Str,char_type>::enable<slice_return_type>::type
+  typename as_str<Str,char_type>::template enable<slice_return_type>::type
   ltrim(Str const& set) const{
     typedef typename as_str<Str,char_type>::adapter adapter;
     return this->ltrim(_pred_any_of_str<char_type,adapter>(set));
   }
   template<typename Str>
-  typename as_str<Str,char_type>::enable<slice_return_type>::type
+  typename as_str<Str,char_type>::template enable<slice_return_type>::type
   rtrim(Str const& set) const{
     typedef typename as_str<Str,char_type>::adapter adapter;
     return this->rtrim(_pred_any_of_str<char_type,adapter>(set));
@@ -1155,7 +1167,7 @@ public:
 #pragma%end
 public:
   template<typename XStr>
-  typename as_str<XStr,char_type>::enable<bool>::type
+  typename as_str<XStr,char_type>::template enable<bool>::type
   starts(XStr const& _s) const{
     typename as_str<XStr,char_type>::adapter s(_s);
     if(this->length()<s.length())return false;
@@ -1166,7 +1178,7 @@ public:
     return true;
   }
   template<typename XStr>
-  typename as_str<XStr,char_type>::enable<bool>::type
+  typename as_str<XStr,char_type>::template enable<bool>::type
   ends(XStr const& _s) const{
     typename as_str<XStr,char_type>::adapter s(_s);
     std::ptrdiff_t offset=this->length()-s.length();
@@ -1288,10 +1300,10 @@ private:
   }
 
 private:
-  template<typename Policy>
-  bool _find_match_at(std::size_t index,strbase<Policy> const& s) const{
+  template<typename YPolicy>
+  bool _find_match_at(std::size_t index,strbase<YPolicy> const& s) const{
     const_iterator p=this->_beginAt(index);
-    typename strbase<Policy>::const_iterator q=s.begin();
+    typename strbase<YPolicy>::const_iterator q=s.begin();
     for(std::size_t end=index+s.length();index<end;index++)
       if(*p++!=*q++)return false;
     return true;
@@ -1631,7 +1643,7 @@ public:
   }
 
   template<typename T>
-  strfix(T const& value,typename as_str<T,char_type>::enable<int*>::type=0)
+  strfix(T const& value,typename as_str<T,char_type>::template enable<int*>::type=0)
     :base(mwg::str(value)){}
 
 };
@@ -1722,7 +1734,7 @@ public:
     :base(iter),offset(offset){}
 
   void index() const{
-    return this->base::index()-start;
+    return this->base::index()-offset;
   }
 };
 
@@ -1769,7 +1781,7 @@ public:
     }
     template<typename Iter>
     typename stdm::enable_if<!Iter::has_index,Iter const&>::type
-    static modify_iterator(Iter const& iter,std::ptrdiff_t offset){return iter;}
+    static modify_iterator(Iter const& iter,std::ptrdiff_t){return iter;}
 
   public:
     const_iterator begin() const{
@@ -2132,12 +2144,36 @@ template<
 > struct enable_concat{};
 
 template<typename X,typename Y>
-struct enable_concat<X,Y,true>:mwg::identity<
-  strbase<_strtmp_cat_policy<
+class _strtmp_cat
+  :public strbase<_strtmp_cat_policy<
     typename as_str<X>::adapter,
     typename as_str<Y>::adapter
   > >
->{};
+{
+  typedef strbase<_strtmp_cat_policy<
+    typename as_str<X>::adapter,
+    typename as_str<Y>::adapter
+  > > base;
+
+public:
+  _strtmp_cat(X const& lhs,Y const& rhs):base(lhs,rhs){}
+
+protected:
+  // copy/move constructor is protected
+  _strtmp_cat(_strtmp_cat const& source)
+    :base(static_cast<base const&>(source)){}
+#ifdef MWGCONF_STD_RVALUE_REFERENCES
+  _strtmp_cat(_strtmp_cat&& source)
+    :base(stdm::move(static_cast<base&>(source))){}
+#endif
+
+  template<typename X_,typename Y_>
+  typename enable_concat<X_,Y_>::type
+  friend operator+(X_ const& lhs,Y_ const& rhs);
+};
+
+template<typename X,typename Y>
+struct enable_concat<X,Y,true>:mwg::identity<_strtmp_cat<X,Y> >{};
 
 template<typename X,typename Y>
 typename enable_concat<X,Y>::type
@@ -2460,6 +2496,20 @@ void test(){
  */
 #pragma%x mwg_str::strbase::doc
 /*?lwiki
+ * ***注意点: `auto` による変数宣言***
+ * 多くの演算で式テンプレートを使用している為、式の結果は一時オブジェクトの型になります。
+ * 一時オブジェクトの寿命を延長すると問題が生じるのでコピーコンストラクタを隠蔽しています。
+ * つまり、以下のように auto を用いて変数を作成することができません。一般に `mwg::strfix<CHAR>` を使用して下さい。
+ * もしくは `fix` メンバ関数を呼び出して明示的に `mwg::strfix<CHAR>` を構築して下さい。
+ * &pre(!cpp){
+ * // ERROR
+ * auto a = mwg::str("hello").toupper();
+ *
+ * // OK
+ * mwg::strfix<char> a = mwg::str("hello").toupper();
+ * auto a = mwg::str("hello").toupper().fix();
+ * }
+ *
  * ***定義: <?cpp* '''range-spec'''?>
  * 以下に繰り返し現れる仮引数として <?cpp* '''range-spec'''?> を定義します。
  * <?cpp* function('''range-spec''')?> は、関数が以下の3つの多重定義を持つことを表します。
@@ -2611,6 +2661,11 @@ mwg/str では、文字列の内部形式と文字列に対する操作を分離
 #pragma%x begin_test
 void test(){
   mwg_assert( (_a("HELLO").repeat(3).tolower(5,-3).reverse()=="OLLehollehOLLEH"));
+
+  // OK
+  // auto a = _a("hello world!").tolower(2,-3);
+  // auto const& a = _a("hello world!").tolower(2,-3); // 危険・コンパイルが通る
+  mwg_unused(a);
 }
 #pragma%x end_test
 #pragma%x begin_check
