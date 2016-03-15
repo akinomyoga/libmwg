@@ -11,6 +11,7 @@
 #include <mwg/std/limits>
 #include <mwg/range.h>
 #include <mwg/functor.h>
+#include <mwg/concept.h>
 #pragma%x begin_check
 #include <vector>
 #include <mwg/except.h>
@@ -56,7 +57,7 @@ namespace str_detail{
 
   // ※Dummy は struct strbase_tag<XCH> : strbase_tag<>{}; とするため。
   template<typename XCH=void,int Dummy=0>
-  class strbase_tag;
+  struct strbase_tag;
   template<typename Policy>
   class strbase;
 
@@ -140,6 +141,9 @@ namespace str_detail{
       return (std::size_t)index<len?index:len;
   }
 
+  template<typename T>
+  mwg_concept_has_member(has_memfn_index,T,X,index,std::ptrdiff_t (X::*)() const);
+
 #pragma%m mwg_str::policy_requirements
 /*?lwiki
 struct StringPolicy{
@@ -150,8 +154,7 @@ struct StringPolicy{
   static const bool has_get_ptr;
 
   struct const_iterator:public mwg::str_detail::const_iterator_base<Policy>{
-    static const bool has_index;
-    // 以下の関数は has_index==true の時にだけ定義される。
+    // 以下の関数は index を自明に取得可能な場合に定義する。
     std::ptrdiff_t index() const;
 
     typedef char_at_type reference;
@@ -482,7 +485,6 @@ class default_const_iterator:public const_iterator_base<Policy>{
   buffer_type const* m_pbuff;
   std::ptrdiff_t     m_index;
 public:
-  static const bool has_index=true;
   std::ptrdiff_t index() const{return this->m_index;}
 
 public:
@@ -520,9 +522,6 @@ class pointer_const_iterator:public const_iterator_base<Type*>{
   typedef pointer_const_iterator this_type;
   Type const* data;
 public:
-  static const bool has_index=false;
-
-public:
   mwg_constexpr pointer_const_iterator(Type const* pointer):data(pointer){}
   mwg_constexpr pointer_const_iterator():data(nullptr){}
 
@@ -549,14 +548,13 @@ public:
   mwg_constexpr bool            operator>=(this_type const& rhs) const{return this->data>=rhs.data;}
 };
 
-template<typename Iter,bool IterHasIndex=Iter::has_index>
+template<typename Iter,bool IterHasIndex=has_memfn_index<Iter>::value>
 class indexible_const_iterator:public Iter{
   typedef Iter                     base;
   typedef indexible_const_iterator this_type;
 
   std::ptrdiff_t m_index;
 public:
-  static const bool has_index=true;
   std::ptrdiff_t index() const{return this->m_index;}
 
 public:
@@ -600,6 +598,12 @@ public:
 //-----------------------------------------------------------------------------
 // strbase
 
+#ifdef MWGCONF_STD_INITIALIZER_LISTS
+// C++11 では auto tmp = tmpobj; が可能になるのでコピーコンストラクタを封じる。
+// 同時にインスタンスの作成には list-initialization を利用してコピーコンストラクタ呼び出しを回避する。
+# define MWG_STR_H__hidden_copy_constructors_of_temporaries
+#endif
+
 template<>
 struct strbase_tag<>{};
 template<typename XCH>
@@ -633,16 +637,26 @@ public:
 #pragma%).f/An/1/AN+1/.i
 #endif
 
+#ifdef MWG_STR_H__hidden_copy_constructors_of_temporaries
 protected:
   template<typename P2>
   friend class strbase;
 
   // copy/move constructor is protected
   strbase(strbase const& source)
+# ifdef MWGCONF_STD_DEFAULTED_FUNCTIONS
+    =default;
+# else
     :data(source.data){}
-#ifdef MWGCONF_STD_RVALUE_REFERENCES
+# endif
+# ifdef MWGCONF_STD_RVALUE_REFERENCES
   strbase(strbase&& source)
+#  ifdef MWGCONF_STD_DEFAULTED_FUNCTIONS
+    =default;
+#  else
     :data(stdm::move(source.data)){}
+#  endif
+# endif
 #endif
 
 #pragma%m mwg_str::strbase::doc
@@ -1658,8 +1672,8 @@ namespace str_detail{
   /// @class _strtest_repeated_chars_policy
   /// 同じ文字が指定した回数だけ繰り返される文字列。
   /// これはデバグ用の StringPolicy である。
-  /// has_index に対する処理をテストする為に、
-  /// has_index な const_iterator の例として実装された。
+  /// has_memfn_index に対する処理をテストする為に、
+  /// has_memfn_index な const_iterator の例として実装された。
   template<typename XCH>
   struct _strtest_repeated_chars_policy{
     typedef _strtest_repeated_chars_policy policy_type;
@@ -1673,7 +1687,6 @@ namespace str_detail{
       char_type value;
       std::ptrdiff_t m_index;
     public:
-      static const bool has_index=true;
       std::ptrdiff_t index() const{return this->m_index;}
 
       const_iterator(char_type value,std::ptrdiff_t index):value(value),m_index(index){}
@@ -1706,7 +1719,7 @@ namespace str_detail{
       buffer_type(char_type value,std::size_t length)
         :value(value),m_length(length){}
 
-      char_at_type operator[](std::ptrdiff_t index) const{return this->value;}
+      char_at_type operator[](std::ptrdiff_t) const{return this->value;}
       std::size_t length() const{return this->m_length;}
 
       const_iterator begin() const{return const_iterator(this->value,0);}
@@ -1721,7 +1734,7 @@ namespace str_detail{
 //-----------------------------------------------------------------------------
 // _strtmp_sub_policy                                                  @tmp.sub
 
-template<typename Iter,bool IterHasIndex=Iter::has_index>
+template<typename Iter,bool IterHasIndex=has_memfn_index<Iter>::value>
 class index_displaced_iterator{ /* not supported */ };
 
 template<typename Iter>
@@ -1750,9 +1763,9 @@ private:
   typedef typename Policy::const_iterator target_iterator;
 
 public:
-  // target_iterator::has_index 分岐 (1/2)
+  // has_memfn_index<target_iterator>::value 分岐 (1/2)
   typedef typename stdm::conditional<
-    target_iterator::has_index,index_displaced_iterator<target_iterator>,
+    has_memfn_index<target_iterator>::value,index_displaced_iterator<target_iterator>,
     target_iterator>::type const_iterator;
 
   class buffer_type{
@@ -1773,14 +1786,14 @@ public:
     }
 
   private:
-    // target_iterator::has_index 分岐 (2/2)
+    // has_memfn_index<target_iterator>::value 分岐 (2/2)
     template<typename Iter>
-    typename stdm::enable_if<Iter::has_index,const_iterator>::type
+    typename stdm::enable_if<has_memfn_index<Iter>::value,const_iterator>::type
     static modify_iterator(Iter const& iter,std::ptrdiff_t offset){
       return const_iterator(iter,offset);
     }
     template<typename Iter>
-    typename stdm::enable_if<!Iter::has_index,Iter const&>::type
+    typename stdm::enable_if<!has_memfn_index<Iter>::value,Iter const&>::type
     static modify_iterator(Iter const& iter,std::ptrdiff_t){return iter;}
 
   public:
@@ -1800,11 +1813,11 @@ public:
   void test(){
     using namespace mwg::str_detail;
 
-    // !has_index な基底 const_iterator から、const_iterator を初期化
+    // !has_memfn_index な基底 const_iterator から、const_iterator を初期化
     typedef _stradp_array<char> a;
     mwg_assert((strbase<_strtmp_sub_policy<a::policy_type> >(a::buffer_type("hello",5),1,3)=="ell"));
 
-    // has_index な基底 const_iterator から、const_iterator を初期化
+    // has_memfn_index な基底 const_iterator から、const_iterator を初期化
     typedef _strtest_repeated_chars_policy<char> b;
     mwg_assert((strbase<_strtmp_sub_policy<b::policy_type> >(b::buffer_type('A',5),1,3)=="AAA"));
   }
@@ -1904,7 +1917,7 @@ private:
 
 private:
   typedef typename Policy::const_iterator target_iterator;
-  typedef typename stdm::conditional<target_iterator::has_index,target_iterator,
+  typedef typename stdm::conditional<has_memfn_index<target_iterator>::value,target_iterator,
     indexible_const_iterator<target_iterator> >::type indexed_iterator;
 public:
   class const_iterator:public indexed_iterator{
@@ -1949,13 +1962,13 @@ public:
 
   private:
     template<typename Iter>
-    typename stdm::enable_if<Iter::has_index,Iter const&>::type
-    static create_indexed(Iter const& iter,std::ptrdiff_t index){
+    typename stdm::enable_if<has_memfn_index<Iter>::value,Iter const&>::type
+    static create_indexed(Iter const& iter,std::ptrdiff_t){
       return iter;
     }
 
     template<typename Iter>
-    typename stdm::enable_if<!Iter::has_index,indexed_iterator>::type
+    typename stdm::enable_if<!has_memfn_index<Iter>::value,indexed_iterator>::type
     static create_indexed(Iter const& iter,std::ptrdiff_t index){
       return indexed_iterator(iter,index);
     }
@@ -2144,42 +2157,22 @@ template<
 > struct enable_concat{};
 
 template<typename X,typename Y>
-class _strtmp_cat
-  :public strbase<_strtmp_cat_policy<
+struct enable_concat<X,Y,true>:mwg::identity<
+  strbase<_strtmp_cat_policy<
     typename as_str<X>::adapter,
     typename as_str<Y>::adapter
   > >
-{
-  typedef strbase<_strtmp_cat_policy<
-    typename as_str<X>::adapter,
-    typename as_str<Y>::adapter
-  > > base;
-
-public:
-  _strtmp_cat(X const& lhs,Y const& rhs):base(lhs,rhs){}
-
-protected:
-  // copy/move constructor is protected
-  _strtmp_cat(_strtmp_cat const& source)
-    :base(static_cast<base const&>(source)){}
-#ifdef MWGCONF_STD_RVALUE_REFERENCES
-  _strtmp_cat(_strtmp_cat&& source)
-    :base(stdm::move(static_cast<base&>(source))){}
-#endif
-
-  template<typename X_,typename Y_>
-  typename enable_concat<X_,Y_>::type
-  friend operator+(X_ const& lhs,Y_ const& rhs);
-};
-
-template<typename X,typename Y>
-struct enable_concat<X,Y,true>:mwg::identity<_strtmp_cat<X,Y> >{};
+>{};
 
 template<typename X,typename Y>
 typename enable_concat<X,Y>::type
 operator+(X const& lhs,Y const& rhs){
+#ifdef MWG_STR_H__hidden_copy_constructors_of_temporaries
+  return {lhs, rhs};
+#else
   typedef typename enable_concat<X,Y>::type return_type;
   return return_type(lhs,rhs);
+#endif
 }
 
 #pragma%x begin_test
@@ -2411,7 +2404,8 @@ struct char_traits<char>{
   static mwg_constexpr char_type toupper(char_type c){
     return 'a'<=c&&c<='z'?char_type(c+('A'-'a')):c;
   }
-  static mwg_constexpr bool isspace(char_type c){
+  static bool isspace(char_type c){
+    // return '\t'<=c&&c<='\r'||c==' '; for ASCII
     return std::isspace(c);
   }
 };
@@ -2443,7 +2437,7 @@ struct char_traits<wchar_t>{
   static mwg_constexpr char_type toupper(char_type c){
     return L'a'<=c&&c<=L'z'?char_type(c+(L'A'-L'a')):c;
   }
-  static mwg_constexpr bool isspace(char_type c){
+  static bool isspace(char_type c){
     return std::iswspace(c);
   }
 };
@@ -2665,7 +2659,7 @@ void test(){
   // OK
   // auto a = _a("hello world!").tolower(2,-3);
   // auto const& a = _a("hello world!").tolower(2,-3); // 危険・コンパイルが通る
-  mwg_unused(a);
+  // mwg_unused(a);
 }
 #pragma%x end_test
 #pragma%x begin_check
