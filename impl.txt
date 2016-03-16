@@ -18,13 +18,20 @@
   文字コード(への参照)を char_at_type としている。
   この辺りは後で総合的に考える必要がある。
 
+  →取り敢えず char_reference に名称を変更した。
+    これを更に reference にまで変更するかどうかは後で考える必要がある。
+
 * pointer_const_iterator はやはり単なる pointer でも良いのではないかという気がする。
 
-  const_iterator::has_index
-  const_iterator::some_type
+  - %% const_iterator::has_index → mwg/concept.h で自動判定する様に変更。
+
+  - const_iterator::some_type → 誰も mwg/str.h 内部では使っていない気がする。
+    使っているのは std::iterator_traits だけであるが、ポインタについては特殊化されているので心配ない。
 
   さえ適当にテンプレートを経由して取得できる様にしてしまえば何も問題はない。
-  但し、基底クラスにするためだけに wrapper をかませる。
+
+  - 但し、基底クラスにする時は、そのためだけに wrapper をかませる必要がある。
+    つまり、基底クラスにする為に pointer_const_iterator が必要となる。
 
 2016-03-03
 
@@ -191,6 +198,7 @@
 
   mwg::string3_detail::strbuff<XCH>
     編集用の文字列。参照の複製はされない。
+    自己破壊関数も備える。
 
   mwg::string3_detail::strsymb<XCH>
     インスタンスの単一性を保証するクラス
