@@ -2378,7 +2378,7 @@ void test(){
 } /* end of namespace str_detail */
 } /* end of namespace mwg */
 
-#include "bits/str.strbuff.h"
+#include "bits/str.strbuf.h"
 
 //AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 //
@@ -2651,6 +2651,7 @@ mwg/str では、文字列の内部形式と文字列に対する操作を分離
   文字データが連続した領域に格納され、その先頭へのポインタが得られる場合に true を指定します。
 */
 //HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+#include <mwg/bits/autoload.inl>
 #endif
 #pragma%x begin_test
 void test(){

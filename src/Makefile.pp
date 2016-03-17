@@ -46,6 +46,8 @@ Makefile: Makefile.pp
 #%[ppdeps="mwg/std/tuple.nonvariadic_tuple.hpp"]
 #%x AddCxxHeader.r|%file%|mwg/std/tuple.variadic_tuple.inl|
 
+#%x AddCxxHeader.r|%file%|mwg/bits/autoload.inl|
+
 #%x AddCxxHeader.r|%file%|mwg/funcsig.h|
 #%x AddCxxHeader.r|%file%|mwg/functor.h|
 #%x AddCxxHeader.r|%file%|mwg/functor.proto.h|
@@ -53,7 +55,8 @@ Makefile: Makefile.pp
 #%x AddCxxHeader.r|%file%|mwg/xprintf.h|
 #%x AddCxxSource.r|%file%|mwg/xprintf.cpp|
 #%x AddCxxHeader.r|%file%|mwg/str.h|
-#%x AddCxxHeader.r|%file%|mwg/bits/str.strbuff.h|
+#%x AddCxxHeader.r|%file%|mwg/bits/str.strbuf.h|
+#%x AddCxxHeader.r|%file%|mwg/bits/str.support.xprintf.h|
 
 #%x AddCxxHeader.r|%file%|mwg/char.h|
 #%x AddCxxHeader.r|%file%|mwg/cast.h|

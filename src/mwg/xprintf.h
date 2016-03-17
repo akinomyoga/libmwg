@@ -147,7 +147,7 @@
  *   int xprintf_convert(Writer const& buff,fmtspec const& spec,MyType const& value,adl_helper){
  *     実装
  *   }
- * 
+ *
  *   template int xprintf_convert<xprintf_writer>(xprintf_writer const& buff,fmtspec const& spec,MyType const& value,adl_helper);
  *   template int xprintf_convert<empty_writer  >(cfile_writer   const& buff,fmtspec const& spec,MyType const& value,adl_helper);
  *   template int xprintf_convert<cfile_writer  >(cfile_writer   const& buff,fmtspec const& spec,MyType const& value,adl_helper);
@@ -781,7 +781,7 @@ namespace mwg{
   using mwg::xprintf_detail::vxputf;
   using mwg::xprintf_detail::xputf;
 }
-
+#include <mwg/bits/autoload.inl>
 #endif
 #pragma%x begin_check
 // mmake_check_flags: -L "$CFGDIR" -lmwg

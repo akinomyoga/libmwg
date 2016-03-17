@@ -57,17 +57,17 @@ namespace exp{
     return !enum_class_base<T,I>::equals(l,(I)r);
   }
 
-  template<typename T,typename I> 
+  template<typename T,typename I>
   T operator&(enum_class_base<T,I> const& lhs,typename T::enum_t const& rhs){return enum_class_base<T,I>(rhs)&lhs;}
-  template<typename T,typename I> 
+  template<typename T,typename I>
   T operator&(typename T::enum_t const& lhs,enum_class_base<T,I> const& rhs){return enum_class_base<T,I>(lhs)&rhs;}
-  template<typename T,typename I> 
+  template<typename T,typename I>
   T operator|(enum_class_base<T,I> const& lhs,typename T::enum_t const& rhs){return enum_class_base<T,I>(rhs)|lhs;}
-  template<typename T,typename I> 
+  template<typename T,typename I>
   T operator|(typename T::enum_t const& lhs,enum_class_base<T,I> const& rhs){return enum_class_base<T,I>(lhs)|rhs;}
-  template<typename T,typename I> 
+  template<typename T,typename I>
   T operator^(enum_class_base<T,I> const& lhs,typename T::enum_t const& rhs){return enum_class_base<T,I>(rhs)^lhs;}
-  template<typename T,typename I> 
+  template<typename T,typename I>
   T operator^(typename T::enum_t const& lhs,enum_class_base<T,I> const& rhs){return enum_class_base<T,I>(lhs)^rhs;}
 
 //TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT

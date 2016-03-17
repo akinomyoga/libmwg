@@ -95,6 +95,7 @@ namespace str_detail{
   template<typename XCH>
   class strbuf:strbase<strbuf_policy<XCH> >{
     typedef strbase<strbuf_policy<XCH> > base;
+    typedef typename base::char_type char_type;
 
   public:
     strbuf(){}

@@ -63,6 +63,8 @@
   (破壊的関数を備えるため、実際の所 std::string ではなくて
   std::vector を利用した実装に切り替える可能性もある。)
 
+* mwg/bits/str.support.xprintf.h テストを追加する■
+
 * mwg/bits/str.support.xprintf.h:
   strbuf_xprintf_writer が virtual であるが、
   virtual にしなくても済むようにする。
