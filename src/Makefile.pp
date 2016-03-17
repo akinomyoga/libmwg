@@ -53,6 +53,7 @@ Makefile: Makefile.pp
 #%x AddCxxHeader.r|%file%|mwg/xprintf.h|
 #%x AddCxxSource.r|%file%|mwg/xprintf.cpp|
 #%x AddCxxHeader.r|%file%|mwg/str.h|
+#%x AddCxxHeader.r|%file%|mwg/bits/str.strbuff.h|
 
 #%x AddCxxHeader.r|%file%|mwg/char.h|
 #%x AddCxxHeader.r|%file%|mwg/cast.h|

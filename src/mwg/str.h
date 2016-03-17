@@ -148,7 +148,7 @@ namespace str_detail{
 /*?lwiki
 struct StringPolicy{
   typedef char          char_type;
-  typedef const char&   char_refrence; // can be char, const char&
+  typedef const char&   char_reference; // can be char, const char&
   typedef StringPolicy  policy_type;
 
   static const bool has_get_ptr;
@@ -157,7 +157,7 @@ struct StringPolicy{
     // 以下の関数は index を自明に取得可能な場合に定義する。
     std::ptrdiff_t index() const;
 
-    typedef char_refrence reference;
+    typedef char_reference reference;
     typedef typename const_iterator_base<Policy>::pointer pointer;
     typedef typename const_iterator_base<Policy>::difference_type difference_type;
 
@@ -180,7 +180,7 @@ struct StringPolicy{
   };
 
   struct buffer_type{
-    char_refrence operator[](std::ptrdiff_t) const;
+    char_reference operator[](std::ptrdiff_t) const;
 
     std::size_t length() const;
 
@@ -238,9 +238,9 @@ struct const_iterator_base:std::iterator<
   typename Policy::char_type,
   std::ptrdiff_t,
   // operator->() の戻り値の型
-  _tmpobj_arrow_operator<typename Policy::char_refrence>,
+  _tmpobj_arrow_operator<typename Policy::char_reference>,
   // operator*() の戻り値の型
-  typename Policy::char_refrence
+  typename Policy::char_reference
 >{};
 
 // pointer_const_iterator 用
@@ -290,11 +290,11 @@ struct char_traits{
  *  :@var static const bool ==available==;
  *   mwg/str インターフェイスを提供できる場合に `true` を設定します。
  *  :@typedef[opt] typename ==adapter_type==;
- *   `available==true` の時にのみ定義します。SFINAE に使用されるので `available==false` の時は定義しないで下さい。
+ *   `available==true` の時に定義します。
  *   具体的に mwg/str を提供する型を指定します。
  *   目的の型 `T` から直接構築できる必要があります。
  *  :@typedef[opt] typename ==char_type==;
- *   `available==true` の時にのみ定義します。SFINAE に使用されるので `available==false` の時は定義しないで下さい。
+ *   `available==true` の時に定義します。
  *   提供される文字列インターフェイスの文字型を指定します。
  *  更に `adapter_traits<T,XCH>` を特殊化する事によって、\
  *  明示的に文字型を指定した時の文字列インターフェイスを提供する方法を定義できます。
@@ -339,7 +339,7 @@ struct _adapter_traits_2<T,XCH,true>:stdm::conditional<
  *   adapter 型を提供します。
  *  :@typedef[opt] ==policy_type==
  *  :@typedef[opt] ==char_type==
- *  :@typedef[opt] ==char_refrence==
+ *  :@typedef[opt] ==char_reference==
  *  :@typedef[opt] ==const_iterator==
  *   adapter に関連する様々な型を提供します。
  */
@@ -358,7 +358,7 @@ struct _as_str<T,XCH,true>:adapter_traits<T,XCH>,stdm::true_type{
     typename stdm::remove_reference<adapter>::type>::type::policy_type policy_type;
 
   typedef typename policy_type::const_iterator const_iterator;
-  typedef typename policy_type::char_refrence  char_refrence;
+  typedef typename policy_type::char_reference char_reference;
 };
 
 template<typename T,typename XCH>
@@ -673,14 +673,15 @@ protected:
    *  文字データの先頭と末端を指すイテレータを返します。
    * :@fn s.==front==();
    *  最初の文字を取得します。
-   *  c.f. <?pl chr?>/<?pl ord?> (Perl), <?rb chr?>/<?rb ord?> (Ruby)
+   *  c.f. `front` (C++11), <?pl chr?>/<?pl ord?> (Perl), <?rb chr?>/<?rb ord?> (Ruby)
    * :@fn s.==back==();
    *  最後の文字を取得します。
+   *  c.f. `back` (C++11)
    */
 #pragma%end
 public:
-  typedef typename policy_type::char_refrence char_refrence;
-  char_refrence operator[](std::size_t index) const{
+  typedef typename policy_type::char_reference char_reference;
+  char_reference operator[](std::size_t index) const{
     return data[index];
   }
 
@@ -1171,10 +1172,10 @@ public:
   /*?lwiki
    * :@fn s.==starts==(s1); // s1 文字列
    *  文字列が指定された文字列で始まっているかを判定します。
-   *  c.f. starts_with (Boost), StartsWith (CLR), startsWith (Java), StartsWith (mwg-string), start_with? (Ruby)
+   *  c.f. `starts_with` (Boost), <?cs StartsWith?> (CLR, mwg-string), <?java startsWith?> (Java), <?rb start_with??> (Ruby)
    * :@fn s.==ends==(s1); // s1 文字列
    *  文字列が指定された文字列で終わっているかを判定します。
-   *  c.f. ends_with (Boost), EndsWith (CLR), endsWith (Java), EndsWith (mwg-string), end_with? (Ruby)
+   *  c.f. `ends_with` (Boost), <?cs EndsWith?> (CLR, mwg-string), <?java endsWith?> (Java), <?rb end_with??> (Ruby)
    * :参考
    *  all/istarts_with/iends_with (Boost)
    */
@@ -1459,7 +1460,7 @@ public:
 template<typename XCH>
 struct strsub_policy{
   typedef XCH              char_type;
-  typedef const char_type& char_refrence;
+  typedef const char_type& char_reference;
   typedef strsub_policy    policy_type;
   static const bool has_get_ptr=true;
   typedef pointer_const_iterator<char_type> const_iterator;
@@ -1471,7 +1472,7 @@ struct strsub_policy{
     buffer_type(const char_type* ptr,std::size_t length)
       :ptr(ptr),len(length){}
   public:
-    char_refrence operator[](std::size_t index) const{
+    char_reference operator[](std::size_t index) const{
       return ptr[index];
     }
     std::size_t length() const{
@@ -1527,7 +1528,7 @@ template<typename XCH>
 struct strfix_policy{
   typedef strfix_policy    policy_type;
   typedef XCH              char_type;
-  typedef const char_type& char_refrence;
+  typedef const char_type& char_reference;
   static const bool has_get_ptr=true;
 
   typedef pointer_const_iterator<char_type> const_iterator;
@@ -1602,7 +1603,7 @@ struct strfix_policy{
     }
 
   public:
-    char_refrence operator[](std::size_t index) const{
+    char_reference operator[](std::size_t index) const{
       return ptr->data[index];
     }
     std::size_t length() const{
@@ -1632,15 +1633,13 @@ public:
 public:
   strfix(){}
 
-  strfix(strfix const& s)
-    :base(s.data){}
+  strfix(strfix const& s):base(s.data){}
   strfix& operator=(strfix const& rhs){
     this->data=rhs.data;
     return *this;
   }
 #ifdef MWGCONF_STD_RVALUE_REFERENCES
-  strfix(strfix&& s)
-    :base(mwg::stdm::move(s.data)){}
+  strfix(strfix&& s):base(mwg::stdm::move(s.data)){}
   strfix& operator=(strfix&& rhs){
     this->data=mwg::stdm::move(rhs.data);
     return *this;
@@ -1659,7 +1658,6 @@ public:
   template<typename T>
   strfix(T const& value,typename as_str<T,char_type>::template enable<int*>::type=0)
     :base(mwg::str(value)){}
-
 };
 
 #pragma%x begin_check
@@ -1678,7 +1676,7 @@ namespace str_detail{
   struct _strtest_repeated_chars_policy{
     typedef _strtest_repeated_chars_policy policy_type;
     typedef XCH char_type;
-    typedef XCH char_refrence;
+    typedef XCH char_reference;
     static const bool has_get_ptr=false;
 
     class const_iterator:public const_iterator_base<policy_type>{
@@ -1719,7 +1717,7 @@ namespace str_detail{
       buffer_type(char_type value,std::size_t length)
         :value(value),m_length(length){}
 
-      char_refrence operator[](std::ptrdiff_t) const{return this->value;}
+      char_reference operator[](std::ptrdiff_t) const{return this->value;}
       std::size_t length() const{return this->m_length;}
 
       const_iterator begin() const{return const_iterator(this->value,0);}
@@ -1756,7 +1754,7 @@ struct _strtmp_sub_policy{
 public:
   typedef _strtmp_sub_policy             policy_type;
   typedef typename Policy::char_type     char_type;
-  typedef typename Policy::char_refrence char_refrence;
+  typedef typename Policy::char_reference char_reference;
   static const bool has_get_ptr=false;
 
 private:
@@ -1778,7 +1776,7 @@ public:
       :buff(buff),m_start(start),m_length(length){}
 
   public:
-    char_refrence operator[](std::size_t index) const{
+    char_reference operator[](std::size_t index) const{
       return buff[m_start+index];
     }
     std::size_t length() const{
@@ -1836,7 +1834,7 @@ template<typename Policy,typename Filter>
 struct _strtmp_map_policy{
   typedef _strtmp_map_policy         policy_type;
   typedef typename Policy::char_type char_type;
-  typedef char_type                  char_refrence;
+  typedef char_type                  char_reference;
   static const bool has_get_ptr=false;
 
   typedef typename Policy::const_iterator target_iterator;
@@ -1851,7 +1849,7 @@ struct _strtmp_map_policy{
       :base(iter),m_filter(origin.m_filter){}
     const_iterator():m_filter(nullptr){}
 
-    typedef char_refrence reference;
+    typedef char_reference reference;
     typedef typename base::pointer         pointer;
     typedef typename base::difference_type difference_type;
 
@@ -1874,7 +1872,7 @@ struct _strtmp_map_policy{
     buffer_type(const typename Policy::buffer_type& buff,filter_type const& filter)
       :buff(buff),filter(filter){}
   public:
-    char_refrence operator[](std::size_t index) const{
+    char_reference operator[](std::size_t index) const{
       return this->filter(this->buff[index]);
     }
     std::size_t length() const{
@@ -1896,7 +1894,7 @@ template<typename Policy,typename Filter>
 struct _strtmp_ranged_map_policy{
   typedef _strtmp_ranged_map_policy   policy_type;
   typedef typename Policy::char_type  char_type;
-  typedef char_type                   char_refrence;
+  typedef char_type                   char_reference;
   static const bool has_get_ptr=false;
 
 private:
@@ -1907,7 +1905,7 @@ private:
   public:
     ranged_filter(filter_type const& filter,std::size_t start,std::size_t end)
       :m_filter(filter),m_range(start,end){}
-    char_refrence operator()(char_type const& value,std::ptrdiff_t index) const{
+    char_reference operator()(char_type const& value,std::ptrdiff_t index) const{
       if(this->m_range.contains(index))
         return this->m_filter(value);
       else
@@ -1930,7 +1928,7 @@ public:
       :base(iter),m_filter(origin.m_filter){}
     const_iterator():m_filter(nullptr){}
 
-    typedef char_refrence                  reference;
+    typedef char_reference                 reference;
     typedef typename base::pointer         pointer;
     typedef typename base::difference_type difference_type;
 
@@ -1953,7 +1951,7 @@ public:
     buffer_type(const typename Policy::buffer_type& buff,filter_type const& filter,std::size_t start,std::size_t end)
       :buff(buff),m_filter(filter,start,end){}
   public:
-    char_refrence operator[](std::size_t index) const{
+    char_reference operator[](std::size_t index) const{
       return this->m_filter(this->buff[index],index);
     }
     std::size_t length() const{
@@ -2018,9 +2016,9 @@ public:
 
 template<typename Str>
 struct _strtmp_pad_policy{
-  typedef _strtmp_pad_policy                       policy_type;
-  typedef typename Str::policy_type::char_type     char_type;
-  typedef typename Str::policy_type::char_refrence char_refrence;
+  typedef _strtmp_pad_policy                        policy_type;
+  typedef typename Str::policy_type::char_type      char_type;
+  typedef typename Str::policy_type::char_reference char_reference;
   static const bool has_get_ptr=false;
 
   typedef default_const_iterator<policy_type> const_iterator;
@@ -2034,7 +2032,7 @@ struct _strtmp_pad_policy{
     buffer_type(Str const& s,std::size_t lpad_len,std::size_t len,char_type c)
       :s(s),lpad_len(lpad_len),m_length(len),c(c){}
   public:
-    char_refrence operator[](std::size_t index) const{
+    char_reference operator[](std::size_t index) const{
       std::ptrdiff_t index1=std::ptrdiff_t(index)-this->lpad_len;
       if(0<=index1&&(std::size_t)index1<this->s.length())
         return this->s[index1];
@@ -2066,15 +2064,15 @@ struct _strtmp_cat_policy{
   typedef typename policy_type1::char_type char_type;
   typedef typename mwg::stdm::conditional<
     mwg::stdm::is_same<
-      typename policy_type1::char_refrence,
-      typename policy_type2::char_refrence
+      typename policy_type1::char_reference,
+      typename policy_type2::char_reference
     >::value&&mwg::stdm::is_same<
-      typename policy_type1::char_refrence,
-      typename policy_type3::char_refrence
+      typename policy_type1::char_reference,
+      typename policy_type3::char_reference
     >::value,
-    typename policy_type1::char_refrence,
+    typename policy_type1::char_reference,
     typename policy_type1::char_type
-  >::type char_refrence;
+  >::type char_reference;
 
   static const bool has_get_ptr=false;
   typedef default_const_iterator<policy_type> const_iterator;
@@ -2089,7 +2087,7 @@ struct _strtmp_cat_policy{
     buffer_type(string_type1 const& str1,string_type2 const& str2,string_type3 const& str3)
       :str1(str1),str2(str2),str3(str3),len1(str1.length()),len2(str2.length()){}
   public:
-    char_refrence operator[](std::size_t index) const{
+    char_reference operator[](std::size_t index) const{
       std::ptrdiff_t const index2=std::ptrdiff_t(index)-len1;
       if(index2<0)
         return this->str1[index];
@@ -2118,10 +2116,10 @@ struct _strtmp_cat_policy<Str1,Str2>{
   typedef typename policy_type1::char_type char_type;
   typedef typename mwg::stdm::conditional<
     mwg::stdm::is_same<
-      typename policy_type1::char_refrence,
-      typename policy_type2::char_refrence>::value,
-    typename policy_type1::char_refrence,
-    typename policy_type1::char_type >::type char_refrence;
+      typename policy_type1::char_reference,
+      typename policy_type2::char_reference>::value,
+    typename policy_type1::char_reference,
+    typename policy_type1::char_type >::type char_reference;
 
   static const bool has_get_ptr=false;
 
@@ -2135,7 +2133,7 @@ struct _strtmp_cat_policy<Str1,Str2>{
     buffer_type(string_type1 const& str1,string_type2 const& str2)
       :str1(str1),str2(str2),length1(str1.length()){}
   public:
-    char_refrence operator[](std::size_t index) const{
+    char_reference operator[](std::size_t index) const{
       std::ptrdiff_t const index2=std::ptrdiff_t(index)-length1;
       if(index2<0)
         return this->str1[index];
@@ -2188,9 +2186,9 @@ void test(){
 
 template<typename Str>
 struct _strtmp_reverse_policy{
-  typedef _strtmp_reverse_policy                   policy_type;
-  typedef typename Str::policy_type::char_type     char_type;
-  typedef typename Str::policy_type::char_refrence char_refrence;
+  typedef _strtmp_reverse_policy                    policy_type;
+  typedef typename Str::policy_type::char_type      char_type;
+  typedef typename Str::policy_type::char_reference char_reference;
   static const bool has_get_ptr=false;
 
   typedef default_const_iterator<policy_type> const_iterator;
@@ -2200,7 +2198,7 @@ struct _strtmp_reverse_policy{
   public:
     buffer_type(Str const& s):s(s){}
   public:
-    char_refrence operator[](std::size_t index) const{
+    char_reference operator[](std::size_t index) const{
       return this->s[this->s.length()-1-index];
     }
     std::size_t    length() const{return this->s.length();}
@@ -2212,9 +2210,9 @@ struct _strtmp_reverse_policy{
 
 template<typename Str>
 struct _strtmp_repeat_policy{
-  typedef _strtmp_repeat_policy                    policy_type;
-  typedef typename Str::policy_type::char_type     char_type;
-  typedef typename Str::policy_type::char_refrence char_refrence;
+  typedef _strtmp_repeat_policy                     policy_type;
+  typedef typename Str::policy_type::char_type      char_type;
+  typedef typename Str::policy_type::char_reference char_reference;
   static const bool has_get_ptr=false;
 
   typedef default_const_iterator<policy_type> const_iterator;
@@ -2226,7 +2224,7 @@ struct _strtmp_repeat_policy{
     buffer_type(Str const& s,std::size_t repeatCount)
       :m_str(s),m_repeatCount(repeatCount){}
   public:
-    char_refrence operator[](std::size_t index) const{
+    char_reference operator[](std::size_t index) const{
       return this->m_str[index%this->m_str.length()];
     }
     std::size_t    length() const{return this->m_str.length()*this->m_repeatCount;}
@@ -2380,6 +2378,8 @@ void test(){
 } /* end of namespace str_detail */
 } /* end of namespace mwg */
 
+#include "bits/str.strbuff.h"
+
 //AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 //
 // char support
@@ -2490,10 +2490,10 @@ void test(){
  */
 #pragma%x mwg_str::strbase::doc
 /*?lwiki
- * ***注意点: `auto` による変数宣言***
+ * ***注意点: `auto` による変数宣言
  * 多くの演算で式テンプレートを使用している為、式の結果は一時オブジェクトの型になります。
  * 一時オブジェクトの寿命を延長すると問題が生じるのでコピーコンストラクタを隠蔽しています。
- * つまり、以下のように auto を用いて変数を作成することができません。一般に `mwg::strfix<CHAR>` を使用して下さい。
+ * つまり、以下のように `auto` を用いて変数を作成することができません。一般に `mwg::strfix<CHAR>` を使用して下さい。
  * もしくは `fix` メンバ関数を呼び出して明示的に `mwg::strfix<CHAR>` を構築して下さい。
  * &pre(!cpp){
  * // ERROR
@@ -2643,7 +2643,7 @@ mwg/str では、文字列の内部形式と文字列に対する操作を分離
   文字列に含まれる文字を列挙する反復子です。
  :@typedef char_type;
   単一の文字を表現する型です。
- :@typedef char_refrence;
+ :@typedef char_reference;
   文字列の文字を `buffer_type::operator[]` や `const_iterator::operator*` を通して取得する際の型です。\
   内部表現に対応するデータが存在する場合には、そのデータへの参照 (`char_type const&`) になります。\
   それ以外の場合は、単に `char_type` になります。

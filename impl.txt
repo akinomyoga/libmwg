@@ -6,7 +6,67 @@
   ToDo
 ------------------------------------------------------------------------------
 
-2016-03-08
+2016-03-18
+
+* mwg/strbuf: strbuf のテストを追加する。■
+* mwg/strbuf: strbuf の破壊的機能を実装する。■
+
+* mwg/str: strfix の default/copy/move constructors
+  と copy/move assignments は自動で生成される物では駄目なのか。
+
+  default constructor に関しては、
+  他に constructor を一つでも定義すると削除されるので、
+  明示的に定義する必要がある。
+
+  copy/move constructors/assignments に関しては、
+  テンプレートで定義した別のコンストラクタと
+  どちらが優先されるかという問題になる。
+
+  C++ の仕様的にはどちらだろうか。
+  分からないので取り敢えず実験してみることにする。
+
+  [[/test/20160318.c++.implicit_copy_ctors_vs_template_ctors.cpp]]
+
+  どうやら、テンプレートによる copy/move コンストラクタが一致するとしても、
+  コンパイラが自動で定義する copy/move コンストラクタの方が優先される様である。
+  従って、わざわざ strfix に明示的に copy/move コンストラクタを定義する必要はない。
+  代入についても同様で、テンプレートによる copy/move 代入演算子が一致するとしても、
+  コンパイラが自動で定義する copy/move 代入演算子の方が優先される様である。
+  これらの振る舞いは clang 3.7 及び g++ 5.3.1, g++-2.95.3, vc++9 (VS2008) で確かめた。
+  と思ったら icc14 が move assign に関してだけ別の振る舞いをすることが判明した。
+
+  という事は注釈付きでこれらのコンストラクタを残しておいた方が安全に思われる。
+  % というか改めて確認した所 template assign の実装が怪しい。→OK
+
+  template<typename T>
+  typename as_str<T,char_type>::template enable<strfix&>::type
+  operator=(T const& value){
+  }
+
+  strbuf の実装に際して暫定的に strfix のコンストラクタをそのまま流用するが、
+  strfix のコンストラクタを整理するのと同時に strbuf の方も一緒に整理する必要がある。■
+
+  また別のクラスに関しても丁寧に確認する必要がある。■
+
+* mwg/str: xprintf support
+
+  xprintf は数を数えてから出力するという風にはなっていなくて、
+  数を数えるのも文字を実際に出力するのも同程度の計算を要する。
+  従って、二重の処理にならない様に内部に std::string でも構築して
+  mwg::str インターフェイスを提供するのがよいように思われる。
+  その為には strbuff を先に実装してしまった方が良い様に思われる。
+
+  所で strbuff を実装するのに std::string を読み込む必要が出て来る。
+  別のヘッダファイルとして実装するのがよいかも知れない。
+  特に strbuff は、破壊的関数を備える必要の為に、
+  今後実装が巨大になる可能性が高いのでこれでよい。
+  (破壊的関数を備えるため、実際の所 std::string ではなくて
+  std::vector を利用した実装に切り替える可能性もある。)
+
+* mwg/bits/str.support.xprintf.h:
+  strbuf_xprintf_writer が virtual であるが、
+  virtual にしなくても済むようにする。
+  または、xprintf_writer 自体にキャッシュ機能を付けて効率的にする。■
 
 2016-03-07
 
