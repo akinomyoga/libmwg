@@ -1,0 +1,67 @@
+#include <cstdio>
+
+/* テンプレートのコンストラクタを定義した時、
+ * copy/move コンストラクタはコンパイラが生成する物が使用されるのか、
+ * テンプレートのコンストラクタが使用されるのか。
+ */
+
+template<typename T>
+struct klass{
+  const char* m_str;
+  klass():m_str("<default>"){}
+  klass(const char* str):m_str(str){}
+
+  template<typename U>
+  klass(klass<U> const& src):m_str(src.m_str){
+    std::printf("%s: template copy-ctor is called.\n",m_str);
+  }
+
+  template<typename U>
+  klass& operator=(klass<U> const& src){
+    this->m_str=src.m_str;
+    std::printf("%s: template copy-assign is called.\n",m_str);
+    return *this;
+  }
+
+#if defined(__GXX_EXPERIMENTAL_CXX0X__)||__cplusplus>=201103L
+  template<typename U>
+  klass(klass<U>&& src):m_str(src.m_str){
+    std::printf("%s: template move-ctor is called.\n",m_str);
+  }
+
+  template<typename U>
+  klass& operator=(klass<U>&& src){
+    this->m_str=src.m_str;
+    std::printf("%s: template move-assign is called.\n",m_str);
+    return *this;
+  }
+#endif
+};
+
+int main(){
+  klass<int> a1("b1");
+  klass<int> a2("b2");
+  klass<int>  b1(a1); // template copy ctor/copy ctor の両方呼べる?
+  klass<char> b2(a2); // template copy ctor だけしか呼べない。
+  klass<int>  c1((klass<int>("c1"))); // template move ctor/move ctor の両方呼べる?
+  klass<char> c2((klass<int>("c2"))); // template move ctor だけしか呼べない。
+  // ※注意: 二重括弧はプロトタイプ宣言と思われないため。
+
+  b1=a1; // template copy assign/copy assign の両方呼べる?
+  b2=a2; // template copy assign だけしか呼べない。
+  c1=klass<int>("c1"); // template move assign/move assign の両方呼べる?
+  c2=klass<int>("c2"); // template move assign だけしか呼べない。
+
+  /* 結果 (clang++-3.7.0 g++-5.3.1 g++-2.95.3)
+   * b1: copy ctor
+   * b2: template copy ctor
+   * c1: copy ctor
+   * c2: template copy ctor
+   *
+   * 従って、テンプレートのコンストラクタよりも
+   * コンパイラが自動生成するコンストラクタの方が優先されるという事である。
+   */
+
+  std::printf("completed\n");
+  return 0;
+}
