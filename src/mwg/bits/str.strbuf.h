@@ -77,6 +77,7 @@ namespace str_detail{
     public:
       void reserve(std::size_t capacity){this->m_str.reserve(capacity);}
       std::size_t capacity() const{return this->m_str.capacity();}
+      void clear(){this->m_str.clear();}
 
       void append(char_type ch){this->m_str+=ch;}
 
@@ -93,8 +94,10 @@ namespace str_detail{
   };
 
   template<typename XCH>
-  class strbuf:strbase<strbuf_policy<XCH> >{
+  class strbuf:public strbase<strbuf_policy<XCH> >{
     typedef strbase<strbuf_policy<XCH> > base;
+
+  public:
     typedef typename base::char_type char_type;
 
   public:
@@ -129,6 +132,8 @@ namespace str_detail{
   public:
     void reserve(std::size_t capacity){this->data.reserve(capacity);}
     std::size_t capacity() const{return this->data.capacity();}
+    void clear(){this->data.clear();}
+
     strbuf& append(char_type ch){
       this->data.append(ch);
       return *this;

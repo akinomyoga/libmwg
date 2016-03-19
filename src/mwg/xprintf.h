@@ -9,6 +9,12 @@
 #include <mwg/std/type_traits>
 #pragma%include "impl/VariadicMacros.pp"
 
+namespace mwg{
+namespace xprintf_detail{
+  struct xprintf_writer;
+}
+}
+
 /*?lwiki
  * *関数一覧
  * <?cpp #include <mwg/xprintf.h>?>
@@ -449,44 +455,50 @@ namespace xprintf_detail{
     static int convert_string(Buff const& buff,fmtspec const& spec,const char* str,std::size_t len);
   };
 
+  template<typename Buff,bool=stdm::is_base_of<xprintf_writer,Buff>::value>
+  struct basic_convert_dispatch:basic_convert_impl<Buff>{};
+
+  template<typename Buff>
+  struct basic_convert_dispatch<Buff,true>:basic_convert_impl<xprintf_writer>{};
+
   // integral conversion
 
   template<typename Buff,typename T>
   typename stdm::enable_if<stdm::is_signed<T>::value&&!stdm::is_same<T,char>::value,int>::type
   xprintf_convert(Buff const& buff,fmtspec const& spec,T const& value,adl_helper){
-    return basic_convert_impl<Buff>::convert_integer(buff,spec,(mwg::i8t)value,true,sizeof(T));
+    return basic_convert_dispatch<Buff>::convert_integer(buff,spec,(mwg::i8t)value,true,sizeof(T));
   }
 
   template<typename Buff,typename T>
   typename stdm::enable_if<stdm::is_unsigned<T>::value||stdm::is_same<T,char>::value,int>::type
   xprintf_convert(Buff const& buff,fmtspec const& spec,T const& value,adl_helper){
-    return basic_convert_impl<Buff>::convert_integer(buff,spec,(mwg::i8t)value,false,sizeof(T));
+    return basic_convert_dispatch<Buff>::convert_integer(buff,spec,(mwg::i8t)value,false,sizeof(T));
   }
 
   // floating point conversion
 
   template<typename Buff>
   int xprintf_convert(Buff const& buff,fmtspec const& spec,double const& value,adl_helper){
-    return basic_convert_impl<Buff>::convert_floating_point(buff,spec,value);
+    return basic_convert_dispatch<Buff>::convert_floating_point(buff,spec,value);
   }
 
   // string conversion
 
   template<typename Buff>
   int xprintf_convert(Buff const& buff,fmtspec const& spec,const char* str,adl_helper){
-    return basic_convert_impl<Buff>::convert_string(buff,spec,str,std::strlen(str));
+    return basic_convert_dispatch<Buff>::convert_string(buff,spec,str,std::strlen(str));
   }
 
   // template<typename Buff,std::size_t N>
   // int xprintf_convert(Buff const& buff,fmtspec const& spec,const char (&str)[N],adl_helper){
   //   std::size_t s;
   //   for(s=0;s<N;s++)if(!str[s])break;
-  //   return basic_convert_impl<Buff>::convert_string(buff,spec,str,s);
+  //   return basic_convert_dispatch<Buff>::convert_string(buff,spec,str,s);
   // }
 
   template<typename Buff>
   int xprintf_convert(Buff const& buff,fmtspec const& spec,std::string const& str,adl_helper){
-    return basic_convert_impl<Buff>::convert_string(buff,spec,str.data(),str.size());
+    return basic_convert_dispatch<Buff>::convert_string(buff,spec,str.data(),str.size());
   }
 }
 }

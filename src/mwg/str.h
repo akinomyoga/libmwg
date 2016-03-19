@@ -12,44 +12,12 @@
 #include <mwg/range.h>
 #include <mwg/functor.h>
 #include <mwg/concept.h>
+#pragma%include "impl/ManagedTest.pp"
 #pragma%x begin_check
-#include <vector>
-#include <mwg/except.h>
 #include <mwg/str.h>
 #define _a mwg::str
-
-class managed_test{
-public:
-  virtual void test()=0;
-  managed_test(){testerList.push_back(this);}
-
-private:
-  static std::vector<managed_test*> testerList;
-public:
-  static void run_tests(){
-    for(int i=0,iN=testerList.size();i<iN;i++){
-      // mwg_printd("_test%d",i);
-      testerList[i]->test();
-    }
-  }
-};
-std::vector<managed_test*> managed_test::testerList;
-
-#pragma%[itest=0]
-#pragma%m begin_test
-#pragma%%x begin_check
-#pragma%%x
-class _test$"itest":managed_test{
-#pragma%%end.i
-#pragma%end
-#pragma%m end_test
-#pragma%%x
-} _test$"itest"_instance;
-#pragma%%end.i
-#pragma%%x end_check
-#pragma%%[itest++]
-#pragma%end
 #pragma%x end_check
+
 namespace mwg{
 namespace str_detail{
   template<typename XCH>
@@ -362,7 +330,7 @@ struct _as_str<T,XCH,true>:adapter_traits<T,XCH>,stdm::true_type{
 };
 
 template<typename T,typename XCH>
-struct as_str:_as_str<T,XCH>{};
+struct as_str:_as_str<typename stdm::remove_cv<T>::type,XCH>{};
 
 //-----------------------------------------------------------------------------
 // adapter_traits<S> default specializations
