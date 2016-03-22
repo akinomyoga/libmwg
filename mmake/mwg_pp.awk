@@ -1581,7 +1581,7 @@ function dependency_generate(output,target, _i,_iMax,_line){
   else{
     _iMax=m_dependency_count-1;
     for(_i=0;_i<m_dependency_count;_i++){
-      _line=_i==0?target ":":"  ";
+      _line=_i==0?target ": ":"  ";
       _line=_line m_dependency[_i];
       if(_i<_iMax)_line=_line " \\";
       print _line > output;

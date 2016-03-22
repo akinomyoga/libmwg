@@ -41,9 +41,7 @@ Makefile: Makefile.pp
 #%x AddCxxHeader.r|%file%|mwg/std/memory.unique_ptr.inl|
 #%x AddCxxHeader.r|%file%|mwg/std/ratio|
 #%x AddCxxHeader.r|%file%|mwg/std/tuple|
-#%[ppdeps="mwg/std/tuple.nonvariadic_tuple.hpp"]
 #%x AddCxxHeader.r|%file%|mwg/std/tuple.nonvariadic_tuple.inl|
-#%[ppdeps="mwg/std/tuple.nonvariadic_tuple.hpp"]
 #%x AddCxxHeader.r|%file%|mwg/std/tuple.variadic_tuple.inl|
 
 #%x AddCxxHeader.r|%file%|mwg/bits/autoload.inl|
@@ -67,11 +65,8 @@ Makefile: Makefile.pp
 #%x AddCxxHeader.r|%file%|mwg/stat/bindex.h|
 #%x AddCxxHeader.r|%file%|mwg/stat/accumulator.h|
 #%x AddCxxHeader.r|%file%|mwg/stat/histogram2.h|
-#%[ppdeps="mwg/stat/mwg_concept.hpp"]
 #%x AddCxxHeader.r|%file%|mwg/stat/binning2.h|
-#%[ppdeps="mwg/stat/binning2.ProductBinning.hpp"]
 #%x AddCxxHeader.r|%file%|mwg/stat/binning2.ProductBinning.inl|
-#%[ppdeps="mwg/stat/binning2.ProductBinning.hpp"]
 #%x AddCxxHeader.r|%file%|mwg/stat/binning2.ProductBinning_nonvariadic.inl|
 
 #%x AddCxxHeader.r|%file%|mwg/bio/defs.h|
