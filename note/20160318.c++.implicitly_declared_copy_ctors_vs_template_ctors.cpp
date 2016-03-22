@@ -52,14 +52,24 @@ int main(){
   c1=klass<int>("c1"); // template move assign/move assign の両方呼べる?
   c2=klass<int>("c2"); // template move assign だけしか呼べない。
 
-  /* 結果 (clang++-3.7.0 g++-5.3.1 g++-2.95.3)
-   * b1: copy ctor
-   * b2: template copy ctor
-   * c1: copy ctor
-   * c2: template copy ctor
+  /* 結果 (clang++-3.7.0 g++-5.3.1 g++-2.95.3 vc9(2008))
+   * b1: copy ctor/assign
+   * b2: template copy ctor/assign
+   * c1: move ctor/assign
+   * c2: template move ctor/assign
    *
    * 従って、テンプレートのコンストラクタよりも
    * コンパイラが自動生成するコンストラクタの方が優先されるという事である。
+   *
+   * 結果 (icc-14.0)
+   * b1: copy ctor/assign
+   * b2: template copy ctor/assign
+   * c1: move ctor & template move assign ★ なんと template の方が呼び出された。
+   * c2: template move ctor/assign
+   *
+   * Intel C++ Compiler (icpc) が別の結果を出した。これはどうするか。
+   * (最新版でも直らないのか。)
+   *
    */
 
   std::printf("completed\n");
