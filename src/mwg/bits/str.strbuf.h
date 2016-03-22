@@ -116,18 +116,15 @@ namespace str_detail{
     }
 #endif
 
-    template<typename StrP>
-    strbuf(strbase<StrP> const& s)
-      :base(s){}
-    template<typename StrP>
-    strbuf& operator=(strbase<StrP> const& s){
-      this->data.reset(s);
+    template<typename YStr>
+    strbuf(YStr const& src,typename as_str<YStr,char_type>::template enable<mwg::invalid_type*>::type=0)
+      :base(mwg::str(src)){}
+    template<typename YStr>
+    typename as_str<YStr,char_type>::template enable<strbuf&>::type
+    operator=(YStr const& rhs){
+      this->data.reset(mwg::str(rhs));
       return *this;
     }
-
-    template<typename T>
-    strbuf(T const& value,typename as_str<T,char_type>::template enable<int*>::type=0)
-      :base(mwg::str(value)){}
 
   public:
     void reserve(std::size_t capacity){this->data.reserve(capacity);}

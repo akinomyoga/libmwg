@@ -22,46 +22,6 @@
 * mwg/strbuf: strbuf のテストを追加する。■
 * mwg/strbuf: strbuf の破壊的機能を実装する。■
 
-* mwg/str: strfix の default/copy/move constructors
-  と copy/move assignments は自動で生成される物では駄目なのか。
-
-  default constructor に関しては、
-  他に constructor を一つでも定義すると削除されるので、
-  明示的に定義する必要がある。
-
-  copy/move constructors/assignments に関しては、
-  テンプレートで定義した別のコンストラクタと
-  どちらが優先されるかという問題になる。
-
-  C++ の仕様的にはどちらだろうか。
-  分からないので取り敢えず実験してみることにする。
-
-  [[/test/20160318.c++.implicit_copy_ctors_vs_template_ctors.cpp]]
-
-  どうやら、テンプレートによる copy/move コンストラクタが一致するとしても、
-  コンパイラが自動で定義する copy/move コンストラクタの方が優先される様である。
-  従って、わざわざ strfix に明示的に copy/move コンストラクタを定義する必要はない。
-  代入についても同様で、テンプレートによる copy/move 代入演算子が一致するとしても、
-  コンパイラが自動で定義する copy/move 代入演算子の方が優先される様である。
-  これらの振る舞いは clang 3.7 及び g++ 5.3.1, g++-2.95.3, vc++9 (VS2008) で確かめた。
-  と思ったら icc14 が move assign に関してだけ別の振る舞いをすることが判明した。
-
-  という事は注釈付きでこれらのコンストラクタを残しておいた方が安全に思われる。
-
-  % というか改めて確認した所 template assign の実装が怪しい。
-  % →いややはりOKだった。reset という関数名から shared_ptr::reset
-  %   が呼び出されているのかと誤解しただけであった。
-
-  template<typename T>
-  typename as_str<T,char_type>::template enable<strfix&>::type
-  operator=(T const& value){
-  }
-
-  strbuf の実装に際して暫定的に strfix のコンストラクタをそのまま流用するが、
-  strfix のコンストラクタを整理するのと同時に strbuf の方も一緒に整理する必要がある。■
-
-  また別のクラスに関しても丁寧に確認する必要がある。■
-
 2016-03-07
 
 * mwg/str: char_reference 名称再考?
@@ -624,6 +584,42 @@
 ------------------------------------------------------------------------------
 
 2016-03-22
+
+* mwg/str: strfix の default/copy/move constructors
+  と copy/move assignments は自動で生成される物では駄目なのか。
+
+  default constructor に関しては、
+  他に constructor を一つでも定義すると削除されるので、
+  明示的に定義する必要がある。
+
+  copy/move constructors/assignments に関しては、
+  テンプレートで定義した別のコンストラクタと
+  どちらが優先されるかという問題になる。
+
+  C++ の仕様的にはどちらだろうか。
+  分からないので取り敢えず実験してみることにする。
+
+  [[/test/20160318.c++.implicit_copy_ctors_vs_template_ctors.cpp]]
+
+  どうやら、テンプレートによる copy/move コンストラクタが一致するとしても、
+  コンパイラが自動で定義する copy/move コンストラクタの方が優先される様である。
+  従って、わざわざ strfix に明示的に copy/move コンストラクタを定義する必要はない。
+  代入についても同様で、テンプレートによる copy/move 代入演算子が一致するとしても、
+  コンパイラが自動で定義する copy/move 代入演算子の方が優先される様である。
+  これらの振る舞いは clang 3.7 及び g++ 5.3.1, g++-2.95.3, vc++9 (VS2008) で確かめた。
+  と思ったら icc14 が move assign に関してだけ別の振る舞いをすることが判明した。
+
+  という事は注釈付きでこれらのコンストラクタを残しておいた方が安全に思われる。
+
+  % というか改めて確認した所 template assign の実装が怪しい。
+  % →いややはりOKだった。reset という関数名から shared_ptr::reset
+  %   が呼び出されているのかと誤解しただけであった。
+
+  strbuf の実装に際して暫定的に strfix のコンストラクタをそのまま流用するが、
+  strfix のコンストラクタを整理するのと同時に strbuf の方も一緒に整理する必要がある。
+
+  また別のクラスに関しても丁寧に確認する必要がある。
+  →取り敢えず template constructors だけ確認した。問題無さそうである。
 
 * mwg/bits/str.support.xprintf.h:
   strbuf_xprintf_writer が virtual であるが、

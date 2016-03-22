@@ -1614,18 +1614,15 @@ public:
   }
 #endif
 
-  template<typename StrP>
-  strfix(strbase<StrP> const& s)
-    :base(s){}
-  template<typename StrP>
-  strfix& operator=(strbase<StrP> const& s){
-    this->data.reset(s);
+  template<typename YStr>
+  strfix(YStr const& src,typename as_str<YStr,char_type>::template enable<mwg::invalid_type*>::type=0)
+    :base(mwg::str(src)){}
+  template<typename YStr>
+  typename as_str<YStr,char_type>::template enable<strfix&>::type
+  operator=(YStr const& rhs){
+    this->data.reset(mwg::str(rhs));
     return *this;
   }
-
-  template<typename T>
-  strfix(T const& value,typename as_str<T,char_type>::template enable<int*>::type=0)
-    :base(mwg::str(value)){}
 };
 
 #pragma%x begin_check
