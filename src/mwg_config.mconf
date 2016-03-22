@@ -357,7 +357,7 @@ declare_feature rvalue_references
 
 cond_gcc='MWGCONF_GCC_STD11>=40300'
 cond_icc='MWGCONF_ICC_STD11>=1206'
-cond_msc='0'
+cond_msc='_MSC_VER>=1800'
 cond_clang='-a'
 cond_expression='int&& a=1;'
 declare_feature variadic_templates
@@ -367,7 +367,7 @@ declare_feature variadic_templates
 
 cond_gcc='MWGCONF_GCC_STD11>=40400'
 cond_icc='MWGCONF_ICC_STD11>=1200'
-cond_msc='0'
+cond_msc='_MSC_VER>=1800'
 cond_clang='-a'
 cond_expression='struct test_type{test_type() =default;};'
 declare_feature defaulted_functions
@@ -389,7 +389,7 @@ declare_feature explicit_conversions
 
 cond_gcc='MWGCONF_GCC_STD11>=40600'
 cond_icc='MWGCONF_ICC_STD11>=1300'
-cond_msc='0'
+cond_msc='_MSC_VER>=1900'
 cond_clang='-a'
 cond_expression='struct test_type{constexpr int test_member_function(){return 1;}};'
 declare_feature constexpr
@@ -399,7 +399,7 @@ declare_feature constexpr
 
 cond_gcc='MWGCONF_GCC_STD11>=40700'
 cond_icc='MWGCONF_ICC_STD11>=1206'
-cond_msc='0'
+cond_msc='_MSC_VER>=1800'
 cond_clang='-a'
 cond_expression='struct test_type{constexpr int test_member_function(){return 1;}};'
 declare_feature alias_templates
@@ -419,7 +419,7 @@ declare_feature static_assert
 
 cond_gcc='MWGCONF_GCC_STD11>=40500'
 cond_icc='0' # 1110 with /Qoptions,cpp,"--uliterals" ?
-cond_msc='0'
+cond_msc='_MSC_VER>=1900'
 cond_clang='-a'
 cond_expression='char* x=u8"aiueo";'
 declare_feature unicode_literals
@@ -429,12 +429,22 @@ declare_feature unicode_literals
 
 cond_gcc='MWGCONF_GCC_STD11>=40400'
 cond_icc='MWGCONF_ICC_STD11>=1206'
-cond_msc='0'
+cond_msc='_MSC_VER>=1900'
 cond_clang='MWGCONF_CLANG_STD11>=20900'
 cond_expression='char16_t* x=0;'
 declare_feature char16_t
 cond_expression='char32_t* x=0;'
 declare_feature char32_t
+
+#------------------------------------------------------------------------------
+# c++11 list_initialiations
+
+cond_gcc='MWGCONF_GCC_STD11>=40400'
+cond_icc='MWGCONF_ICC_STD11>=1400'
+cond_msc='_MSC_VER>=1800'
+cond_clang='MWGCONF_CLANG_STD11>=30100'
+cond_expression='int a { 1 };'
+declare_feature initializer_lists
 
 #------------------------------------------------------------------------------
 # c++1y concept

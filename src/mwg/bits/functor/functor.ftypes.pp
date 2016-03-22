@@ -206,7 +206,7 @@
   };
 #%)
 #%expand mwg::functor::arities
-  
+
   template<typename F,typename S>
   struct can_be_called_as
     :can_be_called_as_impl2<F,S,can_be_called_as_impl1<F,S>::value>{};

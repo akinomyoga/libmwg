@@ -6,6 +6,363 @@
   ToDo
 ------------------------------------------------------------------------------
 
+2016-03-22
+
+* xprintf: wchar_t, etc. 対応
+* xprintf: template 部分を xprintf.cpp から xprintf.h に移動
+  明示的インスタンス化を省略できる陽にする。
+  同時に str.support.xprintf.h も xprintf_writer ではなく
+  template を利用した実装に切り替える。
+
+2016-03-18
+
+* pp include したファイルも makefile で追跡できるようにする?
+  前実装しようとしていたような気がするが結局現在はどのような状態か?
+
+* mwg/strbuf: strbuf のテストを追加する。■
+* mwg/strbuf: strbuf の破壊的機能を実装する。■
+
+2016-03-07
+
+* mwg/str: char_reference 名称再考?
+
+* pointer_const_iterator はやはり単なる pointer でも良いのではないかという気がする。
+
+  - %% const_iterator::has_index → mwg/concept.h で自動判定する様に変更。
+
+  - const_iterator::some_type → 誰も mwg/str.h 内部では使っていない気がする。
+    使っているのは std::iterator_traits だけであるが、ポインタについては特殊化されているので心配ない。
+
+  さえ適当にテンプレートを経由して取得できる様にしてしまえば何も問題はない。
+
+  - 但し、基底クラスにする時は、そのためだけに wrapper をかませる必要がある。
+    つまり、基底クラスにする為に pointer_const_iterator が必要となる。
+
+2016-03-03
+
+* %%c_str() の実装。%% → fix() の実装
+
+  const XCH* を受け取る様な他の関数に指定する為に。
+  直接 c_str() で const XCH* とするのは難しい。
+  というのも、実際のデータを一時オブジェクトに結びつけなければ、
+  データが使用前に消えてしまうからである。
+  つまり、c_str() の呼び出し側に一時オブジェクトを作成しなければならない。
+
+  a 一つの方法は operator->() の連鎖で一時オブジェクトを呼び出し側に作成する。
+
+    | struct tmpbuff{
+    |   std::vector<char_type> data;
+    |
+    | public:
+    |   tmpbuff(...);
+    |
+    |   tmpbuff* operator->(){return this;}
+    |   tmpbuff const* operator->() const{return this;}
+    |
+    |   char_type const* c_str() const{return &data[0];}
+    | };
+    |
+    | struct strbase{
+    |   tmpbuff operator->() const{return tmpbuff(*this);}
+    | };
+    |
+    | mwg::make_str("hello").toupper()->c_str()
+
+    これは以下の様に解釈される。
+
+    | mwg::make_str("hello").toupper().operator->().operator->()->c_str()
+    |                                  ~~~~~~~~~~~~ ~~~~~~~~~~~~
+    |                                  バッファ構築 内部ptr取得
+
+    しかし乍ら、c_str() の時だけ -> を使ってアクセスしろ
+    というのも分かりにくいインターフェイスである。これは混乱を生む。
+
+  b 或いは、c_str() で一時オブジェクトを返し、
+    そこから operator const XCH*() const でポインタに変換して貰う。
+
+    | struct tmpbuff{
+    |   std::vector<char_type> data;
+    | public:
+    |   tmpbuff(...);
+    |
+    |   operator const char_type*() const{return &data[0];}
+    | };
+    |
+    | struct strbase{
+    |   tmpbuff c_str() const{return tmpbuff(*this);}
+    | };
+    |
+    | mwg::make_str("hello").toupper().c_str()
+
+    この方法は記述の仕方については一番自然である。
+
+    しかしながら、operator const char_type*() const が期待通りに呼び出されるかは不明である。
+
+    x 例えば、printf の引数に渡したい時には (...) に適合させる為に
+      const char_type* を自動的に呼び出してくれるという事はありえない。
+    x また、テンプレート引数 + SFINAE みたいな構造になっている関数の場合も、
+      テンプレートパラメータに tmpbuff が直接入ってしまってうまく行かない。
+
+    やはり色々と微妙な方法である事は否めない。
+
+  c 一番何もない方法は、ユーザに二段構えで呼び出して貰う事である。
+
+    つまり使用時に、
+
+    | mwg::make_str("hello").toupper().fix().c_str()
+
+    の様に指定して貰うことである。
+
+    というか途中で好きな時に現物バッファを作成できる、
+    という点で fix() という関数は有って然るべきと思われる。
+
+    それに、また fix() という関数を使わせる事によって、
+    ユーザに対して mwg::str がどの様な動作を内部でしているのかを理解して貰う良い機会になる。
+    多少学習コストは上がるかも知れないが、学習させずに隠蔽させてユーザに混乱を招くよりは良いだろう。
+
+  これはもう殆ど fix() 関数しかまともな選択肢はない。
+
+  ■fix()を定義する
+  ■string に限って fix を上書きして自分自身を返す様にする
+
+  % strsub についても fix で自分自身を返して良い気がする。
+  % となると fix という関数名はどうなのか…
+  % と思ったが、よく考えたら strsub は null 終端していないので
+  % c_str にはできない。バッファへのポインタは取得できるが。
+
+  なんか -> の方が良い気もしてきた…。
+
+  a s.fix();
+
+  b s(); // operator()();
+    s.fix() と毎回書くのが面倒であれば、
+    s() とだけ書けばよい様にしておいても良い。
+    しかし、たかが文字列バッファ構築に () を使ってしまうのは勿体ない気がする。
+    (といって、他のよりよい用途が思い付く訳ではない気がする)
+
+  c s++; // operator++(int);
+    後置演算子というのであればこれでも良いが、
+    意味的に変である。却下である。
+
+  d s->
+    こうなったら -> でも良いような気がしてきた。
+    後続する関数もそのまま呼び出せる。
+    何も関数を呼び出すつもりがない場合には単に s.fix() としておけば良い。
+    つまり、fix と operator-> を両方定義するということ。
+
+    但し、-> についてのドキュメントは丁寧に書くのがよい。
+    例えば、"メソッドチェインの途中で一旦バッファに文字列を構築するポイントを表す" 的な感じにする。
+
+  ■operator->() も追加する。
+    strfix については自身へのポインタを返す。
+  ■operator->() の説明を注意深く行う。
+
+* string: strbase::insert(char_type c,range-spec) に対応する。
+
+  現在の replace の実装は寧ろ splice という関数名に変えた方が良いのではないか。
+
+* find_any, find_not, その他文字集合を指定する overload は、
+  CLX の様に is_any_of() predicate か何かを用意すれば解決するのではないか。
+  しかし、記述が面倒になる。よく使いそうな機能についてはそれ専用の overload があっても良い気がする。
+
+  例.  s.find_any("<>")
+    -> s.find(mwg::is_any_of("<>"));
+    -> s.find(mwg::glob("[<>]"));
+    -> s.find(mwg::rx("[<>]",mwg::rx_glob));
+    -> s.find(mwg::rx("[<>]"));
+    -> s.find("[<>]"_rx);
+
+  例. s.ltrim("<>")
+    -> s.ltrim(mwg::is_any_of("<>"));
+    -> s.ltrim(mwg::glob("*([<>])","k")); // ksh extension
+
+* #include <mwg/string.interop.cstring.h>
+
+2016-03-02
+
+* string: 現在の文字列インターフェイス (予定)
+
+  以下実装済
+
+  mwg::string3_detail::strbase<Policy>
+    全ての文字列クラスの基底クラス。
+    基本的な非破壊的操作関数を備える。
+
+  mwg::string3_detail::string<XCH>
+    固定文字列。データを他の文字列と共有しうる。
+
+  mwg::string3_detail::strsub<XCH>
+    他の文字列、データに対する部分文字列を表現するクラス。
+
+  % mwg::string3_detail::stradp<XCH>
+  %   アダプタ。実質的に strsub と等価。
+  %   # 唯一違う点は様々なクラスインスタンスから implicit に構築できる事。
+  %   # 文字列の類を受け取る関数の引数の型などに用いるのが目的。
+
+  以下は実装予定
+
+  mwg::string3_detail::strbuff<XCH>
+    編集用の文字列。参照の複製はされない。
+    自己破壊関数も備える。
+
+  mwg::string3_detail::strsymb<XCH>
+    インスタンスの単一性を保証するクラス
+    等値比較が、ポインタを比較するだけで済むので楽。
+    比較的長い文字列で同じ物が沢山現れる場合にはメモリの節約にもなるかも。
+
+    クラス名に関しては一考の余地有り。
+    ruby では symbol と呼ばれている物である。
+
+  mwg::string3_detail::strsymb_dictionary<XCH>
+    strsymb の親クラス。
+    存在しているインスタンス全てをこの中に保持して管理する。
+    デフォルトでグローバルに使用できるインスタンスを生成するが、
+    ローカルに使いたいシンボル群を管理する為に、自分でインスタンスを生成する事も可能にする。
+
+    内部構造は取り敢えず std::map (sorted list) で二分探索。
+    将来的には trie を考えても OK
+
+  mwg::string3_detail::strpath<XCH>
+    ファイル名を管理する為の文字列。
+    ファイル名を操作する関数を備える? operator/
+
+2016-02-29
+
+* string: できるだけ operator[] ではなく iterator を使って処理を行う。
+
+  特に複数の連続した文字を取り扱う様な処理では iterator を使うべき。
+
+  - 但し、operator[] の呼び出しに対しては operator[] を使うのは気にしなくて良い。
+    つまり、次の operator[] 呼び出しを予期して位置と状態を内部にキャッシュするなどの処置はしない。
+    その時の非効率性は元々の operator[] の呼び出し元が責任を持つべきである。
+
+  従来の iterator の要件だけでは、様々な処理をするのに不十分である。
+  データを連続に読み取って行う処理を一通りできる程度の機能は有するべきである。
+  iterator の要件として i+offset, i-offset, i-j, --i を追加する。
+
+  - 逆方向に辿る事ができない様な文字コードの場合、この要件を満たすのが難しいかもしれない。
+    その様な文字コードがあるとしたらその文字コードがいけないのである。
+    もしその様な文字コードを使用しての処理を無理にでも行うとすれば、
+    iterator を生成する際に文字列全体に対するインデックスを生成する様にしてしまえば良い。
+
+    a 例えば、index -> byte offset の様な対応を行う配列を用意する。
+      データ量の節約の為、5 文字か 10 文字ごとにこの対応を覚える様にする。
+      覚えていない位置へ移動したくなったら、その直前の記録位置から辿る様にする。
+
+    多少非効率になるかもしれないが、その様な文字コードを使用するのは現代に於いては稀であるだろうし、
+    その文字コードを使用した時だけの非効率性なので問題とはしない。
+    何れにしても iterator として使いそうな機能は一通り要求して良いだろう。
+
+  > trim, ends は iterator を用いて書き直した。
+  > find の系統は全て書き直す必要がある
+    意外と変更点は少なくて済んだ。template で書かれている御陰である。
+
+  - default_const_iterator についても書き直す必要がある。
+
+    現在は (buffer,index) のペアとして記述していて、
+    値を読み出す時は毎回 buffer[index] として値を取り出している。
+    これでは iterator にしている意味が余りない。
+    本当は実際の buffer の詳細に応じて連続的にポインタを動かせる様に工夫するべきである。
+    特に、multibyte に対応する時には buffer[index] の様にすると
+    値を読み出すたびに文字列の先頭から文字を数えなければならず大変である。
+
+    これを解決する為には buffer 毎に const_iterator を実装する必要が出て来る。
+    現在の default_const_iterator の実装では、
+    buffer 毎の処理の違いを共通インターフェイス operator[] に押し付けている。
+    しかし、連続的に移動するという情報を利用して効率化する為には、
+    この operator[] の実装毎に、対応する最適化が必要になるからである。
+
+    > _strtmp_sub_policy
+    > _strtmp_map_policy
+    > _strtmp_ranged_map_policy
+    - _strtmp_pad_policy
+    - _strtmp_cat_policy<2>
+    - _strtmp_cat_policy<3>
+    - _strtmp_repeat_policy
+    - _strtmp_reverse_policy
+
+2016-02-27
+
+* mwg::string multibyte character 対応
+
+  文字の抽出と境目の判定を行う関数を用意して一般的に処理する?
+
+  - 本来は、内部的には utf32 か utf16 を直接使うなどしたい。
+    しかし乍ら可変長の文字コードのまま使用したいという需要は無視できない。
+  - slice, remove, insert などは OK
+  - tolower, toupper は OK だが、
+    一般の map 関数については実装を変える必要がある。
+    文字列の長さが変更される可能性があるので。
+
+  多少観察してみた。基本的には buffer を弄れば何とかなりそうな気がする。
+
+  - multibyte における文字型 char_type は
+    multibyte 文字が格納できるぐらい大きな整数、
+    もしくは、ベクトル型となる。
+  - これは格納に用いる型 element_type とは異なる事に注意する。
+  - operator[], length() などは char_type 単位の操作を提供する。
+    begin, end も char_type 単位に列挙する反復子として定義する。
+  －get_ptr だけは element_type 単位の操作を行う為の物とする。
+    現状ではこれは strsub の定義にしか使用していない。
+    この部分に関しては offset をずらす為の displacement について
+    multibyte を考慮したものに書き換えれば良いだけである。
+
+  - operator[] を直接使って処理を行っている箇所は
+    できるだけ iterator を使って処理を行う様に書き換える必要がある。
+
+
+  * string.multibyte: operator[] を multibyte で実装する場合には、
+    終端位置と開始位置の近い方から scan を行うようにすると良い。
+    但し逆方向からスキャンできない様な種類の文字コードを使っている場合は駄目である。
+
+  * string.multibyte: JIS などの様に途中状態が存在する様な文字コードはどう取り扱うか?
+    特に substr は途中からのデータの部分列を保持することになる。
+    データの部分列だけを取り出しても、文字列として部分列にならないのである。
+    この場合は substr に途中状態も一緒に覚えて置かなければならない。
+
+  * 或いは substr 自体 iterator pair として実装するのが良さそう。
+
+2016-02-25
+
+* [2012-11-13] mwg::string: 関数名
+
+    重要なのは分かり易くて、面倒でない関数名である。
+    それぞれのライブラリで、どの機能にどの様な名前が与えられているかを調べる。
+
+  + C++ 標準ライブラリ
+    <a href="http://www.cppll.jp/cppreference/cppstring_details.html#find">C++文字列</a></li>
+  + Boost String Algorithm Library
+    <a href="http://www.boost.org/doc/libs/1_52_0/doc/html/string_algo/quickref.html">Quick Reference - 1.52.0</a>
+    ※ Boost では基本的に破壊的操作を行う関数であり、
+    _copy がついている物が新しいインスタンスを生成する関数である。
+
+  + ATL/MFC CStringT
+    [[CStringT Class>https://msdn.microsoft.com/en-us/library/5bzxfsea.aspx]]
+  + CLR
+    <a href="http://msdn.microsoft.com/ja-jp/library/7wtc81z6(v=vs.80).aspx">String メソッド (System)</a></li>
+  + mwg-string
+    <a href="../../dist/mwg-string/doc/document.htm">lib-string 更新履歴</a></li>
+    初期の実装。CLR と似たような形式で関数名を決めていた。
+
+  + Java
+    <a href="http://docs.oracle.com/javase/jp/6/api/java/lang/String.html">String (Java Platform SE 6)</a></li>
+  + JavaScript/ECMAScript
+    <a href="https://developer.mozilla.org/ja/docs/JavaScript/Reference/Global_Objects/String/prototype#Methods">String.prototype - JavaScript | MDN</a></li>
+
+  + ToDo: Perl
+    <a href="http://www.perlplus.jp/func/string/">文字列に関する関数 - Perl関数のリファレンス</a></li>
+  + ToDo: PHP
+  + Ruby
+    <a href="http://doc.ruby-lang.org/ja/1.9.2/class/String.html">class String</a></li>
+  + CLX C++ Library
+    [[CLX C++ Libraries>http://clx.cielquis.net/]]
+    基本的には Ruby の命名を踏襲している様であるが、
+    多用な引数を受け取る様にして hoge_if などの様な関数も追加している。
+
+  + AWK (gawk)
+    <a href="http://www.kt.rim.or.jp/~kbk/gawk/gawk_13.html">The GAWK Manual - 組込み関数</a></li>
+  + Makefile
+
 2015-10-19
 
 * vc9 support
@@ -226,6 +583,1040 @@
   Done
 ------------------------------------------------------------------------------
 
+2016-03-22
+
+* mwg/str: strfix の default/copy/move constructors
+  と copy/move assignments は自動で生成される物では駄目なのか。
+
+  default constructor に関しては、
+  他に constructor を一つでも定義すると削除されるので、
+  明示的に定義する必要がある。
+
+  copy/move constructors/assignments に関しては、
+  テンプレートで定義した別のコンストラクタと
+  どちらが優先されるかという問題になる。
+
+  C++ の仕様的にはどちらだろうか。
+  分からないので取り敢えず実験してみることにする。
+
+  [[/test/20160318.c++.implicit_copy_ctors_vs_template_ctors.cpp]]
+
+  どうやら、テンプレートによる copy/move コンストラクタが一致するとしても、
+  コンパイラが自動で定義する copy/move コンストラクタの方が優先される様である。
+  従って、わざわざ strfix に明示的に copy/move コンストラクタを定義する必要はない。
+  代入についても同様で、テンプレートによる copy/move 代入演算子が一致するとしても、
+  コンパイラが自動で定義する copy/move 代入演算子の方が優先される様である。
+  これらの振る舞いは clang 3.7 及び g++ 5.3.1, g++-2.95.3, vc++9 (VS2008) で確かめた。
+  と思ったら icc14 が move assign に関してだけ別の振る舞いをすることが判明した。
+
+  という事は注釈付きでこれらのコンストラクタを残しておいた方が安全に思われる。
+
+  % というか改めて確認した所 template assign の実装が怪しい。
+  % →いややはりOKだった。reset という関数名から shared_ptr::reset
+  %   が呼び出されているのかと誤解しただけであった。
+
+  strbuf の実装に際して暫定的に strfix のコンストラクタをそのまま流用するが、
+  strfix のコンストラクタを整理するのと同時に strbuf の方も一緒に整理する必要がある。
+
+  また別のクラスに関しても丁寧に確認する必要がある。
+  →取り敢えず template constructors だけ確認した。問題無さそうである。
+
+* mwg/bits/str.support.xprintf.h:
+  strbuf_xprintf_writer が virtual であるが、
+  virtual にしなくても済むような方法を考案する。
+
+  または、xprintf_writer 自体にキャッシュ機能を付けて効率的にする。
+  →取り敢えず xprintf_writer にキャッシュ機能を付ける方針で行く事にする。
+
+  --- flush の問題 ---
+
+  xprintf_writer にキャッシュ機能を付けるのが良いアイディアだと思ったが、
+  最後の flush をどうやって行うかが問題になる。
+  xprintf_writer であって派生クラスではないので flush も xprintf_writer から呼び出すのが自然である。
+  愚直に考えればデストラクタで実行すればよいが xprintf_writer のデストラクタは、
+  派生先で override された flush 関数を呼び出すことができない。
+  何故ならデストラクタが呼び出される時には既に派生クラスは消滅して、
+  virtual 関数は全てそのデストラクタを定義しているクラスで宣言した物
+  (override されていない物) が呼び出されるからである。
+
+  a 一つの方法は派生先のデストラクタで明示的に xprintf_writer::flush を呼び出させることである。
+    或いは派生先から xprintf_writer::buffer の内容を直接読み取って処理する様にする。
+    しかし、問題はこのルールを注意深く守って実装しなければならない事である。
+    実装側でデストラクタを呼び出し忘れていても普通にコンパイルが通ってしまう。
+    それでも xprintf_writer::~xprintf_writer 側でバッファが空かどうかをチェックする事はできるので、
+    実装し忘れている人に注意を促すことはできるが間接的なので分かりにくい。
+
+  b もっと別の方法で実現するしかない。例えば、xprintf_writer は抽象クラスにせず、
+    xprintf_writer のメンバとして書き込みを行うクラスを保持するのである。
+    書き込みを行うクラスはダックタイピングで良い。
+    というか mwg::functor<void(char const*,int)> で受け取れる様にしてしまう。
+
+  xprintf_writer は基本クラスではなく、functor をメンバに初期化するクラスに変更した。
+  mwg::functor は結局仮想関数呼出になるし、
+  またサイズの大きなファンクターの場合内部でメモリを確保する事になるが、
+  これは仕方がないと諦める事にする。
+
+  -- virtual にしなくても済む方法? --
+
+  a 出力する文字列を std::vector だか std::string に溜めさせて、
+    それをその都度呼び出し側で処理する様にする。
+
+    x メモリ確保が生じるので余り速いとは思えない。
+      メモリ確保が生じない程度の出力に抑えるのは実装が汚くなる。
+    - メモリ確保が生じない程度に出力内容を溜めて仮想関数を呼び出す方法は、
+      現状の xprintf_writer の実装に等価である。
+
+  b ヘッダが巨大になる事を厭わないのであれば、
+    実装を全て xprintf.h に読み込んでしまえばよい。
+
+    o この様にすれば最早明示的テンプレート実体化の面倒な指定も必要ない。
+
+    x 大して処理内容的に違いがないにも拘わらず出力先毎に
+      テンプレート関数が実体化されるのは非効率にも思われる。
+      また、コンパイル時間も当然長くなると予想される。
+
+    o 事前のコンパイルが必要なくなるので、利用・移植しやすくなる。
+
+    再度 xprintf.cpp を眺めてみたが template に為っている部分は十分小さい。
+    つまり、xprintf.h に読み込んでしまっても問題ないような気がしてきた。
+
+  上記の内やはり b がすっきりする気がする。
+  コンパイル時間もそんなに気にならないだろうという結論に達する。
+  コンパイル時間が気になる場合の為に、
+  template の実装は別のファイルに分離して明示的実体化も一応用意する。
+
+2016-03-20
+
+* mwg/bits/str.support.xprintf.h テストを追加する
+
+[整理]
+
+* mwg/str: char_at_type を reference などに名称変更?
+
+  今後文字列の表現として、データの要素の型と文字コードの型を分ける可能性がある。
+  単に reference となっているとその時に不都合がある。
+  現状の実装は寧ろデータの要素の型(の参照)ではなくて、
+  文字コード(への参照)を char_at_type としている。
+  この辺りは後で総合的に考える必要がある。
+
+  →取り敢えず char_reference に名称を変更した。
+    これを更に reference にまで変更するかどうかは後で考える必要がある。
+
+* mwg/str: xprintf support
+
+  xprintf は数を数えてから出力するという風にはなっていなくて、
+  数を数えるのも文字を実際に出力するのも同程度の計算を要する。
+  従って、二重の処理にならない様に内部に std::string でも構築して
+  mwg::str インターフェイスを提供するのがよいように思われる。
+  その為には strbuff を先に実装してしまった方が良い様に思われる。
+
+  所で strbuff を実装するのに std::string を読み込む必要が出て来る。
+  別のヘッダファイルとして実装するのがよいかも知れない。
+  特に strbuff は、破壊的関数を備える必要の為に、
+  今後実装が巨大になる可能性が高いのでこれでよい。
+  (破壊的関数を備えるため、実際の所 std::string ではなくて
+  std::vector を利用した実装に切り替える可能性もある。)
+
+* C++: 一時オブジェクト用インスタンスのローカル変数作成を阻害する方法
+
+  (特に mwg/str における一時文字列クラス達を想定している)
+
+  式テンプレートを使う時、完結式評価まで一時オブジェクトの寿命が残る事を利用する。
+  しかし、完結式のオブジェクトをコピーされたり、
+  或いは、ユーザの手で完結式のクラスインスタンスを作成すると不正な参照・ポインタができてしまう。
+
+  1 ユーザが明示的に一時オブジェクト用クラスインスタンスを作成できない様にするには:
+
+    a 一番簡単な方法はそのクラスの名称を如何にも一時オブジェクトという感じにして、
+      ユーザが明示的にそのクラスを使用しない様にすることである。
+      例えば、foo_detail 名前空間の中に隠蔽したり、
+      _tmpobj_... という名前のクラスにしたりといった事である。
+      或いは、クラス名を dont_use_this_class 的な物にしても良いかも知れない。
+
+      しかし、その様にしても文法的にはクラスインスタンスを作成できてしまう。
+
+    b 文法的にも呼び出せない様にするためには、
+      コンストラクタを隠蔽すればよい。つまり private または protected にする。
+
+      x しかし、この様にすると外部の関数で実際にインスタンスを生成したい時には、
+        その関数を friend にする必要が生じる。結構始末が悪い。
+        ただ、これはクラス内に friend 関数{実装} などとしてしまっても良い?
+      →それだと後からどんどん関数を追加するという事がしにくくなる。
+        特にユーザがユーティリティ関数を追加する事を阻害してしまう。
+
+  2 また、オブジェクト作成用のコンストラクタを封じたとしても、コピーはできるから、
+
+    auto a = <expr>;
+
+    等とされると問題になる。なので、コピーコンストラクタも封じるという手がある。
+
+    x しかし、これも戻り値を構築する時にコピーが発生する筈なので、
+      使用している箇所を一つ一つ friend にしておかないと、
+      エラー (もしくは RVO でコピーが潰れれば警告) になる。
+
+    x そればかりか、RVO が働ければコピーが消えて、
+      普通にコンパイルできてしまうので、防御にならない?
+      (でも、流石にコピー構築までは消えないか? 良く分からない。)
+
+    x 更に、防御が成功したとしても単に auto a = <expr>;
+      がエラーでコンパイルできないという事になる。
+      自動的に (永続化のための) 適切な型を選んでくれるという事がない。
+
+      つまり、ユーザは以下のように必ず型を記述しなければならない。
+
+      mwg::strfix<char> a = <expr>;
+
+      これは C++11 時代にあっては不自然だと考える人も多かろう。
+
+  3 更に、コピーコンストラクタまで封じることができたとしても問題は未だ残る。
+    参照として寿命を拡張することができる。この場合はコピーも起こらない。
+
+    auto const& a = <expr>;
+
+  試しに strbase に friend 指定でコンストラクタを書いてみることにする。
+
+  | protected:
+  |   template<typename P2>
+  |   friend class strbase;
+  |
+  |   // copy/move constructor is protected
+  |   strbase(strbase const& source)
+  |     :data(source.data){}
+  | #ifdef MWGCONF_STD_RVALUE_REFERENCES
+  |   strbase(strbase&& source)
+  |     :data(stdm::move(source.data)){}
+  | #endif
+
+  operator+ がコンパイルできなくなる。
+  SFINAE やら SFINAE 用のクラスやらの依存性もあるし、
+  friend 指定を書くのも面倒である。どうした物か。
+
+  何れにしても今後、一時文字列を返すような関数は幾らでも作るはずである。
+  その度に friend を書くのも大変であるし、
+  friend を省略できるような仕組みも分からない。
+  →例えばユーティリティクラスの様な物を作って、その中で実装する様にすれば良い?
+    試してみたが、駄目だ。return をする為には結局コンストラクタが必要の様である。
+    つまり、別の関数で実装を行ったとしても、
+    friend 指定がなければ戻り値を受け渡す事ができないので駄目である。
+    別の関数に実装を委譲するのだとしたら、
+    委譲される鎖の全ての関数を friend にしなければならない。
+  →よく考えたら使う時にそこで新しく専用の派生文字列クラスを定義して、
+    その専用の派生クラスで friend に指定すれば良いだけでのことである。大した事はない。
+
+  % 結局面倒臭くなるだけの様なのでコンストラクタで封じる案は今の所考えないことにする。
+
+  a protected にしておいて、friend にしたければ派生クラスを作って
+    其処に friend 宣言すればよいのだという事に気付いたのでそれで実装する。
+
+  b 実は list-initializations in return statement を使えば、
+    copy constructor は必要ないので、エラーには為らないという事が分かった。
+    (規格を見ても不明瞭な気がするが、実際の実装ではどれもこれを受容する様である。)
+
+    つまり、C++03 では auto v = 等とされる心配がないのでコンストラクタを封じる必要はなく、
+    また C++11 では auto v = を封じる為に copy constructor を封じ、
+    構築には list-initialization を用いる様にすれば良いという風に場合分けで対処すればよい。
+
+  c 或いは…tuple を受け取る特別なコンストラクタを用意すれば、
+    copy constructor を回避できるだろうか?■未確認
+
+2016-03-07
+
+* mwg/str: _tmpobj_arrow_operator のテストをしていない。
+  →テストを追加した。まあ、動いている。OK
+
+* mwg/str: const_iterator を BidirectionalIterator にする。
+
+  mwg/str で実装している const_iterator を、他の STL に対応した関数に渡す時には、
+  Iterator の要件を満たす様にしなければならない。
+
+  - 特に value_type, iterator_category などのメンバには、
+    std::iterator_traits<> から派生させることで対応できる。
+
+  - iterator_category としては、特に、BidirectionalIterator に該当する。
+
+  - 対応していない機能として、operator-> がある。
+
+  - また、BidirectionalIterator の為に DefaultConstructible でなければならない。
+
+  - *i の戻り値の要件
+
+    % また、Iterator の要件で満たせない物として、
+    % *i が %%dereferencable でなければならない (*i は参照である)%% という物がある。
+
+    混乱があった。dereferencable というのは間接参照できる事である。
+    つまり、*i という標記自体の事である。
+    そしてドキュメントに dereferencable と書かれているのは、
+    「i の現在の状態が間接参照可能な状態である場合に」という意味であった。
+    (終端を表す iterator や、既定コンストラクタで作った iterator は間接参照可能な状態にない)
+
+    この条件を改めて見てみると以下の事の様である:
+
+      *i の戻り値の型は std::iterator_traits<Iter>::reference でなければならない。
+
+    そして、std::iterator_traits<Iter>::reference が
+    どの様な要件を満たしているべきかについては何も書かれていない気がする。
+    少なくとも value_type に変換可能であれば良いようにも書かれている。
+    そしてまた、OutputIterator の場合には (使用しないため)
+    reference は void にして良いという事になっている。
+    やはり、reference が (目的に合わせて) 多少変な型であっても良いということだろうか。
+
+  という訳で以下の実装を行う。
+
+  > - std::iterator<std::bidirectional_iterator_tag, char_type, std::ptrdiff_t, char_type*, char_at_type>
+  > - 先ず reference は char_at_type である
+  > - operator-> を追加する
+  >   →char_type はどうせ整数型しか来ないのだから、
+  >     operator-> を定義しても意味無いのではないだろうか。
+  >
+  >     何か特殊な機能を文字型に付加してその文字型を使いたいとしても、
+  >     文字列の汎用 const_iterator を受け取るような関数でその機能を使う事は無い。
+  >     但し、特殊な文字型を使った文字列を定義して、
+  >     更にその特殊な文字型専用の関数で処理を行いたい場合には必要になる。
+  >     →どうせ使わないだろうとは思うが実装しておく事にする。
+  >
+  > - DefaultConstructible にする
+  >   →実装した。参照メンバはポインタにする。
+  > - const_iterator 内部では std::ptrdiff_t の代わりに difference_type を使用する。
+  > - StringPolicy 要件部分で bidirectional_iterator を要件として掲げる。
+
+  # 余談
+  #
+  # ところで、std::iterator_traits<Iter>::pointer は何の為にあるのだろう?
+  # iterator 要件には何処にも出てきていない様に見える。
+  # そして pointer 自身、何であるか説明していないので、規格上は何の制限もない無意味な型という事になるのでは?
+  # 一応 operator-> を自分で実装するとすれば pointer を内部的に使うという事は考えられるが、
+  # std::iterator_traits<T*>::pointer の場合には operator-> ではなく builtin の -> なので、
+  # Iterator の要件には明示的には出てこない。それに pointer とは別に勝手に operator-> を定義しても良い。
+
+  更に後で以下の項目についても考える。
+
+  > - pointer_const_iterator は std::random_access_iterator_tag にしたいが、これについては後で考える。
+  >   →別項目で議論することにした。
+  >
+  > - char_at_type の名称を別の名称に変更する。
+  >   というか普通に reference で良い気がする。
+  >   →これも別項目で。
+
+* mwg/str: const_iterator は std::random_access_iterator_tag にするべきか?
+
+  然し、現在の実装を見てみるに殆ど RandomAccessIterator の機能を備えている様にも見える。
+  先ず、operator+(ptrdiff_t) や operator-(ptrdiff_t) を保持している。(operator+=, operator-= も自動的に定義されるであろう。)
+  更に、operator-(const_iterator) もある。一部の const_iterator は不等号演算子についても備えている。
+  これに加えて operator[] を定義すれば random_access_iterator にする事ができる。
+
+  どうせ operator+/- を定義するのであれば、要件を RandomAccessIterator にまで厳しくしてしまっても良いのではないか。
+
+  x 調べてみたが実は operator+/- を使っている箇所は殆どない。というか、trim の中だけである。
+    なので、RandomAccessIterator である事を要求するのは新しい文字列の形式を実装しにくくするだけなので良くない。
+  x 特に mbcs において RandomAccess は非効率である。
+    無理に RandomAccessIterator を実装してしまうと、STL 等の関数で RandomAccessIterator 用の実装が選択されてしまい、
+    RandomAccess できない場合に最適化されたコードが選択されるのを阻害してしまう事になる。よくない。
+  x もともとは pointer_access_iterator 等の
+    RandomAccessIterator を自然に満たせる物については、
+    stdm::random_access_iterator_tag にした方が効率が良いのではないかという事であった。
+    しかし、これは個別に対応すれば良い話で、全ての const_iterator に対して要求する理由には為らない。
+
+  結果、この提案は却下する事にする。
+
+2016-03-05
+
+* mwg/str: 実装の名前空間 (string3_detail) を公開するべきか
+
+  ユーザが新しい文字列型を定義する為には strbase を使う必要がある。
+  また、ユーザが新しく別の型からのアダプターを追加したい場合には
+  adapter_traits の特殊化を定義する必要がある。
+
+  これらの strbase や adapter_traits は現在は namespace mwg に公開していない。
+  ここで、using を用いて namespace mwg に引っ張ってくるべきか、
+  拡張を定義したいユーザに対しては実装の名前空間を弄って貰う事にするか、
+  という選択肢が出来る。
+
+  a string3_detail 名前空間は公開しない。
+
+    strbase, str_adapter_traits を namespace mwg に公開する
+
+    独自に文字列型を色々拡張をするとなると adapter_traits 等も拡張しなければならない。
+    それらも公開するとなると面倒である。先ず名前を変更しなくては為らない。
+    名前はより長く為るであろう。そして、その長い名前を毎回指定するのは大変だ。
+    といいつつ、結局 adapter_traits を元に定義された as_str 的なクラスを
+    通して使用する予定だから長くなっても余り違いはない気もする。
+    うーん。それならば、拡張する人には string3_detail (後で名前は変えるとして)
+    の内部を弄る事を許可してしまった方が良い気もする。
+
+    というかよく考えたら特殊化は元々定義された名前空間で行わなければならないので、
+    namespace mwg に引っ張ってきても意味がない。
+    →adapter_traits 自体を初めから namespace mwg の中で定義するという手がある。
+
+    更に、ADL が効く様にするためにはやはり string3_detail 内で関数を定義する必要がある。
+    ADL で呼び出せる様な文字列用の関数を定義したいという需要もあるだろうから
+    やはり string3_detail 名前空間は公開せざるを得ない気がする。
+    (strbase 自体を mwg 名前空間内で定義するという場合には、
+    ADL 用の関数を namespace mwg 内に書く事になる。
+    これは他の関数と混ざり合う可能性があるので、これは論外である。)
+
+  b string3_detail 名前空間を公開する。
+
+    名前は変更する必要がある。string3_detail は変である。
+
+  結局現実的には実装の名前空間を公開するという方法しかないように思う。
+  ユーザには以下を許可する。
+  - adapter_traits の特殊化を定義すること
+  - strbase を文字列型の基底クラスとして利用すること
+  - ADL を通して使うための文字列を受け取る関数を追加すること
+
+  > ドキュメントに上記許可項目を追加
+
+  [string3_detail 名称変更について]
+
+  > string3_detail の名称を変更
+  > これはヘッダファイルの名称を考えてからにする。
+
+  ライブラリの中心関数を mwg::str (旧 mwg::make_str) と定めて、
+  ヘッダファイル名を <mwg/str.h> に変更し、
+  ライブラリモジュール名を mwg/str と呼ぶことにした。
+  これに伴って string3_detail 名前空間をより分かりやすい名前に変更し、
+  ユーザ側に拡張を許可するために公開できるようにする。
+
+  名前は str_detail で良いだろう。
+  変な省略のされ方をしている様で違和感があるかもしれないが、
+  これは今迄の名前に慣れてしまっているからの様に思う。
+  実際 mwg::str という関数が中心になっていると思えばこれは自然である。
+
+* string: ヘッダファイル名 mwg/string.h の変更?
+
+  a mwg/string.h は分かりやすい。
+    しかし実際に string という型は定義していないという点で分かりにくいかも。
+
+  b mwg/str.h
+    含まれるクラスは大体 str で始まっているのでこれが良い?
+    しかし mwg::str というそのものな型は存在しない。
+    或いは mwg::make_str を mwg::str に変更しても良い。
+
+  c mwg/strfix.h
+    メインのクラスは何かと考えると strfix である。
+    しかしながら、このライブラリは別に固定文字列 strfix だけのライブラリではない。
+    ライブラリの目的的にも、実際に中にあるクラスという観点からも。
+
+  mwg::make_str を mwg::str に変えるのが俄然良い方法の様に思えてきた。
+  しかしながら問題点もある。str というのは一般的に使用される変数名である。従って、
+
+  1. ローカル変数の str で mwg::str が隠蔽されて、変なことになる可能性がある。
+    →基本的にいつも mwg::str の形で使う様にすれば問題はない。
+      元々 libmwg は using namespace mwg せずに使う事を想定して設計している。
+      なので、ユーザの側でも mwg::str の形で使って欲しい。
+      また、mwg 名前空間の内部では str で mwg::str を参照することができるが、
+      これは mwg::str として明示的に呼び出す様に規則付ければよい。
+
+  2. 逆にローカル変数を参照しているつもりで str が出てきて、
+    変なエラーメッセージが出る可能性もある。
+    「ローカル変数 str が見付かりません」の代わりに
+    「関数を文字列に変換できません」の様なエラーメッセージが出る様になって分かりにくい。
+    まあしかしこれは仕方がない。
+
+  まとめ
+
+  > mwg/str.h に変更する
+  > mwg::make_str -> mwg::str
+  > mwg::str を呼び出す時は、例え libmwg 内部から呼び出す場合でも明示的に mwg::str と書く。
+    →そもそもそんなに使用している箇所はなかった。内部使用は1箇所だけであった。
+  > 上記注意点をドキュメントに追記する。
+
+* string: enabler という用語は別の手法を想起するので変える。
+
+* string: クラス名変更 mwg::string → mwg::strfix
+
+  mwg::string は std::string と衝突するので別の名前にするべき
+  例えば mwg::strfix など。
+  この様に変更すると最早 mwg::string という名前の型すらなくなるので、
+  ヘッダの名称を mwg/str.h 等に変更するべきな気もする。
+
+  しかしそうすると mwg::make_str を mwg::str にしたくもなるが、
+  そうすると、ローカル変数として str を使用した時に混乱を来す事になるので良くない。
+  <mwg/str.h> は様々な文字列クラス str... の接頭辞 str を表しているとして納得して貰う事にする。
+
+  取り敢えず mwg::string → mwg::strfix に変更した。
+  ヘッダファイルの名称についての議論は別項目とする。
+
+2016-03-04
+
+* string: mwg::as_str 追加
+
+  stradp 内部クラス化の項で議論したように、
+  今後文字列を受け取る関数を定義する際は adapter_traits を使用する事にした。
+  しかし、現状だと adapter_traits は使いにくいので、
+  adapter_traits を継承して更に色々の物を提供する公開クラスを作成する。as_str である。
+
+  先ず as_str を定義して色々な機能をつける。
+  更に、今迄 adapter_traits を使って定義していた物を
+  as_str を用いて定義する様に変更する。
+  そして namespace mwg に公開する。
+
+* string: stradp 内部クラス化?
+
+  mwg::make_str を実装したので、
+  寧ろ stradp が表に出て来る必要もないのではないか?
+
+  SFINAE チェックを省略することにする。
+  adapter_traits 経由でしか構築しないのであれば、
+  コンストラクタのチェックを行う意味はない筈である。
+
+  一方で、stradp はそもそもユーザが新しく文字列を受け取る様な関数を実装する際に、
+  引数の型として使用できるように定義した物であった。
+  しかし、現状の実装ではその役目を果たしていない。
+  というか、寧ろ template<typename T> stdbase<T> と stradp<char> の二つについて
+  定義を行わなければ為らず却って無意味である。それよりは、寧ろ新しく導入した
+  adapter_traits の仕組みを利用して、adapter_traits<>::available だったら実装を
+  提供するという方法の方が変に overload を作成しなくて済むので楽である。
+
+  しかしながら、SFINAE の条件を書くのが面倒であるのは否定できない。
+  現在自分で新しく関数を書くのだとしたら以下の様な可能性が考えられる。
+
+  | a strbase<> しか受け取らない:
+  |
+  |   template<typename P> void f(strbase<P> const&);
+  |
+  |   変な SFINAE をしなくても自動的に文字列だけを選択してくれるので良い。
+  |   mwg::str の文字列は全て strbase<P> の形をしている。
+  |   問題は mwg::str 以外の文字列であるが、これについては
+  |
+  |     f(make_str(s));
+  |
+  |   等の様に呼び出し側で配慮すれば良い様に思う。
+  |
+  |   →しかしながら、文字列の型の種類を区別するというのは面倒である。
+  |   実際に、const char* を渡すべきところに std::string を
+  |   直接渡そうとしてコンパイラに怒られたりという事はよくある。
+  |   また、std::string のまま渡しておけば良いのにわざわざ c_str()
+  |   してしまったせいで新しい std::string インスタンスを生成していた、
+  |   などという事もあるのではないかという気がする。
+  |
+  |
+  |   また、strbase<> だけを定義することの問題ではなくて、
+  |   strbase<> を使うこと自体の問題であるが、
+  |   typename P::char_type について SFINAE をしたい場合に、長くなってしまう。
+  |
+  |   | template<typename P>
+  |   | typename stdm::enable_if<stdm::is_same<char,typename P::char_type>::value,void>::type
+  |   | void f(strbase<P> const&);
+  |
+  |   →それ専用の enabler クラスを作成すれば問題ない。
+  |
+  |     | template<typename P>
+  |     | typename mwg::policy_enabler<P,char,void>::type
+  |     | void f(strbase<P> const&);
+  |
+  |     というか、policy 側に enabler を附属させれば良いのではないだろうか。
+  |
+  |     | template<typename P>
+  |     | typename P::enable_if_char_is<char,void>::type
+  |     | void f(strbase<P> const&);
+  |
+  |     何か余り短くなっていない気もするがこちらの方が分かり易いであろう。
+  |
+  |   →更に他のSFINAE も混ざってくるとこの方法は使えない?
+  |
+  |     そういう時は、入れ子にすれば良いだけである。例えば以下のように。
+  |
+  |     | template<typename P>
+  |     | typename P::enable_if_char_is<char,
+  |     |   typename stdm::enable_if<条件式,Ret>::type
+  |     | >::type
+  |     | void f(strbase<P> const&);
+  |
+  |     というか、今迄 enabler を入れ子にするという事を考えた事がなかった。
+  |     enable_if しか使わないのであれば単に && で繋げばよいが、
+  |     enabler を定義して、更にそれを組み合わせる場合には、
+  |     わざわざ新しいクラスを定義しなくても単に入れ子にすればよいのだ。
+  |     もしかすると今迄に整理したコードの中にもこの手法で
+  |     簡単に定義できる物が存在するのではないかという気がしてきた。
+  |
+  | b そもそも mwg::str を受け取る関数にしなくて良い?
+  |
+  |   標準ライブラリでも std::string を受け取る関数というのは実はほとんどない。
+  |   std::string を使っていても最終的には c_str() を用いて const char* に変換して、
+  |   その上で使うのである。そちらの方が分かりやすい。
+  |   分かりやすさが効率を上回る例である。
+  |
+  |   特に C++ に関しては標準的な一つの文字列型というものが存在しないのが問題である。
+  |   標準ライブラリには std::string と std::wstring があるし、
+  |   更に自分で Traits や Allocator を定義して新しい文字列型を定義できる。
+  |   更に、文字列の内部表現について (文字符号化方式など) 定められてもいないため、
+  |   同じ文字列型であっても更に色々な様相を見せる。
+  |
+  |   その様な滅茶苦茶な状態に於いて一つの標準形式として
+  |   const char* を採用するというのは悪くない選択肢のように思われる。
+  |   どうせ、他のユーザーフレンドリーな言語に於いては、
+  |   文字列と言えば必ずメモリに確保した一種類の型であるのだから、
+  |   C++ においても外部の関数に渡すときぐらいは、
+  |   その必然性が無くても新しくメモリに格納してもよいだろう。
+  |
+  |
+  |   この場合には strbase<> 側に c_str 的な関数を用意する必要がある。
+  |
+  |   | struct _tmp_cstr{
+  |   |   std::unique_ptr<const char[]> data;
+  |   | public:
+  |   |   operator const char*() const;
+  |   | };
+  |   | struct strbase{
+  |   |   _tmp_cstr c_str() const;
+  |   | };
+  |
+  | c adapter_traits を使って何でも受け取れる様にする
+  |
+  |   | template<typename S>
+  |   | typename stdm::enable_if<mwg::as_str<S>::value,void>::type f(S const&);
+  |
+  |   戻り値に char_type などを使いたければ、単純に
+  |
+  |   | template<typename S>
+  |   | typename mwg::as_str<S>::char_type f(S const&);
+  |
+  |   等の様にすれば良い。
+  |
+  |   % [SFINAE が面倒になる問題(可能性)]
+  |   %
+  |   % しかし更に複雑なことをしようとすると以下の様に面倒な事になるかも知れない。
+  |   %
+  |   % | template<typename S,bool=mwg::as_str<S>::value>
+  |   % | struct enabler{};
+  |   % | template<typename S>
+  |   % | struct enabler<S,true>:mwg::identity< 複雑な戻り値 >{};
+  |   % | template<typename S>
+  |   % | typename enabler<S>::type f(S const&);
+  |   %
+  |   % と思ったが、現実にこの様な面倒な指定をしなければならないのは、
+  |   % "enabler を作りたい" という場合だけの様な気もしてきた。
+  |   %
+  |   % enabler を作る場合には、内部で return_type を構築する必要がある。
+  |   % しかし内部で構築する場合には SFINAE が効かない。
+  |   % つまり、戻り値の型が不正な形式になるとコンパイルエラーになる。
+  |   % という事で、使えるかどうかの判定部分と、実際に戻り値の型を定義する部分を分離しなければならない。
+  |   % しかして、上記の様に条件と戻り値の型の定義が分かれて面倒な事になるのである。
+  |   %
+  |   % さて enabler ではなくても上記の様な形式を取る必要がある場合も存在する。
+  |   % つまり SFINAE が効かない様な内部で型の不整合が起こる場合である。
+  |   %
+  |   % | template<typename P>
+  |   % | struct hoge{typedef hoge_return<typename P::char_type>::type type;};
+  |   % | typename hoge<P>::type
+  |   %
+  |   % しかしこの様な場合については hoge 側で防御をするべきである。
+  |   %
+  |   % [結論]
+  |   % - enabler を作りたいという場合には、条件と戻り値の型を分離する必要があり面倒である
+  |   % - 通常の SFINAE ならば問題ないはずである。
+  |   %   呼び出した別のテンプレート内でエラーが起こるのであれば、それはそのテンプレート側で防御をするべきである。
+  |
+  |   [条件判定用クラスの名称]
+  |   mwg::string3_detail::adapter_traits は如何にも長いのでより短くて分かりやすい名前を考えたい。
+  |   例えば
+  |   - adapter_traits<S>::available    → mwg::as_str<S>::value
+  |   - adapter_traits<S>::adapter_type → mwg::as_str<S>::adapter
+  |       これの使い方は決まって typename mwg::as_str<S>::adapter str(s) である。
+  |       もっと短い書き方はない物だろうか。
+  |
+  |       % 実は auto str = make_str(s); でいける様な気もする。
+  |       % が、auto で受け取ると _strtmp も固定する事ができてしまったりして
+  |       % 初期化できてしまったりして問題が多い気がする。
+  |       % といって、ユーザに使用の制限を呼びかけたとしても通じるか分からない。
+  |       %
+  |       % やはり標準的な使い方は adapter str(s); であろう。
+  |
+  |   - adapter_traits<S>::char_type → mwg::as_str<S>::char_type
+  |
+  |   また、他に追加するとすれば:
+  |   - typename mwg::as_str<S>::const_iterator
+  |
+  |   % [mwg::str として受け取ると文字操作が面倒な可能性]
+  |   %
+  |   % 何でも受け取れる代わりに操作は限られる。ランダムアクセスできない。
+  |   % mbcs の効率を考えれば iterator を使って実装しなければならないので面倒。
+  |   %
+  |   % それならばいっその事 c_str にでも変換してから処理した方が良い?
+  |   % →×でも mbcs の場合には単に c_str にするだけだと結局処理が難しいから、
+  |   %     効率良く処理する為には wint_t 配列などにしなければならない。
+  |   %     そして const wint_t* の様な物を標準の交換形式にするのは考えがたい。
+  |   %
+  |   % 逆に言えば mbcs の処理も考えるのであれば iterator にならざるを得ず、
+  |   % もしそうだとするならば strbase<> に変換して処理するのは必然である。
+  |   % なので、これは別に気にすることではない。
+  |   %
+  |   % [結論]
+  |   % - mbcs の処理効率を考えるのだとすれば iterator を使って実装するのは当然である。
+  |   %   寧ろ面倒でもそれを強要する形になるのでよい。
+  |   % - ランダムアクセスを用いてより効率の良い処理をしたい場合もあるが、
+  |   %   それは元々、既定の実装をした後で、別に実装するべきものである。
+  |
+  | d strbase<> と後は stradp を受け取れる様にしておく。
+  |
+  |   | template<typename P> void f(strbase<P> const& str);
+  |   | void f(stradp<char> const& str){return f(static_cast<strbase<mwg::strsub_policy> >(str));}
+  |
+  |   或いは、strbase const& strbase::to_base() const; 等という関数を定義しておけば、
+  |
+  |   | template<typename P> void f(strbase<P> const& str);
+  |   | void f(stradp<char> const& str){return f(str.to_base());}
+  |
+  |   とすれば良い。
+  |
+  |   これは結構良さそうにも思うが、実際にやってみようとすると結構面倒だと分かった。
+  |   何が面倒かというと
+  |   1. 複数の引数があると 2 の累乗で定義するべきオーバーロードが増える。
+  |   2. 複雑な SFINAE がある場合に、何度も同じ様な SFINAE を書くのは綺麗ではない。
+  |     enabler にまとめようとすると、
+  |     今度は a の所で述べたような面倒(というか見にくいコード)が発生する。
+  |
+  |   とにかくこの方法は良い方法だとは思えない。
+
+  結論としては、
+  - mbcs 対応や効率を考えるのであれば adapter を用いる方法 c を使う。
+  - 次点として b の const XCH* で実装する方法を用いる。
+    結局これが一般的なインターフェイスであるから。
+    但し、c_str() を呼び出す様にするのを忘れないこと。
+
+    (あと、c_str() は未だ実装していなかった…→これは別項目で考察する)
+
+  これで d の様な stradp を使用する可能性は殆どなくなった。
+  従って、stradp を内部オブジェクトに変更する事にする。
+  また、a もしくは d の様な物を補正しない限りは strbase を使用しないので、
+  strbase は今迄通り公開しなくても良い?
+  →と思ったが、独自に新しい文字列型を実装する場合には strbase を使用する。
+    従ってやはり strbase は公開した方が良いのではないか?
+    これについては独立した項目を立てて考察する。
+
+* string: mwg::make_str()
+
+  わざわざ std::stradp<char> などの様に文字の型を指定しなくても、
+  自然な文字の型を推論する事ができる筈である。
+
+  これの実装に伴い adapter_traits を拡張して
+  必ずしも stradp を adapter としなければならない訳ではない様にする。
+  今後 adapter_traits は以下の3つを提供する。
+
+  - adapter_traits::available    文字列(mwg::string)に変換可能か
+  - adapter_traits::char_type    文字列(mwg::string)の要素の型
+  - adapter_traits::adapter_type 文字列(mwg::string)の型(アダプタ文字列型)
+
+  この変更により既存の使用箇所で不整合が起こっている可能性がある。
+  > adapter_enabler の使用箇所を確認・修正
+  > 特に stradp のコンストラクタの SFINAE に注意する。
+
+  > adapter_traits に str 自身を定義する。strbase_tag を使用
+
+  - stradp の SFINAE チェックが複雑になっている。
+    stradp を private な目的のクラスにすればこのチェックは省略できる。
+    stradp を内部使用のクラスにするかどうかについては、
+    これについては新しく項目を立てる事にする。
+
+* string: range_replace_enabler の switch を廃止する。
+  switch 毎に処理を変えられる様にはしたが実際に処理は同じになっている様だ。
+
+2016-03-02
+
+* string._strtmp_sub_policy: reset_index は問題である
+
+  reset_index することによって外から見た時の index を修正することができる様になったが、
+  よく考えてみたら index が内部で使用する為に使われている物だとしたら、
+  それを勝手に変更すると元文字列の内部の参照位置も影響を受けてしまう。
+  つまり勝手に外部から書き換えて良い物とは限らない筈である。
+
+  幸いに、reset_index を使用しているのは未だ _strtmp_sub_policy のみである。
+
+  [index() の意義]
+
+  修正を行う前に改めて何故 index が必要だったのかについて確認を行う。
+
+  元々は _strtmp_map_policy で現在位置を把握する為に必要であった。
+  もしこれだけであるならば _strtmp_map_policy の内部で index を保持すればよい。
+  公開する必要はない。しかし、iterator の効率を考えると、
+  各操作レベルで独立に index を管理するのは好ましくない。
+  例えば、
+    a.tolower().toupper().tolower()
+  について const_iterator を ++ すると、
+  3階層でそれぞれ定義された 3 つの index を increment する事になる。無駄な処理である。
+  従って下の階層で index が既に定義されている場合にはそれを流用するという工夫が考えられる。
+
+  では _strtmp_sub_policy の様に index にずれが生じる場合にはどの様にすれば良いのか。
+  例えば、
+
+    a.tolower().slice(1,3)
+
+  の様な場合である。
+
+  a この場合には、そもそも slice は index を必要としない。
+    従って、_strtmp_sub_policy では has_index な const_iterator を用意しない、
+    というのが一つの解である。しかしながら、更に処理を行って
+
+      a.tolower().slice(1,3).tolower()
+
+    等の様にした場合に、結局 index をもう一つ追加することになる。
+
+  b もし slice が下層の index を利用して index を提供していれば、
+    最上層の tolower の際に新しい index を提供する必要はなくなる。
+
+    ここで特に、
+
+      第三層::index = 第二層::index = 第一層::index + start
+
+    となるので、最上層の処理で使用する index() は毎回加算 index+start
+    を実行することになる。このコストについては留意する。
+    一方で第二層が index を用意しなかった場合には、
+    このコストが発生しない代わりにもう一つの新しい index を管理し、
+    それを increment するコストが発生する。
+
+    一方で、もし 第二層::index を参照しないのであれば、
+    (この方法では) 特に特別な処理を行わなくても済むので、
+    オーバーヘッドは全くない。
+
+    と思ったが、const_iterator に offset を覚えておかなければならないので、
+    それを記録する分だけ const_iterator のサイズが大きくなる。
+
+  これはどちらの方が良いとも言い難い。
+  今回は slice 層での index を実装しかけたのであるから、
+  取り敢えず b の方針を考えてみる。
+
+* string: class や struct の使用がまちまちである。
+
+  現在の実装では class や struct が入り乱れている。
+  取り敢えず、次のように使い分けを行う事にする。
+
+  struct
+    - POD な構造体
+    - traits, policy などの定義用クラス
+    - tag, enabler などのオーバーロード選択用クラス
+    - interface
+
+  class
+    - 詳細な実装を含むクラス。特にメンバを持つ物
+
+  これに従うと、buffer_type や const_iterator は
+  struct ではなくて class であるべきだ。
+  現在は大体 struct になっているのでこれらを class に書き換える。
+
+2016-03-01
+
+* string: trim, rtrim で j-1, --j と同じ操作を2回行っている。
+  1回だけしか行わないように修正できないか?
+
+  a const_iterator に default constructor を要求する。
+    一時変数として jtmp を作って、jtmp=j-1 とする。
+    後で j=jtmp とする。
+
+    | const_iterator jtmp;
+    | while(j!=i&&_f::invoke(pred,*(jtmp=j-1)))j=jtmp;
+
+    毎回 jtmp -> j にコピーして書き込む作業が必要になる。
+    また jtmp=j-1 で新しい領域にコピーする手間もある。
+    更に const_iterator たちに default constructor を用意する必要もある。
+
+  b 一時変数として const_iterator jtmp(j); とする。
+    *--j 後に戻す必要が有れば j=jtmp とする。
+
+    | while(j!=i){
+    |   const_iterator jtmp(j);
+    |   if(!_f::invoke(pred,*--j)){j=jtmp;break;}
+    | }
+
+    毎回コピー構築を行う。最後に一回だけ戻す。
+
+  c そもそも一時変数に覚えて置かなくても、必要になった時に再計算すれば良い
+
+    | while(j!=i)if(!_f::invoke(pred,*--j)){++j;break;}
+
+    increment に関してはどの文字コードでもコストは小さいと思われる。
+    毎回コピーをしなくて済むので嬉しい。実装も簡潔である。
+
+2016-02-23
+
+* [2011-10-26] mwg::string 構成
+
+  mwg::string_impl1::stringbase<XCH,Alloc>
+    全ての文字列クラスの基底クラス。
+    基本的な非破壊的操作関数を備える。
+
+  mwg::string_impl1::string<XCH>
+    固定文字列。データを他の文字列と共有しうる。
+
+  mwg::string_impl1::strsub<XCH>
+    他の文字列、データに対する部分文字列を表現するクラス。
+
+  mwg::string_impl1::stradp<XCH>
+    アダプタ。実質的に strsub と等価。
+    唯一違う点は様々なクラスインスタンスから implicit に構築できる事。
+    文字列の類を受け取る関数の引数の型などに用いるのが目的。
+
+  mwg::string_impl1::strbuff<XCH>
+    編集用の文字列。参照の複製はされない。
+
+  mwg::string_impl1::strsymb<XCH>
+    インスタンスの単一性を保証するクラス
+    等値比較が、ポインタを比較するだけで済むので楽。
+    比較的長い文字列で同じ物が沢山現れる場合にはメモリの節約にもなるかも。
+
+    クラス名に関しては一考の余地有り。
+    ruby では symbol と呼ばれている物である。
+
+  mwg::string_impl1::strsymb_dictionary<XCH>
+    strsymb の親クラス。
+    存在しているインスタンス全てをこの中に保持して管理する。
+    デフォルトでグローバルに使用できるインスタンスを生成するが、
+    ローカルに使いたいシンボル群を管理する為に、自分でインスタンスを生成する事も可能にする。
+
+    内部構造は取り敢えず std::map (sorted list) で二分探索。
+    将来的には trie を考えても OK
+
+  mwg::string_impl1::strpath<XCH>
+    ファイル名を管理する為の文字列
+
+* [2011-10-26] mwg::string 実装方法
+
+  現在の試行実装について。
+
+    以前に少しだけ試しに実装してみて放置してあるコードについて再度整理してみる。
+    先ず、この実装では各文字列クラスは基底クラス strbase から派生する。
+    strbase では c_str 関数及び length 関数を抽象関数とする。
+    そして c_str 及び length の戻り値に対して様々な操作を提供する。
+    これによって各派生クラスは c_str 及び length 関数の実装だけに注力すれば良い事になる。
+    様々な文字列に対する操作は基底クラスである strbase のレベルで提供されているからである。
+
+    特に strbase に必要な c_str 及び length は、
+    仮想関数の仕組みではなくてテンプレートによる特殊化によって実装する。
+    strbase の第一テンプレート引数は単体の文字の型 (char や wchar_t など) であり、
+    strbase の第二テンプレート引数が各特殊化の詳細を決める traits
+    (c_str や length の実装を含む) となっている。
+
+  c_str 関数について
+
+    c_str という関数名は std::string の時と同様に null 終端文字列を返す事を想定させる。
+    この関数の戻り値は const char* であり、それをそのまま C の通常の文字列処理の関数に渡す事ができるという事である。
+    しかし、クラスによっては const char* を構築するのが容易でない場合がある。
+    例えば部分文字列 strsub の場合には、既に存在している文字列の一部分を保持する物である。
+    その参照先は一般に null 終端であるとは限らない。
+    既に存在している文字列を勝手に書き換える事は出来ないから、
+    c_str の戻り値として適切な文字列を用意する為には、
+    新しく領域を確保してそこに参照先の内容をコピーして返す必要がある。
+    他にも concat_string など temporary object として用意する文字列クラスでも、
+    一々メモリを確保して連続メモリとして c_str の結果を用意する訳にはいかない。
+    元々、concat_string などの temporary object を生成するのは、
+    そういったメモリの確保を省略して、最終結果を構築する時までメモリの確保を遅延させる為である。
+    この目的を達成する為に必要なのは、文字列の任意の位置の文字を取得する事であり、
+    c_str 及び length 関数ではない。
+
+    つまり必要なのは
+
+    | interface{
+    |   const char* c_str() const;
+    |   std::size_t length() const;
+    | }
+
+    ではなく、
+
+    | interface{
+    |   [必須]
+    |   char get_ch(int index) const;
+    |   std::size_t length() const;
+    | }
+
+    である。API として c_str 等の関数が欲しいと思う事もあると思うが、
+    それを用意するのは各種特殊化されたクラスの中ではなく、
+    共通処理を提供する strbase の方である。
+
+  以下特殊化の時のインターフェイスについて考察。
+
+    | interface{
+    |   [必須]
+    |   char get_ch(int index) const;
+    |   std::size_t length() const;
+    |
+    |   // c_str
+    |   [必須] static const bool has_c_str;
+    |   [選択] const char* c_str() const;
+    |   /* 既定では get_ch の返す文字を反映して新しい文字列を構築して返す。
+    |    * 直接 C 言語で使う事の出来る文字列バッファを内部に持っている場合には
+    |    * わざわざコピーをしなくてもそのバッファのポインタを返せばよい。
+    |    */
+    |
+    |   //---------------------------------------------------------------------------
+    |   // 文字列比較?
+    |   [選択]
+    |   const_iterator begin(int index=0) const;
+    |   /* これは順番に文字列を辿りながら処理をする時に必要である。
+    |    * 例えば比較演算などの場合。
+    |    * 例えば concat_string の場合、毎回 get_ch を用いて文字を読み出すと、
+    |    * 毎回文字がどの部分文字列にいるかを判定する必要があるが、
+    |    * 連続に文字を触る事が分かっていればそれらの判定を省略できる可能性がある。
+    |    */
+    |
+    |   //---------------------------------------------------------------------------
+    |   // 文字列比較?
+    |   [選択 (既定の実装を提供)]
+    |   void read(char* buff,std::size_t startIndex,std::size_t readLength) const;
+    |   /* この関数は効率的にデータをコピーする為に必要である。
+    |    * 例えば、或る程度長い文字列をコピーする場合には、
+    |    * for ループで位置を回しながら get_ch を使って文字を読み出すより、
+    |    * CPU の string 命令でデータをコピーしてしまった方が良い。
+    |    *
+    |    * そう言った処理ができない文字列の場合には、
+    |    * 単に内部で for()get_ch のループを回せばよい。
+    |    * この既定の動作は既定で準備しておいて、必要に応じて override する形が良い。
+    |    */
+    | }
+
+    因みに。何故初めの実装で c_str/length というインターフェイスにしたか。
+    →これは、既存ライブラリの文字列クラスが多くの場合、連続した領域に文字列を持っているからである。
+    つまり c_str/length というインターフェイスを採用しておけば、
+    他の既存ライブラリの文字列と簡単に共存できると考えたからである。
+    しかし、concat_string 等を用いて文字列処理を高速化しようと考えたのにこれでは意味がなかった。
+
+  まとめ
+
+    次の実装では特殊化で提供するのは基本的に
+      get_ch と length,
+      必要に応じて iterator や read 関数を実装、
+    という形にする。
+
+  実装の形態についてより詳しく
+
+    a. strbase から各クラスに派生
+      + strbase の機能を拡張する形で文字列クラスを作成
+      + 一番自然に思い付く方法
+      + ○特別なコンストラクタの定義が容易
+    b. strbase のテンプレート引数で詳細を指定。
+      + strbase が実際の実装になる。
+      + 実装する上でテンプレート引数に指定した情報を用いる。
+      + std::basic_stream と std::streambuf の関係に近い。
+    c. strbase の基底クラスとして使用
+      + 拡張の関数などは基底クラスから使う。
+      + ×strbase と同じ関数名で overload を作ろうと思っても隠蔽されてしまう
+        + strbase を書き換えて using を使えば良さそうな気もするが、
+        + 一つ一つの派生クラスに応じて using を追加していくのはありえない。
+      + ×特別なコンストラクタの定義が難しい
+
+  結局上記の物を組み合わせるのが一番現実的である様に思う。
+
+* [2011-10-26] mwg::string 実装2
+
+  namespace mwg::string_detail2 内に試験的に実装。
+
+  > stradp
+  > 比較
+    > 関係演算子
+    - starts_with(str)
+    - ends_with(str)
+    - starts_with(pat)
+    - ends_with(pat)
+    - match(pat)
+    - match(pat)
+  - 文字置換
+    - replace(char_type, char_type)
+    - tolower
+    - toupper
+
+* [2012-11-13] mwg::string 実装3
+
+  関数名や構成などを考え直して再度実装する。
+
 2015-10-19
 
 * tuple vc10bug
@@ -268,8 +1659,8 @@
   is_default_constructible を使って default constructor を on/off したい。
   しかし単純な SFINAE を使う事は出来ないので構造を変える必要がある。
 
-  構造を変える必要があるのでそれに応じて get<>() も最実装する必要がある。
-  最実装しなければならない物について整理を行う。
+  構造を変える必要があるのでそれに応じて get<>() も再実装する必要がある。
+  再実装しなければならない物について整理を行う。
   基本的には m_valueK を参照している箇所を書き換えれば良いはずである。
   - tuple 本体は勿論完全に書き直す。
   - get<>() は書き換える必要がある。
