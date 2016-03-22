@@ -86,6 +86,7 @@ $(directories):
 #%m _preprocess_file
 source_files+=$(CPPDIR)/${file}
 lwiki_files+=$(CPPDIR)/${filex}.lwiki
+-include $(CPPDIR)/${file}.dep
 $(CPPDIR)/${file}: ${file} ${ppdeps}
 	@echo 'GEN ${file}'; $(MMAKECMD) copy-pp ${file}
 $(CPPDIR)/${filex}.mconf: $(CPPDIR)/${file}

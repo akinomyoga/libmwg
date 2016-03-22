@@ -75,7 +75,9 @@ function proc/copy-pp {
   mkdf "$fsource"
   > "$fcheck"
 
-  PPLINENO=1 PPC_PRAGMA=1 PPC_CPP=1 "$MWGPP" <<EOF > "$fsource"
+  export PPLINENO=1 PPC_PRAGMA=1 PPC_CPP=1 PPLINENO_FILE="$fsrc"
+  export DEPENDENCIES_OUTPUT="$fsource.dep" DEPENDENCIES_TARGET="$fsource"
+  "$MWGPP" <<EOF > "$fsource"
 #%m begin_check
   #%%\$>> $fcheck
   #%%# x
@@ -89,7 +91,7 @@ function proc/copy-pp {
 X '%name%' '%headers%' '%expression%'
 #%end
 #%end
-#%include "$fsrc"
+#%include "${fsrc##*/}"
 EOF
 
   if [[ -s $fcheck ]]; then

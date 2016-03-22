@@ -91,53 +91,57 @@ function rep_instantiate_tmpl(text,captures,  _ret,_num,_insert){
 #===============================================================================
 #  mwg_pp.eval
 #-------------------------------------------------------------------------------
-function ev_init_opregister(opname,optype,opprec){
+# function eval_expr(expression);
+
+# -*- mode:awk -*-
+
+function ev1scan_init_opregister(opname,optype,opprec){
   ev_db_operator[opname]=optype;
   ev_db_operator[opname,"a"]=opprec;
 }
 
-function ev_init(){
+function ev1scan_init(){
   OP_BIN=1;
   OP_UNA=2; # prefix
   OP_SGN=3; # prefix or binary
   OP_INC=4; # prefix or suffix
 
-  ev_init_opregister("." ,OP_BIN,12.0);
+  ev1scan_init_opregister("." ,OP_BIN,12.0);
 
-  ev_init_opregister("++",OP_INC,11.0);
-  ev_init_opregister("--",OP_INC,11.0);
-  ev_init_opregister("!" ,OP_UNA,11.0);
+  ev1scan_init_opregister("++",OP_INC,11.0);
+  ev1scan_init_opregister("--",OP_INC,11.0);
+  ev1scan_init_opregister("!" ,OP_UNA,11.0);
 
-  ev_init_opregister("*" ,OP_BIN,10.0);
-  ev_init_opregister("/" ,OP_BIN,10.0);
-  ev_init_opregister("%" ,OP_BIN,10.0);
+  ev1scan_init_opregister("*" ,OP_BIN,10.0);
+  ev1scan_init_opregister("/" ,OP_BIN,10.0);
+  ev1scan_init_opregister("%" ,OP_BIN,10.0);
 
-  ev_init_opregister("+" ,OP_SGN,9.0);
-  ev_init_opregister("-" ,OP_SGN,9.0);
+  ev1scan_init_opregister("+" ,OP_SGN,9.0);
+  ev1scan_init_opregister("-" ,OP_SGN,9.0);
 
-  ev_init_opregister("==",OP_BIN,8.0);
-  ev_init_opregister("!=",OP_BIN,8.0);
-  ev_init_opregister("<" ,OP_BIN,8.0);
-  ev_init_opregister("<=",OP_BIN,8.0);
-  ev_init_opregister(">" ,OP_BIN,8.0);
-  ev_init_opregister(">=",OP_BIN,8.0);
+  ev1scan_init_opregister("==",OP_BIN,8.0);
+  ev1scan_init_opregister("!=",OP_BIN,8.0);
+  ev1scan_init_opregister("<" ,OP_BIN,8.0);
+  ev1scan_init_opregister("<=",OP_BIN,8.0);
+  ev1scan_init_opregister(">" ,OP_BIN,8.0);
+  ev1scan_init_opregister(">=",OP_BIN,8.0);
 
-  ev_init_opregister("&" ,OP_BIN,7.4);
-  ev_init_opregister("^" ,OP_BIN,7.2);
-  ev_init_opregister("|" ,OP_BIN,7.0);
-  ev_init_opregister("&&",OP_BIN,6.4);
-  ev_init_opregister("||",OP_BIN,6.0);
+  ev1scan_init_opregister("&" ,OP_BIN,7.4);
+  ev1scan_init_opregister("^" ,OP_BIN,7.2);
+  ev1scan_init_opregister("|" ,OP_BIN,7.0);
+  ev1scan_init_opregister("&&",OP_BIN,6.4);
+  ev1scan_init_opregister("||",OP_BIN,6.0);
 
-  ev_init_opregister("=" ,OP_BIN,2.0);
-  ev_init_opregister("+=",OP_BIN,2.0);
-  ev_init_opregister("-=",OP_BIN,2.0);
-  ev_init_opregister("*=",OP_BIN,2.0);
-  ev_init_opregister("/=",OP_BIN,2.0);
-  ev_init_opregister("%=",OP_BIN,2.0);
-  ev_init_opregister("|=",OP_BIN,2.0);
-  ev_init_opregister("^=",OP_BIN,2.0);
-  ev_init_opregister("&=",OP_BIN,2.0);
-  ev_init_opregister("," ,OP_BIN,1.0);
+  ev1scan_init_opregister("=" ,OP_BIN,2.0);
+  ev1scan_init_opregister("+=",OP_BIN,2.0);
+  ev1scan_init_opregister("-=",OP_BIN,2.0);
+  ev1scan_init_opregister("*=",OP_BIN,2.0);
+  ev1scan_init_opregister("/=",OP_BIN,2.0);
+  ev1scan_init_opregister("%=",OP_BIN,2.0);
+  ev1scan_init_opregister("|=",OP_BIN,2.0);
+  ev1scan_init_opregister("^=",OP_BIN,2.0);
+  ev1scan_init_opregister("&=",OP_BIN,2.0);
+  ev1scan_init_opregister("," ,OP_BIN,1.0);
 
   # for ev2
   SE_VALU=1;
@@ -161,7 +165,7 @@ function ev_init(){
   TYPE_STR=1;
 }
 
-function ev_scan(expression,words, _wlen,_i,_len,_c,_t,_w){
+function ev1scan_scan(expression,words, _wlen,_i,_len,_c,_t,_w){
   _wlen=0;
   _len=length(expression);
   for(_i=0;_i<_len;_i++){
@@ -218,7 +222,7 @@ function ev_scan(expression,words, _wlen,_i,_len,_c,_t,_w){
         }else if(_c=="\\"){
           #print_error("dbg: (escchar = " _c " " substr(expression,_i+2,1) ")" );
           if(_i+1<_len){
-            _w=_w ev_scan_escchar(substr(expression,_i+2,1));
+            _w=_w ev1scan_scan_escchar(substr(expression,_i+2,1));
             _i++;
           }else{
             _w=_w _c;
@@ -247,7 +251,7 @@ function ev_scan(expression,words, _wlen,_i,_len,_c,_t,_w){
   return _wlen;
 }
 
-function ev_scan_escchar(c){
+function ev1scan_scan_escchar(c){
   if(c !~ /[nrtvfaeb]/)return c;
   if(c=="n")return "\n";
   if(c=="r")return "\r";
@@ -260,172 +264,17 @@ function ev_scan_escchar(c){
   return c;
 }
 
-function ev_cast_bool(arg){
+function ev1scan_cast_bool(arg){
   return arg!=0&&arg!="";
 }
+# -*- mode:awk -*-
 
-#------------------------------------------------------------------------------
-
-function eval_expr(expression, _wlen,_words,_i,_len,_t,_w,_v,_sp,_s){
+function eval_expr(expression){
   return ev2_expr(expression);
-  _wlen=ev_scan(expression,_words);
-
-  # parse
-  _sp=-1;
-  for(_i=0;_i<_wlen;_i++){
-    # _t: token type
-    # _w: token word
-    # _l: token prefix level
-    _t=_words[_i,"t"];
-    _w=_words[_i,"w"];
-
-    #-- operator context --
-    if(_t=="o"){
-      if(_w ~ /^[-+]$/){
-        if(_sp>=0&&_s[_sp,"t"]=="value"){
-          _t="b"; # binary operator
-          _w="b" _w;
-          _l=4;
-        }else{
-          _t="u"; # unary operator
-          _w="u" _w;
-        }
-      }else if(ev_db_operator[_w,"a"]!=""){ # binary operator
-        _l=ev_db_operator[_w,"a"];
-        _t="b";_w="b" _w;
-        #print "dbg: binary operator level = " _l > "/dev/stderr"
-      }else if(_w ~ /^!$/){
-        _t="u";_w="u" _w;
-      }
-    }
-
-    #-- process token --
-    if(_t=="n"){
-      _sp++;
-      _s[_sp,"t"]="value";
-      _s[_sp,"v"]=_w;
-    }else if(_t=="b"){
-      # binary operator
-
-      _s["sp"]=_sp;
-      _v=ev_pop_value(_s,_l); # left associative
-      # _v=ev_pop_value(_s,_l+0.1); # right associative
-      _sp=_s["sp"];
-
-      _sp++;
-      _s[_sp,"t"]="prefix";
-      _s[_sp,"c"]=_w; # operator
-      _s[_sp,"l"]=_l; # level
-      _s[_sp,"v"]=_v; # lhs
-    }else if(_t=="u"){
-      # unary operator
-      _sp++;
-      _s[_sp,"t"]="prefix"
-      _s[_sp,"c"]=_w; # operator
-      _s[_sp,"l"]=3;  # level
-    }else if(_t=="op"){
-      _sp++;
-      _s[_sp,"t"]="open";
-      _s[_sp,"c"]=_w;
-    }else if(_t=="cl"){
-      _s["sp"]=_sp;
-      _v=ev_pop_value(_s,0);
-      _sp=_s["sp"];
-
-      if(!(_sp>=0&&_s[_sp,"t"]=="open")){
-        print "mwg_pp.eval: no matching open paren to " _w " in " expression > "/dev/stderr"
-        continue;
-      }
-
-      _w=_s[_sp,"w"] _w;
-      _sp--;
-
-      if(_w=="[]")_v=int(_v);
-            
-      _sp++;
-      _s[_sp,"t"]="value";
-      _s[_sp,"v"]=_v;
-    }else if(_t=="w"){
-      _w=d_data[_w];
-      #_w=0+_w;
-
-      _sp++;
-      _s[_sp,"t"]="value";
-      _s[_sp,"v"]=_w;
-    }else if(_t=="v"){
-      # some values (string, etc)
-      _sp++;
-      _s[_sp,"t"]="value";
-      _s[_sp,"v"]=_w;
-    }else{
-      print "\33[1;31mmwg_pp.eval:internal:\33[m unknown token type " _t > "/dev/stderr"
-    }
-  }
-
-  _s["sp"]=_sp;
-  _v=ev_pop_value(_s,0);
-  _sp=_s["sp"];
-
-  if(_sp>=0)_v="err";
-  return _v;
 }
-
-function ev_apply(cmd,arg,value){
-  if(cmd ~ /^b/){
-    cmd=substr(cmd,2);
-    #print "binary " arg " " cmd " " value > "/dev/stderr"
-    if(cmd=="+")return arg+value;
-    if(cmd=="-")return arg-value;
-    if(cmd=="*")return arg*value;
-    if(cmd=="/")return arg/value;
-    if(cmd=="==")return arg==value;
-    if(cmd=="!=")return arg!=value;
-    if(cmd==">=")return arg>=value;
-    if(cmd=="<=")return arg<=value;
-    if(cmd=="<")return arg<value;
-    if(cmd==">")return arg>value;
-    if(cmd=="|")return or(arg,value);
-    if(cmd=="^")return xor(arg,value);
-    if(cmd=="&")return and(arg,value);
-    #print "dbg: left=" arg " , right=" value ", result=" (ev_cast_bool(arg)||ev_cast_bool(value)) > "/dev/stderr"
-    if(cmd=="||")return ev_cast_bool(arg)||ev_cast_bool(value); # not lazy evaluation
-    if(cmd=="&&")return ev_cast_bool(arg)&&ev_cast_bool(value); # not lazy evaluation
-  }else if(cmd ~ /^u/){
-    cmd=substr(cmd,2);
-    if(cmd=="+")return value;
-    if(cmd=="-")return -value;
-    if(cmd=="!")return !ev_cast_bool(value);
-  }
-
-  return value;
-}
-
-function ev_pop_value(s,level, _sp,_value){
-  _sp=s["sp"];
-
-  # read value
-  if(_sp>=0&&s[_sp,"t"]=="value"){
-    _value=s[_sp,"v"];
-    _sp--;
-  }else{
-    _value=0;
-  }
-
-  # proc prefices
-  while(_sp>=0&&s[_sp,"t"]=="prefix"&&s[_sp,"l"]>=level){
-    _value=ev_apply(s[_sp,"c"],s[_sp,"v"],_value);
-    _sp--;
-  }
-
-  s["sp"]=_sp;
-  #print "debug: pop '" _value "'" > "/dev/stderr"
-  return _value;
-}
-
-#------------------------------------------------------------------------------
 
 function ev2_expr(expression, _wlen,_words,_i,_len,_t,_w,_v,_sp,_s,_sp1,_optype){
-  _wlen=ev_scan(expression,_words);
+  _wlen=ev1scan_scan(expression,_words);
 
   # <param name="_s">
   #  parsing stack
@@ -859,8 +708,8 @@ function ev2_apply(stk,iPre,iVal, _pT,_pW,_lhs,_rhs,_lhsT,_rhsT,_result,_i,_a,_b
     else if(_pW=="|")_result=or(_lhs,_rhs);
     else if(_pW=="^")_result=xor(_lhs,_rhs);
     else if(_pW=="&")_result=and(_lhs,_rhs);
-    else if(_pW=="||")_result=ev_cast_bool(_lhs)||ev_cast_bool(_rhs); # not lazy evaluation
-    else if(_pW=="&&")_result=ev_cast_bool(_lhs)&&ev_cast_bool(_rhs); # not lazy evaluation
+    else if(_pW=="||")_result=ev1scan_cast_bool(_lhs)||ev1scan_cast_bool(_rhs); # not lazy evaluation
+    else if(_pW=="&&")_result=ev1scan_cast_bool(_lhs)&&ev1scan_cast_bool(_rhs); # not lazy evaluation
     else if(_pW ~ /[-+*/%|^&]?=/){
       if(and(stk[iPre,"M"],MOD_REF)){
         _resultT=TYPE_NUM;
@@ -920,7 +769,7 @@ function ev2_apply(stk,iPre,iVal, _pT,_pW,_lhs,_rhs,_lhsT,_rhsT,_result,_i,_a,_b
 
     if(_pW=="+")_result=_rhs;
     else if(_pW=="-")_result=-_rhs;
-    else if(_pW=="!")_result=!ev_cast_bool(_rhs);
+    else if(_pW=="!")_result=!ev1scan_cast_bool(_rhs);
     else if(_pW=="++"){
       _result=_rhs+1;
       stk[iPre]=_result;
@@ -1021,8 +870,6 @@ function ev2_delete(sDict,sName){
 
 # TODO? Dict[sp]      -> Dict[sp,"v"]
 # TODO? s[i,"c"]="b+" -> s[i,"k"]="b" s["o"]="+"
-
-#------------------------------------------------------------------------------
 
 #===============================================================================
 #  Parameter Expansion
@@ -1684,8 +1531,8 @@ function process_line(line,_line,_text,_ind,_len,_directive, _cap){
 }
 
 BEGIN{
-  FS="MWG_PP_COMMENT";
-  ev_init();
+  FS="MWG_PP" "_COMMENT";
+  ev1scan_init();
   d_level=0;
   d_data[0]="";
 
@@ -1704,14 +1551,15 @@ BEGIN{
 }
 
 {
-  if(NR==1){
+  if(FNR==1){
     if(ENVIRON["PPLINENO_FILE"]!="")
       m_rfile=ENVIRON["PPLINENO_FILE"];
     else
       m_rfile=FILENAME;
+    dependency_add(m_rfile);
   }
   m_lineno_cfile=m_rfile;
-  m_lineno_cline=NR;
+  m_lineno_cline=FNR;
   process_line($1);
 }
 
@@ -1721,21 +1569,23 @@ function dependency_add(file){
     m_dependency[m_dependency_count++]=file;
   }
 }
-function dependency_generate(output,target, _i,_iMax){
+function dependency_generate(output,target, _i,_iMax,_line){
   if(!target){
     target=m_rfile;
     sub(/\.pp$/,"",target);
     target=target ".out";
   }
 
-  if(m_dependency_count==0){
-    print target ": " m_rfile > output
-  }else{
-    print target ": " m_rfile " \\" > output
+  if(m_dependency_count==0)
+    print target ":" > output;
+  else{
     _iMax=m_dependency_count-1;
-    for(_i=0;_i<_iMax;_i++)
-      print "  " m_dependency[_i] " \\" >> output;
-    print "  " m_dependency[_iMax] >> output;
+    for(_i=0;_i<m_dependency_count;_i++){
+      _line=_i==0?target ":":"  ";
+      _line=_line m_dependency[_i];
+      if(_i<_iMax)_line=_line " \\";
+      print _line > output;
+    }
   }
 }
 

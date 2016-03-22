@@ -16,9 +16,6 @@
 
 2016-03-18
 
-* pp include したファイルも makefile で追跡できるようにする?
-  前実装しようとしていたような気がするが結局現在はどのような状態か?
-
 * mwg/strbuf: strbuf のテストを追加する。■
 * mwg/strbuf: strbuf の破壊的機能を実装する。■
 
@@ -184,28 +181,30 @@
 
   以下実装済
 
-  mwg::string3_detail::strbase<Policy>
+  mwg::str_detail::strbase<Policy>
     全ての文字列クラスの基底クラス。
     基本的な非破壊的操作関数を備える。
 
-  mwg::string3_detail::string<XCH>
+  mwg::str_detail::string<XCH>
     固定文字列。データを他の文字列と共有しうる。
 
-  mwg::string3_detail::strsub<XCH>
+  mwg::str_detail::strsub<XCH>
     他の文字列、データに対する部分文字列を表現するクラス。
 
-  % mwg::string3_detail::stradp<XCH>
+  mwg::str_detail::strbuf<XCH>
+    編集用の文字列。参照の複製はされない。
+    自己破壊関数も備える。
+
+  以下は廃止された
+
+  % mwg::str_detail::stradp<XCH>
   %   アダプタ。実質的に strsub と等価。
   %   # 唯一違う点は様々なクラスインスタンスから implicit に構築できる事。
   %   # 文字列の類を受け取る関数の引数の型などに用いるのが目的。
 
   以下は実装予定
 
-  mwg::string3_detail::strbuff<XCH>
-    編集用の文字列。参照の複製はされない。
-    自己破壊関数も備える。
-
-  mwg::string3_detail::strsymb<XCH>
+  mwg::str_detail::strsymb<XCH>
     インスタンスの単一性を保証するクラス
     等値比較が、ポインタを比較するだけで済むので楽。
     比較的長い文字列で同じ物が沢山現れる場合にはメモリの節約にもなるかも。
@@ -213,7 +212,7 @@
     クラス名に関しては一考の余地有り。
     ruby では symbol と呼ばれている物である。
 
-  mwg::string3_detail::strsymb_dictionary<XCH>
+  mwg::str_detail::strsymb_dictionary<XCH>
     strsymb の親クラス。
     存在しているインスタンス全てをこの中に保持して管理する。
     デフォルトでグローバルに使用できるインスタンスを生成するが、
@@ -222,7 +221,7 @@
     内部構造は取り敢えず std::map (sorted list) で二分探索。
     将来的には trie を考えても OK
 
-  mwg::string3_detail::strpath<XCH>
+  mwg::str_detail::strpath<XCH>
     ファイル名を管理する為の文字列。
     ファイル名を操作する関数を備える? operator/
 
@@ -582,6 +581,15 @@
 ------------------------------------------------------------------------------
   Done
 ------------------------------------------------------------------------------
+
+2016-03-23
+
+* pp include したファイルも makefile で追跡できるようにする?
+  前実装しようとしていたような気がするが結局現在はどのような状態か?
+
+  →mwg_pp.awk の方にその様な機能を実装しただけで、
+    実際には mmake では全くその様な物は用意されていなかった。
+
 
 2016-03-22
 
