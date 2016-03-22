@@ -26,29 +26,32 @@
 namespace mwg{
 namespace str_detail{
   template<typename XCH>
-  class strbuf_xprintf_writer:public mwg::xprintf_detail::xprintf_writer{
+  class strbuf_xprintf_writer_proc{
     mwg::strbuf<XCH>& target;
   public:
-    strbuf_xprintf_writer(mwg::strbuf<XCH>& target):target(target){}
-    virtual void put(std::wint_t ch) const{target.append((XCH)ch);}
+    strbuf_xprintf_writer_proc(mwg::strbuf<XCH>& target):target(target){}
+    void operator()(XCH const* buffer,int count) const{
+      target.append(buffer,buffer+count);
+    }
   };
 }
 
 namespace xprintf_detail{
   template<typename XCH>
-  mwg::str_detail::strbuf_xprintf_writer<XCH> create_xprintf_writer(mwg::strbuf<XCH>& target,bool flagClear,adl_helper){
+  xprintf_writer create_xprintf_writer(mwg::strbuf<XCH>& target,bool flagClear,adl_helper){
     if(flagClear)target.clear();
-    return target;
+    return mwg::str_detail::strbuf_xprintf_writer_proc<XCH>(target);
   }
 }
 }
 
 #pragma%x begin_test
-  void test(){
-    mwg::strbuf<char> buff;
-    mwg::xprintf(buff,"%s/ph%03d/dens%06d.dat","work",12,12345);
-    mwg_check((buff=="work/ph012/dens012345.dat"));
-  }
+void test(){
+  mwg_check( (mwg::be_functor<mwg::str_detail::strbuf_xprintf_writer_proc<char>,void(char const*,int)>::value));
+  mwg::strbuf<char> buff;
+  mwg::xprintf(buff,"%s/ph%03d/dens%06d.dat","work",12,12345);
+  mwg_check((buff=="work/ph012/dens012345.dat"));
+}
 #pragma%x end_test
 
 //AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA

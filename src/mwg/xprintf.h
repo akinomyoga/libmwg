@@ -7,6 +7,7 @@
 #include <mwg/std/tuple>
 #include <mwg/std/utility>
 #include <mwg/std/type_traits>
+#include <mwg/functor.h>
 #pragma%include "impl/VariadicMacros.pp"
 
 namespace mwg{
@@ -93,13 +94,16 @@ namespace xprintf_detail{
  * *拡張: 型 Target を新しく出力先として登録する方法
  * &pre(!cpp,title=myheader.h){
  * namespace MyNamespace{
- *   class custom_writer:public mwg::xprintf_detail::xprintf_writer{
- *     virtual void put(std::wint_t ch) const{ ... }
+ *   class custom_writer_proc{
+ *     void process(char const* buff,int count) const{ ... }
  *   };
  * }
  * namespace mwg{
  * namespace xprintf_detail{
- *   MyNamespace::custom_writer create_xprintf_writer(Target& target,adl_helper);
+ *   xprintf_writer create_xprintf_writer(Target& target,int flagClear,adl_helper){
+ *     if(flagClear)target.clear();
+ *     return custom_writer_proc(target);
+ *   }
  * }
  * }
  * }
@@ -115,9 +119,9 @@ namespace xprintf_detail{
  *
  * *拡張: 型 T の引数に対する書式出力を定義する方法
  * &pre(!cpp){
- * template<typename Buff>
+ * template<typename Writer>
  * int mwg::xprintf_detail::xprintf_convert(
- *   Buff const& buff,fmtspec const& spec,MyType const& value,
+ *   Writer const& buff,fmtspec const& spec,MyType const& value,
  *   mwg::xprintf_detail::adl_helper);
  * }
  * を実装すれば良い。
@@ -377,8 +381,8 @@ namespace xprintf_detail{
 namespace mwg{
 namespace xprintf_detail{
 
-  template<typename Buff>
-  int xputs(Buff const& buff,const char* str){
+  template<typename Writer>
+  int xputs(Writer const& buff,const char* str){
     const char* p=str;
     while(*p)buff.put(*p++);
     return p-str;
@@ -389,18 +393,18 @@ namespace xprintf_detail{
     xprint_convert_unknown_conv=-2,
   };
 
-  template<typename Buff>
-  int xprintf_convert(Buff const& buff,fmtspec const& spec,...){
+  template<typename Writer>
+  int xprintf_convert(Writer const& buff,fmtspec const& spec,...){
     mwg_unused(spec);
     return xputs(buff,"(xprintf: not supported argument type)");
   }
-  template<typename Buff>
+  template<typename Writer>
   struct xprintf_convert_eval{
     typedef int return_type;
-    Buff const& buff;
+    Writer const& buff;
     fmtspec const& spec;
   public:
-    xprintf_convert_eval(Buff const& buff,fmtspec const& spec):buff(buff),spec(spec){}
+    xprintf_convert_eval(Writer const& buff,fmtspec const& spec):buff(buff),spec(spec){}
 
     template<typename T>
     int eval(T mwg_forward_rvalue value) const{
@@ -414,8 +418,8 @@ namespace xprintf_detail{
 
   // helper function
 
-  template<typename T,typename Buff,typename Converter>
-  int convert_aligned(Buff const& buff,fmtspec const& spec,T const& value,Converter& conv){
+  template<typename T,typename Writer,typename Converter>
+  int convert_aligned(Writer const& buff,fmtspec const& spec,T const& value,Converter& conv){
     int pw=conv.count_prefix(value);
     int bw=conv.count_body(value);
 
@@ -447,58 +451,52 @@ namespace xprintf_detail{
 
   // default converters
 
-  template<typename Buff>
+  template<typename Writer>
   struct basic_convert_impl{
     // implemented in xprintf.cpp
-    static int convert_integer(Buff const& buff,fmtspec const& spec,mwg::u8t value,bool isSigned,int size);
-    static int convert_floating_point(Buff const& buff,fmtspec const& spec,double const& value);
-    static int convert_string(Buff const& buff,fmtspec const& spec,const char* str,std::size_t len);
+    static int convert_integer(Writer const& buff,fmtspec const& spec,mwg::u8t value,bool isSigned,int size);
+    static int convert_floating_point(Writer const& buff,fmtspec const& spec,double const& value);
+    static int convert_string(Writer const& buff,fmtspec const& spec,const char* str,std::size_t len);
   };
-
-  template<typename Buff,bool=stdm::is_base_of<xprintf_writer,Buff>::value>
-  struct basic_convert_dispatch:basic_convert_impl<Buff>{};
-
-  template<typename Buff>
-  struct basic_convert_dispatch<Buff,true>:basic_convert_impl<xprintf_writer>{};
 
   // integral conversion
 
-  template<typename Buff,typename T>
+  template<typename Writer,typename T>
   typename stdm::enable_if<stdm::is_signed<T>::value&&!stdm::is_same<T,char>::value,int>::type
-  xprintf_convert(Buff const& buff,fmtspec const& spec,T const& value,adl_helper){
-    return basic_convert_dispatch<Buff>::convert_integer(buff,spec,(mwg::i8t)value,true,sizeof(T));
+  xprintf_convert(Writer const& buff,fmtspec const& spec,T const& value,adl_helper){
+    return basic_convert_impl<Writer>::convert_integer(buff,spec,(mwg::i8t)value,true,sizeof(T));
   }
 
-  template<typename Buff,typename T>
+  template<typename Writer,typename T>
   typename stdm::enable_if<stdm::is_unsigned<T>::value||stdm::is_same<T,char>::value,int>::type
-  xprintf_convert(Buff const& buff,fmtspec const& spec,T const& value,adl_helper){
-    return basic_convert_dispatch<Buff>::convert_integer(buff,spec,(mwg::i8t)value,false,sizeof(T));
+  xprintf_convert(Writer const& buff,fmtspec const& spec,T const& value,adl_helper){
+    return basic_convert_impl<Writer>::convert_integer(buff,spec,(mwg::i8t)value,false,sizeof(T));
   }
 
   // floating point conversion
 
-  template<typename Buff>
-  int xprintf_convert(Buff const& buff,fmtspec const& spec,double const& value,adl_helper){
-    return basic_convert_dispatch<Buff>::convert_floating_point(buff,spec,value);
+  template<typename Writer>
+  int xprintf_convert(Writer const& buff,fmtspec const& spec,double const& value,adl_helper){
+    return basic_convert_impl<Writer>::convert_floating_point(buff,spec,value);
   }
 
   // string conversion
 
-  template<typename Buff>
-  int xprintf_convert(Buff const& buff,fmtspec const& spec,const char* str,adl_helper){
-    return basic_convert_dispatch<Buff>::convert_string(buff,spec,str,std::strlen(str));
+  template<typename Writer>
+  int xprintf_convert(Writer const& buff,fmtspec const& spec,const char* str,adl_helper){
+    return basic_convert_impl<Writer>::convert_string(buff,spec,str,std::strlen(str));
   }
 
-  // template<typename Buff,std::size_t N>
-  // int xprintf_convert(Buff const& buff,fmtspec const& spec,const char (&str)[N],adl_helper){
+  // template<typename Writer,std::size_t N>
+  // int xprintf_convert(Writer const& buff,fmtspec const& spec,const char (&str)[N],adl_helper){
   //   std::size_t s;
   //   for(s=0;s<N;s++)if(!str[s])break;
-  //   return basic_convert_dispatch<Buff>::convert_string(buff,spec,str,s);
+  //   return basic_convert_impl<Writer>::convert_string(buff,spec,str,s);
   // }
 
-  template<typename Buff>
-  int xprintf_convert(Buff const& buff,fmtspec const& spec,std::string const& str,adl_helper){
-    return basic_convert_dispatch<Buff>::convert_string(buff,spec,str.data(),str.size());
+  template<typename Writer>
+  int xprintf_convert(Writer const& buff,fmtspec const& spec,std::string const& str,adl_helper){
+    return basic_convert_impl<Writer>::convert_string(buff,spec,str.data(),str.size());
   }
 }
 }
@@ -513,8 +511,32 @@ namespace xprintf_detail{
 
 namespace mwg{
 namespace xprintf_detail{
-  struct xprintf_writer{
-    virtual void put(std::wint_t ch) const=0;
+
+  class xprintf_writer{
+    mwg::functor<void(char const*,int)> process;
+    mutable int count;
+    mutable char buffer[16];
+  public:
+    template<typename F>
+    xprintf_writer(
+      F const& proc,
+      typename stdm::enable_if<mwg::be_functor<F,void(char const*,int)>::value,mwg::invalid_type*>::type=0
+    ):process(proc),count(0){}
+
+    ~xprintf_writer(){
+      if(this->count){
+        this->process(this->buffer,this->count);
+        this->count=0;
+      }
+    }
+
+    void put(std::wint_t ch) const{
+      this->buffer[this->count++]=ch;
+      if(this->count==16){
+        this->process(this->buffer,this->count);
+        this->count=0;
+      }
+    }
   };
 
   struct empty_writer{
@@ -588,8 +610,8 @@ namespace xprintf_detail{
 namespace mwg{
 namespace xprintf_detail{
 
-  template<typename Buff,typename Tuple>
-  int vxprintf_impl(Buff const& buff,const char* fmt,Tuple const& args){
+  template<typename Writer,typename Tuple>
+  int vxprintf_impl(Writer const& buff,const char* fmt,Tuple const& args){
     using namespace mwg::xprintf_detail;
     namespace detail=mwg::xprintf_detail;
     int nchar=0;
@@ -633,7 +655,7 @@ namespace xprintf_detail{
           continue;
         }
 
-        xprintf_convert_eval<Buff> ev(buff,spec);
+        xprintf_convert_eval<Writer> ev(buff,spec);
         int w=mwg::vararg::evaluate_element(ev,args,jarg);
         if(w>=0){
           nchar+=w;

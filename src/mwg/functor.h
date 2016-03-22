@@ -596,11 +596,11 @@ namespace functor_detail{
   public:
     vfunctor_ref() mwg_std_deleted;
     template<typename F>
-    vfunctor_ref(const F& f,typename stdm::enable_if<is_functor<S,F>::value,mwg::invalid_type*>::type=nullptr){
+    vfunctor_ref(const F& f,typename stdm::enable_if<is_functor<F,S>::value,mwg::invalid_type*>::type=nullptr){
       this->template init<F,functor_case_impl<S,typename functor_traits<F>::ref_tr> >(f);
     }
     template<typename F>
-    vfunctor_ref(const F& f,typename stdm::enable_if<!is_functor<S,F>::value&&be_functor<F,S>::value,mwg::invalid_type*>::type=nullptr){
+    vfunctor_ref(const F& f,typename stdm::enable_if<!is_functor<F,S>::value&&be_functor<F,S>::value,mwg::invalid_type*>::type=nullptr){
       this->template init<F,functor_case_impl<S,typename functor_traits<F,S>::ref_tr> >(f);
     }
   };

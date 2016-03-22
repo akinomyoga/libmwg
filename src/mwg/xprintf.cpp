@@ -318,8 +318,8 @@ namespace xprintf_detail{
     }
 
   private:
-    template<typename Buff>
-    void put_digits(Buff const& buff,mwg::u8t value,int idigit) const{
+    template<typename Writer>
+    void put_digits(Writer const& buff,mwg::u8t value,int idigit) const{
       char c=digits[value%base];
       value/=base;
       if(value>0){
@@ -331,8 +331,8 @@ namespace xprintf_detail{
     }
 
   public:
-    template<typename Buff>
-    void output_body(Buff const& buff,mwg::u8t value){
+    template<typename Writer>
+    void output_body(Writer const& buff,mwg::u8t value){
       if(iflags&iflag_signed&&reinterpret_cast<mwg::i8t const&>(value)<0)
         value=1+~value; // -INT8_MIN は ? なので mwg::u8t のまま変換
 
@@ -356,8 +356,8 @@ namespace xprintf_detail{
 
       return ret;
     }
-    template<typename Buff>
-    void output_prefix(Buff const& buff,mwg::u8t const& value){
+    template<typename Writer>
+    void output_prefix(Writer const& buff,mwg::u8t const& value){
       if(iflags&iflag_signed){
         if(reinterpret_cast<mwg::i8t const&>(value)<0){
           buff.put('-');
@@ -383,11 +383,11 @@ namespace xprintf_detail{
   class character_converter{
   public:
     int count_body(std::wint_t ch) const{mwg_unused(ch);return 1;}
-    template<typename Buff>
-    void output_body(Buff& buff,std::wint_t ch) const{buff.put(ch);}
+    template<typename Writer>
+    void output_body(Writer& buff,std::wint_t ch) const{buff.put(ch);}
     int count_prefix(std::wint_t ch) const{mwg_unused(ch);return 0;}
-    template<typename Buff>
-    void output_prefix(Buff& buff,std::wint_t ch) const{mwg_unused(buff);mwg_unused(ch);}
+    template<typename Writer>
+    void output_prefix(Writer& buff,std::wint_t ch) const{mwg_unused(buff);mwg_unused(ch);}
     static bool has_leading_zeroes(std::wint_t const&){
       return false;
     }
@@ -401,21 +401,21 @@ namespace xprintf_detail{
     int count_body(bool value) const{
       return value?4:5;
     }
-    template<typename Buff>
-    void output_body(Buff& buff,bool value) const{
+    template<typename Writer>
+    void output_body(Writer& buff,bool value) const{
       if(upperCase)
         xputs(buff,value?"TRUE":"FALSE");
       else
         xputs(buff,value?"true":"false");
     }
     int count_prefix(bool value) const{mwg_unused(value);return 0;}
-    template<typename Buff>
-    void output_prefix(Buff& buff,bool value) const{mwg_unused(buff);mwg_unused(value);}
+    template<typename Writer>
+    void output_prefix(Writer& buff,bool value) const{mwg_unused(buff);mwg_unused(value);}
     static bool has_leading_zeroes(bool const&){return false;}
   };
 
-  template<typename Buff>
-  int basic_convert_impl<Buff>::convert_integer(Buff const& buff,fmtspec const& spec,mwg::u8t value,bool isSigned,int size){
+  template<typename Writer>
+  int basic_convert_impl<Writer>::convert_integer(Writer const& buff,fmtspec const& spec,mwg::u8t value,bool isSigned,int size){
     if(spec.type!=type_default){
       int ssize=0;
 
@@ -520,9 +520,9 @@ namespace xprintf_detail{
     case 'g':case 'G':
     case 'a':case 'A':
       if(isSigned)
-        return basic_convert_impl<Buff>::convert_floating_point(buff,spec,(double)(mwg::i8t)value);
+        return basic_convert_impl<Writer>::convert_floating_point(buff,spec,(double)(mwg::i8t)value);
       else
-        return basic_convert_impl<Buff>::convert_floating_point(buff,spec,(double)(mwg::u8t)value);
+        return basic_convert_impl<Writer>::convert_floating_point(buff,spec,(double)(mwg::u8t)value);
     default:
       return xprint_convert_unknown_conv;
     }
@@ -747,8 +747,8 @@ namespace xprintf_detail{
   private:
     int pd_pos;
     int pd_nzero;
-    template<typename Buff>
-    void put_digit(Buff& buff,int digit){
+    template<typename Writer>
+    void put_digit(Writer& buff,int digit){
       buff.put(digits[digit]);
       if(--pd_pos>=0){
         if(pd_pos==0){
@@ -760,8 +760,8 @@ namespace xprintf_detail{
     }
 
   protected:
-    template<typename Buff>
-    void generateFloatingSequence(Buff& buff,int integralDigits,int fractionDigits){
+    template<typename Writer>
+    void generateFloatingSequence(Writer& buff,int integralDigits,int fractionDigits){
       double value=frac;
       pd_pos=integralDigits;
       pd_nzero=0;
@@ -808,8 +808,8 @@ namespace xprintf_detail{
     }
 
   public:
-    template<typename Buff>
-    void output_body(Buff const& buff,double const& value){
+    template<typename Writer>
+    void output_body(Writer const& buff,double const& value){
       if(!stdm::isfinite(value)){
         if(stdm::isnan(value))
           xputs(buff,&digits[IDIGITS_NAN]);
@@ -845,8 +845,8 @@ namespace xprintf_detail{
         ret++;
       return ret;
     }
-    template<typename Buff>
-    void output_prefix(Buff const& buff,double const& value){
+    template<typename Writer>
+    void output_prefix(Writer const& buff,double const& value){
 #ifdef XPRINTF__NAN_HAS_NO_SIGN
       if(stdm::isnan(value))return;
 #endif
@@ -862,8 +862,8 @@ namespace xprintf_detail{
     }
   };
 
-  template<typename Buff>
-  int basic_convert_impl<Buff>::convert_floating_point(Buff const& buff,fmtspec const& spec,double const& value){
+  template<typename Writer>
+  int basic_convert_impl<Writer>::convert_floating_point(Writer const& buff,fmtspec const& spec,double const& value){
     floating_point_converter conv(spec);
 
     switch(spec.conv){
@@ -912,20 +912,20 @@ namespace xprintf_detail{
     }
   public:
     int count_body(const char* str) const{mwg_unused(str);return s;}
-    template<typename Buff>
-    void output_body(Buff& buff,const char* str) const{
+    template<typename Writer>
+    void output_body(Writer& buff,const char* str) const{
       for(std::size_t i=0;i<s;i++)buff.put(str[i]);
     }
     int count_prefix(const char* str) const{mwg_unused(str);return 0;}
-    template<typename Buff>
-    void output_prefix(Buff& buff,const char* str) const{mwg_unused(buff);mwg_unused(str);}
+    template<typename Writer>
+    void output_prefix(Writer& buff,const char* str) const{mwg_unused(buff);mwg_unused(str);}
     static bool has_leading_zeroes(const char*){
       return false;
     }
   };
 
-  template<typename Buff>
-  int basic_convert_impl<Buff>::convert_string(Buff const& buff,fmtspec const& spec,const char* str,std::size_t len){
+  template<typename Writer>
+  int basic_convert_impl<Writer>::convert_string(Writer const& buff,fmtspec const& spec,const char* str,std::size_t len){
     string_converter conv(spec,len);
     switch(spec.conv){
     case 's':break;
