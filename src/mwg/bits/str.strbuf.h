@@ -26,7 +26,7 @@ namespace str_detail{
     typedef const char_type& char_reference;
     static const bool has_get_ptr=true;
 
-    typedef pointer_const_iterator<char_type> const_iterator;
+    typedef char_type const* const_iterator;
 
     typedef char_traits<char_type> char_traits_type;
 

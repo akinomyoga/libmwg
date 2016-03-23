@@ -10,7 +10,7 @@
 
 * xprintf: wchar_t, etc. 対応
 * xprintf: template 部分を xprintf.cpp から xprintf.h に移動
-  明示的インスタンス化を省略できる陽にする。
+  明示的インスタンス化を省略できる様にする。
   同時に str.support.xprintf.h も xprintf_writer ではなく
   template を利用した実装に切り替える。
 
@@ -22,18 +22,6 @@
 2016-03-07
 
 * mwg/str: char_reference 名称再考?
-
-* pointer_const_iterator はやはり単なる pointer でも良いのではないかという気がする。
-
-  - %% const_iterator::has_index → mwg/concept.h で自動判定する様に変更。
-
-  - const_iterator::some_type → 誰も mwg/str.h 内部では使っていない気がする。
-    使っているのは std::iterator_traits だけであるが、ポインタについては特殊化されているので心配ない。
-
-  さえ適当にテンプレートを経由して取得できる様にしてしまえば何も問題はない。
-
-  - 但し、基底クラスにする時は、そのためだけに wrapper をかませる必要がある。
-    つまり、基底クラスにする為に pointer_const_iterator が必要となる。
 
 2016-03-03
 
@@ -583,6 +571,23 @@
 ------------------------------------------------------------------------------
 
 2016-03-23
+
+* pointer_const_iterator はやはり単なる pointer でも良いのではないかという気がする。
+
+  - %% const_iterator::has_index → mwg/concept.h で自動判定する様に変更。
+
+  - const_iterator::some_type → 誰も mwg/str.h 内部では使っていない気がする。
+    使っているのは std::iterator_traits だけであるが、ポインタについては特殊化されているので心配ない。
+
+  さえ適当にテンプレートを経由して取得できる様にしてしまえば何も問題はない。
+
+  - 但し、基底クラスにする時は、そのためだけに wrapper をかませる必要がある。
+    つまり、基底クラスにする為に pointer_const_iterator が必要となる。
+
+    →const_iterator を基底クラスにできる型にする為に
+      wrap_iterator<Iter>::type を実装した。
+      Iter がポインタならば wrapper として pointer_const_iterator を返す。
+      それ以外の場合は Iter をそのまま返す。
 
 * pp include したファイルも makefile で追跡できるようにする?
   前実装しようとしていたような気がするが結局現在はどのような状態か?

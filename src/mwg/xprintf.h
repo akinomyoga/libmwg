@@ -12,7 +12,7 @@
 
 namespace mwg{
 namespace xprintf_detail{
-  struct xprintf_writer;
+  class xprintf_writer;
 }
 }
 

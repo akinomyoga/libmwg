@@ -516,10 +516,18 @@ public:
   mwg_constexpr bool            operator>=(this_type const& rhs) const{return this->data>=rhs.data;}
 };
 
+template<typename Iter>
+struct wrap_iterator
+  : stdm::conditional<
+      stdm::is_pointer<Iter>::value,
+      pointer_const_iterator<typename stdm::remove_cv<typename stdm::remove_pointer<Iter>::type>::type>,
+      Iter
+  >{};
+
 template<typename Iter,bool IterHasIndex=has_memfn_index<Iter>::value>
-class indexible_const_iterator:public Iter{
-  typedef Iter                     base;
-  typedef indexible_const_iterator this_type;
+class indexible_const_iterator:public wrap_iterator<Iter>::type{
+  typedef typename wrap_iterator<Iter>::type base;
+  typedef indexible_const_iterator           this_type;
 
   std::ptrdiff_t m_index;
 public:
@@ -544,9 +552,9 @@ public:
 };
 
 template<typename Iter>
-class indexible_const_iterator<Iter,true>:public Iter{
-  typedef Iter                     base;
-  typedef indexible_const_iterator this_type;
+class indexible_const_iterator<Iter,true>:public wrap_iterator<Iter>::type{
+  typedef typename wrap_iterator<Iter>::type base;
+  typedef indexible_const_iterator           this_type;
 
 public:
   indexible_const_iterator(base const& copye,std::ptrdiff_t):base(copye){}
@@ -1431,7 +1439,7 @@ struct strsub_policy{
   typedef const char_type& char_reference;
   typedef strsub_policy    policy_type;
   static const bool has_get_ptr=true;
-  typedef pointer_const_iterator<char_type> const_iterator;
+  typedef char_type const* const_iterator;
 
   struct buffer_type{
     const char_type* ptr;
@@ -1499,7 +1507,7 @@ struct strfix_policy{
   typedef const char_type& char_reference;
   static const bool has_get_ptr=true;
 
-  typedef pointer_const_iterator<char_type> const_iterator;
+  typedef char_type const* const_iterator;
 
   typedef char_traits<char_type> char_traits_type;
 
@@ -1701,8 +1709,8 @@ template<typename Iter,bool IterHasIndex=has_memfn_index<Iter>::value>
 class index_displaced_iterator{ /* not supported */ };
 
 template<typename Iter>
-class index_displaced_iterator<Iter,true>:public Iter{
-  typedef Iter base;
+class index_displaced_iterator<Iter,true>:public wrap_iterator<Iter>::type{
+  typedef typename wrap_iterator<Iter>::type base;
   std::ptrdiff_t offset;
 
 public:
@@ -1723,13 +1731,13 @@ public:
   static const bool has_get_ptr=false;
 
 private:
-  typedef typename Policy::const_iterator target_iterator;
+  typedef typename Policy::const_iterator original_iterator;
 
 public:
-  // has_memfn_index<target_iterator>::value 分岐 (1/2)
+  // has_memfn_index<original_iterator>::value 分岐 (1/2)
   typedef typename stdm::conditional<
-    has_memfn_index<target_iterator>::value,index_displaced_iterator<target_iterator>,
-    target_iterator>::type const_iterator;
+    has_memfn_index<original_iterator>::value,index_displaced_iterator<original_iterator>,
+    original_iterator>::type const_iterator;
 
   class buffer_type{
     const typename Policy::buffer_type& buff;
@@ -1749,7 +1757,7 @@ public:
     }
 
   private:
-    // has_memfn_index<target_iterator>::value 分岐 (2/2)
+    // has_memfn_index<original_iterator>::value 分岐 (2/2)
     template<typename Iter>
     typename stdm::enable_if<has_memfn_index<Iter>::value,const_iterator>::type
     static modify_iterator(Iter const& iter,std::ptrdiff_t offset){
@@ -1802,10 +1810,10 @@ struct _strtmp_map_policy{
   typedef char_type                  char_reference;
   static const bool has_get_ptr=false;
 
-  typedef typename Policy::const_iterator target_iterator;
+  typedef typename Policy::const_iterator original_iterator;
   typedef typename mwg::stdm::remove_reference<Filter>::type filter_type;
-  class const_iterator:public target_iterator{
-    typedef target_iterator base;
+  class const_iterator:public wrap_iterator<original_iterator>::type{
+    typedef typename wrap_iterator<original_iterator>::type base;
     filter_type const* m_filter;
   public:
     const_iterator(base const& iter,filter_type const& filter)
@@ -1879,9 +1887,9 @@ private:
   };
 
 private:
-  typedef typename Policy::const_iterator target_iterator;
-  typedef typename stdm::conditional<has_memfn_index<target_iterator>::value,target_iterator,
-    indexible_const_iterator<target_iterator> >::type indexed_iterator;
+  typedef typename Policy::const_iterator original_iterator;
+  typedef typename stdm::conditional<has_memfn_index<original_iterator>::value,original_iterator,
+    indexible_const_iterator<original_iterator> >::type indexed_iterator;
 public:
   class const_iterator:public indexed_iterator{
     typedef indexed_iterator base;
