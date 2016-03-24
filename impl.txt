@@ -6,6 +6,23 @@
   ToDo
 ------------------------------------------------------------------------------
 
+2016-03-24
+
+* SD-6 support
+
+  C++ に SD-6 という recommendation ができて C++11/14/1z
+  の各機能の実装状況について調べられる様になった様である。
+  libmwg のテストを更新しようという事になった。
+
+  SD-6 に関する文書は以下にある。
+  [[本の虫: SD-6: 機能テスト>https://ezoeryou.github.io/blog/article/2014-12-16-feature-test.html]]
+  [[SD-6: SG10 Feature Test Recommendations : Standard C++>https://isocpp.org/std/standing-documents/sd-6-sg10-feature-test-recommendations]]
+
+  今迄 libmwg のテストの名称は clang を元にしていた。
+  その為か既に記述してあるテストについては名称は全て SD-6 の物と一致していたので変更はない。
+  また、SD-6 では機能の version (どの論文に従った実装なのか) に応じてマクロに値を持たせる。
+  既に libmwg にあるテストで対応する SD-6 マクロが存在する物に関しては値を一致させる。
+
 2016-03-22
 
 * xprintf: wchar_t, etc. 対応

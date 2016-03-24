@@ -178,18 +178,19 @@ if M compiler_icc   '' __INTEL_COMPILER; then
   #   MWGCONF_ICC_VER 1300 : icc 13.0.0
   #
   # C++11 Features
-  #   http://software.intel.com/en-us/articles/c0x-features-supported-by-intel-c-compiler/
-  # 
+  #   https://software.intel.com/en-us/articles/c0x-features-supported-by-intel-c-compiler "C++11 Features Supported by Intel(R) C++ Compiler | Intel(R) Developer Zone"
+  #   https://software.intel.com/en-us/articles/c14-features-supported-by-intel-c-compiler "C++14 Features Supported by Intel(R) C++ Compiler | Intel(R) Developer Zone"
   c_icc=1
 elif M compiler_clang '' __clang__; then
   # C++11 Features
-  #   http://clang.llvm.org/cxx_status.html
+  #   http://clang.llvm.org/cxx_status.html "Clang - C++1z, C++14, C++11 and C++98 Status"
   # __has_feature macros
-  #   http://clang.llvm.org/docs/LanguageExtensions.html
+  #   http://clang.llvm.org/docs/LanguageExtensions.html "Clang Language Extensions — Clang 3.9 documentation"
   c_clang=1
 elif M compiler_gcc   '' __GNUC__; then
   # C++11 Features
   #   http://gcc.gnu.org/projects/cxx0x.html
+  #   https://gcc.gnu.org/projects/cxx-status.html "C++ Standards Support in GCC - GNU Project - Free Software Foundation (FSF)"
   c_gcc=1
 elif M compiler_vc    '' _MSC_VER; then
   # _MSC_FULL_VER
@@ -231,12 +232,12 @@ elif M compiler_vc    '' _MSC_VER; then
   #                 Update 3  : 180030723
   #                 Update 4  : 180031101
   #                 Update 5  : 180040629
-  #   VC12.0 VS2013 RTM       : 190023026
+  #   VC13.0 VS2015 RTM       : 190023026
   #                 Update 1  : 190023506
   #                 Update2RC : 190023824
   #   
   # C++11 Features
-  #   https://msdn.microsoft.com/en-us/library/hh567368.aspx
+  #   https://msdn.microsoft.com/en-us/library/hh567368.aspx "Support For C++11/14/17 Features (Modern C++)"
   #   https://msdn.microsoft.com/ja-jp/library/hh567368.aspx
   #   http://blogs.msdn.com/b/vcblog/archive/2011/09/12/10209291.aspx
   # References
@@ -250,23 +251,22 @@ fi
 #------------------------------------------------------------------------------
 # definitions
 
+# @var[in] cond_msc
+# @var[in] cond_gcc
+# @var[in] cond_clang
+# @var[in] cond_expression
 declare_feature() {
-  # env
-  #   cond_msc
-  #   cond_gcc
-  #   cond_clang
-  #   cond_expression
-
   local name="$1"
+  local value="$2"
   local defname; mwg.uppercase.set defname "MWGCONF_STD_$name"
   local m_cond_gcc="${cond_gcc}"
   local m_cond_icc="${cond_icc}"
   local m_cond_msc="${cond_msc}"
-  case "x${cond_clang}" in
-  x-a)
+  case "${cond_clang}" in
+  (-a|'')
       local m_cond_clang="__has_feature(cxx_$name)" ;;
-  x*)
-      local m_cond_clang="${cond_clang:-__has_feature(cxx_$name)}" ;;
+  (*)
+      local m_cond_clang="${cond_clang}" ;;
   esac
   local x_cond_expr="${cond_expression}"
   
@@ -276,10 +276,10 @@ declare_feature() {
 //-----------------------------------------------------------------------------
 #ifndef $defname
 # if (${m_cond_gcc})||(${m_cond_icc})||(${m_cond_msc})
-#  define $defname
+#  define $defname${value:+ }$value
 # elif defined(MWGCONF_CLANG_VER)
 #  if $m_cond_clang
-#   define $defname
+#   define $defname${value:+ }$value
 #  endif
 # endif
 #endif
@@ -303,7 +303,7 @@ EOF
 }
 
 #------------------------------------------------------------------------------
-# c++11 auto_type
+# c++11 auto_type (N1984, N1737, N2546, N2541)
 
 cond_gcc='MWGCONF_GCC_STD11>=40400'
 cond_icc='MWGCONF_ICC_STD11>=1200'
@@ -313,27 +313,27 @@ cond_expression='auto p=new int;'
 declare_feature auto_type
 
 #------------------------------------------------------------------------------
-# c++11 lambdas
+# c++11 lambdas (N2927)
 
 cond_gcc='MWGCONF_GCC_STD11>=40500'
 cond_icc='MWGCONF_ICC_STD11>=1200'
 cond_msc='_MSC_VER>=1600'
 cond_clang='-a'
 cond_expression='([](int n) -> int {return n+1;})(10);'
-declare_feature lambdas
+declare_feature lambdas 200907
 
 #------------------------------------------------------------------------------
-# c++11 decltype
+# c++11 decltype (N2343, N3276)
 
 cond_gcc='MWGCONF_GCC_STD11>=40300'
 cond_icc='MWGCONF_ICC_STD11>=1200'
 cond_msc='_MSC_VER>=1600'
 cond_clang='-a'
 cond_expression='int a=0;decltype(a) b=a;'
-declare_feature decltype
+declare_feature decltype 200707
 
 #------------------------------------------------------------------------------
-# c++11 nullptr
+# c++11 nullptr (N2431)
 
 cond_gcc='MWGCONF_GCC_STD11>=40600'
 cond_icc='MWGCONF_ICC_STD11>=1206' # with /Qoption,cpp,"--nullptr" ?
@@ -343,27 +343,37 @@ cond_expression='int* a=nullptr;'
 declare_feature nullptr
 
 #------------------------------------------------------------------------------
-# c++11 rvalue_references
+# c++11 rvalue_references (N2118)
 
 cond_gcc='MWGCONF_GCC_STD11>=40300'
 cond_icc='MWGCONF_ICC_STD11>=1200'
 cond_msc='_MSC_VER>=1600'
 cond_clang='-a'
 cond_expression='int&& a=1;'
-declare_feature rvalue_references
+declare_feature rvalue_references 200610
 
 #------------------------------------------------------------------------------
-# c++11 variadic_templates
+# c++11 ref_qualifiers (N2439)
+
+cond_gcc='MWGCONF_GCC_STD11>=40801'
+cond_icc='MWGCONF_ICC_STD11>=1400'
+cond_msc='_MSC_VER>=1900'
+cond_clang='__has_feature(cxx_reference_qualified_functions)'
+cond_expression='struct test_type{void test_type() &&{}};'
+declare_feature ref_qualifiers 200710
+
+#------------------------------------------------------------------------------
+# c++11 variadic_templates (N2242)
 
 cond_gcc='MWGCONF_GCC_STD11>=40300'
 cond_icc='MWGCONF_ICC_STD11>=1206'
 cond_msc='_MSC_VER>=1800'
 cond_clang='-a'
-cond_expression='int&& a=1;'
-declare_feature variadic_templates
+cond_expression='template<typename... A> void f(A const&...);'
+declare_feature variadic_templates 200704
 
 #------------------------------------------------------------------------------
-# c++11 defaulted_functions/deleted_functions
+# c++11 defaulted_functions/deleted_functions (N2346)
 
 cond_gcc='MWGCONF_GCC_STD11>=40400'
 cond_icc='MWGCONF_ICC_STD11>=1200'
@@ -375,7 +385,7 @@ cond_expression='struct test_type{test_type() =delete;};'
 declare_feature deleted_functions
 
 #------------------------------------------------------------------------------
-# c++11 explicit_conversions
+# c++11 explicit_conversions (N2437)
 
 cond_gcc='MWGCONF_GCC_STD11>=40500'
 cond_icc='MWGCONF_ICC_STD11>=1300'
@@ -385,66 +395,77 @@ cond_expression='struct test_type{explicit operator int() const{return 1;}};'
 declare_feature explicit_conversions
 
 #------------------------------------------------------------------------------
-# c++11 constexpr
+# c++11 constexpr (N2235)
 
 cond_gcc='MWGCONF_GCC_STD11>=40600'
 cond_icc='MWGCONF_ICC_STD11>=1300'
 cond_msc='_MSC_VER>=1900'
 cond_clang='-a'
 cond_expression='struct test_type{constexpr int test_member_function(){return 1;}};'
-declare_feature constexpr
+declare_feature constexpr 200704
+
+# N2235   200704
+# N3652   201304
+# P0170R1 201603
 
 #------------------------------------------------------------------------------
-# c++11 alias_templates
+# c++11 alias_templates (N2258)
 
 cond_gcc='MWGCONF_GCC_STD11>=40700'
 cond_icc='MWGCONF_ICC_STD11>=1206'
 cond_msc='_MSC_VER>=1800'
 cond_clang='-a'
 cond_expression='struct test_type{constexpr int test_member_function(){return 1;}};'
-declare_feature alias_templates
+declare_feature alias_templates 200704
 
 #------------------------------------------------------------------------------
-# c++11 static_assert
+# c++11 static_assert (N1720)
 
 cond_gcc='MWGCONF_GCC_STD11>=40300'
 cond_icc='MWGCONF_ICC_STD11>=1110'
 cond_msc='_MSC_VER>=1600'
 cond_clang='-a'
 cond_expression='static_assert(1,"test");'
-declare_feature static_assert
+declare_feature static_assert 200410
 
 #------------------------------------------------------------------------------
-# c++11 unicode_literals
+# c++11 unicode_literals (N2442)
 
 cond_gcc='MWGCONF_GCC_STD11>=40500'
 cond_icc='0' # 1110 with /Qoptions,cpp,"--uliterals" ?
 cond_msc='_MSC_VER>=1900'
 cond_clang='-a'
 cond_expression='char* x=u8"aiueo";'
-declare_feature unicode_literals
+declare_feature unicode_literals 200710
 
 #------------------------------------------------------------------------------
-# c++11 char16_t/char32_t
+# c++11 char16_t/char32_t (N2249)
 
 cond_gcc='MWGCONF_GCC_STD11>=40400'
 cond_icc='MWGCONF_ICC_STD11>=1206'
 cond_msc='_MSC_VER>=1900'
 cond_clang='MWGCONF_CLANG_STD11>=20900'
 cond_expression='char16_t* x=0;'
-declare_feature char16_t
+declare_feature char16_t 200704
 cond_expression='char32_t* x=0;'
-declare_feature char32_t
+declare_feature char32_t 200704
+
+cat <<EOF >&$fdbase
+#if defined(MWGCONF_STD_CHAR16_T)&&defined(MWGCONF_STD_CHAR32_T)
+# define MWGCONF_STD_UNICODE_CHARACTERS 200704
+#endif
+
+EOF
 
 #------------------------------------------------------------------------------
-# c++11 list_initialiations
+# c++11 list_initialiations (N2672)
 
 cond_gcc='MWGCONF_GCC_STD11>=40400'
 cond_icc='MWGCONF_ICC_STD11>=1400'
 cond_msc='_MSC_VER>=1800'
-cond_clang='MWGCONF_CLANG_STD11>=30100'
+cond_clang='__has_feature(cxx_generalized_initializers)' # clang-3.1
 cond_expression='int a { 1 };'
-declare_feature initializer_lists
+declare_feature initializer_lists 200806
 
 #------------------------------------------------------------------------------
 # c++1y concept
