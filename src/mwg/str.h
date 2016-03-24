@@ -706,6 +706,9 @@ public:
   strfix<char_type> operator->() const{return *this;}
 
 #pragma%x begin_test
+#ifdef MWGCONF_CLANG_VER
+# pragma clang diagnostic ignored "-Wformat-security"
+#endif
   void test(){
     char buff[100];
     std::sprintf(buff,(mwg::str("file")+": "+"message")->c_str());
@@ -1517,7 +1520,7 @@ class _stradp_array:public strbase<strsub_policy<XCH> >{
   typedef strbase<strsub_policy<XCH> > base;
 
 public:
-  using typename base::char_type;
+  typedef typename base::char_type char_type;
 
 public:
   _stradp_array(const char_type* ptr,std::size_t length)
@@ -1635,7 +1638,7 @@ class strfix:public strbase<strfix_policy<XCH> >{
   typedef strbase<strfix_policy<XCH> > base;
 
 public:
-  using typename base::char_type;
+  typedef typename base::char_type char_type;
 
 public:
   strfix(){}
