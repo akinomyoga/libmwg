@@ -191,7 +191,7 @@ namespace stdm{
 #  define mwg_stdm_is_default_constructible__incomplete
     template<typename T>
     struct is_default_constructible:integral_constant<
-      bool,is_trivially_default_constructible<T>::value||is_nothrow_default_constructible<T>::value>{};
+      bool,(is_trivially_default_constructible<T>::value||is_nothrow_default_constructible<T>::value)>{};
 # endif
   }
   using is_constructible_detail::is_default_constructible;
@@ -264,7 +264,7 @@ namespace stdm{
 #  define mwg_stdm_is_copy_constructible__incomplete
     template<typename T>
     struct is_copy_constructible:integral_constant<
-      bool,is_trivially_copy_constructible<T>::value||is_nothrow_copy_constructible<T>::value>{};
+      bool,(is_trivially_copy_constructible<T>::value||is_nothrow_copy_constructible<T>::value)>{};
 # endif
   }
   using is_constructible_detail::is_copy_constructible;
@@ -343,7 +343,7 @@ namespace stdm{
 #  define mwg_stdm_is_copy_assignable__incomplete
     template<typename T>
     struct is_copy_assignable:integral_constant<
-      bool,is_trivially_copy_assignable<T>::value||is_nothrow_copy_assignable<T>::value>{};
+      bool,(is_trivially_copy_assignable<T>::value||is_nothrow_copy_assignable<T>::value)>{};
 # endif
   }
   using is_constructible_detail::is_copy_assignable;

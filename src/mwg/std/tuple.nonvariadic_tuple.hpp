@@ -19,7 +19,8 @@ namespace detail{
 #pragma%else
   template<$".for/K/0/ArN/typename TK=void/,">
   struct tuple_is_default_constructible
-    :mwg::stdm::integral_constant<bool,mwg::stdm::is_default_constructible<T0>::value&&tuple_is_default_constructible<$".for/K/1/ArN/TK/,">::value>{};
+    //:mwg::stdm::integral_constant<bool,(mwg::stdm::is_default_constructible<T0>::value&&tuple_is_default_constructible<$".for/K/1/ArN/TK/,">::value)>{};
+    :mwg::stdm::integral_constant<bool,false>{};//@@@
 
   template<>
   struct tuple_is_default_constructible<>:mwg::stdm::true_type{};
@@ -61,7 +62,7 @@ namespace detail{
     :public mwg::stdm::integral_constant<std::size_t,0>{};
 #pragma%end
   template<typename A0,typename A1>
-  class tuple_size<stdm::pair<A0,A1> >
+  class tuple_size<std::pair<A0,A1> >
     :public mwg::stdm::integral_constant<std::size_t,2>{};
 
   namespace detail{
@@ -112,16 +113,16 @@ namespace detail{
       TT>::type>{};
 
   template<std::size_t I,typename A0,typename A1>
-  class tuple_element<I,stdm::pair<A0,A1> >
+  class tuple_element<I,std::pair<A0,A1> >
     :public stdm::enable_if<I==0||I==1,typename stdm::conditional<I==0,A0,A1>::type>{};
   template<std::size_t I,typename A0,typename A1>
-  class tuple_element<I,stdm::pair<A0,A1> const>
+  class tuple_element<I,std::pair<A0,A1> const>
     :public stdm::enable_if<I==0||I==1,typename stdm::conditional<I==0,A0,A1>::type const>{};
   template<std::size_t I,typename A0,typename A1>
-  class tuple_element<I,stdm::pair<A0,A1> volatile>
+  class tuple_element<I,std::pair<A0,A1> volatile>
     :public stdm::enable_if<I==0||I==1,typename stdm::conditional<I==0,A0,A1>::type volatile>{};
   template<std::size_t I,typename A0,typename A1>
-  class tuple_element<I,stdm::pair<A0,A1> const volatile>
+  class tuple_element<I,std::pair<A0,A1> const volatile>
     :public stdm::enable_if<I==0||I==1,typename stdm::conditional<I==0,A0,A1>::type const volatile>{};
 
   // traits
@@ -401,10 +402,26 @@ namespace detail{
     void swap(tuple&){}
   };
 
+
+/*?mconf
+ * # gcc-2.95.3 bug 名前空間中のクラステンプレート中で自身に対する friend を宣言すると ICE になる。
+ * S -t'template friend class "sane?"' TEMPLATE_FRIEND_CLASS_IS_SANE '' '
+ * namespace ns1{
+ *   template<typename T0>
+ *   class tuple{
+ *     template<typename U0> friend class tuple;
+ *   };
+ * }
+ * '
+ */
   template<typename T0>
   class tuple<T0,void[0...-1],false>{
 #pragma%m tupleContent
+#ifdef MWGCONF_TEMPLATE_FRIEND_CLASS_IS_SANE
     template<$".for/K/0/ArN/typename UK/,",bool IsDefaultConstructible2> friend class tuple;
+#else
+public:
+#endif
     template<std::size_t I,typename R,typename TT> friend struct detail::tuple_get_impl;
 
     typedef T0 head_type;
@@ -759,7 +776,7 @@ namespace detail{
   > bool operator==(const tuple<$".for/K/0/ArN/TLK/,">& left,const tuple<$".for/K/0/ArN/TRK/,">& right){
     typedef tuple_size<tuple<$".for/K/0/ArN/TLK/,"> > left_size;
     typedef tuple_size<tuple<$".for/K/0/ArN/TRK/,"> > right_size;
-    typedef detail::tuple_compare_impl<0,left_size::value<right_size::value?left_size::value:right_size::value> comparer_type;
+    typedef detail::tuple_compare_impl<0,(left_size::value<right_size::value?left_size::value:right_size::value)> comparer_type;
     return left_size::value==right_size::value&&comparer_type::operator_eq(left,right);
   }
   template<
@@ -774,7 +791,7 @@ namespace detail{
   > bool operator<(const tuple<$".for/K/0/ArN/TLK/,">& left,const tuple<$".for/K/0/ArN/TRK/,">& right){
     typedef tuple_size<tuple<$".for/K/0/ArN/TLK/,"> > left_size;
     typedef tuple_size<tuple<$".for/K/0/ArN/TRK/,"> > right_size;
-    typedef detail::tuple_compare_impl<0,left_size::value<right_size::value?left_size::value:right_size::value> comparer_type;
+    typedef detail::tuple_compare_impl<0,(left_size::value<right_size::value?left_size::value:right_size::value)> comparer_type;
     return comparer_type::operator_le(left,right);
   }
   template<

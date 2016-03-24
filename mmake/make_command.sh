@@ -30,6 +30,11 @@ source "$BASE"/mmake/vars.sh
 
 #------------------------------------------------------------------------------
 
+function invoke_mcxx {
+  [[ $mcxx_verbose ]] && echo "$MWGCXX" "$@" >&2
+  source "$MWGCXX" "$@"
+}
+
 generate_filenames_vars=(fsrc fsource fcheck fmconf flwiki fconfig fdep fobj name)
 function generate_filenames {
   # usage
@@ -60,11 +65,29 @@ function generate_filenames {
 }
 
 # char code conversion
-function proc/copy-pp/iconv {
+function proc/copy-pp/transform-source {
   local file="$1"
-  [[ $CXXENC == $SRCENC || ! -s $file ]] && return
-  local sed_iconv='/-\*-.\{1,\}-\*-/s/\bcoding:[[:space:]]*'"$SRCENC"'\b/coding: '"$CXXENC"'/'
-  sed "$sed_iconv" "$file" | iconv -c -f "$SRCENC" -t "$CXXENC" > "$file.iconv" && mv "$file.iconv" "$file"
+  [[ ! -s $file ]] && return
+
+  local transform='cat "$file"'
+  local transform_set=
+
+  # modify source encoding
+  if [[ $CXXENC != $SRCENC ]]; then
+    local sed_iconv='/-\*-.\{1,\}-\*-/s/\bcoding:[[:space:]]*'"$SRCENC"'\b/coding: '"$CXXENC"'/'
+    transform="$transform"'|sed -e "$sed_iconv"|iconv -c -f "$SRCENC" -t "$CXXENC"'
+    transform_set=1
+  fi
+
+  # custrom transform
+  if [[ $MMAKE_SOURCE_FILTER ]]; then
+    transform="$transform|$MMAKE_SOURCE_FILTER"
+    transform_set=1
+  fi
+
+  [[ $transform_set ]] || return
+
+  eval "$transform" > "$file.iconv" && mv "$file.iconv" "$file"
 }
 
 function proc/copy-pp {
@@ -95,15 +118,15 @@ X '%name%' '%headers%' '%expression%'
 EOF
 
   if [[ -s $fcheck ]]; then
-    proc/copy-pp/iconv "$fcheck"
+    proc/copy-pp/transform-source "$fcheck"
 
     # create <chkflg>
     gawk '
-    {if(match($0,/^[[:space:]]*\/\/[[:space:]]*mmake_check_flags:[[:space:]]*(.+)$/,_m))print _m[1];}
-  ' "$fcheck" > "$CPPDIR/check/$name.flags"
+      {if(match($0,/^[[:space:]]*\/\/[[:space:]]*mmake_check_flags:[[:space:]]*(.+)$/,_m))print _m[1];}
+    ' "$fcheck" > "$CPPDIR/check/$name.flags"
   fi
 
-  proc/copy-pp/iconv "$fsource"
+  proc/copy-pp/transform-source "$fsource"
 
   # extract <fmconf> <flwiki>
   perl "$BASE/mmake/make_extract.pl" "$fsource"
@@ -117,7 +140,7 @@ function proc/compile {
 
   mkdf "$fdep"
   mkdf "$fobj"
-  source "$MWGCXX" -MD -MF "$fdep" -MQ "$fobj" -I "$CFGDIR/include" -I "$CPPDIR" -c -o "$fobj" "$fsource" "$@"
+  invoke_mcxx -MD -MF "$fdep" -MQ "$fobj" -I "$CFGDIR/include" -I "$CPPDIR" -c -o "$fobj" "$fsource" "$@"
 }
 
 function proc/check {
@@ -140,7 +163,7 @@ function proc/check {
       mmake/util/readfile CHECK_FLAGS_SPEC "$chkflg"
       eval "FLAGS=($CHECK_FLAGS_SPEC)"
     fi
-    source "$MWGCXX" -MD -MF "$chkdep" -MQ "$chkstm" -I "$CFGDIR/include" -I "$CPPDIR" -o "$chkexe" "$fcheck" "${FLAGS[@]}" "$@" && "$chkexe"
+    invoke_mcxx -MD -MF "$chkdep" -MQ "$chkstm" -I "$CFGDIR/include" -I "$CPPDIR" -o "$chkexe" "$fcheck" "${FLAGS[@]}" "$@" && "$chkexe"
   fi && > "$chkstm"
 }
 
@@ -154,7 +177,7 @@ function proc/config {
   elif [[ ! -s $fmconf ]]; then
     > "$fconfig"
   else
-    source "$MWGCXX" +config -o "$fconfig" --cache="$CFGDIR/cache" --log="$CFGDIR/config.log" "$fmconf" -- "$@"
+    invoke_mcxx +config -o "$fconfig" --cache="$CFGDIR/cache" --log="$CFGDIR/config.log" "$fmconf" -- "$@"
   fi
 }
 

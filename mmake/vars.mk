@@ -25,8 +25,12 @@ $(BASE)/config.mk:
 
 # project settings
 SRCENC:=utf-8
-CPPDIR:=$(BASE)/out/src.$(CXXENC)
 CFGDIR:=$(BASE)/out/$(CXXPREFIX)+$(CXXCFG)
+ifneq ($(MMAKE_SOURCE_FILTER),)
+  CPPDIR:=$(CFGDIR)/src
+else
+  CPPDIR:=$(BASE)/out/src.$(CXXENC)
+endif
 ifneq ($(INSDIR),)
   INS_INCDIR:=$(INSDIR)/include
   INS_INCCFG:=$(INSDIR)/include/$(CXXPREFIX)+$(CXXCFG)

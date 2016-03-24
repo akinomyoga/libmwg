@@ -29,6 +29,11 @@
 #   define MWG_ATTRIBUTE_UNUSED
 #  endif
 # endif
+# ifndef MWG_STD_VA_ARGS
+#  if defined(_MSC_VER)?(_MSC_VER>=1400):(defined(__GNUC__)?(__GNUC__>=3):1)
+#   define MWG_STD_VA_ARGS
+#  endif
+# endif
 #else
 # include <mwg_config.h>
 # include <mwg/defs.h>
@@ -298,9 +303,14 @@ mwg_check/mwg_assert
 //!
 //! @def mwg_assert_position
 //!
-#define mwg_assert_stringize2(...) #__VA_ARGS__
-#define mwg_assert_stringize(...) mwg_assert_stringize2(__VA_ARGS__)
-#define mwg_assert_position __FILE__ mwg_assert_stringize(:__LINE__)
+#ifdef MWG_STD_VA_ARGS
+# define mwg_assert_stringize2(...) #__VA_ARGS__
+# define mwg_assert_stringize(...) mwg_assert_stringize2(__VA_ARGS__)
+#else
+# define mwg_assert_stringize2(ARGS) #ARGS
+# define mwg_assert_stringize(ARGS) mwg_assert_stringize2(ARGS)
+#endif
+# define mwg_assert_position __FILE__ mwg_assert_stringize(:__LINE__)
 
 #include <cstdarg>
 #include <string>
@@ -394,7 +404,7 @@ namespace except_detail{
     static int fail_nothrow_count=0;
     return fail_nothrow_count+=delta; // dummy operation to set break point
   }
-  static bool vprint_fail(const char* expr,const char* pos,const char* func,const char* fmt,va_list arg){
+  static bool vprint_fail_impl(const char* expr,const char* pos,const char* func,const char* fmt,va_list arg){
     using namespace ::mwg::except_detail;
     dbgput d(stderr);
     // first line
@@ -427,7 +437,7 @@ namespace except_detail{
   }
 
   MWG_ATTRIBUTE_NORETURN
-  static bool vthrow_fail(const char* expr,const char* pos,const char* /* func */,const char* fmt,va_list arg){
+  static bool vthrow_fail_impl(const char* expr,const char* pos,const char* /* func */,const char* fmt,va_list arg){
     std::string buff("assertion failed! ");
     if(fmt&&*fmt){
       char message[1024];
@@ -451,9 +461,15 @@ namespace except_detail{
     buff+=" ]";
     throw mwg::assertion_error(buff);
   }
+
   MWG_ATTRIBUTE_UNUSED
-  static bool print_fail(const char* expr,const char* pos,const char* func,const char* fmt,...){
+  static bool mwg_noinline vprint_fail(const char* expr,const char* pos,const char* func,const char* fmt,va_list arg){
     increment_fail_count();
+    vprint_fail_impl(expr,pos,func,fmt,arg);
+    return false;
+  }
+  MWG_ATTRIBUTE_UNUSED
+  static bool mwg_noinline print_fail(const char* expr,const char* pos,const char* func,const char* fmt,...){
     va_list arg;
     va_start(arg,fmt);
     vprint_fail(expr,pos,func,fmt,arg);
@@ -461,22 +477,30 @@ namespace except_detail{
     return false;
   }
 
+  MWG_ATTRIBUTE_NORETURN
+  MWG_ATTRIBUTE_UNUSED
+  static bool mwg_noinline vthrow_fail(const char* expr,const char* pos,const char* func,const char* fmt,va_list arg1,va_list arg2){
+    increment_fail_count();
+#if MWG_DEBUG||!defined(NDEBUG)
+    vprint_fail_impl(expr,pos,func,fmt,arg1);
+#endif
+    vthrow_fail_impl(expr,pos,func,fmt,arg2);
+
+    /*NOTREACHED*/
+    throw;
+  }
+
   // [[noreturn]] は __attribute__((unused)) より前になければならない
   MWG_ATTRIBUTE_NORETURN
   MWG_ATTRIBUTE_UNUSED
-  static bool throw_fail(const char* expr,const char* pos,const char* func,const char* fmt,...){
-    increment_fail_count();
-#if MWG_DEBUG||!defined(NDEBUG)
-    va_list args1;
-    va_start(args1,fmt);
-    vprint_fail(expr,pos,func,fmt,args1);
-    va_end(args1);
-#endif
-    va_list args2;
-    va_start(args2,fmt);
-    vthrow_fail(expr,pos,func,fmt,args2);
-    va_end(args2);
-
+  static bool mwg_noinline throw_fail(const char* expr,const char* pos,const char* func,const char* fmt,...){
+    va_list arg1;
+    va_list arg2;
+    va_start(arg1,fmt);
+    va_start(arg2,fmt);
+    vthrow_fail(expr,pos,func,fmt,arg1,arg2);
+    va_end(arg1);
+    va_end(arg2);
     /*NOTREACHED*/
     throw;
   }
@@ -559,31 +583,107 @@ namespace except_detail{
  *     → 警告なし!
  *
  */
-#define mwg_printd(...)                    mwg::except_detail::mwg_printd_(mwg_assert_position,mwg_assert_funcname,"" __VA_ARGS__)
-#ifdef _MSC_VER
-# define mwg_check_nothrow(condition,...)   ((condition)||(mwg::except_detail::print_fail(#condition,mwg_assert_position,mwg_assert_funcname,"" __VA_ARGS__),false))
-# define mwg_check(condition,...)           ((condition)||(mwg::except_detail::throw_fail(#condition,mwg_assert_position,mwg_assert_funcname,"" __VA_ARGS__),false))
+#ifdef MWG_STD_VA_ARGS
+# define mwg_printd(...)                    mwg::except_detail::mwg_printd_(mwg_assert_position,mwg_assert_funcname,"" __VA_ARGS__)
+# ifdef _MSC_VER
+#  define mwg_check_nothrow(condition,...)   ((condition)||(mwg::except_detail::print_fail(#condition,mwg_assert_position,mwg_assert_funcname,"" __VA_ARGS__),false))
+#  define mwg_check(condition,...)           ((condition)||(mwg::except_detail::throw_fail(#condition,mwg_assert_position,mwg_assert_funcname,"" __VA_ARGS__),false))
+# else
+#  define mwg_check_nothrow(condition,...)   ((condition)?mwg::except_detail::nop_succuss():mwg::except_detail::print_fail(#condition,mwg_assert_position,mwg_assert_funcname,"" __VA_ARGS__))
+#  define mwg_check(condition,...)           ((condition)?mwg::except_detail::nop_succuss():mwg::except_detail::throw_fail(#condition,mwg_assert_position,mwg_assert_funcname,"" __VA_ARGS__))
+# endif
 #else
-# define mwg_check_nothrow(condition,...)   ((condition)?mwg::except_detail::nop_succuss():mwg::except_detail::print_fail(#condition,mwg_assert_position,mwg_assert_funcname,"" __VA_ARGS__))
-# define mwg_check(condition,...)           ((condition)?mwg::except_detail::nop_succuss():mwg::except_detail::throw_fail(#condition,mwg_assert_position,mwg_assert_funcname,"" __VA_ARGS__))
+
+namespace mwg{
+namespace except_detail{
+  struct mwg_printd_proxy{
+    const char* position;
+    const char* funcname;
+    mwg_printd_proxy(const char* position,const char* funcname)
+      :position(position),funcname(funcname){}
+
+    void operator()() const{
+      mwg_printd_(position,funcname,"");
+    }
+    void operator()(const char* fmt,...) const{
+      va_list arg;
+      va_start(arg,fmt);
+      mwg_vprintd_(position,funcname,fmt,arg);
+      va_end(arg);
+    }
+  };
+
+  template<bool Throw>
+  struct mwg_check_proxy{
+    const char* expression;
+    const char* position;
+    const char* funcname;
+    mwg_check_proxy(const char* expression,const char* position,const char* funcname)
+      :expression(expression),position(position),funcname(funcname){}
+
+    bool operator()(bool condition) const{
+      if(!condition){
+        if(Throw){
+          throw_fail(expression,position,funcname,"");
+        }else{
+          print_fail(expression,position,funcname,"");
+        }
+      }
+      return condition;
+    }
+
+    bool operator()(bool condition,const char* fmt,...) const{
+      if(!condition){
+        if(Throw){
+          va_list arg1;
+          va_list arg2;
+          va_start(arg1,fmt);
+          va_start(arg2,fmt);
+          vthrow_fail(expression,position,funcname,fmt,arg1,arg2);
+          va_end(arg1);
+          va_end(arg2);
+        }else{
+          va_list arg;
+          va_start(arg,fmt);
+          vprint_fail(expression,position,funcname,fmt,arg);
+          va_end(arg);
+        }
+      }
+      return condition;
+    }
+  };
+
+}
+}
+
+# define mwg_printd        (::mwg::except_detail::mwg_printd_proxy(mwg_assert_position,mwg_assert_funcname))
+# define mwg_check_nothrow (::mwg::except_detail::mwg_check_proxy<false>("N/A",mwg_assert_position,mwg_assert_funcname))
+# define mwg_check         (::mwg::except_detail::mwg_check_proxy<true> ("N/A",mwg_assert_position,mwg_assert_funcname))
 #endif
 
 #if MWG_DEBUG||!defined(NDEBUG)
-# define mwg_verify_nothrow(condition,...) mwg_check_nothrow(condition,__VA_ARGS__)
-# define mwg_verify(condition,...)         mwg_check(condition,__VA_ARGS__)
-# define mwg_assert_nothrow(condition,...) mwg_check_nothrow(condition,__VA_ARGS__)
-# define mwg_assert(condition,...)         mwg_check(condition,__VA_ARGS__)
+# define mwg_verify_nothrow mwg_check_nothrow
+# define mwg_verify         mwg_check
+# define mwg_assert_nothrow mwg_check_nothrow
+# define mwg_assert         mwg_check
 #else
   static inline int mwg_assert_empty(){return 1;}
-  static inline int mwg_assert_empty(int value){return value;}
-# define mwg_verify(condition,...)         mwg_assert_empty(condition)
-# define mwg_verify_nothrow(condition,...) mwg_assert_empty(condition)
-# ifdef _MSC_VER
-#   define mwg_assert(condition,...)         __assume(condition)
-#   define mwg_assert_nothrow(condition,...) __assume(condition)
+  static inline int mwg_assert_empty(bool condition,...){return condition;}
+# ifdef MWG_STD_VA_ARGS
+#  define mwg_verify(condition,...)         mwg_assert_empty(condition)
+#  define mwg_verify_nothrow(condition,...) mwg_assert_empty(condition)
+#  ifdef _MSC_VER
+#    define mwg_assert(condition,...)         __assume(condition)
+#    define mwg_assert_nothrow(condition,...) __assume(condition)
+#  else
+#    define mwg_assert(...)                   mwg_assert_empty()
+#    define mwg_assert_nothrow(...)           mwg_assert_empty()
+#  endif
 # else
-#   define mwg_assert(...)                   mwg_assert_empty()
-#   define mwg_assert_nothrow(...)           mwg_assert_empty()
+#  define mwg_verify           mwg_assert_empty
+#  define mwg_verify_nothrow   mwg_assert_empty
+#  define mwg_assert           mwg_assert_empty
+#  define mwg_assert_nothrow   mwg_assert_empty
 # endif
 #endif
 #define MWG_NOTREACHED /* NOTREACHED */ mwg_assert(0,"NOTREACHED")

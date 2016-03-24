@@ -235,9 +235,9 @@ namespace functor_detail{
   template<typename T,typename C,typename S>
   struct functor_traits_switch<T C::*,S,4>:functor_traits_switch<
     T C::*,S,
-    is_variant_signature<functor_traits_signature<T&(C&)>,functor_traits<S*> >::value?101:
-    is_variant_signature<functor_traits_signature<const T&(const C&)>,functor_traits<S*> >::value?101:
-    0
+    (is_variant_signature<functor_traits_signature<T&(C&)>,functor_traits<S*> >::value?101:
+      is_variant_signature<functor_traits_signature<const T&(const C&)>,functor_traits<S*> >::value?101:
+      0)
   >{};
 //TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
 //  class functor_traits<F /* having operator() */>
@@ -347,13 +347,13 @@ namespace functor_detail{
   template<typename T>
   struct functor_traits<T>:functor_traits_switch<
     T,void,
-    is_vararg_function<T>::value?5:
-    is_vararg_function_pointer<T>::value?5:
-    stdm::is_member_function_pointer<T>::value?3:
-    stdm::is_member_object_pointer<T>::value?4:
-    //has_single_operator_functor<T>::value?1:
-    //is_pointer_to_single_operator_functor<T>::value?2:
-    0
+    (is_vararg_function<T>::value?5:
+      is_vararg_function_pointer<T>::value?5:
+      stdm::is_member_function_pointer<T>::value?3:
+      stdm::is_member_object_pointer<T>::value?4:
+      //has_single_operator_functor<T>::value?1:
+      //is_pointer_to_single_operator_functor<T>::value?2:
+      0)
   >{};
 #endif
 //TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
@@ -387,12 +387,12 @@ namespace functor_detail{
   template<typename F,typename S>
   struct functor_traits:functor_traits_switch<
     F,S,
-    is_vararg_function<F>::value?5:
-    is_vararg_function_pointer<F>::value?5:
-    stdm::is_member_object_pointer<F>::value?4:
-    is_variant_signature<functor_traits<F>,functor_traits<S*> >::value?101:
-    can_be_called_as<F,S>::value?102:
-    0
+    (is_vararg_function<F>::value?5:
+      is_vararg_function_pointer<F>::value?5:
+      stdm::is_member_object_pointer<F>::value?4:
+      is_variant_signature<functor_traits<F>,functor_traits<S*> >::value?101:
+      can_be_called_as<F,S>::value?102:
+      0)
   >{};
 
 #%include "bits/functor/functor.varargs.pp"
@@ -484,21 +484,34 @@ namespace functor_detail{
   private:
     functor_case_data& operator=(const functor_case_data&) mwg_std_deleted;
   };
+
+  // CHK: sizeof(void*)*2 の値は妥当か?
+  template<typename F,bool IsFunction>
+  struct functor_case_data__is_interior__impl
+    :stdm::integral_constant<bool,(sizeof(F)<=sizeof(void*)*2)>{};
+  template<typename F>
+  struct functor_case_data__is_interior__impl<F,true>
+    :stdm::integral_constant<bool,(sizeof(F*)<=sizeof(void*)*2)>{};
+  template<typename F>
+  struct functor_case_data__is_interior
+    :functor_case_data__is_interior__impl<F,stdm::is_function<F>::value>{};
+
 #pragma%define 1
   template<typename Tr,typename R %s_typenames%>
   class functor_case_impl<R(%types%),Tr>
-    :public functor_case_data<R(%types%),typename Tr::case_data>
+    :public functor_case_data<R(%types%),typename Tr::case_data,functor_case_data__is_interior<R(%types%)>::value>
   {
   public:
     typedef Tr case_tr; // used by others
     typedef R (sgn_t)(%types%);
     typedef typename Tr::case_data case_data;
-    typedef functor_case_data<sgn_t,case_data> base;
+    typedef functor_case_data<sgn_t,case_data,functor_case_data__is_interior<sgn_t>::value> base;
   public:
     functor_case_impl(const case_data& f):base(f){} // used by placement clone
     template<typename F> functor_case_impl(const F& f):base(Tr::endata(f)){}
     virtual R call(%params%) const{
-      return R(Tr::fct_tr::invoke(Tr::dedata(this->get_ref()) %s_args%));
+      typedef typename Tr::fct_tr fct_tr; // gcc-2.95.3 work around 一旦型に入れる必要有り。
+      return R(fct_tr::invoke(Tr::dedata(this->get_ref()) %s_args%));
     }
     virtual functor_case_impl* placement_clone(void* ptr) const{
       return new(ptr) functor_case_impl(this->get_ref());
@@ -523,6 +536,11 @@ namespace functor_detail{
 //TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
 //  class functor
 //------------------------------------------------------------------------------
+  // 2016-03-25 gcc-2.95.3 bug work around:
+  //   enable_if に複雑な式を指定すると ICE になる。
+  template<typename F,typename S>
+  struct is_explicit_functor:stdm::integral_constant<bool,(!is_functor<F,S>::value&&be_functor<F,S>::value)>{};
+
 #%define 1
   template<typename S>
   class functor_ref:public functor_base<S>{
@@ -544,7 +562,7 @@ namespace functor_detail{
       this->init<F,functor_case_impl<S,typename functor_traits<F>::ref_tr> >(f);
     }
     template<typename F>
-    explicit functor_ref(const F& f,typename stdm::enable_if<!is_functor<F,S>::value&&be_functor<F,S>::value,mwg::invalid_type*>::type=nullptr){
+    explicit functor_ref(const F& f,typename stdm::enable_if<is_explicit_functor<F,S>::value,mwg::invalid_type*>::type=0){
       this->init<F,functor_case_impl<S,typename functor_traits<F,S>::ref_tr> >(f);
     }
     ~functor_ref(){this->free();}
@@ -565,7 +583,7 @@ namespace functor_detail{
       return *this;
     }
     template<typename F>
-    typename stdm::enable_if<!is_functor<F,S>::value&&be_functor<F,S>::value,functor_ref&>::type
+    typename stdm::enable_if<is_explicit_functor<F,S>::value,functor_ref&>::type
     operator=(const F& f){
       this->free();
       this->init<F,functor_case_impl<S,typename functor_traits<F,S>::ref_tr> >(f);

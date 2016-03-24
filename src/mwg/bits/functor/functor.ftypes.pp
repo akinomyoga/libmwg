@@ -85,17 +85,17 @@
   template<typename T> T expr();
   template<typename F,typename T>
   struct is_variant_argument:stdm::integral_constant<bool,
-    stdm::is_void<T>::value||stdm::is_convertible<F,T>::value
+    (stdm::is_void<T>::value||stdm::is_convertible<F,T>::value)
   >{};
   template<typename TrSF,typename TrST>
   struct is_variant_signature:stdm::integral_constant<bool,
-    TrSF::is_functor&&TrST::is_functor
-    &&is_variant_argument<typename TrSF::ret_t,typename TrST::ret_t>::value
+    (TrSF::is_functor&&TrST::is_functor
+      &&is_variant_argument<typename TrSF::ret_t,typename TrST::ret_t>::value
 #%define 1
-    &&is_variant_argument<typename TrST::argK_t,typename TrSF::argK_t>::value
+      &&is_variant_argument<typename TrST::argK_t,typename TrSF::argK_t>::value
 #%define end
 #%expand 1.f|K|1|ARITY_MAX+1|
-  >{};
+    )>{};
 //------------------------------------------------------------------------------
 #if (\
     defined(mwg_concept_is_valid_expression)\
@@ -155,7 +155,7 @@
     {};
 # endif
 
-    mwg_concept_condition(c2<P,c1::value>::value);
+    mwg_concept_condition((c2<P,c1::value>::value));
     typedef typename c2<P,c1::value>::operator_type operator_type;
 #else
     mwg_concept_condition(false);
@@ -187,7 +187,7 @@
 #else
     mwg_concept_has_member(c1_1,F,X,operator(),R(X::*)(%types%));
     mwg_concept_has_member(c1_2,F,X,operator(),R(X::*)(%types%) const);
-    struct c1:stdm::integral_constant<bool,c1_1::value||c1_2::value>{};
+    struct c1:stdm::integral_constant<bool,(c1_1::value||c1_2::value)>{};
 
     // // permissive: overload 選択などで問題あり。
     // struct c1:stdm::true_type{};
@@ -202,7 +202,7 @@
 #else
     typedef R OpR;
 #endif
-    mwg_concept_condition(c1::value&&is_variant_argument<OpR,R>::value);
+    mwg_concept_condition((c1::value&&is_variant_argument<OpR,R>::value));
   };
 #%)
 #%expand mwg::functor::arities

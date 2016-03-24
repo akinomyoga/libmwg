@@ -7,6 +7,9 @@ ifeq ($(CXXPREFIX:i686-win-vc-%=hit),$(CXXPREFIX))
   CXXFLAGS += -Wextra
 endif
 
+export MMAKE_SOURCE_FILTER
+MMAKE_SOURCE_FILTER:=
+
 CXXCFG_FOUND:=
 ifeq ($(CXXCFG),default)
   CXXCFG_FOUND:=1

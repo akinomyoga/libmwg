@@ -28,8 +28,12 @@ fi
 
 # project settings
 SRCENC=utf-8
-CPPDIR="$BASE/out/src.$CXXENC"
 CFGDIR="$BASE/out/$CXXPREFIX+$CXXCFG"
+if [[ $MMAKE_SOURCE_FILTER ]]; then
+  CPPDIR="$CFGDIR/src"
+else
+  CPPDIR="$BASE/out/src.$CXXENC"
+fi
 
 if [[ $INSDIR ]]; then
   INS_INCDIR="$INSDIR/include"

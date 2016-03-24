@@ -58,9 +58,6 @@ namespace stdm{
 
   template<typename T>
   T& move(const T& value){return const_cast<T&>(value);}
-  template<typename T>
-  typename enable_if<!is_const<T>::value,T&>::type
-  move(T& value){return value;}
 #endif
 }
 }

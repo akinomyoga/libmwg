@@ -104,16 +104,15 @@ namespace cstdint_detail{
   template<> struct integral_types<1>:type_and_size<short,unsigned short>{};
   template<> struct integral_types<2>:type_and_size<int,unsigned int>{};
   template<> struct integral_types<3>:type_and_size<long,unsigned long>{};
-#if !defined(MWGCONF_HAS_LONGLONG)
-  template<> struct integral_types<4>:type_and_size<long,unsigned long>{static const int size=0;};
-#else
+#if defined(MWGCONF_HAS_LONGLONG)
   template<> struct integral_types<4>:type_and_size<long long,unsigned long long>{};
-# if !defined(MWGCONF_HAS_DISTINCT_INT64)
-  template<> struct integral_types<5>:type_and_size<long long,unsigned long long>{static const int size=0;};
-# else
+#else
+  template<> struct integral_types<4>{static const int size=0;};
+#endif
+#if defined(MWGCONF_HAS_DISTINCT_INT64)
   template<> struct integral_types<5>:type_and_size<__int64,unsigned __int64>{};
-  template<> struct integral_types<5>:type_and_size<__int64,unsigned __int64>{static const int size=0;};
-# endif
+#else
+  template<> struct integral_types<5>{static const int size=0;};
 #endif
 
   template<bool C,typename T,typename F> struct conditional{};
@@ -122,9 +121,12 @@ namespace cstdint_detail{
 
   template<int I,int J=0>
   struct integer_switch:conditional<
-    (integral_types<J>::size>=I||integral_types<J>::size==0),
+    integral_types<J>::size>=I,
     integral_types<J>,integer_switch<I,J+1>
   >::type{};
+
+  template<int I>
+  struct integer_switch<I,6>:integer_switch<I/2>{};
 }
   typedef cstdint_detail::integer_switch<1>::int_t  int8_t;
   typedef cstdint_detail::integer_switch<2>::int_t  int16_t;
@@ -136,7 +138,7 @@ namespace cstdint_detail{
   typedef cstdint_detail::integer_switch<8>::uint_t uint64_t;
 
   static_assert(
-    sizeof(int8_t)==1&&sizeof(int16_t)==2&&sizeof(int32_t)==4&&sizeof(int64_t)==8,
+    sizeof(int8_t)==1&&sizeof(int16_t)==2&&sizeof(int32_t)==4, //&&sizeof(int64_t)==8
     "mwg/std/cstdint: FATAL: sorry, failed to generate inttypes...");
 
   typedef long long int intmax_t;

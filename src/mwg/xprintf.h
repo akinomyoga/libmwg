@@ -463,13 +463,13 @@ namespace xprintf_detail{
 
   template<typename Writer,typename T>
   typename stdm::enable_if<stdm::is_signed<T>::value&&!stdm::is_same<T,char>::value,int>::type
-  xprintf_convert(Writer const& buff,fmtspec const& spec,T const& value,adl_helper){
+  xprintf_convert(Writer const& buff,fmtspec const& spec,T const& value,adl_helper mwg_gcc3_concept_overload(1)){
     return basic_convert_impl<Writer>::convert_integer(buff,spec,(mwg::i8t)value,true,sizeof(T));
   }
 
   template<typename Writer,typename T>
   typename stdm::enable_if<stdm::is_unsigned<T>::value||stdm::is_same<T,char>::value,int>::type
-  xprintf_convert(Writer const& buff,fmtspec const& spec,T const& value,adl_helper){
+  xprintf_convert(Writer const& buff,fmtspec const& spec,T const& value,adl_helper mwg_gcc3_concept_overload(2)){
     return basic_convert_impl<Writer>::convert_integer(buff,spec,(mwg::i8t)value,false,sizeof(T));
   }
 
@@ -505,9 +505,14 @@ namespace xprintf_detail{
 // create_xprintf_writer
 
 #include <cstdio>
-#include <ostream>
+#ifdef MWGCONF_HEADER_OSTREAM
+# include <ostream>
+#else
+//?mconf H ostream
+// 何と gcc-2.95 には ostream がない
+# include <iostream>
+#endif
 #include <string>
-#include <iostream>
 
 namespace mwg{
 namespace xprintf_detail{
