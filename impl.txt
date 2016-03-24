@@ -42,123 +42,6 @@
 
 2016-03-03
 
-* %%c_str() の実装。%% → fix() の実装
-
-  const XCH* を受け取る様な他の関数に指定する為に。
-  直接 c_str() で const XCH* とするのは難しい。
-  というのも、実際のデータを一時オブジェクトに結びつけなければ、
-  データが使用前に消えてしまうからである。
-  つまり、c_str() の呼び出し側に一時オブジェクトを作成しなければならない。
-
-  a 一つの方法は operator->() の連鎖で一時オブジェクトを呼び出し側に作成する。
-
-    | struct tmpbuff{
-    |   std::vector<char_type> data;
-    |
-    | public:
-    |   tmpbuff(...);
-    |
-    |   tmpbuff* operator->(){return this;}
-    |   tmpbuff const* operator->() const{return this;}
-    |
-    |   char_type const* c_str() const{return &data[0];}
-    | };
-    |
-    | struct strbase{
-    |   tmpbuff operator->() const{return tmpbuff(*this);}
-    | };
-    |
-    | mwg::make_str("hello").toupper()->c_str()
-
-    これは以下の様に解釈される。
-
-    | mwg::make_str("hello").toupper().operator->().operator->()->c_str()
-    |                                  ~~~~~~~~~~~~ ~~~~~~~~~~~~
-    |                                  バッファ構築 内部ptr取得
-
-    しかし乍ら、c_str() の時だけ -> を使ってアクセスしろ
-    というのも分かりにくいインターフェイスである。これは混乱を生む。
-
-  b 或いは、c_str() で一時オブジェクトを返し、
-    そこから operator const XCH*() const でポインタに変換して貰う。
-
-    | struct tmpbuff{
-    |   std::vector<char_type> data;
-    | public:
-    |   tmpbuff(...);
-    |
-    |   operator const char_type*() const{return &data[0];}
-    | };
-    |
-    | struct strbase{
-    |   tmpbuff c_str() const{return tmpbuff(*this);}
-    | };
-    |
-    | mwg::make_str("hello").toupper().c_str()
-
-    この方法は記述の仕方については一番自然である。
-
-    しかしながら、operator const char_type*() const が期待通りに呼び出されるかは不明である。
-
-    x 例えば、printf の引数に渡したい時には (...) に適合させる為に
-      const char_type* を自動的に呼び出してくれるという事はありえない。
-    x また、テンプレート引数 + SFINAE みたいな構造になっている関数の場合も、
-      テンプレートパラメータに tmpbuff が直接入ってしまってうまく行かない。
-
-    やはり色々と微妙な方法である事は否めない。
-
-  c 一番何もない方法は、ユーザに二段構えで呼び出して貰う事である。
-
-    つまり使用時に、
-
-    | mwg::make_str("hello").toupper().fix().c_str()
-
-    の様に指定して貰うことである。
-
-    というか途中で好きな時に現物バッファを作成できる、
-    という点で fix() という関数は有って然るべきと思われる。
-
-    それに、また fix() という関数を使わせる事によって、
-    ユーザに対して mwg::str がどの様な動作を内部でしているのかを理解して貰う良い機会になる。
-    多少学習コストは上がるかも知れないが、学習させずに隠蔽させてユーザに混乱を招くよりは良いだろう。
-
-  これはもう殆ど fix() 関数しかまともな選択肢はない。
-
-  ■fix()を定義する
-  ■string に限って fix を上書きして自分自身を返す様にする
-
-  % strsub についても fix で自分自身を返して良い気がする。
-  % となると fix という関数名はどうなのか…
-  % と思ったが、よく考えたら strsub は null 終端していないので
-  % c_str にはできない。バッファへのポインタは取得できるが。
-
-  なんか -> の方が良い気もしてきた…。
-
-  a s.fix();
-
-  b s(); // operator()();
-    s.fix() と毎回書くのが面倒であれば、
-    s() とだけ書けばよい様にしておいても良い。
-    しかし、たかが文字列バッファ構築に () を使ってしまうのは勿体ない気がする。
-    (といって、他のよりよい用途が思い付く訳ではない気がする)
-
-  c s++; // operator++(int);
-    後置演算子というのであればこれでも良いが、
-    意味的に変である。却下である。
-
-  d s->
-    こうなったら -> でも良いような気がしてきた。
-    後続する関数もそのまま呼び出せる。
-    何も関数を呼び出すつもりがない場合には単に s.fix() としておけば良い。
-    つまり、fix と operator-> を両方定義するということ。
-
-    但し、-> についてのドキュメントは丁寧に書くのがよい。
-    例えば、"メソッドチェインの途中で一旦バッファに文字列を構築するポイントを表す" 的な感じにする。
-
-  ■operator->() も追加する。
-    strfix については自身へのポインタを返す。
-  ■operator->() の説明を注意深く行う。
-
 * string: strbase::insert(char_type c,range-spec) に対応する。
 
   現在の replace の実装は寧ろ splice という関数名に変えた方が良いのではないか。
@@ -586,6 +469,125 @@
 ------------------------------------------------------------------------------
   Done
 ------------------------------------------------------------------------------
+
+2016-03-24
+
+* %%c_str() の実装。%% → fix() の実装
+
+  const XCH* を受け取る様な他の関数に指定する為に。
+  直接 c_str() で const XCH* とするのは難しい。
+  というのも、実際のデータを一時オブジェクトに結びつけなければ、
+  データが使用前に消えてしまうからである。
+  つまり、c_str() の呼び出し側に一時オブジェクトを作成しなければならない。
+
+  a 一つの方法は operator->() の連鎖で一時オブジェクトを呼び出し側に作成する。
+
+    | struct tmpbuff{
+    |   std::vector<char_type> data;
+    |
+    | public:
+    |   tmpbuff(...);
+    |
+    |   tmpbuff* operator->(){return this;}
+    |   tmpbuff const* operator->() const{return this;}
+    |
+    |   char_type const* c_str() const{return &data[0];}
+    | };
+    |
+    | struct strbase{
+    |   tmpbuff operator->() const{return tmpbuff(*this);}
+    | };
+    |
+    | mwg::make_str("hello").toupper()->c_str()
+
+    これは以下の様に解釈される。
+
+    | mwg::make_str("hello").toupper().operator->().operator->()->c_str()
+    |                                  ~~~~~~~~~~~~ ~~~~~~~~~~~~
+    |                                  バッファ構築 内部ptr取得
+
+    しかし乍ら、c_str() の時だけ -> を使ってアクセスしろ
+    というのも分かりにくいインターフェイスである。これは混乱を生む。
+
+  b 或いは、c_str() で一時オブジェクトを返し、
+    そこから operator const XCH*() const でポインタに変換して貰う。
+
+    | struct tmpbuff{
+    |   std::vector<char_type> data;
+    | public:
+    |   tmpbuff(...);
+    |
+    |   operator const char_type*() const{return &data[0];}
+    | };
+    |
+    | struct strbase{
+    |   tmpbuff c_str() const{return tmpbuff(*this);}
+    | };
+    |
+    | mwg::make_str("hello").toupper().c_str()
+
+    この方法は記述の仕方については一番自然である。
+
+    しかしながら、operator const char_type*() const が期待通りに呼び出されるかは不明である。
+
+    x 例えば、printf の引数に渡したい時には (...) に適合させる為に
+      const char_type* を自動的に呼び出してくれるという事はありえない。
+    x また、テンプレート引数 + SFINAE みたいな構造になっている関数の場合も、
+      テンプレートパラメータに tmpbuff が直接入ってしまってうまく行かない。
+
+    やはり色々と微妙な方法である事は否めない。
+
+  c 一番何もない方法は、ユーザに二段構えで呼び出して貰う事である。
+
+    つまり使用時に、
+
+    | mwg::make_str("hello").toupper().fix().c_str()
+
+    の様に指定して貰うことである。
+
+    というか途中で好きな時に現物バッファを作成できる、
+    という点で fix() という関数は有って然るべきと思われる。
+
+    それに、また fix() という関数を使わせる事によって、
+    ユーザに対して mwg::str がどの様な動作を内部でしているのかを理解して貰う良い機会になる。
+    多少学習コストは上がるかも知れないが、学習させずに隠蔽させてユーザに混乱を招くよりは良いだろう。
+
+  これはもう殆ど fix() 関数しかまともな選択肢はない。
+
+  Done> fix()を定義する
+  Done> string に限って fix を上書きして自分自身を返す様にする
+
+  % strsub についても fix で自分自身を返して良い気がする。
+  % となると fix という関数名はどうなのか…
+  % と思ったが、よく考えたら strsub は null 終端していないので
+  % c_str にはできない。バッファへのポインタは取得できるが。
+
+  なんか -> の方が良い気もしてきた…。
+
+  a s.fix();
+
+  b s(); // operator()();
+    s.fix() と毎回書くのが面倒であれば、
+    s() とだけ書けばよい様にしておいても良い。
+    しかし、たかが文字列バッファ構築に () を使ってしまうのは勿体ない気がする。
+    (といって、他のよりよい用途が思い付く訳ではない気がする)
+
+  c s++; // operator++(int);
+    後置演算子というのであればこれでも良いが、
+    意味的に変である。却下である。
+
+  d s->
+    こうなったら -> でも良いような気がしてきた。
+    後続する関数もそのまま呼び出せる。
+    何も関数を呼び出すつもりがない場合には単に s.fix() としておけば良い。
+    つまり、fix と operator-> を両方定義するということ。
+
+    但し、-> についてのドキュメントは丁寧に書くのがよい。
+    例えば、"メソッドチェインの途中で一旦バッファに文字列を構築するポイントを表す" 的な感じにする。
+
+  Done> operator->() も追加する。
+  Done> strfix については自身へのポインタを返す。
+  Done> operator->() の説明を注意深く行う。
 
 2016-03-23
 

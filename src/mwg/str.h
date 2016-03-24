@@ -359,7 +359,8 @@ struct adapter_traits<XCH[N]>:adapter_traits_array<XCH>{
     return value;
   }
   static std::size_t length(const XCH (&value)[N]){
-    return value[N-1]!=char_traits<XCH>::null()?N:N-1;
+    return char_traits<XCH>::strlen(value);
+    //return value[N-1]!=char_traits<XCH>::null()?N:N-1;
   }
 };
 
@@ -375,7 +376,8 @@ struct adapter_traits<const XCH[N]>:adapter_traits_array<XCH>{
     return value;
   }
   static std::size_t length(const XCH (&value)[N]){
-    return value[N-1]!=char_traits<XCH>::null()?N:N-1;
+    return char_traits<XCH>::strlen(value);
+    //return value[N-1]!=char_traits<XCH>::null()?N:N-1;
   }
 };
 #endif
@@ -653,6 +655,23 @@ protected:
    * :@fn s.==back==();
    *  最後の文字を取得します。
    *  c.f. `back` (C++11)
+   * :@fn s.==fix==();
+   * :@op strfix strbase::==operator->==() const;
+   *  メソッドチェーンの途中で文字列を実体化したい場合に使用します。\
+   *  例えば const char* を受け取る関数に文字列を渡したい場合は以下のようにします。
+   *  &pre(!cpp){
+   * std::FILE* file = std::fopen(mwg::str("HELLO.TXT").tolower().fix().c_str(),"r");
+   * std::FILE* file = std::fopen(mwg::str("HELLO.TXT").tolower()->c_str(),"r");
+   * }
+   *  但し `fix` 及び `->` を用いて得られるインスタンスの寿命は、\
+   *  その呼び出しを含む完全式である事に注意して下さい。
+   *  &pre(!cpp){
+   * const char* filename = mwg::str("HELLO.TXT").tolower()->c_str();
+   * // filename は初期化後に dangling pointer になります。
+   * // 以下のようにした場合と同様の問題です。
+   * const char* filename = (std::string("hello")+".txt").c_str();
+   * }
+   *
    */
 #pragma%end
 public:
@@ -681,6 +700,18 @@ public:
   const_iterator end()   const{return data.end();}
 private:
   const_iterator _beginAt(std::ptrdiff_t offset) const{return data.begin_at(offset);}
+
+public:
+  strfix<char_type> fix() const{return *this;}
+  strfix<char_type> operator->() const{return *this;}
+
+#pragma%x begin_test
+  void test(){
+    char buff[100];
+    std::sprintf(buff,(mwg::str("file")+": "+"message")->c_str());
+    mwg_assert(mwg::str(buff)=="file: message","buff=%s",buff);
+  }
+#pragma%x end_test
 
   //---------------------------------------------------------------------------
   //
@@ -1631,6 +1662,20 @@ public:
     this->data.reset(mwg::str(rhs));
     return *this;
   }
+
+#ifdef MWGCONF_STD_REF_QUALIFIERS
+  strfix      &  fix()      & {return *this;}
+  strfix const&  fix() const& {return *this;}
+  strfix      && fix()      &&{return stdm::move(*this);}
+  strfix const&& fix() const&&{return stdm::move(*this);}
+#else
+  strfix      &  fix()        {return *this;}
+  strfix const&  fix() const  {return *this;}
+#endif
+  strfix      * operator->()      {return this;}
+  strfix const* operator->() const{return this;}
+
+  char_type const* c_str() const{return this->data.get_ptr();}
 };
 
 #pragma%x begin_check
