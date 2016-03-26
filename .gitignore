@@ -3,6 +3,8 @@
 /out
 /src/Makefile
 /note/a.out
+/note/a.exe
+/note/a.obj
 
 # user configurations
 /config.mk

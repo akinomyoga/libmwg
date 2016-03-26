@@ -128,7 +128,7 @@ show-install-message:
 #%x DefineRuleDoc.r/%LANG\y/cpp/
 
 _libmwg_scan_target:=for key in $$($(BASE)/mmake/mcxx/cxx +prefix list|awk '{print $$2}'); do printf '\e[48;5;189;1m%-79s\e[m\n' "$$ CXXKEY=$$key make TARGET"; CXXKEY="$$key" make TARGET; done
-.PHONY: scan-check scan-install scan-all scan-clean
+.PHONY: scan-check scan-install scan-all scan-clean scan-clean-all
 scan-check:
 	@for key in $$($(BASE)/mmake/mcxx/cxx +prefix list|awk '{print $$2}'); do printf '\e[48;5;189;1m%-79s\e[m\n' "$$ CXXKEY=$$key make check"; CXXKEY="$$key" make check; done
 scan-install:

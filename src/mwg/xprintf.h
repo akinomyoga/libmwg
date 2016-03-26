@@ -220,38 +220,71 @@ namespace vararg{
       return detail::tuple_element_selector<0,U,TT>::eval(evaluater,index,tp);
   }
 
-#ifdef MWGCONF_STD_VARIADIC_TEMPLATES
+  namespace detail{
+#if defined(_MSC_VER)&&defined(MWGCONF_STD_RVALUE_REFERENCES)
+    /* 2016-03-27 vcbug workaround
+     *
+     * YArgs&& で受け取った変数を forward するとどうしても一時オブジェクトになってしまう。
+     * 解決できなかったのでポインタに変換して渡す事にする。
+     *
+     */
+    template<typename Arg>
+    struct _pfarg:mwg::identity<typename stdm::remove_reference<Arg>::type*>{
+      typedef typename stdm::remove_reference<Arg>::type value_type;
+      static value_type* wrap(value_type& arg){return &arg;}
+
+      typedef Arg mwg_forward_rvalue reference_type;
+      static reference_type fwd(value_type* arg){
+        return static_cast<reference_type>(*arg);
+      }
+    };
+#else
+    template<typename Arg>
+    struct _pfarg:mwg::identity<Arg mwg_forward_rvalue>{
+      typedef Arg mwg_forward_rvalue reference_type;
+      static reference_type wrap(reference_type arg){return mwg::stdm::forward<Arg>(arg);}
+      static reference_type fwd(reference_type arg){return mwg::stdm::forward<Arg>(arg);}
+    };
+#endif
 #pragma%m 1
-  template<typename... Args>
-  class packed_forward:public mwg::stdm::tuple<Args mwg_forward_rvalue...>{
-  public:
-    typedef mwg::stdm::tuple<Args mwg_forward_rvalue...> tuple_type;
+    template<typename... Args>
+    class packed_forward:public mwg::stdm::tuple<Args mwg_forward_rvalue...>{
+    public:
+      typedef mwg::stdm::tuple<Args mwg_forward_rvalue...> tuple_type;
+    
+      // copy constructor
+      //   右辺値参照も左辺値参照も全部コピーする。
+      //   基底が tuple<Args mwg_forward_rvalue...> なので要素は全て参照である。
+      //   従って rhs を右辺値参照に強制しても問題は生じない。
+      packed_forward(packed_forward const& rhs):tuple_type(mwg::stdm::move((tuple_type&)rhs)){}
 
-    packed_forward(Args mwg_forward_rvalue... args):tuple_type(mwg::stdm::forward<Args>(args)...){}
+    private:
+      template<typename... YArgs##>
+      friend packed_forward<YArgs...> pack_forward(YArgs mwg_forward_lvalue... args);
 
-    // copy constructor
-    //   右辺値参照も左辺値参照も全部コピーする。
-    //   基底が tuple<Args mwg_forward_rvalue...> なので要素は全て参照である。
-    //   従って rhs を右辺値参照に強制しても問題は生じない。
-    packed_forward(packed_forward const& rhs):tuple_type(mwg::stdm::move((tuple_type&)rhs)){}
-  };
+      packed_forward(typename _pfarg<Args>::type... args)
+        :tuple_type(_pfarg<Args>::fwd(args)...){}
+    };
+    template<typename... YArgs>
+    packed_forward<YArgs...> pack_forward(YArgs mwg_forward_lvalue... args){
+      return packed_forward<YArgs...>(_pfarg<YArgs>::wrap(args)...);
+    }
+
 #pragma%end
-#pragma%x 1
+#ifdef MWGCONF_STD_VARIADIC_TEMPLATES
+#pragma%x 1.r/##//
+#pragma%m 1 1.R@(^|\n)[[:space:]]*//[^\n]*(\n|$)@$1@
 #else
 #pragma%x
 #pragma%x variadic_expand::with_arity.r/__arity__/ArN/
 #pragma%end.r/typename Args[0-9]/&=void/
 #pragma%m 1 1.r/class packed_forward/&<Args...>/
-#pragma%x variadic_expand::with_arity.f/__arity__/0/ArN/
+#pragma%x variadic_expand::with_arity .f/__arity__/0/ArN/
 #endif
-
-#pragma%m 1
-  template<typename... Args>
-  packed_forward<Args...> pack_forward(Args mwg_forward_lvalue... args){
-    return packed_forward<Args...>(mwg::stdm::forward<Args>(args)...);
   }
-#pragma%end
-#pragma%x variadic_expand_0toArN
+
+  using detail::packed_forward;
+  using detail::pack_forward;
 
 }
 }
@@ -1042,6 +1075,10 @@ void check_xputf_interface(){
   mwg_check(mwg::xputf("hello %05d!",1234).str()=="hello 01234!");
   mwg_check(mwg::xputf("hello %05d!",1234).count()==12);
   mwg_check(mwg::vxputf("hello %05d!",mwg::stdm::forward_as_tuple(1234)).count()==12);
+
+  mwg_check(std::string(mwg::xputf("%s/ph%03d.bin","hydro",12))=="hydro/ph012.bin");
+  std::string t1=mwg::xputf("%s/ph%03d.bin","hydro",12);
+  mwg_check(t1=="hydro/ph012.bin");
 }
 
 void test2(){
