@@ -7,6 +7,12 @@ P
 
 source ../mmake/vars.sh
 
+if ! S -t'/* C++ Compiler? */' '' '' 'class A{}; int main(){return 0;}'; then
+  bold=$'\e[1m' ul=$'\e[4m' ul0=$'\e[24m' sgr0=$'\e[m'
+  echo "mwg_config.mconf: ${bold}This is not a sane C++ compiler. Please check \`$ul$CFGDIR/config.log$ul0' to modify the configuration, and then run \`${ul}make clean-cxx-cache${ul0}'.$sgr0" >&2
+  return 1
+fi
+
 fname_swc="$CFGDIR/include/mwg_config_common.h"
 msg_commonConfigName=mwg/config.h
 exec 7>"$fname_swc"; fdbase=7

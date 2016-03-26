@@ -88,7 +88,7 @@ source_files+=$(CPPDIR)/${file}
 lwiki_files+=$(CPPDIR)/${filex}.lwiki
 -include $(CPPDIR)/${file}.dep
 $(CPPDIR)/${file}: ${file} ${ppdeps}
-	@echo 'GEN ${file}'; $(MMAKECMD) copy-pp ${file}
+	@echo 'GEN ${file}'; $(MMAKECMD) generate-source ${file}
 $(CPPDIR)/${filex}.mconf: $(CPPDIR)/${file}
 $(CPPDIR)/${filex}.lwiki: $(CPPDIR)/${file}
 config_files+=$(CFGDIR)/config/${name}.h

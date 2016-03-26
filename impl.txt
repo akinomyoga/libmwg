@@ -8,161 +8,20 @@
 
 2016-03-24
 
-* gcc-2.95 support
+* gcc-3.3.6
 
-  gcc-2.95 の g++ をサポートしようとしたが gcc-2.95 には色々と問題がある。
+  gcc-2.95 は取り敢えず諦めたので gcc-3.3.6 について support を試す。
 
-  1. #line hoge file とすると、
+* gcc-2.95 未だコンパイルが通らない。保留。
 
-    後に続く #include "..." の起点が勝手に #line で指定した物に置き換わる。
-    つまり、gcc-2.95 をコンパイルする時には #line は off にしておかなければならない。
+  2016-03-26: 今日検索していて気付いたのだが実は gcc-2.95 は SFINAE がないとか。
+    道理で overload ができない訳である。
+    エラーメッセージで SFINAE が働いていないかのように表示されていたのは寧ろ当然で、
+    何となく SFINAE を使っている気になっていた部分が動いていた方が不思議なのである。
 
-  2. そもそも簡単なプログラムが通らない。
-
-    | 1 簡単なプログラムが通らない
-    |
-    |     #include <algorithm>
-    |     int main(){return 0;}
-    |
-    |     $ /opt/gcc-2.95.3/bin/g++ stl.cpp
-    |
-    |   上記を単純にコンパイルしようとするだけで、大量の文法エラーになる。
-    |   エラー箇所を見ても特に何も見えない。何かマクロが定義されている事によるエラーだろうか。。
-    |   どうもマクロを展開して調べてみると、
-    |
-    |     include/g++-3/streambuf.h:91: _IO_wchar_t _fill;
-    |
-    |   が展開された結果として
-    |
-    |     include/g++-3/streambuf.h:91: _G_wchar_t _fill;
-    |
-    |   になるが、_G_wchar_t が定義されていない事による物の様だ。試しに、
-    |
-    |     $ /opt/gcc-2.95.3/bin/g++ -D_G_wchar_t=wchar_t stl.cpp
-    |
-    |   としてみるとコンパイルが通った。何か設定でも間違えたのだろうか。
-    |
-    | 2 更に検索してみると _G_wchar_t は _G_config.h というファイルで
-    |
-    |     typedef long int _G_wchar_t;
-    |
-    |   の様な感じに定義される物の様である。そして、_G_config.h は、
-    |
-    |     include/g++-3/stl_config.h:151:#   include <_G_config.h>
-    |
-    |   として読み込まれる筈である。検索してみるが、_G_config.h は見付からない。うーん。
-    |
-    |     $ /opt/gcc-2.95.3/bin/g++ -MD -D_G_wchar_t=wchar_t stl.cpp
-    |     $ grep _G_config.h stl.d
-    |     /usr/include/_G_config.h /usr/include/bits/types.h \
-    |
-    |   つまり、元からシステムに入っている _G_config を使おうとしているという事だ。
-    |   改めて確認する。
-    |
-    |     $ find /opt/gcc-2.95.3/ | grep config
-    |     /opt/gcc-2.95.3/include/g++-3/stl_config.h
-    |
-    |   やはり gcc-2.95.3 は _G_config を提供していない。
-    |   仕方がないので /usr/include/_G_config.h の方を観察する。
-    |   うーん。libio.h の一部のファイルのように書かれている。
-    |   この libio は標準ライブラリの一部のようである。
-    |   そして この _G_config.h の中身は 2012 頃に (?) 大整理された様である。
-    |
-    | 3 似たような問題として _G_config.h が見付からないと言っている人がいる。
-    |
-    |     https://gcc.gnu.org/ml/gcc-help/1999-q3n/msg00396.html
-    |
-    |   そこへの回答は、gcc を tarball からインストールする時は、
-    |   唯単に make install するだけでは駄目なのだと書かれている。
-    |   何とそうなのか。。当然 gcc-2.95.3 を入れる時には整理しかしていない。
-    |   →gcc-2.95.3 の install の index.htm を観察してみたが
-    |     _G_config.h については何も書かれていない。
-    |
-    | 4 分からないので、gcc-2.95.3 を丸まる検索してみる。どうやら
-    |
-    |     ./i686-pc-linux-gnu/libio/Makefile:_G_config.h: ${srcdir}/gen-params
-    |
-    |   とあるぐらいだから、_G_config.h は自動的に生成される筈の物のようである。
-    |   仕方ないので再度 ./configure & make を試してみる事にする。
-    |
-    |   コンパイルできないエラーになる。gcc-5.3.1 が悪いのか?
-    |
-    | 5 仕方がないので gcc-4.6.3 で試す。今度は別のエラーになる。
-    |
-    |     /usr/include/bits/stdio-lock.h:47: #if defined _LIBC && IS_IN (libc)
-    |
-    |     sudo sed -i 's/defined _LIBC/defined (_LIBC)/' /usr/include/bits/stdio-lock.h
-    |
-    |   で無理矢理システムのヘッダを修正する。(/usr/include/bits の中で、
-    |   このファイル stdio-lock.h だけタイムスタンプが古かったから
-    |   何かサポートされなくなったファイルなのだろう。)
-    |   でもそれでもエラーは変わらない。問題があったのは、IS_IN の方だろうか。
-    |   段々諦めるしかない様な気がしてきた…。検索してみると…
-    |
-    |     https://sourceware.org/ml/libc-alpha/2014-08/msg00337.html
-    |
-    |     bits/stdio-lock.h について以下を追加する
-    |
-    |     +#ifndef _LIBC
-    |     +# define IS_IN(lib) (0)
-    |     +#endif
-    |
-    |   という話があるのでこれを試してみる事にする。するとこの問題は通った。
-    |
-    | 6 ところがまたエラーになる。今度は _G_*_t の類が定義されていないとエラーになる。
-    |   そもそも _G_*_t の類を正しく定義する為にコンパイルをやり直しているのに、
-    |   その途中で _G_*_t が要求されるのはおかしい。
-    |
-    |   もしかすると _G_config.h が正しく生成されているにも拘わらず
-    |   誤った _G_config.h が読み込まれてしまっているだけなのだろうか。
-    |   という事で _G_config.h を検索してみるがやはり未だ生成されている気配はない。
-    |
-    |   試しに以下をやってみると呆気なく _G_config.h が生成された。
-    |
-    |     cd i686-pc-linux-gnu/libio
-    |     make _G_config.h
-    |
-    |   直後に make をしてみたら新しく生成された _G_config.h が読み込まれている様である。
-    |
-    | 7 それでも未だエラーはある。新しく作成された _G_config.h の中に、
-    |
-    |   34:typedef _G_fpos_t _G_fpos_t;
-    |   45:typedef __sigset_t _G_sigset_t;
-    |
-    |   という行があるのである。先ず _G_fpos_t を定義するのに _G_fpos_t を必要としているのは変である。
-    |   更に、__sigset_t も恐らく定義されていないのだろう。もう面倒なので別の場所から取ってくる。
-    |
-    |   https://classes.soe.ucsc.edu/cmpe202/SimpleScalar/glibc-1.09/sigset.h
-    |   typedef unsigned long int __sigset_t;
-    |
-    |   https://fossies.org/dox/glibc-2.23/generic_2__G__config_8h_source.html
-    |   typedef struct
-    |   {
-    |     __off_t __pos;
-    |     __mbstate_t __state;
-    |   } _G_fpos_t;
-    |
-    |   /usr/include/bits/types.h:131:__STD_TYPE __OFF_T_TYPE __off_t;  /* Type of file sizes
-    |   /usr/include/bits/typesizes.h:51:#define __OFF_T_TYPE           __SYSCALL_SLONG_TYPE
-    |   /usr/include/bits/typesizes.h:31:# define __SYSCALL_SLONG_TYPE  __SQUAD_TYPE
-    |   /usr/include/bits/typesizes.h:34:# define __SYSCALL_SLONG_TYPE  __SLONGWORD_TYPE
-    |   /usr/include/bits/types.h:96:# define __SQUAD_TYPE              __quad_t
-    |   /usr/include/bits/types.h:108:# define __SQUAD_TYPE             long int
-    |   /usr/include/bits/types.h:93:#define __SLONGWORD_TYPE   long int
-    |
-    |   うーん。libio は何とか無理矢理コンパイルが通る様になったが、
-    |   結局別の物が全然コンパイルが通らない。
-    |   今度は libiberty の Makefile が生成されていないと言っている。そんな。
-    |
-    |   _G_config.h ができたので取り敢えずこれで良しとして手でこの _G_config.h をコピーする事にした。
-    |
-    |   $ sudo cp -i _G_config.h /opt/gcc-2.95.3/include/
-    |
-    |   最初の単純なソースファイルが特別な指定無しで通るようになった。
-
-    [まとめ]
-
-    結局手で gcc-2.95.3 用の _G_config.h を作成して /opt/gcc-2.95.3/include に配置した。
+    それとは別に複雑なテンプレートを使用して
+    overload を実現しようとしたコードが通らない。ICE になる。
+    単純なテンプレートで overload を実現しようとすると通るのだが。。。
 
 * SD-6 support
 
@@ -627,6 +486,162 @@
 ------------------------------------------------------------------------------
 
 2016-03-24
+
+* gcc-2.95 support
+
+  gcc-2.95 の g++ をサポートしようとしたが gcc-2.95 には色々と問題がある。
+
+  1. #line hoge file とすると、
+
+    後に続く #include "..." の起点が勝手に #line で指定した物に置き換わる。
+    つまり、gcc-2.95 をコンパイルする時には #line は off にしておかなければならない。
+
+  2. そもそも簡単なプログラムが通らない。
+
+    | 1 簡単なプログラムが通らない
+    |
+    |     #include <algorithm>
+    |     int main(){return 0;}
+    |
+    |     $ /opt/gcc-2.95.3/bin/g++ stl.cpp
+    |
+    |   上記を単純にコンパイルしようとするだけで、大量の文法エラーになる。
+    |   エラー箇所を見ても特に何も見えない。何かマクロが定義されている事によるエラーだろうか。。
+    |   どうもマクロを展開して調べてみると、
+    |
+    |     include/g++-3/streambuf.h:91: _IO_wchar_t _fill;
+    |
+    |   が展開された結果として
+    |
+    |     include/g++-3/streambuf.h:91: _G_wchar_t _fill;
+    |
+    |   になるが、_G_wchar_t が定義されていない事による物の様だ。試しに、
+    |
+    |     $ /opt/gcc-2.95.3/bin/g++ -D_G_wchar_t=wchar_t stl.cpp
+    |
+    |   としてみるとコンパイルが通った。何か設定でも間違えたのだろうか。
+    |
+    | 2 更に検索してみると _G_wchar_t は _G_config.h というファイルで
+    |
+    |     typedef long int _G_wchar_t;
+    |
+    |   の様な感じに定義される物の様である。そして、_G_config.h は、
+    |
+    |     include/g++-3/stl_config.h:151:#   include <_G_config.h>
+    |
+    |   として読み込まれる筈である。検索してみるが、_G_config.h は見付からない。うーん。
+    |
+    |     $ /opt/gcc-2.95.3/bin/g++ -MD -D_G_wchar_t=wchar_t stl.cpp
+    |     $ grep _G_config.h stl.d
+    |     /usr/include/_G_config.h /usr/include/bits/types.h \
+    |
+    |   つまり、元からシステムに入っている _G_config を使おうとしているという事だ。
+    |   改めて確認する。
+    |
+    |     $ find /opt/gcc-2.95.3/ | grep config
+    |     /opt/gcc-2.95.3/include/g++-3/stl_config.h
+    |
+    |   やはり gcc-2.95.3 は _G_config を提供していない。
+    |   仕方がないので /usr/include/_G_config.h の方を観察する。
+    |   うーん。libio.h の一部のファイルのように書かれている。
+    |   この libio は標準ライブラリの一部のようである。
+    |   そして この _G_config.h の中身は 2012 頃に (?) 大整理された様である。
+    |
+    | 3 似たような問題として _G_config.h が見付からないと言っている人がいる。
+    |
+    |     https://gcc.gnu.org/ml/gcc-help/1999-q3n/msg00396.html
+    |
+    |   そこへの回答は、gcc を tarball からインストールする時は、
+    |   唯単に make install するだけでは駄目なのだと書かれている。
+    |   何とそうなのか。。当然 gcc-2.95.3 を入れる時には整理しかしていない。
+    |   →gcc-2.95.3 の install の index.htm を観察してみたが
+    |     _G_config.h については何も書かれていない。
+    |
+    | 4 分からないので、gcc-2.95.3 を丸まる検索してみる。どうやら
+    |
+    |     ./i686-pc-linux-gnu/libio/Makefile:_G_config.h: ${srcdir}/gen-params
+    |
+    |   とあるぐらいだから、_G_config.h は自動的に生成される筈の物のようである。
+    |   仕方ないので再度 ./configure & make を試してみる事にする。
+    |
+    |   コンパイルできないエラーになる。gcc-5.3.1 が悪いのか?
+    |
+    | 5 仕方がないので gcc-4.6.3 で試す。今度は別のエラーになる。
+    |
+    |     /usr/include/bits/stdio-lock.h:47: #if defined _LIBC && IS_IN (libc)
+    |
+    |     sudo sed -i 's/defined _LIBC/defined (_LIBC)/' /usr/include/bits/stdio-lock.h
+    |
+    |   で無理矢理システムのヘッダを修正する。(/usr/include/bits の中で、
+    |   このファイル stdio-lock.h だけタイムスタンプが古かったから
+    |   何かサポートされなくなったファイルなのだろう。)
+    |   でもそれでもエラーは変わらない。問題があったのは、IS_IN の方だろうか。
+    |   段々諦めるしかない様な気がしてきた…。検索してみると…
+    |
+    |     https://sourceware.org/ml/libc-alpha/2014-08/msg00337.html
+    |
+    |     bits/stdio-lock.h について以下を追加する
+    |
+    |     +#ifndef _LIBC
+    |     +# define IS_IN(lib) (0)
+    |     +#endif
+    |
+    |   という話があるのでこれを試してみる事にする。するとこの問題は通った。
+    |
+    | 6 ところがまたエラーになる。今度は _G_*_t の類が定義されていないとエラーになる。
+    |   そもそも _G_*_t の類を正しく定義する為にコンパイルをやり直しているのに、
+    |   その途中で _G_*_t が要求されるのはおかしい。
+    |
+    |   もしかすると _G_config.h が正しく生成されているにも拘わらず
+    |   誤った _G_config.h が読み込まれてしまっているだけなのだろうか。
+    |   という事で _G_config.h を検索してみるがやはり未だ生成されている気配はない。
+    |
+    |   試しに以下をやってみると呆気なく _G_config.h が生成された。
+    |
+    |     cd i686-pc-linux-gnu/libio
+    |     make _G_config.h
+    |
+    |   直後に make をしてみたら新しく生成された _G_config.h が読み込まれている様である。
+    |
+    | 7 それでも未だエラーはある。新しく作成された _G_config.h の中に、
+    |
+    |   34:typedef _G_fpos_t _G_fpos_t;
+    |   45:typedef __sigset_t _G_sigset_t;
+    |
+    |   という行があるのである。先ず _G_fpos_t を定義するのに _G_fpos_t を必要としているのは変である。
+    |   更に、__sigset_t も恐らく定義されていないのだろう。もう面倒なので別の場所から取ってくる。
+    |
+    |   https://classes.soe.ucsc.edu/cmpe202/SimpleScalar/glibc-1.09/sigset.h
+    |   typedef unsigned long int __sigset_t;
+    |
+    |   https://fossies.org/dox/glibc-2.23/generic_2__G__config_8h_source.html
+    |   typedef struct
+    |   {
+    |     __off_t __pos;
+    |     __mbstate_t __state;
+    |   } _G_fpos_t;
+    |
+    |   /usr/include/bits/types.h:131:__STD_TYPE __OFF_T_TYPE __off_t;  /* Type of file sizes
+    |   /usr/include/bits/typesizes.h:51:#define __OFF_T_TYPE           __SYSCALL_SLONG_TYPE
+    |   /usr/include/bits/typesizes.h:31:# define __SYSCALL_SLONG_TYPE  __SQUAD_TYPE
+    |   /usr/include/bits/typesizes.h:34:# define __SYSCALL_SLONG_TYPE  __SLONGWORD_TYPE
+    |   /usr/include/bits/types.h:96:# define __SQUAD_TYPE              __quad_t
+    |   /usr/include/bits/types.h:108:# define __SQUAD_TYPE             long int
+    |   /usr/include/bits/types.h:93:#define __SLONGWORD_TYPE   long int
+    |
+    |   うーん。libio は何とか無理矢理コンパイルが通る様になったが、
+    |   結局別の物が全然コンパイルが通らない。
+    |   今度は libiberty の Makefile が生成されていないと言っている。そんな。
+    |
+    |   _G_config.h ができたので取り敢えずこれで良しとして手でこの _G_config.h をコピーする事にした。
+    |
+    |   $ sudo cp -i _G_config.h /opt/gcc-2.95.3/include/
+    |
+    |   最初の単純なソースファイルが特別な指定無しで通るようになった。
+
+    [まとめ]
+
+    結局手で gcc-2.95.3 用の _G_config.h を作成して /opt/gcc-2.95.3/include に配置した。
 
 * %%c_str() の実装。%% → fix() の実装
 

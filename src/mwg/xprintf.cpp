@@ -583,7 +583,6 @@ namespace xprintf_detail{
     int    fprec;
     int    iprec;
 
-
     // 繰り上がりで桁が増えるかどうかを判定
     // (0.9999999... の場合に起こる)
     bool checkFullCarry(int ndigit,int& nzero) const{

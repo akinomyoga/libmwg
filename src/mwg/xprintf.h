@@ -617,8 +617,6 @@ namespace xprintf_detail{
 
   template<typename Writer,typename Tuple>
   int vxprintf_impl(Writer const& buff,const char* fmt,Tuple const& args){
-    using namespace mwg::xprintf_detail;
-    namespace detail=mwg::xprintf_detail;
     int nchar=0;
     int iarg=0;
     int iarg_base=-1;
@@ -626,7 +624,7 @@ namespace xprintf_detail{
     for(;*fmt;){
       if(*fmt=='%'){
         fmtspec spec;
-        detail::read_fmtspec(spec,fmt);
+        read_fmtspec(spec,fmt);
         if(spec.conv=='%'){
           // 色々な引数を指定していた場合どうするか?
           buff.put('%');
@@ -636,23 +634,23 @@ namespace xprintf_detail{
 
         // instanciate spec.width
         if(spec.width_pos==0)
-          spec.width=detail::va_getIndex(iarg++,args);
+          spec.width=va_getIndex(iarg++,args);
         else if(spec.width_pos>0)
-          spec.width=detail::va_getIndex(iarg_base+spec.width_pos,args);
+          spec.width=va_getIndex(iarg_base+spec.width_pos,args);
         else if(spec.width<0)
           spec.width=0; // default
 
         // instanciate spec.precision
         if(spec.precision_pos==0)
-          spec.precision=detail::va_getIndex(iarg++,args);
+          spec.precision=va_getIndex(iarg++,args);
         else if(spec.precision_pos>0)
-          spec.precision=detail::va_getIndex(iarg_base+spec.precision_pos,args);
+          spec.precision=va_getIndex(iarg_base+spec.precision_pos,args);
         // a default value is determined by the corresponding converter.
 
         // instanciate spec.pos
         int jarg=spec.pos>0?iarg_base+spec.pos:iarg++;
         if(spec.conv=='\0'){
-          if(!(fmt=detail::va_getFormat(jarg,args))){
+          if(!(fmt=va_getFormat(jarg,args))){
             xputs(buff,"(xprintf: argument index out of range)");
             break;
           }
@@ -755,12 +753,13 @@ namespace xprintf_detail{
     const char* m_fmt;
     pack_type m_args;
 
+  public:
     _xputf_temporary_object(const char* fmt,pack_type mwg_forward_rvalue args):m_fmt(fmt),m_args(mwg::stdm::move(args)){}
 
 #if defined(MWGCONF_STD_DEFAULTED_FUNCTIONS)&&defined(MWGCONF_STD_RVALUE_REFERENCES)
+  private:
     _xputf_temporary_object(_xputf_temporary_object const& c) = default;
     _xputf_temporary_object(_xputf_temporary_object&& c) = default;
-#endif
 
 #pragma%m 1
     template<typename... Args>
@@ -768,7 +767,9 @@ namespace xprintf_detail{
     xputf(const char* fmt,Args mwg_forward_rvalue... args);
 #pragma%end
 #pragma%x variadic_expand_0toArN
+#endif
 
+  private:
     typename pack_type::tuple_type const& get_args() const{return this->m_args;}
 
   public:

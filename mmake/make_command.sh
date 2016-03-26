@@ -64,10 +64,10 @@ function generate_filenames {
   fobj="$CFGDIR/obj/$name.o"
 }
 
-# char code conversion
-function proc/copy-pp/transform-source {
+# char code conversion&transform
+function proc/transform-source {
   local file="$1"
-  [[ ! -s $file ]] && return
+  [[ ! -s $file ]] && return 0
 
   local transform='cat "$file"'
   local transform_set=
@@ -85,12 +85,14 @@ function proc/copy-pp/transform-source {
     transform_set=1
   fi
 
-  [[ $transform_set ]] || return
+  [[ $transform_set ]] || return 0
 
-  eval "$transform" > "$file.iconv" && mv "$file.iconv" "$file"
+  transform="$transform"' > "$file.iconv" && mv "$file.iconv" "$file"'
+  [[ $mcxx_verbose ]] && echo "$transform"
+  eval "$transform"
 }
 
-function proc/copy-pp {
+function proc/generate-source {
   local "${generate_filenames_vars[@]}"
   generate_filenames "$1"
 
@@ -118,7 +120,7 @@ X '%name%' '%headers%' '%expression%'
 EOF
 
   if [[ -s $fcheck ]]; then
-    proc/copy-pp/transform-source "$fcheck"
+    proc/transform-source "$fcheck"
 
     # create <chkflg>
     gawk '
@@ -126,7 +128,7 @@ EOF
     ' "$fcheck" > "$CPPDIR/check/$name.flags"
   fi
 
-  proc/copy-pp/transform-source "$fsource"
+  proc/transform-source "$fsource"
 
   # extract <fmconf> <flwiki>
   perl "$BASE/mmake/make_extract.pl" "$fsource"
