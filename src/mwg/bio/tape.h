@@ -199,7 +199,7 @@ public:
   // 型を明示的に指定する場合
   template<typename T,typename U>
   typename mwg::stdm::enable_if<
-    !mwg::stdm::is_same<T,U>::value,
+    stdx::ice_not<mwg::stdm::is_same<T,U>::value>::value,
     typename rwflags_detail::rwflags_impl<T,RWFlags>::rtype>::type
   read(U& value) const{
     typedef typename rwflags_detail::rwflags_impl<T,RWFlags>::rtype return_type;

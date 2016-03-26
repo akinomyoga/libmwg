@@ -8,9 +8,31 @@
 
 2016-03-24
 
-* gcc-3.3.6
+* gcc-3.3.6 対応 → 無理。諦める
 
   gcc-2.95 は取り敢えず諦めたので gcc-3.3.6 について support を試す。
+
+  1 試しにコンパイルしてみたらいきなり ICE である。
+    tape_head::read の SFINAE 条件で発生している。
+    どうやら条件式に ! や && 等を使えない様である。
+    所謂 ice_and, ice_not, ice_or の類は gcc-3.3 のために有ったのだと今知った。
+
+    | typename mwg::stdm::enable_if<
+    |   !mwg::stdm::is_same<T,U>::value,
+    |   typename rwflags_detail::rwflags_impl<T,RWFlags>::rtype>::type
+
+  2 またバグが出た。
+    依存名でない筈なのにテンプレート中だと template を付けないと呼び出せない関数が存在する様だ。
+
+  3 更に ICE が出た。どうやらメンバおよびメンバ型は SFINAE の対象ではないようである。
+    void (&X::*)(); で X = int を試すと ICE が出るし、
+    &X::memfn で X = "memfn を持っていないクラス" を指定するとまた ICE が出る。
+    メンバ型が判定できないとなると可成り厳しい。やはり gcc-3.3.6 はサポートの対象外とするか。
+
+    さて今改めて調べてみると boost 1.54 は既に g++-4.0.1 以上しかサポートしない様である。
+    更に、g++-4.5 未満は子ライブラリによってはサポートしなくても良いという事になっている。
+    [[Installation and compatibility - 1.54.0>http://www.boost.org/doc/libs/1_54_0/libs/log/doc/html/log/installation.html]]
+    boost がサポートしていないのであればまあ諦めても良いかという気がする。
 
 * gcc-2.95 未だコンパイルが通らない。保留。
 

@@ -57,6 +57,44 @@ namespace stdm{
 #endif
 
 #if !defined(MWGCONF_HAS_STD_ROUND)
+  /*?mconf
+   * # 何と gcc-2.95 ではそもそも同じ arity の SFINAE 関数を複数定義できない?
+   * # → そもそも SFINAE は gcc 3.0 以降でしか有効でないようだ。
+   *
+   * S -t'"sfinae"' 'STD_SFINAE' '' '
+   * template<typename T> struct is_a{};
+   * template<typename T> struct is_b{typedef int type;};
+   * template<typename T> void foo(T const&,typename is_a<T>::type=0){}
+   * template<typename T> void foo(T const&,typename is_b<T>::type=0){}
+   * int main(){foo(1);}
+   * '
+   */
+
+#ifndef MWGCONF_STD_SFINAE
+  namespace cmath_detail{
+    template<typename T>
+    struct round_impl_floating{
+      typedef T return_type;
+      static return_type eval(T const& value){return value>=0?std::floor(value+0.5):std::ceil(value-0.5);}
+    };
+
+    template<typename T>
+    struct round_impl_integral{
+      typedef double return_type;
+      static return_type eval(T const& value){return double(value);}
+    };
+
+    struct round_impl_empty{};
+
+    template<typename T>
+    struct round_impl:mwg::identity<
+      typename stdm::conditional<stdm::is_floating_point<T>::value,round_impl_floating<T>,
+        typename stdm::conditional<stdm::is_integral<T>::value,round_impl_integral<T>,
+          round_impl_empty>::type>::type>::type{};
+  }
+  template<typename T>
+  typename cmath_detail::round_impl<T>::return_type round(T value){return cmath_detail::round_impl<T>::eval(value);}
+#else
   template<typename T>
   typename mwg::stdm::enable_if<mwg::stdm::is_floating_point<T>::value,T>::type
   round(T value mwg_gcc3_concept_overload(1)){return value>=0?std::floor(value+0.5):std::ceil(value-0.5);}
@@ -64,6 +102,7 @@ namespace stdm{
   template<typename T>
   typename mwg::stdm::enable_if<mwg::stdm::is_integral<T>::value,double>::type
   round(T value mwg_gcc3_concept_overload(2)){return round(double(value));}
+#endif
 
   template<typename T>
   long lround(T value){return round(value);}
@@ -74,6 +113,23 @@ namespace stdm{
 # endif
 #endif
 
+#ifdef MWGCONF_GCC295BUG_USING_NAMESPACE_STD
+# ifdef MWGCONF_HAS_STD_SINH
+  using ::std::sinh;
+# endif
+# ifdef MWGCONF_HAS_STD_COSH
+  using ::std::cosh;
+# endif
+# ifdef MWGCONF_HAS_STD_TANH
+  using ::std::tanh;
+# endif
+# ifdef MWGCONF_HAS_STD_TRUNC
+  using ::std::trunc;
+# endif
+# ifdef MWGCONF_HAS_STD_ROUND
+  using ::std::round;
+# endif
+#endif
 }
 }
 

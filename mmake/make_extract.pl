@@ -86,6 +86,9 @@ while($content =~ m/'(?:[^\\']|\\.)*'|"(?:[^"\\]|\\.)*"|\/\/(?:\?([[:alnum:]_]+)
   }
 }
 
-# close($hconf);
+if(!(${$oconf}{isfirst})){
+  file_print($oconf,"return 0\n");
+}
 close(${$oconf}{handle});
+
 close($hwiki);

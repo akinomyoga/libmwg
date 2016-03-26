@@ -162,7 +162,7 @@ namespace mwb1{
   template<typename T,std::size_t N>
   struct MwbFormatWriter_WriteType<T[N]>{
     static void write_type(MwbFormatWriter const& writer){
-      writer.write_type<T>();
+      writer.mwg_gcc336bug20160326_template write_type<T>();
       writer.write_array(N);
     }
   };

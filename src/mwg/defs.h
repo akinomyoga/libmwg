@@ -186,8 +186,16 @@ namespace mwg{
 #else
 # define mwg_vc_typename
 #endif
-#if defined(__GNUC__)&&MWGCONF_GCC_VER>=40200&&!defined(__INTEL_COMPILER)&&!defined(__clang__)
+#if defined(MWGCONF_GCC_VER)&&(MWGCONF_GCC_VER>=40200)
 # define MWG_STD_GccCvQualifiedFunctionType
+#endif
+#if (MWGCONF_GCC_VER&&MWGCONF_GCC_VER<30400)
+# define mwg_gcc336bug20160326_template template
+#else
+# define mwg_gcc336bug20160326_template
+#endif
+#if (MWGCONF_GCC_VER&&MWGCONF_GCC_VER<30000)
+# define MWGCONF_GCC295BUG_USING_NAMESPACE_STD
 #endif
 //TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
 //  Utility

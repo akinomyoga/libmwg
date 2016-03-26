@@ -333,7 +333,7 @@ struct C{
 
 void test_is_assignable(){
   mwg_assert(( mwg_concept_is_assignable(double,0)));
-  mwg_assert((!mwg_concept_is_assignable(double,A())));
+  mwg_assert((!mwg_concept_is_assignable(double,mwg::declval<A>())));
 }
 
 namespace sfinae{

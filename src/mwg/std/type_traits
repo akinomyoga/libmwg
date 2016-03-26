@@ -1367,12 +1367,16 @@ namespace stdx{
 #endif
 
   //
+  // ice_not
   // ice_and
   // ice_or
-  // is_convertible_pack<Ts...>
   //
-  //   To avoid internal compiler errors in some compilers.
+  //   To avoid internal compiler errors (ICE) in some compilers.
   //   They can also be used with ... expansion as ice_and<expr...>::value.
+  //   For example, g++-3.3.6 generates ICE in enable_if SFINAE condition.
+  //
+  template<bool B> struct ice_not:false_type{};
+  template<> struct ice_not<false>:true_type{};
 #if defined(MWGCONF_STD_VARIADIC_TEMPLATES)
   template<bool... Bs> struct ice_and;
   template<bool... Bs> struct ice_and<false,Bs...>:stdm::false_type{};
@@ -1382,7 +1386,17 @@ namespace stdx{
   template<bool... Bs> struct ice_or<true,Bs...>:stdm::true_type{};
   template<bool... Bs> struct ice_or<false,Bs...>:ice_or<Bs...>{};
   template<> struct ice_or<>:stdm::false_type{};
+#else
+//%expand
+  template<$".for/K/0/ArN/bool CK=true/,"> struct ice_and:false_type{};
+  template<> struct ice_and<>:true_type{};
+  template<$".for/K/0/ArN/bool CK=false/,"> struct ice_or:true_type{};
+  template<> struct ice_or<>:false_type{};
+//%end.i
+#endif
 
+  // is_convertible_pack<Ts...>
+#if defined(MWGCONF_STD_VARIADIC_TEMPLATES)
   namespace detail{
     template<typename TT1,typename TT2,bool S>
     struct is_convertible_pack_impl:stdm::false_type{};
@@ -1397,12 +1411,7 @@ namespace stdx{
   struct is_convertible_pack<parameter_pack<As...>,parameter_pack<Bs...>>
     :detail::is_convertible_pack_impl<parameter_pack<As...>,parameter_pack<Bs...>,sizeof...(As)==sizeof...(Bs)>{};
 #else
-//%expand (
-  template<$".for/K/0/ArN/bool CK=true/,"> struct ice_and:false_type{};
-  template<> struct ice_and<>:true_type{};
-  template<$".for/K/0/ArN/bool CK=false/,"> struct ice_or:true_type{};
-  template<> struct ice_or<>:false_type{};
-
+//%expand
   namespace detail{
     template<typename TT1,typename TT2,bool S> struct is_convertible_pack_impl:false_type{};
     template<> struct is_convertible_pack_impl<parameter_pack<>,parameter_pack<>,true>:true_type{};
@@ -1416,7 +1425,7 @@ namespace stdx{
   template<typename TT1,typename TT2>
   struct is_convertible_pack
     :detail::is_convertible_pack_impl<TT1,TT2,(TT1::size==TT2::size)>{};
-//%).i
+//%end.i
 #endif
 }
 }
