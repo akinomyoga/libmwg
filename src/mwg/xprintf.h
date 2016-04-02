@@ -230,7 +230,7 @@ namespace vararg{
      */
     template<typename Arg>
     struct _pfarg:mwg::identity<typename stdm::remove_reference<Arg>::type*>{
-      typedef typename stdm::remove_reference<Arg>::type value_type;
+      typedef typename stdm::remove_reference<Arg mwg_forward_rvalue>::type value_type;
       static value_type* wrap(value_type& arg){return &arg;}
 
       typedef Arg mwg_forward_rvalue reference_type;
@@ -241,9 +241,10 @@ namespace vararg{
 #else
     template<typename Arg>
     struct _pfarg:mwg::identity<Arg mwg_forward_rvalue>{
+      typedef typename stdm::remove_reference<Arg mwg_forward_rvalue>::type value_type;
       typedef Arg mwg_forward_rvalue reference_type;
-      static reference_type wrap(reference_type arg){return mwg::stdm::forward<Arg>(arg);}
-      static reference_type fwd(reference_type arg){return mwg::stdm::forward<Arg>(arg);}
+      static reference_type wrap(value_type& arg){return mwg::stdm::forward<Arg>(arg);}
+      static reference_type fwd(value_type& arg){return mwg::stdm::forward<Arg>(arg);}
     };
 #endif
 #pragma%m 1
@@ -766,7 +767,7 @@ namespace xprintf_detail{
       return mwg::stdm::move(buff);
     }
 
-    mwg_explicit_operator std::string() const{
+    operator std::string() const{
       return mwg::stdm::move(this->str());
     }
 
@@ -817,7 +818,7 @@ namespace xprintf_detail{
       return mwg::stdm::move(buff);
     }
 
-    mwg_explicit_operator std::string() const{
+    operator std::string() const{
       return mwg::stdm::move(this->str());
     }
 

@@ -593,6 +593,7 @@ namespace except_detail{
 #  define mwg_check(condition,...)           ((condition)?mwg::except_detail::nop_succuss():mwg::except_detail::throw_fail(#condition,mwg_assert_position,mwg_assert_funcname,"" __VA_ARGS__))
 # endif
 #else
+// __VA_ARGS__ が使えない環境ではその場で関手を生成する。
 
 namespace mwg{
 namespace except_detail{

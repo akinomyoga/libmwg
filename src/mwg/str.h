@@ -114,6 +114,7 @@ namespace str_detail{
 
 #pragma%m mwg_str::policy_requirements
 /*?lwiki
+&pre(!cpp){
 struct StringPolicy{
   typedef char          char_type;
   typedef const char&   char_reference; // can be char, const char&
@@ -160,6 +161,7 @@ struct StringPolicy{
     const char_type* get_ptr() const;
   };
 };
+}
 */
 #pragma%end
 
@@ -246,15 +248,15 @@ struct char_traits{
  *  `adapter_traits<T>` の特殊化を定義する事によって、\
  *  新しい型に対して mwg/str インターフェイスを提供できます。
  *  `adapter_traits<T>` の特殊化では以下のメンバを定義します。
- *  &pre*(!cpp){
- *  struct adapter_traits<T>{
- *    static const bool available=true;
- *    typedef something char_type;
- *    class adapter_type{
- *      adapter_type(T const&);
- *    };
- *  };
- *  }
+ *  &pre(!cpp){
+ * struct adapter_traits<T>{
+ *   static const bool available=true;
+ *   typedef something char_type;
+ *   class adapter_type{
+ *     adapter_type(T const&);
+ *   };
+ * };
+ * }
  *  :@var static const bool ==available==;
  *   mwg/str インターフェイスを提供できる場合に `true` を設定します。
  *  :@typedef[opt] typename ==adapter_type==;
@@ -658,7 +660,7 @@ protected:
    * :@fn s.==fix==();
    * :@op strfix strbase::==operator->==() const;
    *  メソッドチェーンの途中で文字列を実体化したい場合に使用します。\
-   *  例えば const char* を受け取る関数に文字列を渡したい場合は以下のようにします。
+   *  例えば `const char*` を受け取る関数に文字列を渡したい場合は以下のようにします。
    *  &pre(!cpp){
    * std::FILE* file = std::fopen(mwg::str("HELLO.TXT").tolower().fix().c_str(),"r");
    * std::FILE* file = std::fopen(mwg::str("HELLO.TXT").tolower()->c_str(),"r");
@@ -1025,7 +1027,7 @@ public:
    * :@fn s1.==trim==(pred); // pred 削除文字を判定する関数
    *  文字列の両端にある連続する空白を除去します。
    *  c.f. `trim` (Boost), `Trim` (ATL/MFC, CLR, mwg-string), `TrimAny` (mwg-string), <?java trim?> (Java, JavaScript), \
-   *  `strip` (Ruby, CLX), `strip_if` (CLX), strip (Makefile)
+   *  <?rb strip?> (Ruby, CLX), `strip_if` (CLX), <?mk strip?> (Makefile)
    * :@fn s1.==ltrim==();
    * :@fn s1.==ltrim==(s2);   // s2   削除文字集合
    * :@fn s1.==ltrim==(pred); // pred 削除文字を判定する関数
@@ -1267,11 +1269,11 @@ public:
    * :@fn s.==find_not==(s2,&color(red){[}'''range-spec'''&color(red){]});
    * :@fn s.==rfind_not==(s2,&color(red){[}'''range-spec'''&color(red){]});
    *  最初に見付かった、文字集合に含まれない文字の位置を返します。
-   *  -`find_not` -> c.f. strspn (C), find_first_not_of (C++), IndexOfNot (mwg-string)
-   *  -`rfind_not` -> c.f. find_last_not_of (C++), IndexOfNotR (mwg-string)
+   *  -`find_not` -> c.f. `strspnP` (C), `find_first_not_of` (C++), `IndexOfNot` (mwg-string)
+   *  -`rfind_not` -> c.f. `find_last_not_of` (C++), `IndexOfNotR` (mwg-string)
    * :@op s1.find(...)>=0;
    *  文字列が他方の文字列に含まれているかどうかを判定する時。
-   *  c.f. contains (Boost), Contains (CLR), contains/matches (Java), include? (Ruby), findstring (Makefile).
+   *  c.f. `contains` (Boost), <?cs Contains?> (CLR), <?java contains?>/<?java matches?> (Java), <?rb include??> (Ruby), <?mk findstring?> (Makefile).
    * :参考
    *  c.f. Boost find_nth/ifind_first/ifind_last/ifind_nth
    */
@@ -2515,7 +2517,7 @@ void test(){
  * 多くの演算で式テンプレートを使用している為、式の結果は一時オブジェクトの型になります。
  * 一時オブジェクトの寿命を延長すると問題が生じるのでコピーコンストラクタを隠蔽しています。
  * つまり、以下のように `auto` を用いて変数を作成することができません。一般に `mwg::strfix<CHAR>` を使用して下さい。
- * もしくは `fix` メンバ関数を呼び出して明示的に `mwg::strfix<CHAR>` を構築して下さい。
+ * もしくは `fix()` メンバ関数を呼び出して明示的に `mwg::strfix<CHAR>` を構築して下さい。
  * &pre(!cpp){
  * // ERROR
  * auto a = mwg::str("hello").toupper();
@@ -2567,8 +2569,8 @@ void test(){
  *   分割文字
  *  :@param[in] pred
  *   文字判定子
- *  c.f. split/iter_split (Boost), Split (CLR), split (Java), split (JavaScript), <?rb split?> (Ruby, CLX), \
- *  <?rb partition?>/<?rb rpartition?> (Ruby), split (awk), `split_if` (CLX), `Tokenize(cset,int&)` (ATL/MFC)
+ *  c.f. `split`/`iter_split` (Boost), <?cs Split?> (CLR), <?java split?> (Java, JavaScript), \
+ *  <?rb partition?>/<?rb rpartition?> (Ruby), <?awk split?> (awk. Ruby, CLX), `split_if` (CLX), `Tokenize(cset,int&)` (ATL/MFC)
  * :@fn [TODO] arr.==join==();
  * :@fn [TODO] arr.==join==(s1); // s1 分割文字列
  *  文字列の集合を連結します。
@@ -2605,34 +2607,34 @@ void test(){
  *  c.f. `replace_all`/`replace_regex`/`replace_first`/`replace_last` (Boost), <?cs Relace?> (CLR, mwg-string), \
  *    <?java replace?> (Java, JavaScript), <?java replaceAll?>/<?java replaceFirst?> (Java), \
  *    <?awk sub?>/<?awk gsub?> (awk, Ruby), <?mk subst?>/<?mk patsubst?> (Makefile).
- *  -Boost の replace_nth に対応する関数は、それ程有用とは思われないので提供しない。
- *  -Boost の replace_regex_all, replace_head, replace_tail, \
- *   ireplace_first, ireplace_last, ireplace_nth, ireplace_all \
+ *  -Boost の `replace_nth` に対応する関数は、それ程有用とは思われないので提供しない。
+ *  -Boost の `replace_regex_all`, `replace_head`, `replace_tail`, \
+ *   `ireplace_first`, `ireplace_last`, `ireplace_nth`, `ireplace_all` \
  *   に対応する関数は正規表現及びそのフラグを用いて表現できるので提供しない。
- *   ■→最適化の観点から行くと head, tail は有用かも知れない。
- *  -Boost の erase_all, erase_regex, erase_regex_all, erase_head, \
- *   erase_tail, erase_first, erase_last, erase_nth, \
- *   ierase_first, ierase_last, ierase_nth, ierase_all \
- *   に対応する関数は置換後の文字列に "" を指定すれば良いだけなので提供しない。
+ *   ■→最適化の観点から行くと `head`, `tail` は有用かも知れない。
+ *  -Boost の `erase_all`, `erase_regex`, `erase_regex_all`, `erase_head`, \
+ *   `erase_tail`, `erase_first`, `erase_last`, `erase_nth`, \
+ *   `ierase_first`, `ierase_last`, `ierase_nth`, `ierase_all` \
+ *   に対応する関数は置換後の文字列に `""` を指定すれば良いだけなので提供しない。
  * :@fn [TODO] s1.==match==(reg,&color(red){[}'''range-spec'''&color(red){]}); // reg 正規表現
  * :@fn [TODO] s1.==rmatch==(reg,&color(red){[}'''range-spec'''&color(red){]});
  * :@fn [TODO] s1.==match_at==(reg,&color(red){[}'''range-spec'''&color(red){]});
  * :@fn [TODO] s1.==rmatch_at==(reg,&color(red){[}'''range-spec'''&color(red){]});
  *  正規表現に対する一致を試す。
- *  -match: 先頭から順に一致を試す。
- *  -rmatch: 末尾から順に一致を試す。
- *  -match_at: 先頭を含む部分列に対してだけ、一致を試す。
- *  -rmatch_at: 末端を含む部分列に対してだけ、一致を試す。
- *  c.f. Search/SearchR/Match/MatchAt (mwg-string), match (JavaScript), match (awk)
+ *  -`match`: 先頭から順に一致を試す。
+ *  -`rmatch`: 末尾から順に一致を試す。
+ *  -`match_at`: 先頭を含む部分列に対してだけ、一致を試す。
+ *  -`rmatch_at`: 末端を含む部分列に対してだけ、一致を試す。
+ *  c.f. `Search`/`SearchR`/`Match`/`MatchAt` (mwg-string), <?js match?> (JavaScript), <?awk match?> (awk)
  * :@fn [TODO] match_iterator
- *  c.f. find_all/iter_find (Boost), scan (Ruby), match (JavaScript)
+ *  c.f. `find_all`/`iter_find` (Boost), <?rb scan?> (Ruby), <?js match?> (JavaScript)
  *
  * **他
  */
 #pragma%x mwg_str::misc::doc
 /*?lwiki
  * :format, operator%
- *  c.f. `sprintf` (C), `AppendFormat, Format, FormatV, FormatMessage, FormatMessageV` (ATL/MFC), `Format` (CLR), format (Java), <?awk sprintf?> (awk, Perl), operator% (Ruby)
+ *  c.f. `sprintf` (C), `AppendFormat, Format, FormatV, FormatMessage, FormatMessageV` (ATL/MFC), `Format` (CLR), <?java format?> (Java), <?awk sprintf?> (awk, Perl), `operator%` (Ruby)
  * :参考
  *  -<?pl chop?>/<?pl chomp?> (Perl, Ruby, CLX)
  *  -mwg-string: ReverseMap
@@ -2652,11 +2654,9 @@ mwg/str では、文字列の内部形式と文字列に対する操作を分離
 ここでは、`StringPolicy` を定義して、新しい文字列の内部形式を追加する方法を説明します。
 
 `StringPolicy` は以下の様なメンバを持つクラスとして定義します。
-&pre(!cpp){
 */
 #pragma%x mwg_str::policy_requirements
 /*?lwiki
-}
 :@class class StringPolicy;
  :@typedef buffer_type;
   文字列の内部表現を格納する型です。
