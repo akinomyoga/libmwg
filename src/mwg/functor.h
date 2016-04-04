@@ -6,6 +6,7 @@
 #include <cstdio>
 #include <cstring>
 #include <mwg/std/type_traits>
+#include <mwg/std/utility>
 #include <mwg/except.h>
 #include <mwg/concept.h>
 #include <mwg/functor.h>
@@ -91,10 +92,6 @@ namespace functor_detail{
    *
    *   typedef auto ret_t;
    *   typedef auto sgn_t;
-   *   typedef auto arg1_t;
-   *   typedef auto arg2_t;
-   *   typedef auto arg3_t;
-   *   ...
    *
    *   typedef auto ref_tr; // functor への参照を保持
    *   typedef auto ins_tr; // functor の複製インスタンスを保持
@@ -124,10 +121,6 @@ namespace functor_detail{
     typedef void fct_t;
     typedef void sgn_t;
     typedef void ret_t;
-#pragma%x
-    ${.for|K|1|ARITY_MAX+1|typedef void argK_t;|
-    }
-#pragma%end.i
     typedef void ref_tr;
     typedef void ins_tr;
   };
@@ -143,9 +136,7 @@ namespace functor_detail{
 
     typedef R (sgn_t)(%types%);
     typedef R ret_t;
-    ${.for|K|1|%AR%+1|typedef AK argK_t;|
-    }
-#pragma%(
+#pragma%begin
     //::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     // rest requirements to be functor_traits:
     typedef fct_t;                         // raw functor type
@@ -153,7 +144,7 @@ namespace functor_detail{
     typedef ins_tr;                        // traits of mwg::functor data case
     static R invoke(const fct_t&,%types%); // invoke functor object
     //::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-#pragma%)
+#pragma%end
   };
   template<typename R %s_typenames%>
   struct functor_traits_signature<R(%types...%)>
@@ -182,7 +173,7 @@ namespace functor_detail{
   // L=3 [traits.mfp]
   // L=4 [traits.mp]
   // L=5 [traits.vararg]
-  // L=101: is_variant_signature
+  // L=101: is_variant_function
   // L=102: can_be_called_as_impl1 (overloaded functor)
 //TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
 //  class functor_traits<R (*)(params)>
@@ -236,8 +227,8 @@ namespace functor_detail{
   template<typename T,typename C,typename S>
   struct functor_traits_switch<T C::*,S,4>:functor_traits_switch<
     T C::*,S,
-    (is_variant_signature<functor_traits_signature<T&(C&)>,functor_traits<S*> >::value?101:
-      is_variant_signature<functor_traits_signature<const T&(const C&)>,functor_traits<S*> >::value?101:
+    (is_variant_function<T&(C&),S>::value?101:
+      is_variant_function<const T&(const C&),S>::value?101:
       0)
   >{};
 //TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
@@ -355,7 +346,8 @@ namespace functor_detail{
       //has_single_operator_functor<T>::value?1:
       //is_pointer_to_single_operator_functor<T>::value?2:
       0)
-  >{};
+    >{};
+
 #endif
 //TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
 //  関数共変反変
@@ -369,6 +361,16 @@ namespace functor_detail{
   struct functor_traits;
 //------------------------------------------------------------------------------
 #pragma%end
+  /*?lwiki
+   * :@var mwg::functor_detail::==is_variant_functor==<typename From,typename To>::value;
+   *  関手 `From` を関手 `To` に変換できるかどうかを判定します。
+   */
+  template<typename F,typename T,bool=(functor_traits<F>::is_functor&&functor_traits<T>::is_functor)>
+  struct is_variant_functor:stdm::false_type{};
+  template<typename F,typename T>
+  struct is_variant_functor<F,T,true>
+    :is_variant_function<typename functor_traits<F>::sgn_t,typename functor_traits<T>::sgn_t>{};
+
   template<typename F,typename S>
   struct functor_traits_switch<F,S,101>:functor_traits<F>{typedef S sgn_t;};
   template<typename F,typename S>
@@ -391,7 +393,7 @@ namespace functor_detail{
     (is_vararg_function<F>::value?5:
       is_vararg_function_pointer<F>::value?5:
       stdm::is_member_object_pointer<F>::value?4:
-      is_variant_signature<functor_traits<F>,functor_traits<S*> >::value?101:
+      is_variant_functor<F,S>::value?101:
       can_be_called_as<F,S>::value?102:
       0)
   >{};
@@ -406,38 +408,15 @@ namespace functor_detail{
   template<typename F,typename S>
   struct be_functor:stdm::integral_constant<bool,functor_traits<F,S>::is_functor>{};
 
-#ifdef MWGCONF_STD_RVALUE_REFERENCES
 #pragma%m 1
-  template<typename S,typename F %s_typenames%> typename stdm::enable_if<
+  template<typename S,typename F,typename... A> typename stdm::enable_if<
     mwg::be_functor<F,S>::value,
     typename mwg::functor_traits<F,S>::ret_t
-  >::type functor_invoke(const F& f $".for|K|1|%AR%+1|,AK&& aK|"){
-    return mwg::functor_traits<F,S>::invoke(f $".for|K|1|%AR%+1|,stdm::forward<AK>(aK)|");
+  >::type functor_invoke(const F& f,A mwg_forward_rvalue... a){
+    return mwg::functor_traits<F,S>::invoke(f,stdm::forward<A>(a)...);
   }
 #pragma%end
-#pragma%x mwg::functor::arities
-#else
-//#pragma%m 1
-//  template<typename S,typename F> typename stdm::enable_if<
-//    mwg::be_functor<F,S>::value,//&&mwg::funcsig::get_arity<S>::value==%AR%,
-//    typename mwg::functor_traits<F,S>::ret_t
-//  >::type functor_invoke(const F& f $".for|K|1|%AR%+1|
-//    ,typename mwg::functor_traits<F,S>::argK_t aK|"
-//  ){
-//    return mwg::functor_traits<F,S>::invoke(f %s_args%);
-//  }
-//#pragma%end
-//#pragma%x mwg::functor::arities
-#pragma%m 1
-  template<typename S,typename F %s_typenames%> typename stdm::enable_if<
-    mwg::be_functor<F,S>::value,
-    typename mwg::functor_traits<F,S>::ret_t
-  >::type functor_invoke(const F& f $".for|K|1|%AR%+1|,AK& aK|"){
-    return mwg::functor_traits<F,S>::invoke(f %s_args%);
-  }
-#pragma%end
-#pragma%x mwg::functor::arities
-#endif
+#pragma%x variadic_expand_0toArN
 
 //NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN
 //

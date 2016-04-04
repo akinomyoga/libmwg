@@ -29,31 +29,44 @@
 //TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
 //  class functor_traits<R (*)(As...),S>
 //------------------------------------------------------------------------------
-#pragma%x
-#define MWG_TMP_TYPENAMES typename R,$".for|@|1|ARITY_MAX+1|typename A@|,"
-#define MWG_TMP_TYPES     R,$".for|@|1|ARITY_MAX+1|A@|,"
-  template<int AR,MWG_TMP_TYPENAMES> struct construct_signature;
-  #pragma%x
-  template<MWG_TMP_TYPENAMES> struct construct_signature<@,MWG_TMP_TYPES>{typedef R (type)($".for|#|1|@+1|A#|,");};
-  #pragma%end.f|@|0|ARITY_MAX+1|
-#undef MWG_TMP_TYPENAMES
-#undef MWG_TMP_TYPES
-#pragma%end.i
+
+  namespace detail{
+    template<typename S,typename ATail>
+    struct push_function_parameter{};
+#pragma%m 1
+    template<typename R,typename ATail,typename... A>
+    struct push_function_parameter<R(A...),ATail>:mwg::identity<R(A...,ATail)>{};
+#pragma%end
+#pragma%x variadic_expand_0toArNm1
+
+    template<std::size_t Arity,typename R,template<std::size_t> class Params>
+    struct construct_signature:push_function_parameter<
+      typename construct_signature<Arity-1,R,Params>::type,
+      typename Params<Arity-1>::type>{};
+    template<typename R,template<std::size_t> class Params>
+    struct construct_signature<0,R,Params>{typedef R(type)();};
+  }
+
   template<typename Sv,typename Sc>
   struct get_vaarg_variance{
     typedef functor_traits<Sv> SvTr;
     typedef functor_traits<Sc> ScTr;
+
     typedef typename SvTr::ret_t ret_t;
-#pragma%x
-    typedef typename mwg::stdm::conditional<
-      stdm::is_same<typename SvTr::arg@_t,void>::value,
-      typename ScTr::arg@_t,typename SvTr::arg@_t
-    >::type arg@_t;
-#pragma%end.f|@|1|ARITY_MAX+1|
-#pragma%x
-    typedef typename construct_signature<ScTr::arity,ret_t,${.for|@|1|ARITY_MAX+1|arg@_t|,}>::type sgn_t;
-#pragma%end.i
+
+  private:
+    template<typename X,typename Y>
+    struct replace_void:stdm::conditional<!stdm::is_same<X,void>::value,X,Y>{};
+
+    template<std::size_t K>
+    struct param:replace_void<
+      typename get_parameter<K,typename SvTr::sgn_t>::type,
+      typename get_parameter<K,typename ScTr::sgn_t>::type>{};
+
+  public:
+    typedef typename detail::construct_signature<ScTr::arity,ret_t,param>::type sgn_t;
   };
+
 //------------------------------------------------------------------------------
   template<typename Sv,typename S>
   struct functor_invoker_vaarg;

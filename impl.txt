@@ -47,7 +47,19 @@
     }
   };
 
-  todo: reference qualifier に対応する?
+  todo: ref-qualifiers に対応する?
+
+    C++11 → cv qualifiers 4 通り×ref-qualifiers 3通り with variadic
+      多くのコンパイラで variadic templates の方を先に実装しているので、
+      ref-qualifiers の対応には variadic templpates を前提として良い。
+      (そうでないと大量の overload を用意しなければ為らず非現実的だ。)
+    C++03 → cv qualifiers 4 通り×ARITY_MAX
+
+  todo: invoke 周りの forward は一体どうなっているのか?
+
+    C++11 ならば関数本体に到達するまで forward を繰り返すべきである。
+    C++03 の時は、引数の型は基本的に T か T& か const T& かの3通りしかない。
+    値の時は引数の型は T const& として受け取る様にすればよい。
 
 2016-03-24
 

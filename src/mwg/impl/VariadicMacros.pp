@@ -5,7 +5,7 @@
 #pragma%[ArN=10]
 
 #pragma%m variadic_expand::with_arity
-#pragma%%m _ 1
+#pragma%%m _ 1.r/\ysizeof\.\.\.\([^()]+\)/__arity__/
 #pragma%# typename... args
 #pragma%%m _ _.R|,[[:space:]]*\ytypename[[:space:]]*\.\.\.[[:space:]]*([_[:alpha:]][_[:alnum:]]*)\y|$".for/%K/0/__arity__/,typename $1%K/"|
 #pragma%%m _ _.R|[[:space:]]*\ytypename[[:space:]]*\.\.\.[[:space:]]*([_[:alpha:]][_[:alnum:]]*)\y,|$".for/%K/0/__arity__/typename $1%K,/"|
@@ -46,6 +46,14 @@
 #pragma%%x 1.r/##//
 #else
 #pragma%%x variadic_expand::with_arity.f/__arity__/0/ArN+1/
+#endif
+#pragma%end
+
+#pragma%m variadic_expand_0toArNm1
+#ifdef MWGCONF_STD_VARIADIC_TEMPLATES
+#pragma%%x 1.r/##//
+#else
+#pragma%%x variadic_expand::with_arity.f/__arity__/0/ArN/
 #endif
 #pragma%end
 

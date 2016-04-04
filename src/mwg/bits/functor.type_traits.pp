@@ -1,8 +1,7 @@
 // -*- mode:C++;coding:utf-8 -*-
-//NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN
-//
-//    Function Types
-//
+#include <mwg/std/type_traits>
+#include <mwg/concept.h>
+
 namespace mwg{
 namespace functor_detail{
   //?lwiki *bits/functor.type_traits.pp
@@ -19,7 +18,7 @@ namespace functor_detail{
 #pragma%m 1
   template<typename R,typename... A>
   struct is_vararg_function<R(A...,...)>:stdm::true_type{
-    typedef R (without_vararg_sgn)(A...,...);
+    typedef R (without_vararg_sgn)(A...);
   };
 #pragma%end
 #pragma%x variadic_expand_0toArN
@@ -90,25 +89,76 @@ namespace functor_detail{
   //---------------------------------------------------------------------------
   template<typename T> T expr();
 
+  template<std::size_t I,typename F>
+  struct get_parameter{};
+  template<std::size_t I,typename R>
+  struct get_parameter<I,R()>:mwg::identity<void>{};
+  template<std::size_t I,typename R>
+  struct get_parameter<I,R(...)>:mwg::identity<void>{};
+#pragma%m 1
+  template<typename R,typename AHead,typename... A>
+  struct get_parameter<0,R(AHead,A...)>:mwg::identity<AHead>{};
+  template<std::size_t I,typename R,typename AHead,typename... A>
+  struct get_parameter<I,R(AHead,A...)>:get_parameter<I-1,R(A...)>{};
+  template<typename R,typename AHead,typename... A>
+  struct get_parameter<0,R(AHead,A...,...)>:mwg::identity<AHead>{};
+  template<std::size_t I,typename R,typename AHead,typename... A>
+  struct get_parameter<I,R(AHead,A...,...)>:get_parameter<I-1,R(A...,...)>{};
+#pragma%end
+#pragma%x variadic_expand_0toArNm1
+
+  template<typename F>
+  struct get_return{};
+#pragma%m 1
+  template<typename R,typename... A>
+  struct get_return<R(A...)>:mwg::identity<R>{};
+  template<typename R,typename... A>
+  struct get_return<R(A...,...)>:mwg::identity<R>{};
+#pragma%end
+#pragma%x variadic_expand_0toArN
+
   //---------------------------------------------------------------------------
   /*?lwiki
-   * :@var mwg::functor_detail::==is_variant_argument==<typename F,typename T>::value;
+   * :@var mwg::functor_detail::detail::==is_covariant==<typename F,typename T>::value;
    *  `F` の実引数を `T` の仮引数に渡す事ができるかどうかを判定します。
    *  `T=void` の場合は仮引数がないことを意味し、呼び出しに実引数を必要としないので常に `true` になります。
    */
   template<typename F,typename T>
-  struct is_variant_argument:stdm::integral_constant<bool,
-    (stdm::is_void<T>::value||stdm::is_convertible<F,T>::value)
-  >{};
-  template<typename TrSF,typename TrST>
-  struct is_variant_signature:stdm::integral_constant<bool,
-    (TrSF::is_functor&&TrST::is_functor
-      &&is_variant_argument<typename TrSF::ret_t,typename TrST::ret_t>::value
-#pragma%m 1
-      &&is_variant_argument<typename TrST::argK_t,typename TrSF::argK_t>::value
-#pragma%end
-#pragma%x 1.f|K|1|ARITY_MAX+1|
-    )>{};
+  struct is_covariant:stdm::integral_constant<bool,(stdm::is_void<T>::value||stdm::is_convertible<F,T>::value)>{};
+
+  //---------------------------------------------------------------------------
+  /*?lwiki
+   * :@var mwg::functor_detail::==is_variant_function==<typename F,typename T>::value;
+   *  関数型 `F` を関数型 `T` に変換できるかどうかを判定します。
+   *  `T` として受け取った引数を `F` の引数に変換でき (引数の反変性)、
+   *  かつ、`F` の戻り値を `T` の戻り値に変換できる (戻り値の共変性) 必要があります。
+   */
+  template<typename FSgn,typename TSgn>
+  struct is_variant_function;
+
+  namespace detail{
+    template<
+      typename FromSignature,typename ToSignature,
+      std::size_t K      = 0,
+      typename FromParam = typename get_parameter<K,FromSignature>::type,
+      typename ToParam   = typename get_parameter<K,ToSignature  >::type,
+      bool               = is_covariant<ToParam,FromParam>::value>
+    struct has_contravariant_parameters:stdm::false_type{};
+
+    template<
+      typename FromSignature,typename ToSignature,std::size_t K,
+      typename FromParam,typename ToParam>
+    struct has_contravariant_parameters<FromSignature,ToSignature,K,FromParam,ToParam,true>
+      :has_contravariant_parameters<FromSignature,ToSignature,K+1>{};
+
+    template<typename FromSignature,typename ToSignature,std::size_t K>
+    struct has_contravariant_parameters<FromSignature,ToSignature,K,void,void,true>:stdm::true_type{};
+  }
+
+  template<typename FSgn,typename TSgn>
+  struct is_variant_function:stdm::integral_constant<bool,
+    (is_covariant<typename get_return<FSgn>::type,typename get_return<TSgn>::type>::value&&
+      detail::has_contravariant_parameters<FSgn,TSgn>::value)>{};
 
   //---------------------------------------------------------------------------
   /*?lwiki
@@ -238,7 +288,7 @@ namespace functor_detail{
 #define MWG_FUNCTOR_H__can_be_called_as__content(Parameters,Arguments)  \
       MWG_FUNCTOR_H__can_be_called_as__declare_c1(Parameters,Arguments) \
       MWG_FUNCTOR_H__can_be_called_as__declare_OpR(Parameters,Arguments) \
-      mwg_concept_condition((c1::value&&is_variant_argument<OpR,R>::value));
+      mwg_concept_condition((c1::value&&is_covariant<OpR,R>::value));
     };
 
 #pragma%m 1
@@ -275,14 +325,16 @@ namespace functor_detail{
 #pragma%x begin_check
 void check_can_be_called_as(){
   using namespace mwg::functor_detail;
-  mwg_check( (is_variant_signature<functor_traits<int(int)>,functor_traits<int(int)> >::value));
-  mwg_check( (is_variant_signature<functor_traits<void(int)>,functor_traits<void(int)> >::value));
-  mwg_check( (is_variant_signature<functor_traits<int(int)>,functor_traits<void(int)> >::value));
-  mwg_check(!(is_variant_signature<functor_traits<void(int)>,functor_traits<int(int)> >::value));
+  mwg_check( (is_variant_function<int (int),int (int)>::value));
+  mwg_check( (is_variant_function<void(int),void(int)>::value));
+  mwg_check( (is_variant_function<int (int),void(int)>::value));
+  mwg_check(!(is_variant_function<void(int),int (int)>::value));
+  mwg_check(!(is_variant_function<int(int ),int(void)>::value));
+  mwg_check( (is_variant_function<int(void),int(int )>::value));
 
-  mwg_check( (is_variant_argument<int,int>::value));
-  mwg_check( (is_variant_argument<int,void>::value));
-  mwg_check(!(is_variant_argument<void,int>::value));
+  mwg_check( (is_covariant<int,int>::value));
+  mwg_check( (is_covariant<int,void>::value));
+  mwg_check(!(is_covariant<void,int>::value));
 }
 #pragma%x end_check
 }
