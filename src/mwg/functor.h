@@ -6,7 +6,6 @@
 #include <cstdio>
 #include <cstring>
 #include <mwg/std/type_traits>
-#include <mwg/std/utility>
 #include <mwg/except.h>
 #include <mwg/concept.h>
 #include <mwg/functor.h>
@@ -57,6 +56,7 @@ struct Str{
 #include <algorithm>
 #include <cstring>
 #include <mwg/std/type_traits>
+#include <mwg/std/utility>
 #include <mwg/concept.h>
 #include "funcsig.h"
 #include "functor.proto.h"
@@ -74,6 +74,7 @@ struct Str{
 
 namespace mwg{
 namespace functor_detail{
+  namespace sig=mwg::funcsig;
 //NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN
 //
 //    Functor Traits
@@ -82,20 +83,28 @@ namespace functor_detail{
 //  concept functor_traits
 //------------------------------------------------------------------------------
   /*?lwiki
-   * &pre(!cpp){
+   * &pre*(!cpp){
    * template<typename F>
-   * concept functor_traits{
-   *   typedef F fct_t;
+   * struct functor_traits{
    *   static const bool is_functor;
-   *   static const int arity;
-   *   static const bool has_varargs;
-   *
-   *   typedef auto ret_t;
+   *   typedef F fct_t;
    *   typedef auto sgn_t;
    *
    *   typedef auto ref_tr; // functor への参照を保持
    *   typedef auto ins_tr; // functor の複製インスタンスを保持
-   *   static ret_t invoke(const fct_t& f,...){
+   *   static '''return-type''' invoke(const fct_t& f,...){
+   *     f(...);
+   *   }
+   * };
+   * template<typename F,typename S>
+   * struct functor_traits{
+   *   static const bool is_functor;
+   *   typedef F fct_t;
+   *   typedef S sgn_t;
+   *
+   *   typedef auto ref_tr; // functor への参照を保持
+   *   typedef auto ins_tr; // functor の複製インスタンスを保持
+   *   static '''return-type''' invoke(const fct_t& f,...){
    *     f(...);
    *   }
    * };
@@ -115,46 +124,43 @@ namespace functor_detail{
   struct functor_traits_empty{
     // not functor
     static const bool is_functor=false;
-    static const int arity=0;
-    static const bool has_varargs=false;
 
     typedef void fct_t;
     typedef void sgn_t;
-    typedef void ret_t;
     typedef void ref_tr;
     typedef void ins_tr;
   };
-#ifdef _MSC_VER /* VCBUG */
+
+  /*?lwiki
+   * :@class class functor_traits_signature<S>;
+   *  `functor_traits` 特殊化の実装に使うヘルパクラスです。以下の物を定義します。
+   *  &pre(!cpp){
+   *  static const bool is_functor=true;
+   *  typedef S sgn_t;
+   *  }
+   *  `struct functor_traits_signature` で定義される物の他に以下の物を定義する必要があります。
+   *  &pre(!cpp){
+   *  typedef auto fct_t;                // raw functor type
+   *  typedef auto ref_tr;               // traits of mwg::functor_ref case
+   *  typedef auto ins_tr;               // traits of mwg::functor data case
+   *  static R invoke(const fct_t&,...); // invoke functor object
+   *  }
+   */
   template<typename S>
   struct functor_traits_signature{};
-#endif
 #pragma%m 1
-  template<typename R %s_typenames%>
-  struct functor_traits_signature<R(%types%)>:functor_traits_empty{
+  template<typename R,typename... A>
+  struct functor_traits_signature<R(A...)>:functor_traits_empty{
     static const bool is_functor=true;
-    static const int arity=%AR%;
-
-    typedef R (sgn_t)(%types%);
-    typedef R ret_t;
-#pragma%begin
-    //::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    // rest requirements to be functor_traits:
-    typedef fct_t;                         // raw functor type
-    typedef ref_tr;                        // traits of mwg::functor_ref case
-    typedef ins_tr;                        // traits of mwg::functor data case
-    static R invoke(const fct_t&,%types%); // invoke functor object
-    //::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-#pragma%end
+    typedef R (sgn_t)(A...);
   };
-  template<typename R %s_typenames%>
-  struct functor_traits_signature<R(%types...%)>
-    :functor_traits_signature<R(%types%)>
-  {
-    static const bool has_varargs=true;
-    typedef R (sgn_t)(%types...%);
+  template<typename R,typename... A>
+  struct functor_traits_signature<R(A...,...)>:functor_traits_empty{
+    static const bool is_functor=true;
+    typedef R (sgn_t)(A...,...);
   };
 #pragma%end
-#pragma%x mwg::functor::arities
+#pragma%x variadic_expand_0toArN
   template<
     typename S,
     typename F,
@@ -166,6 +172,7 @@ namespace functor_detail{
     typedef InsCaseTr ins_tr;
   };
 //TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
+
   template<typename F,typename S,int L>
   struct functor_traits_switch:functor_traits_empty{};
   // L=1 [traits.functor]
@@ -409,10 +416,9 @@ namespace functor_detail{
   struct be_functor:stdm::integral_constant<bool,functor_traits<F,S>::is_functor>{};
 
 #pragma%m 1
-  template<typename S,typename F,typename... A> typename stdm::enable_if<
-    mwg::be_functor<F,S>::value,
-    typename mwg::functor_traits<F,S>::ret_t
-  >::type functor_invoke(const F& f,A mwg_forward_rvalue... a){
+  template<typename S,typename F,typename... A>
+  typename stdm::enable_if<mwg::be_functor<F,S>::value,typename sig::returns<S>::type>::type
+  functor_invoke(const F& f,A mwg_forward_rvalue... a){
     return mwg::functor_traits<F,S>::invoke(f,stdm::forward<A>(a)...);
   }
 #pragma%end

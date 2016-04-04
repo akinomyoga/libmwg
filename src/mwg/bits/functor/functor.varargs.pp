@@ -7,8 +7,6 @@
   struct functor_traits_switch<F*,void,5>;
   template<typename F>
   struct functor_traits_switch<F,void,5>;
-  template<int AR,typename R,typename A1...>
-  struct construct_signature;
   template<typename Sv,typename Sc>
   struct get_vaarg_variance;
   template<typename Sv,typename S>
@@ -31,16 +29,8 @@
 //------------------------------------------------------------------------------
 
   namespace detail{
-    template<typename S,typename ATail>
-    struct push_function_parameter{};
-#pragma%m 1
-    template<typename R,typename ATail,typename... A>
-    struct push_function_parameter<R(A...),ATail>:mwg::identity<R(A...,ATail)>{};
-#pragma%end
-#pragma%x variadic_expand_0toArNm1
-
     template<std::size_t Arity,typename R,template<std::size_t> class Params>
-    struct construct_signature:push_function_parameter<
+    struct construct_signature:sig::arity_push<
       typename construct_signature<Arity-1,R,Params>::type,
       typename Params<Arity-1>::type>{};
     template<typename R,template<std::size_t> class Params>
@@ -49,22 +39,24 @@
 
   template<typename Sv,typename Sc>
   struct get_vaarg_variance{
-    typedef functor_traits<Sv> SvTr;
-    typedef functor_traits<Sc> ScTr;
-
-    typedef typename SvTr::ret_t ret_t;
-
   private:
+    typedef typename functor_traits<Sv>::sgn_t vararg_signature;
+    typedef typename functor_traits<Sc>::sgn_t caller_signature;
+
     template<typename X,typename Y>
     struct replace_void:stdm::conditional<!stdm::is_same<X,void>::value,X,Y>{};
 
     template<std::size_t K>
-    struct param:replace_void<
-      typename get_parameter<K,typename SvTr::sgn_t>::type,
-      typename get_parameter<K,typename ScTr::sgn_t>::type>{};
+    struct params:replace_void<
+      typename sig::parameter<K,vararg_signature>::type,
+      typename sig::parameter<K,caller_signature>::type>{};
 
   public:
-    typedef typename detail::construct_signature<ScTr::arity,ret_t,param>::type sgn_t;
+    typedef typename detail::construct_signature<
+      sig::arity<caller_signature>::value,
+      typename sig::returns<vararg_signature>::type,
+      params
+    >::type sgn_t;
   };
 
 //------------------------------------------------------------------------------

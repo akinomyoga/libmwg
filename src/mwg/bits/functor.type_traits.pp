@@ -1,9 +1,12 @@
 // -*- mode:C++;coding:utf-8 -*-
 #include <mwg/std/type_traits>
 #include <mwg/concept.h>
+#include "funcsig.h"
 
 namespace mwg{
 namespace functor_detail{
+  namespace sig=mwg::funcsig;
+
   //?lwiki *bits/functor.type_traits.pp
   //---------------------------------------------------------------------------
   /*?lwiki
@@ -89,34 +92,6 @@ namespace functor_detail{
   //---------------------------------------------------------------------------
   template<typename T> T expr();
 
-  template<std::size_t I,typename F>
-  struct get_parameter{};
-  template<std::size_t I,typename R>
-  struct get_parameter<I,R()>:mwg::identity<void>{};
-  template<std::size_t I,typename R>
-  struct get_parameter<I,R(...)>:mwg::identity<void>{};
-#pragma%m 1
-  template<typename R,typename AHead,typename... A>
-  struct get_parameter<0,R(AHead,A...)>:mwg::identity<AHead>{};
-  template<std::size_t I,typename R,typename AHead,typename... A>
-  struct get_parameter<I,R(AHead,A...)>:get_parameter<I-1,R(A...)>{};
-  template<typename R,typename AHead,typename... A>
-  struct get_parameter<0,R(AHead,A...,...)>:mwg::identity<AHead>{};
-  template<std::size_t I,typename R,typename AHead,typename... A>
-  struct get_parameter<I,R(AHead,A...,...)>:get_parameter<I-1,R(A...,...)>{};
-#pragma%end
-#pragma%x variadic_expand_0toArNm1
-
-  template<typename F>
-  struct get_return{};
-#pragma%m 1
-  template<typename R,typename... A>
-  struct get_return<R(A...)>:mwg::identity<R>{};
-  template<typename R,typename... A>
-  struct get_return<R(A...,...)>:mwg::identity<R>{};
-#pragma%end
-#pragma%x variadic_expand_0toArN
-
   //---------------------------------------------------------------------------
   /*?lwiki
    * :@var mwg::functor_detail::detail::==is_covariant==<typename F,typename T>::value;
@@ -140,8 +115,8 @@ namespace functor_detail{
     template<
       typename FromSignature,typename ToSignature,
       std::size_t K      = 0,
-      typename FromParam = typename get_parameter<K,FromSignature>::type,
-      typename ToParam   = typename get_parameter<K,ToSignature  >::type,
+      typename FromParam = typename sig::parameter<K,FromSignature>::type,
+      typename ToParam   = typename sig::parameter<K,ToSignature  >::type,
       bool               = is_covariant<ToParam,FromParam>::value>
     struct has_contravariant_parameters:stdm::false_type{};
 
@@ -157,7 +132,7 @@ namespace functor_detail{
 
   template<typename FSgn,typename TSgn>
   struct is_variant_function:stdm::integral_constant<bool,
-    (is_covariant<typename get_return<FSgn>::type,typename get_return<TSgn>::type>::value&&
+    (is_covariant<typename sig::returns<FSgn>::type,typename sig::returns<TSgn>::type>::value&&
       detail::has_contravariant_parameters<FSgn,TSgn>::value)>{};
 
   //---------------------------------------------------------------------------
@@ -244,8 +219,11 @@ namespace functor_detail{
 
   //---------------------------------------------------------------------------
   /*?lwiki
-   * :@var mwg::functor_detail::can_be_called_as<typename F,typename S>::value;
-   *  `declval<F>.operator()(...)` を指定した引数で呼出可能かどうかを判定します。
+   * :@class class mwg::functor_detail::can_be_called_as<typename F,typename S>;
+   *  :@var static const bool value;
+   *   `declval<F>.operator()(...)` を指定した引数で呼出可能かどうかを判定します。
+   *  :@typedef typedef '''function-type''' signature_type;
+   *   `value==true` の時、関手 `F` の模倣する関数型を取得します。
    */
   template<typename F,typename S>
   struct can_be_called_as;
@@ -311,7 +289,7 @@ namespace functor_detail{
     };
     template<typename F,typename S>
     struct can_be_called_as_impl2<F,S,false>
-      :can_be_called_as_impl2<F,typename mwg::funcsig::decrease_arity<S>::type>{};
+      :can_be_called_as_impl2<F,typename sig::arity_pop<S>::type>{};
     template<typename F,typename R>
     struct can_be_called_as_impl2<F,R(),false>
       :stdm::false_type{};
