@@ -1,70 +1,70 @@
-//%define mwg_concept_create_wrapper (
+#pragma%m mwg_concept_create_wrapper
 #ifdef MWGCONF_STD_CONCEPT
 auto concept %TConcept%<typename T_>{
-//%%m C (
+#pragma%%m C
   /* condition %value%; */
-//%%)
-//%%m f (
+#pragma%%end
+#pragma%%m f
   %decl%;
-//%%)
-//%%m t (
+#pragma%%end
+#pragma%%m t
   typename %name%;
-//%%)
-//%%expand ARG_FOR_MEMBER
+#pragma%%end
+#pragma%%x ARG_FOR_MEMBER
 }
 #else
-//%%if ARG_TMPL_PARAMS!="" (
-//%%%expand (
+#pragma%%if ARG_TMPL_PARAMS!=""
+#pragma%%%x
 template<typename T_,$"ARG_TMPL_PARAMS_FOR_CONCEPT">
-//%%%).i
-//%%else
+#pragma%%%end.i
+#pragma%%else
 template<typename T_>
-//%%)
+#pragma%%end
 struct %TConcept%{
   typedef typename mwg::stdm::remove_cv<typename mwg::stdm::remove_reference<T_>::type >::type target_type;
   typedef target_type& adapter;
   typedef const target_type& const_adapter;
 
-//%%[i=0,x="",cond=""]
-//%%m C (
-//%%%[cond=cond+"&&(%value%)"]
-//%%)
-//%%m f (
-//%%%[methodname="%name%"]
-//%%%[rex_methodname=methodname.slice(0,8)=="operator"?"\\<operator"+methodname.slice(8).Replace("([][+*()^|.?])","\\\\$1"):"\\<"+methodname+"\\>"]
-//%%%[decl="%decl%".replace(rex_methodname+"\\s*\\(","(X::*)(")]
-//%%%[cond=cond+"&&c"+(++i)+"::value"]
-//%%%x (
+#pragma%%[i=0,x="",cond=""]
+#pragma%%m C
+#pragma%%%[cond=cond+"&&(%value%)"]
+#pragma%%end
+#pragma%%m f
+#pragma%%%[methodname="%name%"]
+#pragma%%%[rex_methodname=methodname.slice(0,8)=="operator"?"\\<operator"+methodname.slice(8).Replace("([][+*()^|.?])","\\\\$1"):"\\<"+methodname+"\\>"]
+#pragma%%%[decl="%decl%".replace(rex_methodname+"\\s*\\(","(X::*)(")]
+#pragma%%%[cond=cond+"&&c"+(++i)+"::value"]
+#pragma%%%x
   mwg_concept_has_member(c$"i",target_type,X,%name%,$"decl");
-//%%%).i
-//%%)
-//%%m t (
-//%%%[cond=cond+"&&c"+(++i)+"::value"]
-//%%%x (
+#pragma%%%end.i
+#pragma%%end
+#pragma%%m t
+#pragma%%%[cond=cond+"&&c"+(++i)+"::value"]
+#pragma%%%x
   mwg_concept_has_type_member(c$"i",target_type,%name%);
-//%%%).i
-//%%)
-//%%x ARG_FOR_MEMBER
-//%%x (
+#pragma%%%end.i
+#pragma%%end
+#pragma%%x ARG_FOR_MEMBER
+#pragma%%x
   mwg_concept_condition($".eval#slice(cond,2)");
-//%%).i
+#pragma%%end.i
 };
 #endif
 
-//%%if ARG_TMPL_PARAMS!="" (
+#pragma%%if ARG_TMPL_PARAMS!="" (
 template<$"ARG_TMPL_PARAMS">
-//%%).i
+#pragma%%).i
 struct %TConcept%Wrapper{
   struct holder_base{
     virtual ~holder_base(){}
     virtual holder_base* clone() const=0;
 
-//%%define f (
+#pragma%%m f
     virtual %decl%=0;
-//%%)
-//%%[t=""]
-//%%[C=""]
-//%%expand ARG_FOR_MEMBER
+#pragma%%end
+#pragma%%[t=""]
+#pragma%%[C=""]
+#pragma%%x ARG_FOR_MEMBER
   };
 
   template<typename T_>
@@ -75,12 +75,12 @@ struct %TConcept%Wrapper{
       return new holder(this->inst);
     }
 
-//%%define f (
+#pragma%%m f
     virtual %decl%{
       return inst.%name%(%args%);
     }
-//%%)
-//%%expand ARG_FOR_MEMBER
+#pragma%%end
+#pragma%%x ARG_FOR_MEMBER
   };
 
   holder_base* h;
@@ -92,18 +92,18 @@ struct %TConcept%Wrapper{
     return *this;
   }
 
-//%%expand (
+#pragma%%x
   template<typename T_>
   %TConcept%Wrapper(T_ mwg_forward_rvalue bin,typename mwg::stdm::enable_if<(%TConcept%<typename mwg::stdm::remove_reference<T_>::type ${ARG_TMPL_ARGS:+,}${ARG_TMPL_ARGS}>::value),void*>::type d=nullptr)
     :h(new holder<typename mwg::stdm::remove_reference<T_>::type>(mwg::stdm::forward<T_>(bin))){}
-//%%).i
+#pragma%%end.i
   ~%TConcept%Wrapper(){delete h;h=nullptr;}
-//%%define f (
+#pragma%%m f
   %decl%{
     return h->%name%(%args%);
   }
-//%%)
-//%%expand ARG_FOR_MEMBER
-//%%x wrapper_content
+#pragma%%end
+#pragma%%x ARG_FOR_MEMBER
+#pragma%%x wrapper_content
 };
-//%)
+#pragma%end

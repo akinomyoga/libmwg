@@ -8,21 +8,21 @@ namespace funcsig{
 //NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN
   // decrease_arity
   template<typename S> struct decrease_arity{};
-#pragma%define 1 (
+#pragma%m 1
   template<typename R %s_typenames% ,typename AA>
   struct decrease_arity<R(%types% ${.eval#%AR%!="0"?",":""} AA)>{
     typedef R(type)(%types%);
   };
-#pragma%)
-#pragma%expand mwg::functor::arities
+#pragma%end
+#pragma%x mwg::functor::arities
 
   // get_arity
   template<typename S> struct get_arity{static const int value=-1;};
-#pragma%define 1 (
+#pragma%m 1
   template<typename R %s_typenames%>
   struct get_arity<R(%types%)>{static const int value=%AR%;};
-#pragma%)
-#pragma%expand mwg::functor::arities
+#pragma%end
+#pragma%x mwg::functor::arities
 
 //NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN
 }

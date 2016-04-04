@@ -3,7 +3,7 @@
 //
 //    Function Types
 //
-#%(
+#pragma%begin
   template<typename F>
   struct is_vararg_function{
     static const bool value;
@@ -27,17 +27,17 @@
     typedef void object_type;
     typedef void functor_sgn;
   };
-#%)
+#pragma%end
 //------------------------------------------------------------------------------
   template<typename F>
   struct is_vararg_function:stdm::false_type{typedef void without_vararg_sgn;};
-#%define 1 (
+#pragma%m 1
   template<typename R %s_typenames%>
   struct is_vararg_function<R(%types...%)>:stdm::true_type{
     typedef R(without_vararg_sgn)(%types%);
   };
-#%)
-#%expand mwg::functor::arities
+#pragma%end
+#pragma%x mwg::functor::arities
   template<typename T>
   struct is_vararg_function_pointer:stdm::false_type{typedef void signature_type;};
   template<typename F>
@@ -53,7 +53,7 @@
     typedef void object_type;
     typedef void functor_sgn;
   };
-#%define 1
+#pragma%m 1
   template<typename R,typename C %s_typenames%>
   struct is_memfun_pointer<R(C::*)(%types%)>:stdm::true_type{
     typedef C object_type;
@@ -66,12 +66,12 @@
     typedef R(member_type)(%types%);
     typedef R(functor_sgn)(const C& $".sep_for|K|1|%AR%+1|AK|,");
   };
-#%define end
-#%expand mwg::functor::arities
+#pragma%end
+#pragma%x mwg::functor::arities
 //TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
 //  判定クラス
 //------------------------------------------------------------------------------
-#%(
+#pragma%begin
   template<typename F,typename T>
   struct is_variant_argument;
   template<typename TrSF,typename TrST>
@@ -81,7 +81,7 @@
   template<typename P>
   struct is_pointer_to_single_operator_functor;
 //------------------------------------------------------------------------------
-#%)
+#pragma%end
   template<typename T> T expr();
   template<typename F,typename T>
   struct is_variant_argument:stdm::integral_constant<bool,
@@ -91,10 +91,10 @@
   struct is_variant_signature:stdm::integral_constant<bool,
     (TrSF::is_functor&&TrST::is_functor
       &&is_variant_argument<typename TrSF::ret_t,typename TrST::ret_t>::value
-#%define 1
+#pragma%m 1
       &&is_variant_argument<typename TrST::argK_t,typename TrSF::argK_t>::value
-#%define end
-#%expand 1.f|K|1|ARITY_MAX+1|
+#pragma%end
+#pragma%x 1.f|K|1|ARITY_MAX+1|
     )>{};
 //------------------------------------------------------------------------------
 #if (\
@@ -176,7 +176,7 @@
 
   template<typename F,typename S>
   struct can_be_called_as_impl1:stdm::false_type{};
-#%define 1 (
+#pragma%m 1
   template<typename F,typename R %s_typenames%>
   struct can_be_called_as_impl1<F,R(%types%)>{
 
@@ -204,8 +204,8 @@
 #endif
     mwg_concept_condition((c1::value&&is_variant_argument<OpR,R>::value));
   };
-#%)
-#%expand mwg::functor::arities
+#pragma%end
+#pragma%x mwg::functor::arities
 
   template<typename F,typename S>
   struct can_be_called_as

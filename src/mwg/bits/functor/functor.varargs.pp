@@ -1,5 +1,5 @@
 // -*- mode:C++;coding:utf-8 -*-
-#%(
+#pragma%begin
 //******************************************************************************
 //  可変長引数関数
 //------------------------------------------------------------------------------
@@ -18,7 +18,7 @@
   template<typename S,typename F>
   struct functor_traits_switch<F,S,5>;
 //******************************************************************************
-#%)
+#pragma%end
 //TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
 //  class functor_traits<R (*)(As...)>
 //------------------------------------------------------------------------------
@@ -29,35 +29,35 @@
 //TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
 //  class functor_traits<R (*)(As...),S>
 //------------------------------------------------------------------------------
-#%expand (
+#pragma%x
 #define MWG_TMP_TYPENAMES typename R,$".for|@|1|ARITY_MAX+1|typename A@|,"
 #define MWG_TMP_TYPES     R,$".for|@|1|ARITY_MAX+1|A@|,"
   template<int AR,MWG_TMP_TYPENAMES> struct construct_signature;
-  #%expand (
+  #pragma%x
   template<MWG_TMP_TYPENAMES> struct construct_signature<@,MWG_TMP_TYPES>{typedef R (type)($".for|#|1|@+1|A#|,");};
-  #%).f|@|0|ARITY_MAX+1|
+  #pragma%end.f|@|0|ARITY_MAX+1|
 #undef MWG_TMP_TYPENAMES
 #undef MWG_TMP_TYPES
-#%).i
+#pragma%end.i
   template<typename Sv,typename Sc>
   struct get_vaarg_variance{
     typedef functor_traits<Sv> SvTr;
     typedef functor_traits<Sc> ScTr;
     typedef typename SvTr::ret_t ret_t;
-#%expand (
+#pragma%x
     typedef typename mwg::stdm::conditional<
       stdm::is_same<typename SvTr::arg@_t,void>::value,
       typename ScTr::arg@_t,typename SvTr::arg@_t
     >::type arg@_t;
-#%).f|@|1|ARITY_MAX+1|
-#%expand (
+#pragma%end.f|@|1|ARITY_MAX+1|
+#pragma%x
     typedef typename construct_signature<ScTr::arity,ret_t,${.for|@|1|ARITY_MAX+1|arg@_t|,}>::type sgn_t;
-#%).i
+#pragma%end.i
   };
 //------------------------------------------------------------------------------
   template<typename Sv,typename S>
   struct functor_invoker_vaarg;
-#%define 1
+#pragma%m 1
   template<typename Sv,typename R %s_typenames%>
   struct functor_invoker_vaarg<Sv,R(%types%)>{
     typedef R(sgn_t)(%types%);
@@ -66,8 +66,8 @@
       //return R(reinterpret_cast<sgn_t*>(f)(%args%));
     }
   };
-#%define end
-#%expand mwg::functor::arities
+#pragma%end
+#pragma%x mwg::functor::arities
   template<typename S,typename F>
   struct functor_traits_switch<F*,S,5>
     :functor_traits_signature<S>

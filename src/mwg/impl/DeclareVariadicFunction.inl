@@ -1,7 +1,7 @@
-// // -*- mode:C++;coding:utf-8 -*-
+// -*- mode:C++;coding:utf-8 -*-
 // #include <mwg/std/utility>
 
-//%[ArN=10]
+#pragma%[ArN=10]
 #if defined(MWGCONF_STD_VARIADIC_TEMPLATES)
 #  define mwg_impl_variadic__template_decl     template<typename... Args>
 #  define mwg_impl_variadic__template_params   typename... Args
@@ -37,12 +37,12 @@
 #  undef mwg_impl_variadic__forward_args_r
 #  undef mwg_impl_variadic__forward_args_l
 #else
-//%x (
-//%%if _AR_==0 (
+#pragma%x
+#pragma%%if _AR_==0
 #  define mwg_impl_variadic__template_decl
-//%%else
+#pragma%%else
 #  define mwg_impl_variadic__template_decl     template<$".for/K/0/_AR_/typename AK/,">
-//%%)
+#pragma%%end
 #  define mwg_impl_variadic__template_params   $".for/K/0/_AR_/typename AK/,"
 #  define mwg_impl_variadic__template_params_r $".for/K/0/_AR_/,typename AK/"
 #  define mwg_impl_variadic__template_params_l $".for/K/0/_AR_/typename AK,/"
@@ -75,5 +75,5 @@
 #  undef mwg_impl_variadic__forward_args
 #  undef mwg_impl_variadic__forward_args_r
 #  undef mwg_impl_variadic__forward_args_l
-//%).f/_AR_/0/ArN/.i
+#pragma%end.f/_AR_/0/ArN/.i
 #endif

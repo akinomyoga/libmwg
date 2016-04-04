@@ -20,6 +20,35 @@
   ToDo
 ------------------------------------------------------------------------------
 
+2016-04-04
+
+* mwg/functor.h の構造について再確認すると共に整理を行う。
+
+  現在の構造の中心となるのはやはり functor_traits である。
+
+  template<typename F>
+  class functor_traits{
+    typedef F fct_t;
+    static const bool is_functor;
+    static const int arity;
+    static const bool has_varargs;
+
+    typedef auto ret_t;
+    typedef auto sgn_t;
+    typedef auto arg1_t;
+    typedef auto arg2_t;
+    typedef auto arg3_t;
+    ...
+
+    typedef auto ref_tr; // functor への参照を保持
+    typedef auto ins_tr; // functor の複製インスタンスを保持
+    static ret_t invoke(const fct_t& f,...){
+      f(...);
+    }
+  };
+
+  todo: reference qualifier に対応する?
+
 2016-03-24
 
 * SD-6 support
