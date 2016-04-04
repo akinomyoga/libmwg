@@ -67,11 +67,12 @@ struct Str{
 # define mwg_attribute_may_alias
 #endif
 
-namespace mwg{
-
+#pragma%include "impl/VariadicMacros.pp"
 #pragma%include "bits/functor/functor.variadic.pp"
+#pragma%include "bits/functor.type_traits.pp"
+
+namespace mwg{
 namespace functor_detail{
-#pragma%include "bits/functor/functor.ftypes.pp"
 //NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN
 //
 //    Functor Traits

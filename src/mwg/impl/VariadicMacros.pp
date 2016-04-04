@@ -26,6 +26,10 @@
 #pragma%%m _ _.R|,[[:space:]]*([&*]*[:_[:alnum:]]+)<([_[:alnum:]]+)>([:_[:alnum:]]*)\(([&*]*[_[:alnum:]]+)\)...|$".for/%K/0/__arity__/,$1<$2%K>$3($4%K)/"|
 #pragma%%m _ _.R|[[:space:]]*([&*]*[:_[:alnum:]]+)<([_[:alnum:]]+)>([:_[:alnum:]]*)\(([&*]*[_[:alnum:]]+)\)...,|$".for/%K/0/__arity__/$1<$2%K>$3($4%K),/"|
 #pragma%%m _ _.R|[[:space:]]*([&*]*[:_[:alnum:]]+)<([_[:alnum:]]+)>([:_[:alnum:]]*)\(([&*]*[_[:alnum:]]+)\)...|$".for/%K/0/__arity__/$1<$2%K>$3($4%K)/,"|
+#pragma%# hoge<Args>fuga()...
+#pragma%%m _ _.R|,[[:space:]]*([&*]*[:_[:alnum:]]+)<([_[:alnum:]]+)>([:_[:alnum:]]*)\(\)...|$".for/%K/0/__arity__/,$1<$2%K>$3()/"|
+#pragma%%m _ _.R|[[:space:]]*([&*]*[:_[:alnum:]]+)<([_[:alnum:]]+)>([:_[:alnum:]]*)\(\)...,|$".for/%K/0/__arity__/$1<$2%K>$3(),/"|
+#pragma%%m _ _.R|[[:space:]]*([&*]*[:_[:alnum:]]+)<([_[:alnum:]]+)>([:_[:alnum:]]*)\(\)...|$".for/%K/0/__arity__/$1<$2%K>$3()/,"|
 #pragma%%m _
 #pragma%%x _.i.r/(\ytemplate[[:space:]]*)?<##>|##//
 #pragma%%end
