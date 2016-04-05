@@ -293,69 +293,6 @@ namespace stdm{
 #endif
 
   //
-  // remove_reference
-  // add_lvalue_reference
-  // add_rvalue_reference
-  //
-  //   requires: is_reference, is_void
-  //
-#ifdef MWG_STDM_TYPE_TRAITS_WithTr1Header
-  using ::std::tr1::remove_reference;
-#else
-  template<typename T> struct remove_reference:mwg::identity<T>{};
-  template<typename T> struct remove_reference<T&>:mwg::identity<T>{};
-# ifdef MWGCONF_STD_RVALUE_REFERENCES
-  template<typename T> struct remove_reference<T&&>:mwg::identity<T>{};
-# endif
-#endif
-#if (defined(MWG_STDM_TYPE_TRAITS_WithTr1Header) \
-  &&defined(MWGCONF_HAS_STD_TR1_ADD_REFERENCE)&&!defined(MWGCONF_INVALID_STD_TR1_ADD_REFERENCE))
-
-# if !defined(MWGCONF_HAS_ADD_LVALUE_REFERENCE)
-  // std::add_lvalue_reference が既に定義されている場合がある(?)
-  template<typename T> struct add_lvalue_reference:std::tr1::add_reference<T>{};
-# endif
-#else
-  namespace detail{
-    template<typename T,bool B> struct add_lvalue_reference__impl:mwg::identity<T>{};
-    template<typename T>        struct add_lvalue_reference__impl<T,true>:mwg::identity<T&>{};
-# ifdef MWGCONF_STD_RVALUE_REFERENCES
-    template<typename T,bool B> struct add_rvalue_reference__impl:mwg::identity<T>{};
-    template<typename T>        struct add_rvalue_reference__impl<T,true>:mwg::identity<T&&>{};
-# endif
-  }
-  // type category           lvalue rvalue
-  // ----------------------- ------ ------
-  // is_void                 void   void
-  // is_reference            U&     T
-  // is_function, is_object  T&     T&&
-  template<typename T> struct add_lvalue_reference
-    :detail::add_lvalue_reference__impl<typename remove_reference<T>::type,!is_void<T>::value>{};
-
-# ifdef MWGCONF_STD_RVALUE_REFERENCES
-  template<typename T> struct add_rvalue_reference
-    :detail::add_rvalue_reference__impl<T,!is_reference<T>::value&&!is_void<T>::value>{};
-# endif
-#endif
-#pragma%x begin_check
-
-  void check_add_lvalue_reference(){
-    mwg_check((mwg::stdm::is_same<void,mwg::stdm::add_lvalue_reference<void>::type>::value));
-    mwg_check((mwg::stdm::is_same<int&,mwg::stdm::add_lvalue_reference<int>::type>::value));
-    mwg_check((mwg::stdm::is_same<int&,mwg::stdm::add_lvalue_reference<int&>::type>::value));
-#ifdef MWGCONF_STD_RVALUE_REFERENCES
-    mwg_check((mwg::stdm::is_same<int&,mwg::stdm::add_lvalue_reference<int&&>::type>::value));
-
-    mwg_check((mwg::stdm::is_same<void ,mwg::stdm::add_rvalue_reference<void>::type>::value));
-    mwg_check((mwg::stdm::is_same<int&&,mwg::stdm::add_rvalue_reference<int>::type>::value));
-    mwg_check((mwg::stdm::is_same<int& ,mwg::stdm::add_rvalue_reference<int&>::type>::value));
-    mwg_check((mwg::stdm::is_same<int&&,mwg::stdm::add_rvalue_reference<int&&>::type>::value));
-#endif
-  }
-
-#pragma%x end_check
-
-  //
   // is_function
   //
 #ifdef MWG_STDM_TYPE_TRAITS_WithTr1Header
@@ -393,6 +330,70 @@ namespace stdm{
   }
   using detail::is_function;
 #endif
+
+  //
+  // remove_reference
+  // add_lvalue_reference
+  // add_rvalue_reference
+  //
+  //   requires: is_reference, is_void, is_function
+  //
+#ifdef MWG_STDM_TYPE_TRAITS_WithTr1Header
+  using ::std::tr1::remove_reference;
+#else
+  template<typename T> struct remove_reference:mwg::identity<T>{};
+  template<typename T> struct remove_reference<T&>:mwg::identity<T>{};
+# ifdef MWGCONF_STD_RVALUE_REFERENCES
+  template<typename T> struct remove_reference<T&&>:mwg::identity<T>{};
+# endif
+#endif
+#if (defined(MWG_STDM_TYPE_TRAITS_WithTr1Header) \
+  &&defined(MWGCONF_HAS_STD_TR1_ADD_REFERENCE)&&!defined(MWGCONF_INVALID_STD_TR1_ADD_REFERENCE))
+
+# if !defined(MWGCONF_HAS_ADD_LVALUE_REFERENCE)
+  // std::add_lvalue_reference が既に定義されている場合がある(?)
+  template<typename T> struct add_lvalue_reference:std::tr1::add_reference<T>{};
+# endif
+#else
+  namespace detail{
+    template<typename T,bool B> struct add_lvalue_reference__impl:mwg::identity<T>{};
+    template<typename T>        struct add_lvalue_reference__impl<T,true>:mwg::identity<T&>{};
+# ifdef MWGCONF_STD_RVALUE_REFERENCES
+    template<typename T,bool B> struct add_rvalue_reference__impl:mwg::identity<T>{};
+    template<typename T>        struct add_rvalue_reference__impl<T,true>:mwg::identity<T&&>{};
+# endif
+  }
+  // type category           lvalue rvalue
+  // ----------------------- ------ ------
+  // is_void                 void   void
+  // is_function             T      T
+  // is_reference            U&     T
+  // is_object               T&     T&&
+  template<typename T> struct add_lvalue_reference
+    :detail::add_lvalue_reference__impl<typename remove_reference<T>::type,!is_void<T>::value&&!is_function<T>::value>{};
+
+# ifdef MWGCONF_STD_RVALUE_REFERENCES
+  template<typename T> struct add_rvalue_reference
+    :detail::add_rvalue_reference__impl<T,!is_reference<T>::value&&!is_void<T>::value&&!is_function<T>::value>{};
+# endif
+#endif
+#pragma%x begin_check
+
+  void check_add_lvalue_reference(){
+    mwg_check((mwg::stdm::is_same<void,mwg::stdm::add_lvalue_reference<void>::type>::value));
+    mwg_check((mwg::stdm::is_same<int&,mwg::stdm::add_lvalue_reference<int>::type>::value));
+    mwg_check((mwg::stdm::is_same<int&,mwg::stdm::add_lvalue_reference<int&>::type>::value));
+#ifdef MWGCONF_STD_RVALUE_REFERENCES
+    mwg_check((mwg::stdm::is_same<int&,mwg::stdm::add_lvalue_reference<int&&>::type>::value));
+
+    mwg_check((mwg::stdm::is_same<void ,mwg::stdm::add_rvalue_reference<void>::type>::value));
+    mwg_check((mwg::stdm::is_same<int&&,mwg::stdm::add_rvalue_reference<int>::type>::value));
+    mwg_check((mwg::stdm::is_same<int& ,mwg::stdm::add_rvalue_reference<int&>::type>::value));
+    mwg_check((mwg::stdm::is_same<int&&,mwg::stdm::add_rvalue_reference<int&&>::type>::value));
+#endif
+  }
+
+#pragma%x end_check
 
   //
   // is_null_pointer

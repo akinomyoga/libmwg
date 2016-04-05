@@ -1,29 +1,25 @@
 // -*- mode:C++;coding:utf-8 -*-
-#pragma%begin
-//******************************************************************************
-//  可変長引数関数
-//------------------------------------------------------------------------------
-  template<typename F>
-  struct functor_traits_switch<F*,void,5>;
-  template<typename F>
-  struct functor_traits_switch<F,void,5>;
-  template<typename Sv,typename Sc>
-  struct get_vaarg_variance;
-  template<typename Sv,typename S>
-  struct functor_invoker_vaarg;
-  template<typename S,typename F>
-  struct functor_traits_switch<F*,S,5>;
-  template<typename S,typename F>
-  struct functor_traits_switch<F,S,5>;
-//******************************************************************************
-#pragma%end
+namespace mwg{
+namespace functor_detail{
 //TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
-//  class functor_traits<R (*)(As...)>
+//  class functor_traits<R (*)(As...,...)>
+//  class functor_traits<R (As...,...)>
 //------------------------------------------------------------------------------
-  template<typename S>
-  struct functor_traits_switch<S*,void,5>:functor_traits_signature<S>{typedef S* fct_t;};
-  template<typename S>
-  struct functor_traits_switch<S,void,5>:functor_traits_signature<S>{typedef S fct_t;};
+
+  template<typename S,typename Sv>
+  struct functor_invoker_vaarg;
+#pragma%m 1
+  template<typename Sv,typename R,typename... A>
+  struct functor_invoker_vaarg<R(A...),Sv>{
+    typedef R (sgn_t)(A...);
+    static R invoke(Sv* f,A... a){
+      return R(f(a...));
+      //return R(reinterpret_cast<sgn_t*>(f)(a...));
+    }
+  };
+#pragma%end
+#pragma%x variadic_expand_0toArN
+
 //TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
 //  class functor_traits<R (*)(As...),S>
 //------------------------------------------------------------------------------
@@ -60,39 +56,40 @@
   };
 
 //------------------------------------------------------------------------------
-  template<typename Sv,typename S>
-  struct functor_invoker_vaarg;
+
 #pragma%m 1
-  template<typename Sv,typename R %s_typenames%>
-  struct functor_invoker_vaarg<Sv,R(%types%)>{
-    typedef R(sgn_t)(%types%);
-    static R invoke(Sv* f %s_params%){
-      return R(f(%args%));
-      //return R(reinterpret_cast<sgn_t*>(f)(%args%));
-    }
-  };
-#pragma%end
-#pragma%x mwg::functor::arities
-  template<typename S,typename F>
-  struct functor_traits_switch<F*,S,5>
+  template<typename S>
+  struct functor_traits_chain<@,S*,typename stdm::enable_if<is_vararg_function<S>::value>::type>
+    :functor_traits_signature<S>{typedef S* fct_t;};
+  template<typename S>
+  struct functor_traits_chain<@,S,typename stdm::enable_if<is_vararg_function<S>::value>::type>
+    :functor_traits_signature<S>{typedef S fct_t;};
+
+  template<typename F,typename S>
+  struct functor_traits_chain2<@,F*,S,typename stdm::enable_if<is_vararg_function<F>::value>::type>
     :functor_traits_signature<S>
-    ,functor_invoker_vaarg<F,S>
+    ,functor_invoker_vaarg<S,F>
   {
     typedef F* fct_t;
     typedef struct case_tr:functor_case_traits<F*>{
       typedef functor_traits<F,S> fct_tr;
     } ref_tr,ins_tr;
-
-    // typedef typename get_vaarg_variance<fct_t,S>::sgn_t data_sgn;
-    // typedef struct case_tr:functor_case_traits<data_sgn*>{
-    //   using functor_case_traits<data_sgn*>::endata;
-    //   static data_sgn* endata(mwg_vc_typename functor_traits_switch::fct_t f){
-    //     printf("dbg: ***** hello! endata! ***** %s\n",__PRETTY_FUNCTION__);
-    //     return reinterpret_cast<data_sgn*>(f);
-    //   }
-    // } ref_tr,ins_tr;
   };
-  template<typename S,typename F>
-  struct functor_traits_switch<F,S,5>:functor_traits_switch<F*,S,5>{
+
+  // typedef typename get_vaarg_variance<fct_t,S>::sgn_t data_sgn;
+  // typedef struct case_tr:functor_case_traits<data_sgn*>{
+  //   using functor_case_traits<data_sgn*>::endata;
+  //   static data_sgn* endata(mwg_vc_typename functor_traits_chain::fct_t f){
+  //     printf("dbg: ***** hello! endata! ***** %s\n",__PRETTY_FUNCTION__);
+  //     return reinterpret_cast<data_sgn*>(f);
+  //   }
+  // } ref_tr,ins_tr;
+
+  template<typename F,typename S>
+  struct functor_traits_chain2<@,F,S,typename stdm::enable_if<is_vararg_function<F>::value>::type>:functor_traits_chain2<@,F*,S>{
     typedef F fct_t;
   };
+#pragma%end
+#pragma%x functor_traits_chain::register
+}
+}
