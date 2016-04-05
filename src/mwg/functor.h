@@ -69,7 +69,6 @@ struct Str{
 #endif
 
 #pragma%include "impl/VariadicMacros.pp"
-#pragma%include "bits/functor/functor.variadic.pp"
 #pragma%include "bits/functor.type_traits.pp"
 
 namespace mwg{
