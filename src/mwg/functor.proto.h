@@ -20,8 +20,6 @@ namespace functor_detail{
 
   template<typename S>
   struct functor_case;
-  template<typename S,typename T,bool INTERIOR>
-  class functor_case_data;
   template<typename S,typename Tr>
   class functor_case_impl;
 

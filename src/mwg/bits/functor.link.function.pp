@@ -1,28 +1,17 @@
 // -*- mode:C++;coding:utf-8 -*-
 namespace mwg{
 namespace functor_detail{
-//TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
-//  class functor_traits<R (*)(As...,...)>
-//  class functor_traits<R (As...,...)>
-//------------------------------------------------------------------------------
-
-  template<typename S,typename Sv>
-  struct functor_invoker_vaarg;
-#pragma%m 1
-  template<typename Sv,typename R,typename... A>
-  struct functor_invoker_vaarg<R(A...),Sv>{
-    typedef R (sgn_t)(A...);
-    static R invoke(Sv* f,A... a){
-      return R(f(a...));
-      //return R(reinterpret_cast<sgn_t*>(f)(a...));
-    }
-  };
-#pragma%end
-#pragma%x variadic_expand_0toArN
-
-//TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
-//  class functor_traits<R (*)(As...),S>
-//------------------------------------------------------------------------------
+//TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
+//
+//  (1) 可変長引数を持つ関数
+//
+//    functor_traits_chain<F>
+//      F = R (As...,...)
+//      F = R (*)(As...,...)
+//    functor_traits_chain2<F,S>
+//      F = R (As...,...)
+//      F = R (*)(As...,...)
+//
 
   namespace detail{
     template<std::size_t Arity,typename R,template<std::size_t> class Params>
@@ -55,7 +44,19 @@ namespace functor_detail{
     >::type sgn_t;
   };
 
-//------------------------------------------------------------------------------
+  template<typename S,typename Sv>
+  struct functor_invoker_vaarg;
+#pragma%m 1
+  template<typename Sv,typename R,typename... A>
+  struct functor_invoker_vaarg<R(A...),Sv>{
+    typedef R (sgn_t)(A...);
+    static R invoke(Sv* f,A... a){
+      return R(f(a...));
+      //return R(reinterpret_cast<sgn_t*>(f)(a...));
+    }
+  };
+#pragma%end
+#pragma%x variadic_expand_0toArN
 
 #pragma%m 1
   template<typename S>
@@ -91,5 +92,38 @@ namespace functor_detail{
   };
 #pragma%end
 #pragma%x functor_traits_chain::register
+
+//TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
+//
+//  (2) (固定長引数の) 関数
+//
+//  functor_traits_chain<F>
+//    F = R (*)(A...)
+//    F = R (A...)
+//
+
+  template<typename S,typename F>
+  struct functor_invoker_function{};
+#pragma%m 1
+  template<typename F,typename R,typename... A>
+  struct functor_invoker_function<R(A...),F>{
+    static R invoke(F f,A... arg,...){
+      return R(f(arg...));
+    }
+  };
+#pragma%end
+#pragma%x variadic_expand_0toArN
+
+#pragma%m 1
+  template<typename F>
+  struct functor_traits_chain<@,F*,typename stdm::enable_if<stdm::is_function<F>::value>::type>
+    :functor_traits_impl<F,F*>,functor_invoker_function<F,F*>{};
+  template<typename F>
+  struct functor_traits_chain<@,F,typename stdm::enable_if<stdm::is_function<F>::value>::type>
+    :functor_traits_impl<F,F*>,functor_invoker_function<F,F*>{};
+#pragma%end
+#pragma%x functor_traits_chain::register
+
+//TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
 }
 }
