@@ -353,7 +353,6 @@ namespace chrono_detail{
   template<typename C,typename D1,typename D2>
   mwg_constexpr typename mwg::stdm::common_type<D1,D2>::type
   operator-(time_point<C,D1> const& lhs,time_point<C,D2> const& rhs){
-    typedef typename mwg::stdm::common_type<D1,D2>::type return_type;
     return lhs.time_since_epoch()-rhs.time_since_epoch();
   }
 
@@ -405,12 +404,11 @@ namespace chrono_detail{
 
     template<typename R1,typename rep>
     mwg_constexpr R1 rep_round(R1 const& floor,rep const& frac){
-      return (frac<1-frac||frac==1-frac&&(floor&1)==0)?floor:floor+1;
+      return (frac<1-frac||(frac==1-frac&&(floor&1)==0))?floor:floor+1;
     }
 
     template<typename R1,typename R2>
     mwg_constexpr R1 rep_round(R2 const& value){
-      typedef typename mwg::stdm::common_type<R1,R2>::type rep;
       return rep_round(rep_floor(value),value-rep_floor(value));
     }
 
