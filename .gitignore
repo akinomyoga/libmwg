@@ -6,12 +6,15 @@
 /note/a.exe
 /note/a.obj
 
+/src/mwg/string3/*.o
+/src/mwg/string3/*.exe
+
 # user configurations
 /config.mk
 
 # tests/temporaries
-/test
 .clang-completion-error
+/test
 /mmake/test
 
 # for edit

@@ -1201,6 +1201,9 @@ namespace stdm{
   //
   // common_type
   //
+  //
+  //   requirements: conditional, enable_if, is_arithmetic, is_floating_point, is_void
+  //
 //%[ArN=10]
 # define MWG_STD_COMMON_TYPE__EMULATED
 # if defined(MWGCONF_STD_VARIADIC_TEMPLATES)
@@ -1225,20 +1228,55 @@ namespace stdm{
   template<typename T0,typename T1>
   struct common_type<T0,T1>:mwg::identity<decltype(true?mwg::declval<T0>():mwg::declval<T1>())>{};
 # else
-  // TODO: [cond.expr] 基本クラスの判定?
-  template<typename T0,typename T1>
-  struct common_type<T0,T1>:stdm::conditional<
-    stdm::is_same<T1,T0>::value,mwg::identity<T1>,
-    typename stdm::conditional<
-      stdm::is_same<T1,void>::value||stdm::is_same<T0,void>::value,
-      void, // typename stdm::conditional<stdm::is_same<T1,void>::value,mwg::identity<T0>,mwg::identity<T0> >::type, /* T0 or T1 = throw-expression */
-      typename stdm::conditional<
-        stdm::is_convertible<T1,T0>::value!=stdm::is_convertible<T0,T1>::value,
-        stdm::conditional<stdm::is_convertible<T1,T0>::value,T0,T1>,
-        void
+  namespace detail{
+    // 規格では ?: で選ばれる型とされている。処理系によっても異なるのかも。以下 g++ の振る舞い。
+    //
+    // 相異なる算術型 (整数型, 浮動小数点型) の場合、
+    // - 片方が整数型で他方が浮動小数点型の場合は浮動小数点型が選ばれる。
+    // - else 整数型で共にサイズが int より小さい場合には int になる。
+    // - else サイズの大きい方が選ばれる。
+    // - else 符号無しの方が選ばれる。
+    // - else 符号無し
+    // - else ■不明。適当に T0 を選ぶ。 (※intより大きいサイズ・符号が同じ相異なる整数型の場合。例: __int64 と long long int 等)
+    //
+    template<typename T0,typename T1,typename=void>
+    struct common_type_impl3{};
+    template<typename T0,typename T1>
+    struct common_type_impl3<T0,T1,typename enable_if<is_floating_point<T0>::value&&is_integral<T1>::value>::type>:mwg::identity<T0>{};
+    template<typename T0,typename T1>
+    struct common_type_impl3<T0,T1,typename enable_if<is_floating_point<T1>::value&&is_integral<T0>::value>::type>:mwg::identity<T1>{};
+    template<typename T0,typename T1>
+    struct common_type_impl3<T0,T1,typename enable_if<is_integral<T0>::value&&is_integral<T1>::value>::type>:
+      conditional<(sizeof(T1)<sizeof(int))&&(sizeof(T1)<sizeof(int)),mwg::identity<int>,
+        typename conditional<(sizeof(T0)>sizeof(T1)),mwg::identity<T0>,
+          typename conditional<(sizeof(T1)>sizeof(T0)),mwg::identity<T1>,
+            typename conditional<!is_signed<T0>::value&&is_signed<T1>::value,mwg::identity<T0>,
+              typename conditional<!is_signed<T1>::value&&is_signed<T0>::value,mwg::identity<T1>,
+                mwg::identity<T0>
+              >::type
+            >::type
+          >::type
         >::type
-      >::type
-    >::type{};
+      >::type{};
+
+    template<typename T0,typename T1,typename=void>
+    struct common_type_impl2:common_type_impl3<T0,T1>{};
+    template<typename T0,typename T1>
+    struct common_type_impl2<T0,T1,typename enable_if<(is_convertible<T1,T0>::value&&!is_convertible<T0,T1>::value)>::type>:mwg::identity<T0>{};
+    template<typename T0,typename T1>
+    struct common_type_impl2<T0,T1,typename enable_if<(is_convertible<T0,T1>::value&&!is_convertible<T1,T0>::value)>::type>:mwg::identity<T1>{};
+
+    template<typename T0,typename T1,typename=void>
+    struct common_type_impl1:common_type_impl2<T0,T1>{};
+    template<typename T0>
+    struct common_type_impl1<T0,T0>:mwg::identity<T0>{};
+    template<typename T0,typename T1>
+    struct common_type_impl1<T0,T1,typename enable_if<is_void<T0>::value!=is_void<T1>::value>::type>{}; /* when T0 or T1 = throw-expression */
+  }
+
+  template<typename T0,typename T1>
+  struct common_type<T0,T1>:detail::common_type_impl1<T0,T1>{};
+
 # endif
   //---------------------------------------------------------------------------
   //  common_type<T0,T1,T2,...>::type

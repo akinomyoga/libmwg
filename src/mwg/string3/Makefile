@@ -7,16 +7,14 @@ BASE=../../..
 include $(BASE)/mmake/vars.mk
 
 CXX=$(MWGCXX)
-CXXFLAGS= -I $(INS_INCDIR) -I $(INS_INCCFG)
+CXXFLAGS+= -I $(INS_INCDIR) -I $(INS_INCCFG) -O3
 
-objfiles+=i001-bench1.o
-i001-bench1.o: i001-bench1.cpp
-	$(CXX) $(CXXFLAGS) -c -o$@ $<
+objfiles+=str.bench1.o
+str.bench1.o: str.bench1.cpp
+	$(CXX) $(CXXFLAGS) -c -o $@ $<
+str.bench1.exe: $(objfiles)
+	$(CXX) $(CXXFLAGS) -o $@ $^
+all: str.bench1.exe
 
-objfiles+=i001-bench2.o
-i001-bench2.o: i001-bench2.cpp
-	$(CXX) $(CXXFLAGS) -c -o$@ $<
-
-all: $(objfiles)
 clean:
 	-rm -f *.o

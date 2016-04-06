@@ -29,10 +29,15 @@ namespace chrono{
 }
 //-----------------------------------------------------------------------------
 // specializations
+
 #ifdef MWG_STD_COMMON_TYPE__EMULATED
 namespace mwg{
 namespace stdm{
-  // Specialization of <type_traits>/std::common_type
+#else
+namespace std{
+#endif
+
+  // Specializations of <type_traits>/std::common_type
   template<typename R1,typename P1,typename R2,typename P2>
   struct common_type<chrono::duration<R1,P1>,chrono::duration<R2,P2> >{
     typedef chrono::duration<
@@ -41,19 +46,14 @@ namespace stdm{
         mwg::mpl::integral_gcd<mwg::stdm::intmax_t,P1::num,P2::num>::value,
         mwg::mpl::integral_lcm<mwg::stdm::intmax_t,P1::den,P2::den>::value>::type> type;
   };
+  template<typename C,typename D1,typename D2>
+  struct common_type<chrono::time_point<C,D1>,chrono::time_point<C,D2> >:
+    mwg::identity<chrono::time_point<C,typename common_type<D1,D2>::type> >{};
+
+#ifdef MWG_STD_COMMON_TYPE__EMULATED
 }
 }
 #else
-namespace std{
-  // Specialization of <type_traits>/std::common_type
-  template<typename R1,typename P1,typename R2,typename P2>
-  struct common_type<mwg::stdm::chrono::duration<R1,P1>,mwg::stdm::chrono::duration<R2,P2> >{
-    typedef mwg::stdm::chrono::duration<
-      typename common_type<R1,R2>::type,
-      typename mwg::stdm::ratio<
-        mwg::mpl::integral_gcd<mwg::stdm::intmax_t,P1::num,P2::num>::value,
-        mwg::mpl::integral_lcm<mwg::stdm::intmax_t,P1::den,P2::den>::value>::type> type;
-  };
 }
 #endif
 
@@ -85,7 +85,7 @@ namespace chrono_detail{
   struct is_duration_promotable:mwg::stdm::integral_constant<
     bool,
     treat_as_floating_point<typename D1::rep>::value
-    ||(treat_as_floating_point<typename D2::rep>::value&&mwg::stdm::ratio_divide<typename D1::period,typename D2::period>::type::den==1)
+    ||(!treat_as_floating_point<typename D2::rep>::value&&mwg::stdm::ratio_divide<typename D1::period,typename D2::period>::type::den==1)
     >{};
 
   template<typename D1,typename D2>
@@ -109,40 +109,45 @@ namespace chrono_detail{
 
   //---------------------------------------------------------------------------
   // template<typename R,typename P> class duration
-  template<typename R,typename P >
+  template<typename R,typename P>
   class duration{
     R value;
   public:
     typedef R rep;
     typedef P period;
   public:
-    mwg_constexpr duration():rep(duration_values<R>::zero()){}
+    mwg_constexpr duration():value(duration_values<R>::zero()){}
 
-    duration(duration const& rhs)
-      :value(rhs.value){}
+    mwg_constexpr duration(duration const& rhs):value(rhs.value){}
+
     duration& operator=(duration const& rhs){
       this->value=rhs.value;
       return *this;
     }
 
-    template<typename R2,typename P2>
-    duration(duration<R2,P2> const& rhs,typename mwg::stdm::enable_if<chrono_detail::is_duration_promotable<duration,duration<R2,P2> >::value,int>::type=0)
-      :value(rhs.value*mwg::stdm::ratio_divide<P2,P>::type::num/mwg::stdm::ratio_divide<P2,P>::type::den){}
-    template<typename R2,typename P2>
-    typename mwg::stdm::enable_if<chrono_detail::is_duration_promotable<duration,duration<R2,P2> >::value,duration&>::type
-    operator=(duration<R2,P2> const& rhs){
-      this->value=R(rhs.value*mwg::stdm::ratio_divide<P2,P>::type::num/mwg::stdm::ratio_divide<typename P2::period,P>::type::den);
-      return *this;
-    }
-
-    // template<typename R2,typename P2>
-    // mwg_constexpr explicit duration(duration<R2,P2> const& rhs,typename mwg::stdm::enable_if<!chrono_detail::is_duration_promotable<duration,duration<R2,P2> >::value,int>::type=0)
-    //   :value(R(rhs.value*mwg::stdm::ratio_divide<D2::period,D1::period>::type::num/mwg::stdm::ratio_divide<D2::period,D1::period>::type::den)){}
     template<typename R2>
     mwg_constexpr explicit duration(R2 const& rhs,typename mwg::stdm::enable_if<chrono_detail::is_duration_explicit<duration,R2>::value,int>::type=0)
       :value(rhs){}
 
-    R count() const{return this->value;}
+    template<typename R2,typename P2>
+    mwg_constexpr duration(duration<R2,P2> const& rhs,typename mwg::stdm::enable_if<chrono_detail::is_duration_promotable<duration,duration<R2,P2> >::value,int>::type=0)
+      :value(R(rhs.value*mwg::stdm::ratio_divide<P2,P>::type::num)/mwg::stdm::ratio_divide<P2,P>::type::den){}
+
+    // 規格では以下は存在しない(上のコンストラクタによって暗黙変換が起こるので)
+    //
+    // template<typename R2,typename P2>
+    // typename mwg::stdm::enable_if<chrono_detail::is_duration_promotable<duration,duration<R2,P2> >::value,duration&>::type
+    // operator=(duration<R2,P2> const& rhs){
+    //   this->value=R(rhs.value*mwg::stdm::ratio_divide<P2,P>::type::num/mwg::stdm::ratio_divide<typename P2::period,P>::type::den);
+    //   return *this;
+    // }
+
+    // 独自拡張
+    // template<typename R2,typename P2>
+    // mwg_constexpr explicit duration(duration<R2,P2> const& rhs,typename mwg::stdm::enable_if<!chrono_detail::is_duration_promotable<duration,duration<R2,P2> >::value,int>::type=0)
+    //   :value(R(rhs.value*mwg::stdm::ratio_divide<D2::period,D1::period>::type::num/mwg::stdm::ratio_divide<D2::period,D1::period>::type::den)){}
+
+    mwg_constexpr R count() const{return this->value;}
   public:
     mwg_constexpr duration operator+() const{return *this;}
     mwg_constexpr duration operator-() const{return duration(-this->value);}
@@ -162,21 +167,20 @@ namespace chrono_detail{
     static mwg_constexpr duration max(){return duration(duration_values<R>::max());}
   };
 
-  template<typename Dd,typename Ds>
-  typename mwg::stdm::enable_if<
-    chrono_detail::is_duration<Dd>::value
-    &&chrono_detail::is_duration<Ds>::value
-    &&chrono_detail::is_duration_castable<Dd,Ds>::value,Dd>::type
-  duration_cast(Ds const& d){
-    //typedef typename Ds::rep Rs;
-    typedef typename Dd::rep Rd;
-    typedef typename mwg::stdm::ratio_divide<typename Ds::period,typename Dd::period>::type ratio;
-    return Dd(Rd(d.count()*ratio::num/ratio::den));
-    //std::printf("dbg: %lld/%lld\n",ratio::num,ratio::den);std::fflush(stdout);
-    // if(treat_as_floating_point<Rs>::value&&!treat_as_floating_point<Rd>::value)
-    //   return Dd(Rd(d.count()*ratio::num/ratio::den+0.5));
+  template<typename D1,typename R2,typename P2>
+  mwg_constexpr typename mwg::stdm::enable_if<
+    chrono_detail::is_duration<D1>::value
+    &&chrono_detail::is_duration_castable<D1,duration<R2,P2> >::value,D1
+  >::type duration_cast(duration<R2,P2> const& d){
+    typedef typename D1::rep R1;
+    typedef typename mwg::stdm::common_type<R1,R2>::type rep;
+    typedef typename mwg::stdm::ratio_divide<P2,typename D1::period>::type ratio;
+    return D1(R1(rep(d.count())*ratio::num/ratio::den));
+    //mwg_printd("ratio=%lld/%lld",ratio::num,ratio::den);
+    // if(treat_as_floating_point<Rs>::value&&!treat_as_floating_point<R1>::value)
+    //   return D1(R1(d.count()*ratio::num/ratio::den+0.5));
     // else
-    //   return Dd(Rd(d.count()*ratio::num/ratio::den));
+    //   return D1(R1(d.count()*ratio::num/ratio::den));
   }
 
   typedef duration<mwg::i8t,mwg::stdm::nano>         nanoseconds;
@@ -292,89 +296,236 @@ namespace chrono_detail{
   private:
     duration value;
   public:
-    time_point():value(duration::zero()){}
-    explicit time_point(duration const& d):value(d){}
-    template<typename D2>
-    time_point(time_point<clock,D2> const& tp,typename mwg::stdm::enable_if<chrono_detail::is_duration_promotable<duration,D2>::value,int>::type=0):value(tp.value){}
-    // template<typename D2>
-    // explicit time_point(time_point<clock,D2> const& tp,typename mwg::stdm::enable_if<!chrono_detail::is_duration_promotable<duration,D2>::value,int>::type=0):value(tp.value){}
+    mwg_constexpr time_point():value(duration::zero()){}
 
-    duration time_since_epoch() const{return this->value;}
+    mwg_constexpr explicit time_point(duration const& d):value(d){}
+
+    template<typename D2>
+    mwg_constexpr time_point(
+      time_point<clock,D2> const& tp,
+      typename mwg::stdm::enable_if<chrono_detail::is_duration_promotable<duration,D2>::value,int>::type=0
+    ):value(tp.value){}
+
+    // 独自拡張
+    // template<typename D2>
+    // mwg_constexpr explicit time_point(
+    //   time_point<clock,D2> const& tp,
+    //   typename mwg::stdm::enable_if<!chrono_detail::is_duration_promotable<duration,D2>::value,int>::type=0
+    // ):value(tp.value){}
+
+    mwg_constexpr duration time_since_epoch() const{return this->value;}
     time_point& operator+=(duration const& rhs){this->value+=rhs;return *this;}
     time_point& operator-=(duration const& rhs){this->value-=rhs;return *this;}
+
+    static mwg_constexpr time_point min(){return time_point(duration::min());}
+    static mwg_constexpr time_point max(){return time_point(duration::max());}
   };
 
   template<typename Dd,typename Cs,typename Ds>
-  typename mwg::stdm::enable_if<
+  mwg_constexpr typename mwg::stdm::enable_if<
     chrono_detail::is_duration<Dd>::value
     &&chrono_detail::is_duration<Ds>::value
-    &&chrono_detail::is_duration_castable<Dd,Ds>::value,time_point<Cs,Dd> >::type
-  time_point_cast(time_point<Cs,Ds> const& t){
+    &&chrono_detail::is_duration_castable<Dd,Ds>::value,time_point<Cs,Dd>
+  >::type time_point_cast(time_point<Cs,Ds> const& t){
     return time_point<Cs,Dd>(duration_cast<Dd>(t.time_since_epoch()));
   }
 
-  template<typename R1,typename P1,typename R2,typename P2,typename C1>
-  typename mwg::stdm::common_type<duration<R1,P1>,duration<R2,P2> >::type
-  operator+(time_point<C1,duration<R1,P1> > const& lhs,duration<R2,P2> const& rhs){
-    typedef time_point<C1,typename mwg::stdm::common_type<duration<R1,P1>,duration<R2,P2> >::type> return_type;
-    return_type t(lhs);
-    return t+=rhs;
+  template<typename Clock,typename D1,typename R2,typename P2>
+  mwg_constexpr time_point<Clock,typename mwg::stdm::common_type<D1,duration<R2,P2> >::type>
+  operator+(time_point<Clock,D1> const& lhs,duration<R2,P2> const& rhs){
+    typedef time_point<Clock,typename mwg::stdm::common_type<D1,duration<R2,P2> >::type> return_type;
+    return return_type(lhs.time_since_epoch()+rhs);
   }
 
-  template<typename R1,typename P1,typename R2,typename P2,typename C2>
-  typename mwg::stdm::common_type<duration<R1,P1>,duration<R2,P2> >::type
-  operator+(duration<R1,P1> const& lhs,time_point<C2,duration<R2,P2> > const& rhs){
+  template<typename R1,typename P1,typename Clock,typename D2>
+  mwg_constexpr time_point<Clock,typename mwg::stdm::common_type<duration<R1,P1>,D2>::type>
+  operator+(duration<R1,P1> const& lhs,time_point<Clock,D2> const& rhs){
     return rhs+lhs;
   }
 
-  template<typename R1,typename P1,typename R2,typename P2,typename C1>
-  typename mwg::stdm::common_type<duration<R1,P1>,duration<R2,P2> >::type
-  operator-(time_point<C1,duration<R1,P1> > const& lhs,duration<R2,P2> const& rhs){
-    typedef time_point<C1,typename mwg::stdm::common_type<duration<R1,P1>,duration<R2,P2> >::type> return_type;
-    return_type t(lhs);
-    return t-=rhs;
+  template<typename Clock,typename D1,typename R2,typename P2>
+  mwg_constexpr time_point<Clock,typename mwg::stdm::common_type<D1,duration<R2,P2> >::type>
+  operator-(time_point<Clock,D1> const& lhs,duration<R2,P2> const& rhs){
+    typedef time_point<Clock,typename mwg::stdm::common_type<D1,duration<R2,P2> >::type> return_type;
+    return return_type(lhs.time_since_epoch()-rhs);
   }
-
-  template<typename R1,typename P1,typename R2,typename P2,typename C2>
-  typename mwg::stdm::common_type<duration<R1,P1>,duration<R2,P2> >::type
-  operator-(duration<R1,P1> const& lhs,time_point<C2,duration<R2,P2> > const& rhs){
-    return rhs-lhs;
-  }
-
 
   template<typename C,typename D1,typename D2>
-  bool operator==(time_point<C,D1> const& lhs,time_point<C,D2> const& rhs){
+  mwg_constexpr typename mwg::stdm::common_type<D1,D2>::type
+  operator-(time_point<C,D1> const& lhs,time_point<C,D2> const& rhs){
+    typedef typename mwg::stdm::common_type<D1,D2>::type return_type;
+    return lhs.time_since_epoch()-rhs.time_since_epoch();
+  }
+
+  template<typename C,typename D1,typename D2>
+  mwg_constexpr bool operator==(time_point<C,D1> const& lhs,time_point<C,D2> const& rhs){
     return lhs.time_since_epoch()==rhs.time_since_epoch();
   }
 
   template<typename C,typename D1,typename D2>
-  bool operator!=(time_point<C,D1> const& lhs,time_point<C,D2> const& rhs){
+  mwg_constexpr bool operator!=(time_point<C,D1> const& lhs,time_point<C,D2> const& rhs){
     return lhs.time_since_epoch()!=rhs.time_since_epoch();
   }
 
   template<typename C,typename D1,typename D2>
-  bool operator< (time_point<C,D1> const& lhs,time_point<C,D2> const& rhs){
+  mwg_constexpr bool operator< (time_point<C,D1> const& lhs,time_point<C,D2> const& rhs){
     return lhs.time_since_epoch()< rhs.time_since_epoch();
   }
 
   template<typename C,typename D1,typename D2>
-  bool operator<=(time_point<C,D1> const& lhs,time_point<C,D2> const& rhs){
+  mwg_constexpr bool operator<=(time_point<C,D1> const& lhs,time_point<C,D2> const& rhs){
     return lhs.time_since_epoch()<=rhs.time_since_epoch();
   }
 
   template<typename C,typename D1,typename D2>
-  bool operator> (time_point<C,D1> const& lhs,time_point<C,D2> const& rhs){
+  mwg_constexpr bool operator> (time_point<C,D1> const& lhs,time_point<C,D2> const& rhs){
     return lhs.time_since_epoch()> rhs.time_since_epoch();
   }
 
   template<typename C,typename D1,typename D2>
-  bool operator>=(time_point<C,D1> const& lhs,time_point<C,D2> const& rhs){
+  mwg_constexpr bool operator>=(time_point<C,D1> const& lhs,time_point<C,D2> const& rhs){
     return lhs.time_since_epoch()>=rhs.time_since_epoch();
   }
-}
+
+
+  // C++17 floor ceil round
+
+  namespace chrono_detail{
+    template<typename R1,typename R2>
+    mwg_constexpr R1 rep_floor(R2 const& value){
+      typedef typename mwg::stdm::common_type<R1,R2>::type rep;
+      return rep(R1(value))>rep(value)?R1(value)-1:R1(value);
+    }
+
+    template<typename R1,typename R2>
+    mwg_constexpr R1 rep_ceil(R2 const& value){
+      typedef typename mwg::stdm::common_type<R1,R2>::type rep;
+      return rep(R1(value))<rep(value)?R1(value)+1:R1(value);
+    }
+
+    template<typename R1,typename rep>
+    mwg_constexpr R1 rep_round(R1 const& floor,rep const& frac){
+      return (frac<1-frac||frac==1-frac&&(floor&1)==0)?floor:floor+1;
+    }
+
+    template<typename R1,typename R2>
+    mwg_constexpr R1 rep_round(R2 const& value){
+      typedef typename mwg::stdm::common_type<R1,R2>::type rep;
+      return rep_round(rep_floor(value),value-rep_floor(value));
+    }
+
+  }
+
+  template<typename D1,typename R2,typename P2>
+  mwg_constexpr typename mwg::stdm::enable_if<
+    chrono_detail::is_duration<D1>::value&&
+    !treat_as_floating_point<typename D1::rep>::value&&
+    chrono_detail::is_duration_castable<D1,duration<R2,P2> >::value,D1
+  >::type floor(duration<R2,P2> const& d){
+    typedef typename D1::rep R1;
+    typedef typename common_type<R1,R2>::type rep;
+    typedef typename mwg::stdm::ratio_divide<P2,typename D1::period>::type ratio;
+    return D1(chrono_detail::rep_floor<R1>(rep(d.count())*ratio::num/ratio::den));
+  }
+
+  template<typename D1,typename R2,typename P2>
+  mwg_constexpr typename mwg::stdm::enable_if<
+    chrono_detail::is_duration<D1>::value&&
+    !treat_as_floating_point<typename D1::rep>::value&&
+    chrono_detail::is_duration_castable<D1,duration<R2,P2> >::value,D1
+  >::type ceil(duration<R2,P2> const& d){
+    typedef typename D1::rep R1;
+    typedef typename common_type<R1,R2>::type rep;
+    typedef typename mwg::stdm::ratio_divide<P2,typename D1::period>::type ratio;
+    return D1(chrono_detail::rep_ceil<R1>(rep(d.count())*ratio::num/ratio::den));
+  }
+
+  template<typename D1,typename R2,typename P2>
+  mwg_constexpr typename mwg::stdm::enable_if<
+    chrono_detail::is_duration<D1>::value&&
+    !treat_as_floating_point<typename D1::rep>::value&&
+    chrono_detail::is_duration_castable<D1,duration<R2,P2> >::value,D1
+  >::type round(duration<R2,P2> const& d){
+    typedef typename D1::rep R1;
+    typedef typename common_type<R1,R2>::type rep;
+    typedef typename mwg::stdm::ratio_divide<P2,typename D1::period>::type ratio;
+    return D1(chrono_detail::rep_round<R1>(rep(d.count())*ratio::num/ratio::den));
+  }
+
+  template<typename D1,typename C,typename D2>
+  mwg_constexpr typename mwg::stdm::enable_if<
+    chrono_detail::is_duration<D1>::value&&
+    !treat_as_floating_point<typename D1::rep>::value&&
+    chrono_detail::is_duration_castable<D1,D2>::value,time_point<C,D1>
+  >::type floor(time_point<C,D2> const& t){
+    return time_point<C,D1>(floor<D1>(t.time_since_epoch()));
+  }
+
+  template<typename D1,typename C,typename D2>
+  mwg_constexpr typename mwg::stdm::enable_if<
+    chrono_detail::is_duration<D1>::value&&
+    !treat_as_floating_point<typename D1::rep>::value&&
+    chrono_detail::is_duration_castable<D1,D2>::value,time_point<C,D1>
+  >::type ceil(time_point<C,D2> const& t){
+    return time_point<C,D1>(ceil<D1>(t.time_since_epoch()));
+  }
+
+  template<typename D1,typename C,typename D2>
+  mwg_constexpr typename mwg::stdm::enable_if<
+    chrono_detail::is_duration<D1>::value&&
+    !treat_as_floating_point<typename D1::rep>::value&&
+    chrono_detail::is_duration_castable<D1,D2>::value,time_point<C,D1>
+  >::type round(time_point<C,D2> const& t){
+    return time_point<C,D1>(round<D1>(t.time_since_epoch()));
+  }
+
+} /* end of namespace chrono */
+} /* end of namespace stdm */
+} /* end of namespace mwg */
+
+#include <ctime>
+namespace mwg{
+namespace stdm{
+namespace chrono{
+namespace chrono_detail{
+
+  struct ctime_time{
+    typedef std::time_t rep;
+    typedef stdm::ratio<1> period;
+    typedef stdm::chrono::duration<rep,period> duration;
+    typedef stdm::chrono::time_point<ctime_time> time_point;
+    static mwg_constexpr_const bool is_ready=true;
+    static time_point now(){
+      return time_point(duration(std::time(NULL)));
+    }
+    static std::time_t to_time_t(time_point const& time){
+      return time.time_since_epoch().count();
+    }
+    static time_point from_time_t(std::time_t time){
+      return time_point(duration(time));
+    }
+  };
+
+  struct ctime_clock{
+    typedef std::clock_t rep;
+    typedef stdm::ratio<1,CLOCKS_PER_SEC> period;
+    typedef stdm::chrono::duration<rep,period> duration;
+    typedef stdm::chrono::time_point<ctime_clock> time_point;
+    static mwg_constexpr_const bool is_ready=true;
+    static time_point now(){
+      return time_point(duration(std::clock()));
+    }
+  };
 
 }
+
+  class system_clock:public chrono_detail::ctime_time{};
+  class steady_clock:public chrono_detail::ctime_clock{};
+  class high_resolution_clock:public chrono_detail::ctime_clock{};
 }
+}
+}
+
 #endif
 //HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 #endif
@@ -449,7 +600,8 @@ int test(){
   double a=1.2341;
   ns::chrono::duration<double,ns::ratio<1> > s2(a);
   mwg_assert((s2.count()==a));
-  mwg_assert((ns::chrono::duration_cast<ns::chrono::milliseconds>(s2).count()==int(a*1000)));
+  mwg_assert((ns::chrono::duration_cast<ns::chrono::milliseconds>(s2).count()==int(a*1000)),
+    "%g",(double)ns::chrono::duration_cast<ns::chrono::milliseconds>(s2).count());
 
   //---------------------------------------------------------------------------
   // nanoseconds - hours
@@ -478,7 +630,7 @@ int test(){
   //---------------------------------------------------------------------------
   // clocks
   // TODO system_clock
-  // TODO stready_clock
+  // TODO steady_clock
   // TODO high_resolution_clock
 
   return 0;
