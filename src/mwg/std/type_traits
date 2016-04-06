@@ -1008,6 +1008,8 @@ namespace stdm{
 
     mwg_check((!mwg::stdm::is_convertible<double,void>::value));
     mwg_check(( mwg::stdm::is_convertible<double,int>::value));
+    mwg_check(( mwg::stdm::is_convertible<double,bool>::value));
+    mwg_check(( mwg::stdm::is_convertible<double,mwg::u1t>::value));
     mwg_check(( mwg::stdm::is_convertible<double,float>::value));
     mwg_check(( mwg::stdm::is_convertible<float,double>::value));
     mwg_check((!mwg::stdm::is_convertible<double,int*>::value));

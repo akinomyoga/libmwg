@@ -49,7 +49,7 @@ namespace detail{
       static false_t& eval(...);
     };
 
-    static const bool value=sizeof(true_t)==sizeof(checker::eval(*(T*)0));
+    static const bool value=sizeof(true_t)==sizeof(checker::eval((T*)0));
   };
 
   template<typename P>

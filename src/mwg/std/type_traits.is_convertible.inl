@@ -43,7 +43,7 @@ namespace stdm{
       template<typename T> param_force_conversion(T&){}
     };
 
-    template<typename From,typename To>
+    template<typename From,typename To,typename=void>
     struct is_convertible_core{
       mwg_concept_sfinae_param{
         mwg_concept_sfinae_param_true(X,(X,int));
@@ -51,6 +51,11 @@ namespace stdm{
       };
       mwg_concept_sfinae_param_check(To,(mwg::declval<From>(),0));
     };
+
+    // g++-3.4.6 が double->int narrowing conversion に対して警告を出すので、
+    // narrowing conversion だけ特別扱いする。
+    template<typename From,typename To>
+    struct is_convertible_core<From,To,typename enable_if<(is_floating_point<From>::value&&is_integral<To>::value)>::type>:true_type{};
 # else
     template<typename From,typename To>
     struct is_convertible_core:integral_constant<bool,is_void<From>::value&&is_void<To>::value||is_same<From,To>::value||is_base_of<To,From>::value>{};
