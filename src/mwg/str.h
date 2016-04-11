@@ -16,6 +16,33 @@
 #pragma%x begin_check
 #include <mwg/str.h>
 #define _a mwg::str
+
+template<typename T>
+void check_iterator(T const& str){
+  typedef typename T::const_iterator Iter;
+  typedef typename T::char_type char_type;
+  Iter b=str.begin(),e=str.end();
+  std::size_t l=str.length();
+
+  Iter i; // should be default constructible
+  i=b;    // should be copy assignable
+
+  // check relational operators, add/sub operators, and increments
+  for(std::size_t index=0;index<l;index++,++i){
+    char_type ch=i[index];
+    mwg_check(b<=i&&i<e&&(i<=e&&i!=e),"bad relational operators");
+    mwg_check(i==b+index&&i==e-(l-index)&&i-b==index,"bad add/subtraction operators");
+  }
+  mwg_check(i==e&&!(i!=e));
+  for(std::size_t index=0;index<l;index++,i--){
+    mwg_check(e>=i&&i>b&&(i>=b&&i!=b),"bad relational operators");
+    mwg_check(i==e-index&&i==b+(l-index)&&e-i==index,"bad add/subtraction operators");
+  }
+  mwg_check(i==b&&!(i!=b));
+  mwg_check((i+=l)==e);
+  mwg_check((i-=l)==b);
+}
+
 #pragma%x end_check
 
 namespace mwg{
@@ -140,12 +167,21 @@ struct StringPolicy{
     bool operator==(const_iterator const&) const;
     bool operator!=(const_iterator const&) const;
 
-    // 必要に応じて RandomAccessIterator にまで拡張しても良い (要求ではない)。
-
     // 追加要件
     difference_type operator-(const_iterator const&) const;
-    // const_iterator  operator+(difference_type) const;
-    // const_iterator  operator-(difference_type) const;
+
+    // RandomAccessIterator のインターフェイスも要求する。
+    // 但し、実装が非効率な場合には category は random_access_iterator_tag にしない。
+    char_reference  operator[](difference_type);
+    bool operator< (const_iterator const&) const;
+    bool operator<=(const_iterator const&) const;
+    bool operator> (const_iterator const&) const;
+    bool operator>=(const_iterator const&) const;
+    const_iterator  operator+ (difference_type) const;
+    const_iterator  operator- (difference_type) const;
+    const_iterator& operator+=(difference_type);
+    const_iterator& operator-=(difference_type);
+    friend inline const_iterator operator+(difference_type,const_iterator const&);
   };
 
   struct buffer_type{
@@ -169,8 +205,8 @@ template<typename Char>
 class _tmpobj_arrow_operator{
   Char value;
 public:
-  explicit _tmpobj_arrow_operator(Char value):value(value){}
-  Char const* operator->() const{return &this->value;}
+  mwg_constexpr explicit _tmpobj_arrow_operator(Char value):value(value){}
+  mwg_constexpr Char const* operator->() const{return &this->value;}
 };
 template<typename Char>
 class _tmpobj_arrow_operator<Char&>{
@@ -198,7 +234,7 @@ public:
 
 void test(){
   FakeStorage fake(123);
-  mwg_assert((fake->getHalf()==61));
+  mwg_check((fake->getHalf()==61));
 }
 #pragma%x end_test
 
@@ -217,7 +253,15 @@ struct const_iterator_base:std::iterator<
 template<typename XCH>
 struct const_iterator_base<XCH*>:std::iterator<
   std::bidirectional_iterator_tag,XCH,
-  std::ptrdiff_t,XCH*,XCH const&
+  std::ptrdiff_t,
+  /* @var typename pointer;
+   *   `operator->()` の戻り値の型として使用する。
+   *   @remarks{
+   *   他の `const_iterator::pointer` と同様に文字の参照から初期化できるようにする為、
+   *   `_tmp_arrow_operator` でくるむ必要がある。}
+   */
+  _tmpobj_arrow_operator<XCH*>,
+  XCH const&
 >{};
 
 //-----------------------------------------------------------------------------
@@ -257,7 +301,7 @@ struct char_traits{
  *   };
  * };
  * }
- *  :@var static const bool ==available==;
+ *  :@const static const bool ==available==;
  *   mwg/str インターフェイスを提供できる場合に `true` を設定します。
  *  :@typedef[opt] typename ==adapter_type==;
  *   `available==true` の時に定義します。
@@ -298,19 +342,19 @@ struct _adapter_traits_2<T,XCH,true>:stdm::conditional<
 
 /*?lwiki
  * :@class mwg::==as_str==<T,XCH>;
- *  :@var static const bool ==value==;
- *  :@var static const bool ==available==;
+ *  :@const static const bool ==value==;
+ *  :@const static const bool ==available==;
  *   adapter が利用可能かどうかを保持します。
- *  :@typedef[opt] ==enable==<R>::type  // value==true のとき
- *  :@typedef[opt] ==disable==<R>::type // value==false のとき
+ *  :@typedef[opt] typename ==enable==<R>::type;  // value==true のとき
+ *  :@typedef[opt] typename ==disable==<R>::type; // value==false のとき
  *   SFINAE 用に型 R を返します。
- *  :@typedef[opt] ==adapter==
- *  :@typedef[opt] ==adapter_type==
+ *  :@typedef[opt] typename ==adapter==;
+ *  :@typedef[opt] typename ==adapter_type==;
  *   adapter 型を提供します。
- *  :@typedef[opt] ==policy_type==
- *  :@typedef[opt] ==char_type==
- *  :@typedef[opt] ==char_reference==
- *  :@typedef[opt] ==const_iterator==
+ *  :@typedef[opt] typename ==policy_type==;
+ *  :@typedef[opt] typename ==char_type==;
+ *  :@typedef[opt] typename ==char_reference==;
+ *  :@typedef[opt] typename ==const_iterator==;
  *   adapter に関連する様々な型を提供します。
  */
 
@@ -342,7 +386,7 @@ struct as_str:_as_str<typename stdm::remove_cv<T>::type,XCH>{};
  *  `adapter_traits` 実装の補助クラスです。\
  *  指定した型から `XCH*` ポインタと長さのペアを取得して、\
  *  それを元にして mwg/str の文字列型を作成します。
- *  :@param[in] XCH
+ *  :@tparam[in] typename XCH;
  *   文字要素の型を指定します。
  *  派生クラスで以下のメンバ関数を定義する必要があります。
  *  -@fn static const char_type* pointer(C const& s);
@@ -479,13 +523,19 @@ public:
   bool operator==(this_type const& rhs) const{return this->m_index==rhs.m_index;}
   bool operator!=(this_type const& rhs) const{return this->m_index!=rhs.m_index;}
 
-  this_type operator+(difference_type offset) const{return this_type(*this->m_pbuff,this->m_index+offset);}
-  this_type operator-(difference_type offset) const{return this_type(*this->m_pbuff,this->m_index-offset);}
   difference_type operator- (this_type const& rhs) const{return this->m_index- rhs.m_index;}
-  bool            operator< (this_type const& rhs) const{return this->m_index< rhs.m_index;}
-  bool            operator<=(this_type const& rhs) const{return this->m_index<=rhs.m_index;}
-  bool            operator> (this_type const& rhs) const{return this->m_index> rhs.m_index;}
-  bool            operator>=(this_type const& rhs) const{return this->m_index>=rhs.m_index;}
+
+  // RandomAccessIterator
+  reference  operator[](difference_type offset) const{return (*m_pbuff)[m_index+offset];}
+  bool       operator< (this_type const& rhs) const{return this->m_index< rhs.m_index;}
+  bool       operator<=(this_type const& rhs) const{return this->m_index<=rhs.m_index;}
+  bool       operator> (this_type const& rhs) const{return this->m_index> rhs.m_index;}
+  bool       operator>=(this_type const& rhs) const{return this->m_index>=rhs.m_index;}
+  this_type  operator+ (difference_type offset) const{return this_type(*this->m_pbuff,this->m_index+offset);}
+  this_type  operator- (difference_type offset) const{return this_type(*this->m_pbuff,this->m_index-offset);}
+  this_type& operator+=(difference_type offset){this->m_index+=offset;return *this;}
+  this_type& operator-=(difference_type offset){this->m_index-=offset;return *this;}
+  friend inline this_type operator+(difference_type offset,this_type const& iter){return iter+offset;}
 };
 
 template<typename Type>
@@ -509,15 +559,21 @@ public:
   this_type& operator--()   {--this->data;return *this;}
   this_type  operator--(int){return this_type(this->data--);}
 
-  mwg_constexpr this_type operator+(difference_type offset) const{return this_type(this->data+offset);}
-  mwg_constexpr this_type operator-(difference_type offset) const{return this_type(this->data-offset);}
   mwg_constexpr difference_type operator- (this_type const& rhs) const{return this->data- rhs.data;}
   mwg_constexpr bool            operator==(this_type const& rhs) const{return this->data==rhs.data;}
   mwg_constexpr bool            operator!=(this_type const& rhs) const{return this->data!=rhs.data;}
-  mwg_constexpr bool            operator< (this_type const& rhs) const{return this->data< rhs.data;}
-  mwg_constexpr bool            operator<=(this_type const& rhs) const{return this->data<=rhs.data;}
-  mwg_constexpr bool            operator> (this_type const& rhs) const{return this->data> rhs.data;}
-  mwg_constexpr bool            operator>=(this_type const& rhs) const{return this->data>=rhs.data;}
+
+  // RandomAccessIterator
+  mwg_constexpr reference  operator[](difference_type offset) const{return data[offset];}
+  mwg_constexpr bool       operator< (this_type const& rhs) const{return this->data< rhs.data;}
+  mwg_constexpr bool       operator<=(this_type const& rhs) const{return this->data<=rhs.data;}
+  mwg_constexpr bool       operator> (this_type const& rhs) const{return this->data> rhs.data;}
+  mwg_constexpr bool       operator>=(this_type const& rhs) const{return this->data>=rhs.data;}
+  mwg_constexpr this_type  operator+ (difference_type offset) const{return this_type(this->data+offset);}
+  mwg_constexpr this_type  operator- (difference_type offset) const{return this_type(this->data-offset);}
+  this_type&               operator+=(difference_type offset){this->data+=offset;return *this;}
+  this_type&               operator-=(difference_type offset){this->data-=offset;return *this;}
+  friend inline mwg_constexpr this_type operator+(difference_type offset,this_type const& iter){return iter+offset;}
 };
 
 template<typename Iter>
@@ -548,11 +604,22 @@ public:
   this_type& operator--()   {this->base::operator--();--this->m_index;return *this;}
   this_type  operator++(int){this_type ret(*this);this->base::operator++();++this->m_index;return ret;}
   this_type  operator--(int){this_type ret(*this);this->base::operator--();--this->m_index;return ret;}
-  this_type  operator+(difference_type offset) const{return this_type(this->base::operator+(offset),this->m_index+offset);}
-  this_type  operator-(difference_type offset) const{return this_type(this->base::operator-(offset),this->m_index-offset);}
 
   // base::operator-() よりもこちらの方が効率的の筈。
-  difference_type operator-(this_type const& rhs) const{return this->m_index-rhs.m_index;}
+  difference_type operator- (this_type const& rhs) const{return this->m_index- rhs.m_index;}
+  bool            operator==(this_type const& rhs) const{return this->m_index==rhs.m_index;}
+  bool            operator!=(this_type const& rhs) const{return this->m_index!=rhs.m_index;}
+
+  // RandomAccessIterator (上書き)
+  bool       operator< (this_type const& rhs) const{return this->m_index< rhs.m_index;}
+  bool       operator<=(this_type const& rhs) const{return this->m_index<=rhs.m_index;}
+  bool       operator> (this_type const& rhs) const{return this->m_index> rhs.m_index;}
+  bool       operator>=(this_type const& rhs) const{return this->m_index>=rhs.m_index;}
+  this_type& operator+=(difference_type offset){this->base::operator+=(offset);this->m_index+=offset;return *this;}
+  this_type& operator-=(difference_type offset){this->base::operator-=(offset);this->m_index-=offset;return *this;}
+  this_type  operator+ (difference_type offset) const{return this_type(this->base::operator+(offset),this->m_index+offset);}
+  this_type  operator- (difference_type offset) const{return this_type(this->base::operator-(offset),this->m_index-offset);}
+  friend inline this_type operator+(difference_type offset,this_type const& iter){return iter+offset;}
 };
 
 template<typename Iter>
@@ -571,8 +638,14 @@ public:
   this_type& operator--()   {this->base::operator--();return *this;}
   this_type  operator++(int){this_type ret(*this);this->base::operator++();return ret;}
   this_type  operator--(int){this_type ret(*this);this->base::operator--();return ret;}
-  this_type  operator+(difference_type offset) const{return this_type(this->base::operator+(offset));}
-  this_type  operator-(difference_type offset) const{return this_type(this->base::operator-(offset));}
+
+  // RandomAccessIterator (上書き)
+  this_type& operator+=(difference_type offset){this->base::operator+=(offset);return *this;}
+  this_type& operator-=(difference_type offset){this->base::operator-=(offset);return *this;}
+  this_type  operator+ (difference_type offset) const{return this_type(this->base::operator+(offset));}
+  this_type  operator- (difference_type offset) const{return this_type(this->base::operator-(offset));}
+  using base::operator-;
+  friend inline this_type operator+(difference_type offset,this_type const& iter){return iter+offset;}
 };
 
 //-----------------------------------------------------------------------------
@@ -714,7 +787,7 @@ public:
   void test(){
     char buff[100];
     std::sprintf(buff,(mwg::str("file")+": "+"message")->c_str());
-    mwg_assert(mwg::str(buff)=="file: message","buff=%s",buff);
+    mwg_check(mwg::str(buff)=="file: message","buff=%s",buff);
   }
 #pragma%x end_test
 
@@ -795,23 +868,27 @@ public:
   }
 #pragma%x begin_test
   void test(){
-    mwg_assert((_a("hello").slice(2,4) =="ll"));
-    mwg_assert((_a("hello").slice(1,-2)=="el"));
-    mwg_assert((_a("hello").slice(3)   =="lo"));
+    mwg_check((_a("hello").slice(2,4) =="ll"));
+    mwg_check((_a("hello").slice(1,-2)=="el"));
+    mwg_check((_a("hello").slice(3)   =="lo"));
 
     // slice of strtmp with `!has_get_ptr`
-    mwg_assert((_a("hello").toupper().slice(2,4) =="LL"));
-    mwg_assert((_a("hello").toupper().slice(1,-2)=="EL"));
-    mwg_assert((_a("hello").toupper().slice(3)   =="LO"));
+    mwg_check((_a("hello").toupper().slice(2,4) =="LL"));
+    mwg_check((_a("hello").toupper().slice(1,-2)=="EL"));
+    mwg_check((_a("hello").toupper().slice(3)   =="LO"));
 
-    mwg_assert((_a("0123456789").slice(-6,-3)=="456"));
-    mwg_assert((_a("0123456789").slice(-3)=="789"));
-    mwg_assert((_a("0123456789").slice(6,4)==""));
-    mwg_assert((_a("0123456789").slice(6,-6)==""));
+    mwg_check((_a("0123456789").slice(-6,-3)=="456"));
+    mwg_check((_a("0123456789").slice(-3)=="789"));
+    mwg_check((_a("0123456789").slice(6,4)==""));
+    mwg_check((_a("0123456789").slice(6,-6)==""));
 
-    mwg_assert((_a("hello").remove(3)=="hel"));
-    mwg_assert((_a("hello").remove(1,-2)=="hlo"));
-    mwg_assert((_a("hello").remove(mwg::make_range(-4,-1))=="ho"));
+    mwg_check((_a("hello").remove(3)=="hel"));
+    mwg_check((_a("hello").remove(1,-2)=="hlo"));
+    mwg_check((_a("hello").remove(mwg::make_range(-4,-1))=="ho"));
+
+    check_iterator(_a("hello").slice(2,4)); // strsub_policy::const_iterator
+    check_iterator((_a("hel")+"lo").slice(2,4)); // _strtmp_sub_policy::const_iterator
+    check_iterator(_a("hello").remove(1,-2)); // _strtmp_cat_policy<2>::const_iterator
   }
 #pragma%x end_test
 
@@ -882,11 +959,11 @@ public:
 
 #pragma%x begin_test
   void test(){
-    mwg_assert((_a("hello").replace(1,-3,"icon")=="hiconllo"));
-    mwg_assert((_a("hello").replace(1,-3,_a("icon"))=="hiconllo"));
-    mwg_assert((_a("hello").replace(mwg::make_range(1,-3),"icon")=="hiconllo"));
-    mwg_assert((_a("hello").insert(1,"icon")=="hiconello"));
-    mwg_assert((_a("hello").insert(1,_a("icon"))=="hiconello"));
+    mwg_check((_a("hello").replace(1,-3,"icon")=="hiconllo"));
+    mwg_check((_a("hello").replace(1,-3,_a("icon"))=="hiconllo"));
+    mwg_check((_a("hello").replace(mwg::make_range(1,-3),"icon")=="hiconllo"));
+    mwg_check((_a("hello").insert(1,"icon")=="hiconello"));
+    mwg_check((_a("hello").insert(1,_a("icon"))=="hiconello"));
   }
 #pragma%x end_test
 
@@ -1000,18 +1077,21 @@ public:
 
 #pragma%x begin_test
   void test(){
-    mwg_assert( (_a("hello").toupper()=="HELLO"));
-    mwg_assert( (_a("hello").toupper(2)=="heLLO"));
-    mwg_assert( (_a("hello").toupper(1,-1)=="hELLo"));
-    mwg_assert( (_a("hello").toupper(mwg::make_range(1,-2))=="hELlo"));
-    mwg_assert( (_a("HELLO").tolower()=="hello"));
-    mwg_assert( (_a("HELLO").tolower(2)=="HEllo"));
-    mwg_assert( (_a("HELLO").tolower(1,-1)=="HellO"));
-    mwg_assert( (_a("HELLO").tolower(mwg::make_range(1,-2))=="HelLO"));
-    mwg_assert( (_a("hello").replace('l','c')=="hecco"));
-    mwg_assert( (_a("hello").replace('l','p').replace('e','i')=="hippo"));
-    mwg_assert( (_a("hello").replace('l','p',-2)=="helpo"));
-    mwg_assert( (_a("hello").replace('l','r',0,3)=="herlo"));
+    mwg_check( (_a("hello").toupper()=="HELLO"));
+    mwg_check( (_a("hello").toupper(2)=="heLLO"));
+    mwg_check( (_a("hello").toupper(1,-1)=="hELLo"));
+    mwg_check( (_a("hello").toupper(mwg::make_range(1,-2))=="hELlo"));
+    mwg_check( (_a("HELLO").tolower()=="hello"));
+    mwg_check( (_a("HELLO").tolower(2)=="HEllo"));
+    mwg_check( (_a("HELLO").tolower(1,-1)=="HellO"));
+    mwg_check( (_a("HELLO").tolower(mwg::make_range(1,-2))=="HelLO"));
+    mwg_check( (_a("hello").replace('l','c')=="hecco"));
+    mwg_check( (_a("hello").replace('l','p').replace('e','i')=="hippo"));
+    mwg_check( (_a("hello").replace('l','p',-2)=="helpo"));
+    mwg_check( (_a("hello").replace('l','r',0,3)=="herlo"));
+
+    check_iterator(_a("hello").toupper()); // _strtmp_map_policy<>::const_iterator
+    check_iterator(_a("hello").toupper(1,-1)); // _strtmp_map_policy<>::const_iterator
   }
 #pragma%x end_test
 
@@ -1094,19 +1174,19 @@ public:
 
 #pragma%x begin_test
   void test(){
-    mwg_assert((_a("  hello   ").trim ()=="hello"));
-    mwg_assert((_a("  hello   ").ltrim()=="hello   "));
-    mwg_assert((_a("  hello   ").rtrim()=="  hello"));
-    mwg_assert((_a("012343210").trim ("012")=="343"));
-    mwg_assert((_a("012343210").ltrim("012")=="343210"));
-    mwg_assert((_a("012343210").rtrim("012")=="012343"));
-    mwg_assert((_a("012343210").trim (_a("012"))=="343"));
-    mwg_assert((_a("012343210").ltrim(_a("012"))=="343210"));
-    mwg_assert((_a("012343210").rtrim(_a("012"))=="012343"));
+    mwg_check((_a("  hello   ").trim ()=="hello"));
+    mwg_check((_a("  hello   ").ltrim()=="hello   "));
+    mwg_check((_a("  hello   ").rtrim()=="  hello"));
+    mwg_check((_a("012343210").trim ("012")=="343"));
+    mwg_check((_a("012343210").ltrim("012")=="343210"));
+    mwg_check((_a("012343210").rtrim("012")=="012343"));
+    mwg_check((_a("012343210").trim (_a("012"))=="343"));
+    mwg_check((_a("012343210").ltrim(_a("012"))=="343210"));
+    mwg_check((_a("012343210").rtrim(_a("012"))=="012343"));
 #ifdef MWGCONF_STD_LAMBDAS
-    mwg_assert((_a("012343210").trim ([](char c){return '0'<=c&&c<='2';})=="343"));
-    mwg_assert((_a("012343210").ltrim([](char c){return '0'<=c&&c<='2';})=="343210"));
-    mwg_assert((_a("012343210").rtrim([](char c){return '0'<=c&&c<='2';})=="012343"));
+    mwg_check((_a("012343210").trim ([](char c){return '0'<=c&&c<='2';})=="343"));
+    mwg_check((_a("012343210").ltrim([](char c){return '0'<=c&&c<='2';})=="343210"));
+    mwg_check((_a("012343210").rtrim([](char c){return '0'<=c&&c<='2';})=="012343"));
 #endif
   }
 #pragma%x end_test
@@ -1134,23 +1214,23 @@ public:
   pad_return_type pad(std::size_t width,char_type const& ch) const{
     std::ptrdiff_t room=(std::ptrdiff_t)width-this->length();
     if(room<=0)
-      return pad_return_type(*this,0,this->length(),ch);
+      return pad_return_type(this->data,0,this->length(),ch);
     else
-      return pad_return_type(*this,room/2,width,ch);
+      return pad_return_type(this->data,room/2,width,ch);
   }
   pad_return_type lpad(std::size_t width,char_type const& ch) const{
     std::ptrdiff_t room=(std::ptrdiff_t)width-this->length();
     if(room<=0)
-      return pad_return_type(*this,0,this->length(),ch);
+      return pad_return_type(this->data,0,this->length(),ch);
     else
-      return pad_return_type(*this,room,width,ch);
+      return pad_return_type(this->data,room,width,ch);
   }
   pad_return_type rpad(std::size_t width,char_type const& ch) const{
     std::ptrdiff_t room=(std::ptrdiff_t)width-this->length();
     if(room<=0)
-      return pad_return_type(*this,0,this->length(),ch);
+      return pad_return_type(this->data,0,this->length(),ch);
     else
-      return pad_return_type(*this,0,width,ch);
+      return pad_return_type(this->data,0,width,ch);
   }
   pad_return_type pad(std::size_t width) const{
     return this->pad(width,char_traits_type::space());
@@ -1163,15 +1243,27 @@ public:
   }
 #pragma%x begin_test
   void test(){
-    mwg_assert((_a("hello").pad(1)=="hello"));
-    mwg_assert((_a("hello").lpad(1)=="hello"));
-    mwg_assert((_a("hello").rpad(1)=="hello"));
-    mwg_assert((_a("hello").pad(10)=="  hello   "));
-    mwg_assert((_a("hello").lpad(10)=="     hello"));
-    mwg_assert((_a("hello").rpad(10)=="hello     "));
-    mwg_assert((_a("hello").pad(10,'-')=="--hello---"));
-    mwg_assert((_a("hello").lpad(10,'-')=="-----hello"));
-    mwg_assert((_a("hello").rpad(10,'-')=="hello-----"));
+    mwg_check((_a("hello").pad(1)=="hello"));
+    mwg_check((_a("hello").lpad(1)=="hello"));
+    mwg_check((_a("hello").rpad(1)=="hello"));
+    mwg_check((_a("hello").pad(10)=="  hello   "));
+    mwg_check((_a("hello").lpad(10)=="     hello"));
+    mwg_check((_a("hello").rpad(10)=="hello     "));
+    mwg_check((_a("hello").pad(10,'-')=="--hello---"));
+    mwg_check((_a("hello").lpad(10,'-')=="-----hello"));
+    mwg_check((_a("hello").rpad(10,'-')=="hello-----"));
+
+    // checks for const_iterator begin_at
+    mwg_check((_a("hello").pad(10,'-').slice(1,8)=="-hello-"));
+    mwg_check((_a("hello").pad(10,'-').slice(2,8)=="hello-"));
+    mwg_check((_a("hello").pad(10,'-').slice(3,8)=="ello-"));
+    mwg_check((_a("hello").pad(10,'-').slice(3,5)=="el"));
+    mwg_check((_a("hello").pad(10,'-').slice(8)!="-"));
+    mwg_check((_a("hello").pad(10,'-').slice(8)=="--"));
+    mwg_check((_a("hello").pad(10,'-').slice(8)!="----"));
+
+    check_iterator(_a("hello").pad(10,'-')); // _strtmp_pad_policy<>::const_iterator
+    check_iterator(_a("hello").pad(10,'-').slice(1,8));
   }
 #pragma%x end_test
 
@@ -1218,18 +1310,18 @@ public:
   }
 #pragma%x begin_test
   void test(){
-    mwg_assert( (_a("hello world").starts("hel")));
-    mwg_assert( (_a("hello world").starts(_a("hel"))));
-    mwg_assert(!(_a("hello world").starts("hal")));
-    mwg_assert(!(_a("hello world").starts(_a("hal"))));
-    mwg_assert(!(_a("hello world").starts("hello world!")));
-    mwg_assert(!(_a("hello world").starts(_a("hello world!"))));
-    mwg_assert( (_a("hello world").ends("orld")));
-    mwg_assert( (_a("hello world").ends(_a("orld"))));
-    mwg_assert(!(_a("hello world").ends("olrd")));
-    mwg_assert(!(_a("hello world").ends(_a("olrd"))));
-    mwg_assert(!(_a("hello world").ends("+hello world")));
-    mwg_assert(!(_a("hello world").ends(_a("+hello world"))));
+    mwg_check( (_a("hello world").starts("hel")));
+    mwg_check( (_a("hello world").starts(_a("hel"))));
+    mwg_check(!(_a("hello world").starts("hal")));
+    mwg_check(!(_a("hello world").starts(_a("hal"))));
+    mwg_check(!(_a("hello world").starts("hello world!")));
+    mwg_check(!(_a("hello world").starts(_a("hello world!"))));
+    mwg_check( (_a("hello world").ends("orld")));
+    mwg_check( (_a("hello world").ends(_a("orld"))));
+    mwg_check(!(_a("hello world").ends("olrd")));
+    mwg_check(!(_a("hello world").ends(_a("olrd"))));
+    mwg_check(!(_a("hello world").ends("+hello world")));
+    mwg_check(!(_a("hello world").ends(_a("+hello world"))));
   }
 #pragma%x end_test
 
@@ -1407,29 +1499,29 @@ public:
 
 #pragma%x begin_test
   void test(){
-    mwg_assert((_a("0123401234").find("012")==0));
-    mwg_assert((_a("0123401234").find("234")==2));
-    mwg_assert((_a("0123401234").find("021")<0));
-    mwg_assert((_a("0123401234").find("012",1)==5));
-    mwg_assert((_a("0123401234").find("012",1,8)==5));
-    mwg_assert((_a("0123401234").find("012",1,7)<0));
-    mwg_assert((_a("0123401234").rfind("012")==5));
-    mwg_assert((_a("0123401234").rfind("234")==7));
-    mwg_assert((_a("0123401234").rfind("021")<0));
-    mwg_assert((_a("0123401234").rfind("012",1)==5));
-    mwg_assert((_a("0123401234").rfind("012",1,8)==5));
-    mwg_assert((_a("0123401234").rfind("012",1,7)<0));
-    mwg_assert((_a("0123401234").rfind("012",6)<0));
-    mwg_assert((_a("0123401234").find('2')==2));
-    mwg_assert((_a("0123401234").rfind('2')==7));
-    mwg_assert((_a("0123401234").find_any("012")==0));
-    mwg_assert((_a("0123401234").find_any("234")==2));
-    mwg_assert((_a("0123401234").find_not("012")==3));
-    mwg_assert((_a("0123401234").find_not("234")==0));
-    mwg_assert((_a("0123401234").rfind_any("012")==7));
-    mwg_assert((_a("0123401234").rfind_any("234")==9));
-    mwg_assert((_a("0123401234").rfind_not("012")==9));
-    mwg_assert((_a("0123401234").rfind_not("234")==6));
+    mwg_check((_a("0123401234").find("012")==0));
+    mwg_check((_a("0123401234").find("234")==2));
+    mwg_check((_a("0123401234").find("021")<0));
+    mwg_check((_a("0123401234").find("012",1)==5));
+    mwg_check((_a("0123401234").find("012",1,8)==5));
+    mwg_check((_a("0123401234").find("012",1,7)<0));
+    mwg_check((_a("0123401234").rfind("012")==5));
+    mwg_check((_a("0123401234").rfind("234")==7));
+    mwg_check((_a("0123401234").rfind("021")<0));
+    mwg_check((_a("0123401234").rfind("012",1)==5));
+    mwg_check((_a("0123401234").rfind("012",1,8)==5));
+    mwg_check((_a("0123401234").rfind("012",1,7)<0));
+    mwg_check((_a("0123401234").rfind("012",6)<0));
+    mwg_check((_a("0123401234").find('2')==2));
+    mwg_check((_a("0123401234").rfind('2')==7));
+    mwg_check((_a("0123401234").find_any("012")==0));
+    mwg_check((_a("0123401234").find_any("234")==2));
+    mwg_check((_a("0123401234").find_not("012")==3));
+    mwg_check((_a("0123401234").find_not("234")==0));
+    mwg_check((_a("0123401234").rfind_any("012")==7));
+    mwg_check((_a("0123401234").rfind_any("234")==9));
+    mwg_check((_a("0123401234").rfind_not("012")==9));
+    mwg_check((_a("0123401234").rfind_not("234")==6));
   }
 #pragma%x end_test
 
@@ -1460,8 +1552,8 @@ public:
   }
 #pragma%x begin_test
   void test(){
-    mwg_assert( (_a("HELLO").reverse()=="OLLEH"));
-    mwg_assert( (_a("HELLO").repeat(3)=="HELLOHELLOHELLO"));
+    mwg_check( (_a("HELLO").reverse()=="OLLEH"));
+    mwg_check( (_a("HELLO").repeat(3)=="HELLOHELLOHELLO"));
   }
 #pragma%x end_test
 };
@@ -1684,6 +1776,7 @@ public:
 };
 
 #pragma%x begin_check
+
 //-----------------------------------------------------------------------------
 // _strtest_repeated_chars_policy
 
@@ -1700,6 +1793,7 @@ namespace str_detail{
     typedef _strtest_repeated_chars_policy policy_type;
     typedef XCH char_type;
     typedef XCH char_reference;
+    typedef char_traits<char_type> char_traits_type;
     static const bool has_get_ptr=false;
 
     class const_iterator:public const_iterator_base<policy_type>{
@@ -1710,26 +1804,35 @@ namespace str_detail{
     public:
       std::ptrdiff_t index() const{return this->m_index;}
 
-      const_iterator(char_type value,std::ptrdiff_t index):value(value),m_index(index){}
-      const_iterator():value('\0'),m_index(0){}
+      mwg_constexpr const_iterator(char_type value,std::ptrdiff_t index):value(value),m_index(index){}
+      mwg_constexpr const_iterator():value(char_traits_type::null()),m_index(0){}
 
       typedef typename base::reference       reference;
       typedef typename base::pointer         pointer;
       typedef typename base::difference_type difference_type;
 
-      reference operator*() const{return value;}
-      pointer operator->() const{return pointer(this->operator*());}
+      mwg_constexpr reference operator*() const{return value;}
+      mwg_constexpr pointer operator->() const{return pointer(this->operator*());}
 
       this_type& operator++(){++this->m_index;return *this;}
       this_type& operator--(){--this->m_index;return *this;}
-      this_type  operator++(int){return this_type(this->m_index++);}
-      this_type  operator--(int){return this_type(this->m_index--);}
-      this_type  operator+(difference_type offset) const{return this_type(this->m_index+offset);}
-      this_type  operator-(difference_type offset) const{return this_type(this->m_index-offset);}
+      mwg_constexpr this_type  operator++(int){return this_type(this->value,this->m_index++);}
+      mwg_constexpr this_type  operator--(int){return this_type(this->value,this->m_index--);}
 
-      difference_type operator- (this_type const& rhs) const{return this->m_index- rhs.m_index;}
-      bool            operator==(this_type const& rhs) const{return this->m_index==rhs.m_index;}
-      bool            operator!=(this_type const& rhs) const{return this->m_index==rhs.m_index;}
+      mwg_constexpr difference_type operator- (this_type const& rhs) const{return this->m_index- rhs.m_index;}
+      mwg_constexpr bool            operator==(this_type const& rhs) const{return this->m_index==rhs.m_index;}
+      mwg_constexpr bool            operator!=(this_type const& rhs) const{return this->m_index!=rhs.m_index;}
+      mwg_constexpr bool            operator< (this_type const& rhs) const{return this->m_index< rhs.m_index;}
+      mwg_constexpr bool            operator<=(this_type const& rhs) const{return this->m_index<=rhs.m_index;}
+      mwg_constexpr bool            operator> (this_type const& rhs) const{return this->m_index> rhs.m_index;}
+      mwg_constexpr bool            operator>=(this_type const& rhs) const{return this->m_index>=rhs.m_index;}
+
+      mwg_constexpr reference operator[](difference_type) const{return value;}
+      this_type& operator+=(difference_type offset){this->m_index+=offset;return *this;}
+      this_type& operator-=(difference_type offset){this->m_index-=offset;return *this;}
+      mwg_constexpr this_type  operator+(difference_type offset) const{return this_type(this->value,this->m_index+offset);}
+      mwg_constexpr this_type  operator-(difference_type offset) const{return this_type(this->value,this->m_index-offset);}
+      friend inline mwg_constexpr this_type operator+(difference_type offset,this_type const& iter){return iter+offset;}
     };
 
     class buffer_type{
@@ -1767,7 +1870,9 @@ public:
   index_displaced_iterator(base const& iter,std::ptrdiff_t offset)
     :base(iter),offset(offset){}
 
-  void index() const{
+  index_displaced_iterator():offset(0){}
+
+  std::ptrdiff_t index() const{
     return this->base::index()-offset;
   }
 };
@@ -1836,11 +1941,13 @@ public:
 
     // !has_memfn_index な基底 const_iterator から、const_iterator を初期化
     typedef _stradp_array<char> a;
-    mwg_assert((strbase<_strtmp_sub_policy<a::policy_type> >(a::buffer_type("hello",5),1,3)=="ell"));
+    mwg_check((strbase<_strtmp_sub_policy<a::policy_type> >(a::buffer_type("hello",5),1,3)=="ell"));
 
     // has_memfn_index な基底 const_iterator から、const_iterator を初期化
     typedef _strtest_repeated_chars_policy<char> b;
-    mwg_assert((strbase<_strtmp_sub_policy<b::policy_type> >(b::buffer_type('A',5),1,3)=="AAA"));
+    mwg_check((strbase<_strtmp_sub_policy<b::policy_type> >(b::buffer_type('A',5),1,3)=="AAA"));
+
+    check_iterator(strbase<_strtest_repeated_chars_policy<char> >('A',5));
   }
 #pragma%x end_test
 
@@ -1884,8 +1991,13 @@ struct _strtmp_map_policy{
     const_iterator  operator++(int){return const_iterator(this->base::operator++(0),*this);}
     const_iterator  operator--(int){return const_iterator(this->base::operator--(0),*this);}
 
-    const_iterator operator+(difference_type offset) const{return const_iterator(this->base::operator+(offset),*this);}
-    const_iterator operator-(difference_type offset) const{return const_iterator(this->base::operator-(offset),*this);}
+    // RandomAccessIterator
+    const_iterator& operator+=(difference_type offset){this->base::operator+=(offset);return *this;}
+    const_iterator& operator-=(difference_type offset){this->base::operator-=(offset);return *this;}
+    const_iterator  operator+ (difference_type offset) const{return const_iterator(this->base::operator+(offset),*this);}
+    const_iterator  operator- (difference_type offset) const{return const_iterator(this->base::operator-(offset),*this);}
+    using base::operator-;
+    friend inline const_iterator operator+(difference_type offset,const_iterator const& iter){return iter+offset;}
   };
 
   class buffer_type{
@@ -1963,8 +2075,13 @@ public:
     const_iterator  operator++(int){return const_iterator(this->base::operator++(0),*this);}
     const_iterator  operator--(int){return const_iterator(this->base::operator--(0),*this);}
 
-    const_iterator operator+(difference_type offset) const{return const_iterator(this->base::operator+(offset),*this);}
-    const_iterator operator-(difference_type offset) const{return const_iterator(this->base::operator-(offset),*this);}
+    // RandomAccessIterator
+    const_iterator& operator+=(difference_type offset){this->base::operator+=(offset);return *this;}
+    const_iterator& operator-=(difference_type offset){this->base::operator-=(offset);return *this;}
+    const_iterator  operator+ (difference_type offset) const{return const_iterator(this->base::operator+(offset),*this);}
+    const_iterator  operator- (difference_type offset) const{return const_iterator(this->base::operator-(offset),*this);}
+    using base::operator-;
+    friend inline const_iterator operator+(difference_type offset,const_iterator const& iter){return iter+offset;}
   };
 
   class buffer_type{
@@ -2042,21 +2159,85 @@ struct _strtmp_pad_policy{
   typedef _strtmp_pad_policy                        policy_type;
   typedef typename Str::policy_type::char_type      char_type;
   typedef typename Str::policy_type::char_reference char_reference;
+  typedef char_traits<char_type>                    char_traits_type;
   static const bool has_get_ptr=false;
 
-  typedef default_const_iterator<policy_type> const_iterator;
+private:
+  typedef typename Str::policy_type::const_iterator original_iterator;
+public:
+  class const_iterator:public wrap_iterator<original_iterator>::type{
+    typedef typename wrap_iterator<original_iterator>::type base;
+    typedef const_iterator this_type;
+    std::ptrdiff_t             m_index;
+    char_type                  m_pad;
+    mwg::range<std::ptrdiff_t> m_range;
+  public:
+    const_iterator(original_iterator const& iter,std::ptrdiff_t index,char_type paddingCharacter,mwg::range<std::ptrdiff_t> r)
+      :base(iter),m_index(index),m_pad(paddingCharacter),m_range(r){}
+    const_iterator(original_iterator const& iter,std::ptrdiff_t index,const_iterator const& origin)
+      :base(iter),m_index(index),m_pad(origin.m_pad),m_range(origin.m_range){}
+    const_iterator():m_pad(char_traits_type::space()),m_range(0,0){}
+
+    typedef char_reference                 reference;
+    typedef typename base::pointer         pointer;
+    typedef typename base::difference_type difference_type;
+
+  public:
+    std::ptrdiff_t index() const{return this->m_index;}
+
+    reference operator* () const{return this->m_range.contains(this->m_index)?this->base::operator*():this->m_pad;}
+    pointer   operator->() const{return pointer(this->operator*());}
+
+    this_type& operator++(){
+      if(this->m_range.contains(this->m_index))
+        this->base::operator++();
+      this->m_index++;
+      return *this;
+    }
+    this_type& operator--(){
+      this->m_index--;
+      if(this->m_range.contains(this->m_index))
+        this->base::operator--();
+      return *this;
+    }
+    this_type operator++(int){this_type ret(*this);this->operator++();return ret;}
+    this_type operator--(int){this_type ret(*this);this->operator--();return ret;}
+
+    difference_type operator- (this_type const& rhs) const{return this->m_index- rhs.m_index;}
+    bool            operator==(this_type const& rhs) const{return this->m_index==rhs.m_index;}
+    bool            operator!=(this_type const& rhs) const{return this->m_index!=rhs.m_index;}
+
+    // RandomAccessIterator (上書き)
+    bool       operator< (this_type const& rhs) const{return this->m_index< rhs.m_index;}
+    bool       operator<=(this_type const& rhs) const{return this->m_index<=rhs.m_index;}
+    bool       operator> (this_type const& rhs) const{return this->m_index> rhs.m_index;}
+    bool       operator>=(this_type const& rhs) const{return this->m_index>=rhs.m_index;}
+    this_type& operator+=(difference_type offset){
+      std::ptrdiff_t const& indexOld=this->m_index;
+      std::ptrdiff_t const  indexNew=indexOld+offset;
+      std::ptrdiff_t const  baseIndexOld=mwg::clamp(indexOld,this->m_range);
+      std::ptrdiff_t const  baseIndexNew=mwg::clamp(indexNew,this->m_range);
+      this->m_index=indexNew;
+      this->base::operator+=(baseIndexNew-baseIndexOld);
+      return *this;
+    }
+    this_type& operator-=(difference_type offset){return operator+=(-offset);}
+    this_type  operator+ (difference_type offset) const{return this_type(*this)+=offset;}
+    this_type  operator- (difference_type offset) const{return this_type(*this)-=offset;}
+    friend inline this_type operator+(difference_type offset,this_type const& iter){return iter+offset;}
+  };
 
   class buffer_type{
-    Str const& s;
+    typename Str::buffer_type const& s;
     std::size_t lpad_len;
     std::size_t m_length;
     char_type c;
   public:
-    buffer_type(Str const& s,std::size_t lpad_len,std::size_t len,char_type c)
+    buffer_type(typename Str::buffer_type const& s,std::size_t lpad_len,std::size_t len,char_type c)
       :s(s),lpad_len(lpad_len),m_length(len),c(c){}
   public:
     char_reference operator[](std::size_t index) const{
-      std::ptrdiff_t index1=std::ptrdiff_t(index)-this->lpad_len;
+      std::ptrdiff_t index1=std::ptrdiff_t(index)-std::ptrdiff_t(this->lpad_len);
       if(0<=index1&&(std::size_t)index1<this->s.length())
         return this->s[index1];
       else
@@ -2065,10 +2246,15 @@ struct _strtmp_pad_policy{
     std::size_t length() const{
       return this->m_length;
     }
-    const_iterator begin() const{return const_iterator(*this,0);}
-    const_iterator end()   const{return const_iterator(*this,this->length());}
-    const_iterator begin_at(std::ptrdiff_t index) const{return const_iterator(*this,index);}
+    const_iterator begin() const{return const_iterator(s.begin(),0,c,mwg::range<std::ptrdiff_t>(lpad_len,lpad_len+s.length()));}
+    const_iterator end()   const{return const_iterator(s.end(),this->length(),c,mwg::range<std::ptrdiff_t>(lpad_len,lpad_len+s.length()));}
+    const_iterator begin_at(std::ptrdiff_t index) const{
+      mwg::range<std::ptrdiff_t> const r(lpad_len,lpad_len+s.length());
+      std::ptrdiff_t const baseIndex=mwg::clamp(index,r)-this->lpad_len;
+      return const_iterator(s.begin_at(baseIndex),index,c,r);
+    }
   };
+
 };
 
 //-----------------------------------------------------------------------------
@@ -2198,9 +2384,9 @@ operator+(X const& lhs,Y const& rhs){
 
 #pragma%x begin_test
 void test(){
-  mwg_assert((_a("hello")+_a(" world")=="hello world"));
-  mwg_assert((_a("hello")+" world"=="hello world"));
-  mwg_assert(("hello"+_a(" world")+"!"=="hello world!"));
+  mwg_check((_a("hello")+_a(" world")=="hello world"));
+  mwg_check((_a("hello")+" world"=="hello world"));
+  mwg_check(("hello"+_a(" world")+"!"=="hello world!"));
 }
 #pragma%x end_test
 
@@ -2347,53 +2533,53 @@ operator>=(X const& lhs,Y const& rhs){return !(lhs<rhs);}
 
 #pragma%x begin_test
 void test(){
-  mwg_assert(compare(_a("hello"),_a("hello"))== 0);
-  mwg_assert(compare(_a("hello"),   "hello" )== 0);
-  mwg_assert(compare(   "hello" ,_a("hello"))== 0);
-  mwg_assert(compare(_a("hello"),_a("world"))==-1);
-  mwg_assert(compare(_a("hello"),   "world" )==-1);
-  mwg_assert(compare(   "hello" ,_a("world"))==-1);
-  mwg_assert(compare(_a("world"),_a("hello"))== 1);
-  mwg_assert(compare(   "world" ,_a("hello"))== 1);
-  mwg_assert(compare(_a("world"),   "hello" )== 1);
-  mwg_assert(compare(_a("hello"),   "hell"  )== 1);
-  mwg_assert(compare(_a("hell" ),   "hello ")==-1);
+  mwg_check(compare(_a("hello"),_a("hello"))== 0);
+  mwg_check(compare(_a("hello"),   "hello" )== 0);
+  mwg_check(compare(   "hello" ,_a("hello"))== 0);
+  mwg_check(compare(_a("hello"),_a("world"))==-1);
+  mwg_check(compare(_a("hello"),   "world" )==-1);
+  mwg_check(compare(   "hello" ,_a("world"))==-1);
+  mwg_check(compare(_a("world"),_a("hello"))== 1);
+  mwg_check(compare(   "world" ,_a("hello"))== 1);
+  mwg_check(compare(_a("world"),   "hello" )== 1);
+  mwg_check(compare(_a("hello"),   "hell"  )== 1);
+  mwg_check(compare(_a("hell" ),   "hello ")==-1);
 
   // assume ASCII codes
-  mwg_assert( compare(_a("hello"),_a("HELLO"))== 1);
-  mwg_assert( compare(_a("hello"),_a("WORLD"))== 1);
-  mwg_assert( compare(_a("WORLD"),_a("hello"))==-1);
-  mwg_assert(icompare(_a("hello"),_a("HELLO"))== 0);
-  mwg_assert(icompare(_a("hello"),_a("WORLD"))==-1);
-  mwg_assert(icompare(_a("WORLD"),_a("hello"))== 1);
+  mwg_check( compare(_a("hello"),_a("HELLO"))== 1);
+  mwg_check( compare(_a("hello"),_a("WORLD"))== 1);
+  mwg_check( compare(_a("WORLD"),_a("hello"))==-1);
+  mwg_check(icompare(_a("hello"),_a("HELLO"))== 0);
+  mwg_check(icompare(_a("hello"),_a("WORLD"))==-1);
+  mwg_check(icompare(_a("WORLD"),_a("hello"))== 1);
 
-  mwg_assert( (_a("hello")=="hello"));
-  mwg_assert(!(_a("hello")!="hello"));
-  mwg_assert(!(_a("hello")=="world"));
-  mwg_assert( (_a("hello")!="world"));
-  mwg_assert(!(_a("hello")=="hell"));
-  mwg_assert( (_a("hello")!="hell"));
+  mwg_check( (_a("hello")=="hello"));
+  mwg_check(!(_a("hello")!="hello"));
+  mwg_check(!(_a("hello")=="world"));
+  mwg_check( (_a("hello")!="world"));
+  mwg_check(!(_a("hello")=="hell"));
+  mwg_check( (_a("hello")!="hell"));
 
-  mwg_assert(!(_a("hello")<"hello"));
-  mwg_assert(!(_a("hello")>"hello"));
-  mwg_assert( (_a("hello")<"world"));
-  mwg_assert(!(_a("hello")>"world"));
-  mwg_assert(!(_a("hello")<"hell"));
-  mwg_assert( (_a("hello")>"hell"));
+  mwg_check(!(_a("hello")<"hello"));
+  mwg_check(!(_a("hello")>"hello"));
+  mwg_check( (_a("hello")<"world"));
+  mwg_check(!(_a("hello")>"world"));
+  mwg_check(!(_a("hello")<"hell"));
+  mwg_check( (_a("hello")>"hell"));
 
-  mwg_assert( (_a("hello")<="hello"));
-  mwg_assert( (_a("hello")>="hello"));
-  mwg_assert( (_a("hello")<="world"));
-  mwg_assert(!(_a("hello")>="world"));
-  mwg_assert(!(_a("hello")<="hell"));
-  mwg_assert( (_a("hello")>="hell"));
+  mwg_check( (_a("hello")<="hello"));
+  mwg_check( (_a("hello")>="hello"));
+  mwg_check( (_a("hello")<="world"));
+  mwg_check(!(_a("hello")>="world"));
+  mwg_check(!(_a("hello")<="hell"));
+  mwg_check( (_a("hello")>="hell"));
 
   mwg::strfix<char> s1;
-  mwg_assert( (s1==""));
+  mwg_check( (s1==""));
   mwg::strfix<char> s2="012345";
-  mwg_assert( (s2=="012345"));
+  mwg_check( (s2=="012345"));
   s1="21345";
-  mwg_assert( (s1=="21345"));
+  mwg_check( (s1=="21345"));
 }
 #pragma%x end_test
 
@@ -2470,12 +2656,12 @@ struct char_traits<wchar_t>{
 
 #pragma%x begin_test
 void test(){
-  mwg_assert((_a(L"AbCdE").toupper(1,-1)==L"ABCDE"));
-  mwg_assert((_a(L"aBcDe").tolower(1,-1)==L"abcde"));
-  mwg_assert((_a(L"  hello  ").trim()==L"hello"));
-  mwg_assert((_a(L"  hello  ").ltrim()==L"hello  "));
-  mwg_assert((_a(L"  hello  ").rtrim()==L"  hello"));
-  mwg_assert((_a(L"world").pad(7)==L" world "));
+  mwg_check((_a(L"AbCdE").toupper(1,-1)==L"ABCDE"));
+  mwg_check((_a(L"aBcDe").tolower(1,-1)==L"abcde"));
+  mwg_check((_a(L"  hello  ").trim()==L"hello"));
+  mwg_check((_a(L"  hello  ").ltrim()==L"hello  "));
+  mwg_check((_a(L"  hello  ").rtrim()==L"  hello"));
+  mwg_check((_a(L"world").pad(7)==L" world "));
 }
 #pragma%x end_test
 
@@ -2503,7 +2689,7 @@ struct adapter_traits<std::basic_string<XCH,Tr,Alloc> >:adapter_traits_array<XCH
 #pragma%x begin_test
 void test(){
   std::string s1("hello");
-  mwg_assert((mwg::str(s1).toupper(1,4)=="hELLo"));
+  mwg_check((mwg::str(s1).toupper(1,4)=="hELLo"));
 }
 #pragma%x end_test
 
@@ -2668,7 +2854,7 @@ mwg/str では、文字列の内部形式と文字列に対する操作を分離
   文字列の文字を `buffer_type::operator[]` や `const_iterator::operator*` を通して取得する際の型です。\
   内部表現に対応するデータが存在する場合には、そのデータへの参照 (`char_type const&`) になります。\
   それ以外の場合は、単に `char_type` になります。
- :@var static const bool has_get_ptr;
+ :@const static const bool has_get_ptr;
   文字データが連続した領域に格納され、その先頭へのポインタが得られる場合に true を指定します。
 */
 //HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
@@ -2676,7 +2862,7 @@ mwg/str では、文字列の内部形式と文字列に対する操作を分離
 #endif
 #pragma%x begin_test
 void test(){
-  mwg_assert( (_a("HELLO").repeat(3).tolower(5,-3).reverse()=="OLLehollehOLLEH"));
+  mwg_check( (_a("HELLO").repeat(3).tolower(5,-3).reverse()=="OLLehollehOLLEH"));
 
   // OK
   // auto a = _a("hello world!").tolower(2,-3);

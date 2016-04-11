@@ -19,21 +19,21 @@ namespace xprintf_detail{
 /*?lwiki
  * *関数一覧
  * <?cpp #include <mwg/xprintf.h>?>
- * :@fn int mwg::''xprintf''(buff,fmt,args...);
- * :@fn int mwg::''vxprintf''(buff,fmt,tuple);
+ * :@fn int mwg::==xprintf==(buff,fmt,args...);
+ * :@fn int mwg::==vxprintf==(buff,fmt,tuple);
  *  指定した出力先に書式指定文字列で整形された文字列を書き込みます。
  *  :@param[in,out] template<typename Buff> Buff& ''buff'';
  *   出力先を指定します。\
  *   現在 <?cpp std::ostream, std::string, std::FILE*?> に対応しています。
  *  :@param[in] const char* ''fmt'';
  *   書式指定文字列を指定します。
- *  :@param[in] template<typename... Args> Args... ''args'';
+ *  :@param[in] template<typename... Args> Args&&... ''args'';
  *  :@param[in] template<typename... Args> std::tuple<Args...> ''tuple'';
  *   引数を指定します。
- * :@fn '''xputf-temp''' mwg::''xputf''(fmt,args...);
- * :@fn '''xputf-temp''' mwg::''vxputf''(fmt,tuple);
+ * :@fn '''xputf-temp''' mwg::==xputf==(fmt,args...);
+ * :@fn '''xputf-temp''' mwg::==vxputf==(fmt,tuple);
  *  書式指定オブジェクトを生成します。
- *  :@param[in] template<typename... Args> Args... ''args'';
+ *  :@param[in] template<typename... Args> Args&&... ''args'';
  *  :@param[in] template<typename... Args> std::tuple<Args...> ''tuple'';
  *  :@fn Buff& ''operator<<''(buff,'''xputf-temp''');
  *   :@param[in,out] template<typename Buff> Buff& ''buff'';
@@ -42,13 +42,13 @@ namespace xprintf_detail{
  *   :@fn std::size_t '''xputf-temp'''::''count''() const;
  *    出力結果として想定される文字数を取得します。
  *   :@fn std::string '''xputf-temp'''::''str''() const;
- *   :@fn explicit '''xputf-temp'''::''operator'' std::string() const;
+ *   :@fn '''xputf-temp'''::''operator'' std::string() const;
  *    出力結果を `std::string` として取得します。
  *  &pre(!cpp){
  * // 書式指定オブジェクト
  * int c = mwg::xputf("1: %03d\n", i).count();
- * std::string str1(mwg::xputf("1: %03d\n", i)); // calls 'explicit operator std::string() const;'
- * std::string str2 = mwg::xputf("1: %03d\n", i).str();
+ * std::string str1 = mwg::xputf("1: %03d\n", i); // calls 'operator std::string() const;'
+ * std::string str2 = mwg::xputf("1: %03d\n", i).str(); // or, explicit specification of str() memfn.
  *
  * // ストリーム演算子 << による追記
  * str1 << mwg::xputf("2: %03d\n", i);
@@ -57,7 +57,7 @@ namespace xprintf_detail{
  * }
  *
  * *注意
- * **xputf の戻り値の参照は複製しない
+ * **`xputf` の戻り値の参照は複製しない
  *
  * 例:
  * &pre(!cpp){
@@ -75,23 +75,23 @@ namespace xprintf_detail{
  * }
  *
  * ''説明''
- * xputf の結果は一時オブジェクトとして使う事を想定している。
- * 具体的には xputf の結果 (temp とする) は xputf の実引数に対する参照を保持する。
- * 従って、temp の有効寿命は temp を構築した完全式の寿命と同じになる。
- * 誤って temp を有効寿命を超えて持ち越さない様に、
- * temp のコピー演算子・コピー構築を削除している。
+ * `xputf` の結果は一時オブジェクトとして使う事を想定している。
+ * 具体的には `xputf` の結果 (`temp` とする) は `xputf` の実引数に対する参照を保持する。
+ * 従って、`temp` の有効寿命は `temp` を構築した完全式の寿命と同じになる。
+ * 誤って `temp` を有効寿命を超えて持ち越さない様に、
+ * `temp` のコピー演算子・コピー構築を削除している。
  * しかしこの対策は完全でない。
  * 参照の複製に関してまでは禁止することができないからである。
  * 寿命を超えて参照の複製が起こるのは 2 パターンある。
  *
- * +auto& a=xputf(...); で参照を捕獲する。
- *  C++ の例外的既定で捕獲されたオブジェクトの寿命 temp は参照変数 a の寿命にまで延長される。
- *  しかし、''temp の部分式評価で生成された実引数の寿命は延長されない'' ので、
+ * +`auto& a=xputf(...);` で参照を捕獲する。
+ *  C++ の例外的既定で捕獲されたオブジェクトの寿命 `temp` は参照変数 `a` の寿命にまで延長される。
+ *  しかし、''`temp` の部分式評価で生成された実引数の寿命は延長されない'' ので、
  *  temp の有効寿命はこの完全式の評価が終わった時点で尽きる。
- * +auto&& f(){return xputf(...);}: 関数の戻り値として参照を返す。
- *  これも駄目。関数を抜けた時点で xputf は消滅してなくなる。
+ * +`auto&& f(){return xputf(...);}`: 関数の戻り値として参照を返す。
+ *  これも駄目。関数を抜けた時点で `xputf` は消滅してなくなる。
  *
- * *拡張: 型 Target を新しく出力先として登録する方法
+ * *拡張: 型 `Target` を新しく出力先として登録する方法
  * &pre(!cpp,title=myheader.h){
  * namespace MyNamespace{
  *   class custom_writer_proc{
@@ -108,16 +108,16 @@ namespace xprintf_detail{
  * }
  * }
  *
- * <?cpp namespace mwg::xprintf_detail?> の中に <?cpp create_xprintf_writer?> という関数を定義する。
- * この関数は <?cpp Target& target?> を受け取って、
- * インターフェイス <?cpp xprintf_writer?> を実装するクラスのインスタンスを生成する。
+ * ` namespace mwg::xprintf_detail` の中に ` create_xprintf_writer` という関数を定義する。
+ * この関数は ` Target& target` を受け取って、
+ * インターフェイス ` xprintf_writer` を実装するクラスのインスタンスを生成する。
  *
- * インターフェイス xprintf_writer は void put(std::wint_t) const; という純粋仮想関数を持つ。
- * この put メンバ関数は文字を受け取って、その文字を出力する処理を行う。
- * 内部でバッファリングをする場合はデストラクタで flush するのを忘れない様に。
+ * インターフェイス `xprintf_writer` は `void put(std::wint_t) const;` という純粋仮想関数を持つ。
+ * この `put` メンバ関数は文字を受け取って、その文字を出力する処理を行う。
+ * 内部でバッファリングをする場合はデストラクタで `flush` するのを忘れない様に。
  *
  *
- * *拡張: 型 T の引数に対する書式出力を定義する方法
+ * *拡張: 型 `T` の引数に対する書式出力を定義する方法
  * &pre(!cpp){
  * template<typename Writer>
  * int mwg::xprintf_detail::xprintf_convert(

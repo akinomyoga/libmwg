@@ -124,6 +124,13 @@ make_range(const T& begin,int len){
 
 typedef range<int> irange;
 
+//------------------------------------------------------------------------------
+
+template<typename T>
+T clamp(T const& value,mwg::range<T> r){
+  return (value<r.begin())?r.begin(): (value>r.end())?r.end(): value;
+}
+
 //==============================================================================
 }
 #endif
