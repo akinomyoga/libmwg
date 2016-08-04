@@ -1607,6 +1607,11 @@ private:
   template<typename BufferType>
   strsub(BufferType const& data,std::size_t start,std::size_t length)
     :base(data.get_ptr()+start,length){}
+
+  strsub(const char_type* ptr,std::size_t length)
+    :base(ptr,length){}
+  strsub(const char_type* beg,const char* end)
+    :base(ptr,end-beg){}
 };
 
 template<typename XCH>
