@@ -648,6 +648,9 @@ void check_member_object_pointer(){
   mwg::functor<int(const Str&)> f4_2(&Str::x);
   mwg_check(f4_2(hoge)==2011);
   mwg_check( (mwg::stdm::is_convertible<const int&,int>::value));
+
+  f4(hoge)=2016;
+  mwg_check(hoge.x==2016);
 }
 
 void check_variance(){
