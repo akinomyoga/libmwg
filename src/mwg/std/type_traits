@@ -62,7 +62,7 @@
  *   X is_trivially_copy_constructible    "$StandardHeaders" "int a=std::is_trivially_copy_constructible<int>::value;"
  *   X is_nothrow_copy_constructible      "$StandardHeaders" "int a=std::is_nothrow_copy_constructible<int>::value;"
  *
- *   X is_assignable                      "$StandardHeaders" "int a=std::is_assignable<int,int>::value;"
+ *   X is_assignable                      "$StandardHeaders" "int a=std::is_assignable<int&,int>::value;"
  *   X is_trivially_assignable            "$StandardHeaders" "int a=std::is_trivially_assignable<int,int>::value;"
  *   X is_nothrow_assignable              "$StandardHeaders" "int a=std::is_nothrow_assignable<int,int>::value;"
  *   X is_copy_assignable                 "$StandardHeaders" "int a=std::is_copy_assignable<int>::value;"

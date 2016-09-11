@@ -1599,6 +1599,7 @@ struct strsub_policy{
 template<typename XCH>
 class strsub:public strbase<strsub_policy<XCH> >{
   typedef strbase<strsub_policy<XCH> > base;
+  typedef XCH char_type;
 
 private:
   template<typename StrP>
@@ -1608,10 +1609,11 @@ private:
   strsub(BufferType const& data,std::size_t start,std::size_t length)
     :base(data.get_ptr()+start,length){}
 
+public:
   strsub(const char_type* ptr,std::size_t length)
     :base(ptr,length){}
   strsub(const char_type* beg,const char* end)
-    :base(ptr,end-beg){}
+    :base(beg,end-beg){}
 };
 
 template<typename XCH>
