@@ -5,13 +5,36 @@
 //HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 #include <cstddef>
 #include <iterator>
-#include <mwg/std/utility>
-#include <mwg/std/type_traits>
-#include <mwg/std/memory>
-#include <mwg/std/limits>
-#include <mwg/range.h>
-#include <mwg/functor.h>
-#include <mwg/concept.h>
+#ifdef STANDALONE_MWG_STR_H
+# if __cplusplus < 201103L
+#  error "standalone <mwg/str.h> doesn't support C++03"
+# endif
+# include <utility>
+# include <type_traits>
+# include <memory>
+# include <limits>
+namespace std {}
+namespace mwg {
+namespace stdm {
+  using namespace std;
+}
+  template<typename T> struct identity {typedef T type;};
+  struct invalid_type {};
+namespace stdx {
+  template<typename T>
+  struct add_const_reference: std::add_lvalue_reference<typename std::add_const<T>::type>;
+}
+}
+
+#else
+# include <mwg/std/utility>
+# include <mwg/std/type_traits>
+# include <mwg/std/memory>
+# include <mwg/std/limits>
+# include <mwg/range.h>
+# include <mwg/functor.h>
+# include <mwg/concept.h>
+#endif
 #pragma%include "impl/ManagedTest.pp"
 #pragma%x begin_check
 #include <mwg/str.h>
