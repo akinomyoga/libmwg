@@ -12,8 +12,8 @@
 #  include <cstdint>
 #elif defined(MWGCONF_HEADER_STDINT_H)
 #  include <stdint.h>
-namespace mwg{
-namespace stdm{
+namespace mwg {
+namespace stdm {
   using ::int8_t;
   using ::int16_t;
   using ::int32_t;
@@ -48,8 +48,8 @@ namespace stdm{
 #  include <boost/cstdint.hpp>
 #elif defined(MWGCONF_HEADER_BOOST_STDINT_HPP)
 #  include <boost/stdint.hpp>
-namespace mwg{
-namespace stdm{
+namespace mwg {
+namespace stdm {
   using ::int8_t;
   using ::int16_t;
   using ::int32_t;
@@ -81,8 +81,8 @@ namespace stdm{
 }
 }
 #else
-namespace mwg{
-namespace stdm{
+namespace mwg {
+namespace stdm {
 //  typedef   signed char      int8_t;
 //  typedef          short     int16_t;
 //  typedef          int       int32_t;
@@ -93,41 +93,42 @@ namespace stdm{
 //  typedef unsigned long long uint64_t;
 //
 
-namespace cstdint_detail{
-  template<typename T,typename U> struct type_and_size{
-    static const int size=sizeof(T);
+namespace cstdint_detail {
+  template<typename T, typename U> struct type_and_size {
+    static const int size = sizeof(T);
     typedef T int_t;
     typedef U uint_t;
   };
   template<int I> struct integral_types{};
-  template<> struct integral_types<0>:type_and_size<signed char,unsigned char>{};
-  template<> struct integral_types<1>:type_and_size<short,unsigned short>{};
-  template<> struct integral_types<2>:type_and_size<int,unsigned int>{};
-  template<> struct integral_types<3>:type_and_size<long,unsigned long>{};
+  template<> struct integral_types<0>: type_and_size<signed char, unsigned char>{};
+  template<> struct integral_types<1>: type_and_size<short, unsigned short>{};
+  template<> struct integral_types<2>: type_and_size<int, unsigned int>{};
+  template<> struct integral_types<3>: type_and_size<long, unsigned long>{};
 #if defined(MWGCONF_HAS_LONGLONG)
-  template<> struct integral_types<4>:type_and_size<long long,unsigned long long>{};
+  template<> struct integral_types<4>: type_and_size<long long, unsigned long long>{};
 #else
-  template<> struct integral_types<4>{static const int size=0;};
+  template<> struct integral_types<4> {static const int size = 0;};
 #endif
 #if defined(MWGCONF_HAS_DISTINCT_INT64)
-  template<> struct integral_types<5>:type_and_size<__int64,unsigned __int64>{};
+  template<> struct integral_types<5>: type_and_size<__int64, unsigned __int64>{};
 #else
-  template<> struct integral_types<5>{static const int size=0;};
+  template<> struct integral_types<5> {static const int size = 0;};
 #endif
 
-  template<bool C,typename T,typename F> struct conditional{};
-  template<typename T,typename F> struct conditional<true,T,F>:mwg::identity<T>{};
-  template<typename T,typename F> struct conditional<false,T,F>:mwg::identity<F>{};
+  template<bool C, typename T, typename F> struct conditional {};
+  template<typename T, typename F> struct conditional<true, T, F>: mwg::identity<T>{};
+  template<typename T, typename F> struct conditional<false, T, F>: mwg::identity<F>{};
 
-  template<int I,int J=0>
-  struct integer_switch:conditional<
-    integral_types<J>::size>=I,
-    integral_types<J>,integer_switch<I,J+1>
+  template<int I, int J = 0>
+  struct integer_switch: conditional<
+    (integral_types<J>::size >= I),
+    integral_types<J>, integer_switch<I, J + 1>
   >::type{};
 
   template<int I>
-  struct integer_switch<I,6>:integer_switch<I/2>{};
+  struct integer_switch<I, 6>:integer_switch<I / 2>{};
 }
+
   typedef cstdint_detail::integer_switch<1>::int_t  int8_t;
   typedef cstdint_detail::integer_switch<2>::int_t  int16_t;
   typedef cstdint_detail::integer_switch<4>::int_t  int32_t;
@@ -138,7 +139,13 @@ namespace cstdint_detail{
   typedef cstdint_detail::integer_switch<8>::uint_t uint64_t;
 
   static_assert(
-    sizeof(int8_t)==1&&sizeof(int16_t)==2&&sizeof(int32_t)==4, //&&sizeof(int64_t)==8
+    sizeof(int8_t) == 1
+    && sizeof(int16_t) == 2
+    && sizeof(int32_t) == 4
+#ifdef MWGCONF_HAS_64BIT_INTEGER
+    && sizeof(int64_t) == 8
+#endif
+    ,
     "mwg/std/cstdint: FATAL: sorry, failed to generate inttypes...");
 
   typedef long long int intmax_t;

@@ -73,11 +73,22 @@ if [[ $MWGCONF_HAS_INT64 ]]; then
     S -t'"__int64 is long long"' INT64_IS_LONGLONG '' 'template<typename T> struct A{};template<> struct A<long long>{static const int v=0;};int f(){return A<__int64>::v;}'
   fi
 fi
-if test -z "$MWGCONF_INT64_IS_LONGLONG$MWGCONF_INT64_IS_LONG"; then
+if [[ ! $MWGCONF_INT64_IS_LONGLONG && ! $MWGCONF_INT64_IS_LONG ]]; then
   D MWGCONF_HAS_DISTINCT_INT64 $MWGCONF_HAS_INT64
 else
   D MWGCONF_HAS_DISTINCT_INT64
 fi
+
+function check:MWGCONF_HAS_64BIT_INTEGER {
+  local long_long='long' __int64='long'
+  [[ $MWGCONF_HAS_LONGLONG ]] && long_long='long long'
+  [[ $MWGCONF_HAS_INT64 ]] && __int64='__int64'
+  X -t'"has 64bit integer?"' \
+    -oMWGCONF_HAS_64BIT_INTEGER \
+    '' "char dummy[sizeof(long) == 8 || sizeof($long_long) == 8 || sizeof($__int64) == 8? 1: -1];"
+}
+
+check:MWGCONF_HAS_64BIT_INTEGER
 
 #------------------------------------------------------------------------------
 # Standard Library Version
