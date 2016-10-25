@@ -18,29 +18,30 @@
 #define _a mwg::str
 
 template<typename T>
-void check_iterator(T const& str){
+void check_iterator(T const& str) {
   typedef typename T::const_iterator Iter;
   typedef typename T::char_type char_type;
-  Iter b=str.begin(),e=str.end();
-  std::size_t l=str.length();
+  Iter b = str.begin(), e = str.end();
+  std::size_t l = str.length();
 
   Iter i; // should be default constructible
   i=b;    // should be copy assignable
 
   // check relational operators, add/sub operators, and increments
-  for(std::size_t index=0;index<l;index++,++i){
-    char_type ch=i[index];
-    mwg_check(b<=i&&i<e&&(i<=e&&i!=e),"bad relational operators");
-    mwg_check(i==b+index&&i==e-(l-index)&&i-b==index,"bad add/subtraction operators");
+  for (std::size_t index = 0; index < l; index++, ++i) {
+    char_type ch = i[index]; // check if it is indexable
+    mwg_unused(ch);
+    mwg_check(b <= i && i < e && (i <= e && i != e), "bad relational operators");
+    mwg_check(i == b + index && i == e - (l - index) && i - b == (std::ptrdiff_t) index, "bad add/subtraction operators");
   }
-  mwg_check(i==e&&!(i!=e));
-  for(std::size_t index=0;index<l;index++,i--){
-    mwg_check(e>=i&&i>b&&(i>=b&&i!=b),"bad relational operators");
-    mwg_check(i==e-index&&i==b+(l-index)&&e-i==index,"bad add/subtraction operators");
+  mwg_check(i == e && !(i != e));
+  for (std::size_t index = 0; index < l; index++, i--) {
+    mwg_check(e >= i && i > b && (i >= b && i != b),"bad relational operators");
+    mwg_check(i == e - index && i == b + (l - index) && e - i == (std::ptrdiff_t) index, "bad add/subtraction operators");
   }
-  mwg_check(i==b&&!(i!=b));
-  mwg_check((i+=l)==e);
-  mwg_check((i-=l)==b);
+  mwg_check(i == b && !(i != b));
+  mwg_check((i += l) == e);
+  mwg_check((i -= l) == b);
 }
 
 #pragma%x end_check
