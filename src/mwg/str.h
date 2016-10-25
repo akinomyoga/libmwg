@@ -1599,6 +1599,8 @@ struct strsub_policy{
 template<typename XCH>
 class strsub:public strbase<strsub_policy<XCH> >{
   typedef strbase<strsub_policy<XCH> > base;
+
+public:
   typedef XCH char_type;
 
 private:
