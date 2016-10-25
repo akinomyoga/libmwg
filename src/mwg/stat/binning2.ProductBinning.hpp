@@ -1,5 +1,5 @@
-//%# -*- mode:C++;coding:utf-8 -*-
-//%# to be included from binning2.ProductBinning_{variadic,nonvariadic}.h
+#pragma%# -*- mode:C++;coding:utf-8 -*-
+#pragma%# to be included from binning2.ProductBinning_{variadic,nonvariadic}.h
 #pragma once
 #pragma%x
 #ifndef $"header_name"

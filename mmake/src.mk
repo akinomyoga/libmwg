@@ -99,6 +99,8 @@ $(CPPDIR)/check/${name}$(CXXEXT): $(CPPDIR)/${file}
 -include $(CFGDIR)/check/${name}.dep
 $(CFGDIR)/check/${name}.stamp: $(CPPDIR)/check/${name}$(CXXEXT)
 	@echo 'CHK ${file}'; $(MMAKECMD) check ${file} $(FLAGS) $(CXXFLAGS) $(LDFLAGS)
+.PHONY: check-${file}
+check-${file}: $(CFGDIR)/check/${name}.stamp
 #%end
 
 #%m _check_duplicates

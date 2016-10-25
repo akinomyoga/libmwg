@@ -386,6 +386,49 @@
   Ruby とかの前例があるし、文字列クラスみたいな基礎部分ぐらいは、
   巨大なユーティリティクラスでもいいじゃないかという気がしてきたり。
 
+2016-04-04
+
+* mwg/functor.h 整理が終わったが、気になる点が色々ある。
+  これらについては後で対応を行う必要がある。
+
+  todo: 現在 invoke を介して呼び出しているが分かりにくい。
+    mwg/str.h に倣って adapter (byref, non virtual) を定義してはどうだろうか。
+    或いは invoke は ... で幾らでも余分な引数を受け取れる様にしているが、
+    adapter はそうだと困るので、その辺りの棲み分けを考えて両者を残すというのが良い。
+
+    現在 invoke は外からも使える様になっているが、隠蔽する。
+    公開するのは byref adapter という事にする。
+
+  todo: invoke ... で余分に引数を受け取れる様にしている。
+    しかし non-pod 型を ... で呼び出すと警告が発生するなど煩い。
+    ここは適当にテンプレート引数で受け取って無視できるようにならないか。
+    しかし、警告を発しているのが古いコンパイラだけという事を考えれば、
+    対応するためにコードが複雑になる、もしくは、無駄に長くなるというのであれば対応しなくても良いかもしれない。
+
+  todo: ref-qualifiers に対応する?
+
+    C++11 → cv qualifiers 4 通り×ref-qualifiers 3通り with variadic
+      多くのコンパイラで variadic templates の方を先に実装しているので、
+      ref-qualifiers の対応には variadic templpates を前提として良い。
+      (そうでないと大量の overload を用意しなければ為らず非現実的だ。)
+    C++03 → cv qualifiers 4 通り×ARITY_MAX
+
+  todo: invoke 周りの forward は一体どうなっているのか?
+
+    C++11 ならば関数本体に到達するまで forward を繰り返すべきである。
+    C++03 の時は、引数の型は基本的に T か T& か const T& かの3通りしかない。
+    値の時は引数の型は T const& として受け取る様にすればよい。
+
+  todo: 参照のメンバポインタ型の場合には何が起こるのか?
+
+    ※メンバポインタを通して通常メンバの参照を取得するという意味ではない。
+    メンバ自体が参照である場合に、今の実装で対応しきれているのかは非自明である。
+    実装するときには特に意識した記憶が無いので、テストを追加して振る舞いを見る必要がある。
+
+  todo: コピー構築できない型の場合には invoke の戻り値を渡せない?
+    これは仕方がない。mwg::functor に限らず、関数を間接的に呼び出す事が不可能である。
+    ただ、コピー構築できないという事をチェックしてその様に警告を出す様にできるかもしれない。
+
 2016-03-24
 
 * SD-6 support
@@ -856,6 +899,33 @@
 ------------------------------------------------------------------------------
   Done
 ------------------------------------------------------------------------------
+
+2016-04-04
+
+* mwg/functor.h の構造について再確認すると共に整理を行う。
+
+  現在の構造の中心となるのはやはり functor_traits である。
+
+  | template<typename F>
+  | class functor_traits{
+  |   typedef F fct_t;
+  |   static const bool is_functor;
+  |   static const int arity;
+  |   static const bool has_varargs;
+  |
+  |   typedef auto ret_t;
+  |   typedef auto sgn_t;
+  |   typedef auto arg1_t;
+  |   typedef auto arg2_t;
+  |   typedef auto arg3_t;
+  |   ...
+  |
+  |   typedef auto ref_tr; // functor への参照を保持
+  |   typedef auto ins_tr; // functor の複製インスタンスを保持
+  |   static ret_t invoke(const fct_t& f,...){
+  |     f(...);
+  |   }
+  | };
 
 2016-03-27
 
@@ -2972,3 +3042,712 @@
   #   [[ B2 -nt A1 ]] || mv B2.tmp B2
   #   -rm -rf B1.tmp B2.tmp
 
+2011-09 頃
+
+* mwg.functor 過去ログ (転記: 2016-04-04)
+
+  2011-01-23 頃の mwg.functor の古い記録をここに残しておく。
+
+  -rw-r--r--  1 murase murase  20131 2011-09-19 05:13:52 functor.hist.htm
+  -rw-r--r--  1 murase murase   9290 2011-01-23 08:48:36 functor.memo2.txt
+
+  > *<mwg/functor.h> 履歴
+  > **mwg/functor.h 概要
+  > ***何をする為の物か
+  > このヘッダは「関数として扱う事のできる型」を統一的に扱う為の物である。
+  >
+  > -{関数オブジェクトのラッパクラス:
+  >
+  > 特定のシグニチャを持つ関数を一つの型 `mwg::functor<R(A...)>` で受け取る事ができる。
+  >
+  > 関数オブジェクトは二種類あって、それは `mwg::functor<R(A...)>` と `mwg::functor_ref<R(A...)>` である。\
+  > 前者は初期化に使用した関数オブジェクトを値としてコピーして内部に持つ。\
+  > 後者は名前から想像が付く様に、初期化に使用した関数オブジェクトの参照を保持する。\
+  > 副作用 (関数を呼び出す事によって生じる関数オブジェクト内の変化) は\
+  > `functor_ref` の場合、他の `functor_ref` インスタンスにも影響を与えるが、\
+  > functor の場合、他の functor インスタンスには影響を与えない。\
+  > 但し、関数ポインタなど内部状態を持ち得ない関数オブジェクトに関しては両者に基本的な違いはない。
+  >
+  > この関数オブジェクトは、引数の反変性・戻り値の共変性に対応する。つまり、\
+  > `functor<void(int,int)>` に `void(double)` の関数ポインタを代入出来るし、\
+  > また、`bool(int,int)` の関数ポインタを代入する事もできる。\
+  > いざ呼出が実行される場合には、\
+  > 前者 `void(double)` の場合は第一引数が double に変換され第二引数は単純に無視される。\
+  > 後者 `bool(int,int)` の場合は引数はそのままだが関数の戻り値は単に無視される。\
+  > 但し、シグニチャの変換を伴う場合は安全の為に、\
+  > 明示的に functor へのキャスト・コンストラクタ呼出を書く事を要求している。
+  >
+  > &pre(!cpp){
+  > void test1(double a){
+  >   std::printf("test1: %lf\n",a);
+  > }
+  > bool test2(int a,int b){
+  >   std::printf("test2: %d %d\n",a,b);
+  > }
+  >
+  > mwg::functor<void(int,int)> f1=&test1;
+  > f1(0,1);
+  > f1(2,3);
+  > f1(4,5);
+  > mwg::functor<void(int,int)> f2=&test2;
+  > f2(6,7);
+  > f2(8,9);
+  > f2(10,12);
+  > }}
+  > -{関数オブジェクトの判定:
+  >
+  > 関数オブジェクトの型を指定して、\
+  > それが特定のシグニチャの関数オブジェクトに変換可能かどうかを判定するクラスを提供する。\
+  > これにより、SFINAE を用いて関数オブジェクトの種類によって処理を変更する事が可能になる。\
+  > 厳密にシグニチャが一致しているかどうかの判定には\
+  > `mwg::is_functor<関数オブジェクト型,シグニチャ>` を用いる。\
+  > 共変性と反変性を許容する場合に変換可能かどうかを判定するには、\
+  > `mwg::be_functor<関数オブジェクト型,シグニチャ>` を用いる。
+  >
+  > &pre(!cpp){
+  > template<typename F>
+  > typename std::enable_if<
+  >   mwg::be_functor<F,bool(std::string,double)>::value,void
+  > >::type foreach_key_value(F&);
+  >
+  > template<typename F>
+  > typename std::enable_if<
+  >   !mwg::be_functor<F,bool(std::string,double)>::value
+  >   &&mwg::be_functor<F,void(std::string,double)>::value,void
+  > >::type foreach_key_value(F&);
+  > }}
+  > -{関数オブジェクトの静的かつ汎用的な呼出:
+  >
+  > `mwg::functor` (関数オブジェクトラッパクラス) の実装では型消去を行う為に、仮想関数を利用している。\
+  > しかし、その場で関数オブジェクトを実行し以降使わない場合には、\
+  > わざわざラッパインスタンスを生成し仮想関数呼出で関数を実行する必要はない。\
+  > その様なコードをテンプレートで一括に定義できるように、補助関数 invoke を提供している。
+  >
+  > &pre(!cpp){
+  > template&lt;typename F&gt;
+  > typename std::enable_if&lt;
+  >   mwg::be_functor&lt;F,bool(const std::string&amp;,double)&gt;::value,void
+  > &gt;::type foreach_key_value(F&amp; f){
+  >   for(std::vector&lt;std::string&gt;::iterator i=list.begin();i!=list.end();++i){
+  >     typedef mwg::functor_traits&lt;F,bool(const std::string&amp;,double)&gt; traits_type;
+  >     if(!traits_type::invoke(f,*i,atof(i-&gt;c_str())))break;
+  >   }
+  > }
+  >
+  > template&lt;typename F&gt;
+  > typename std::enable_if&lt;
+  >   !mwg::be_functor&lt;F,bool(const std::string&amp;,double)&gt;::value
+  >   &amp;&amp;mwg::be_functor&lt;F,void(const std::string&amp;,double)&gt;::value,void
+  > &gt;::type foreach_key_value(F&amp; f){
+  >   for(std::vector&lt;std::string&gt;::iterator i=list.begin();i!=list.end();++i){
+  >     typedef mwg::functor_traits&lt;F,bool(const std::string&amp;,double)&gt; traits_type;
+  >     traits_type::invoke(f,*i,atof(i-&gt;c_str()));
+  >   }
+  > }
+  > }}
+  >
+  > ***対応済関数オブジェクト
+  >
+  > 以下に挙げるのは、関数オブジェクトとして取り扱う事のできる物の一覧である
+  >
+  > -関数型・関数ポインタ
+  >  -`R(A1,…,An)`
+  >  -`R(A1,…,An,...)`
+  >  -`R(*)(A1,…,An)`
+  >  -`R(*)(A1,…,An,...)`
+  >  可変長引数型は、具体的な引数の型を指定して使用。
+  > -メンバポインタ
+  >  -`T C::*`
+  >  `T&(C&)` または `const T&(const C&)` として使用
+  > -メンバ関数
+  >  -`R(C::*)(A1,…,An)`
+  >  -`R(C::*)(A1,…,An) const`
+  > -インスタンス＋メンバ関数 [未実装]</li>
+  > -関数オブジェクト
+  >  -`F` with `R F::operator()(A1,…,An)`
+  >  -`F` with `R F::operator()(A1,…,An) const`
+  > -関数オブジェクトへのポインタ
+  >  -`P` with `F& operator*() const; R F::operator()(A1,…,An)`
+  >  -`P` with `F& operator*() const; R F::operator()(A1,…,An) const`
+  >
+  > 関数オブジェクトとして使用する事のできる型を増やす為には、\
+  > `functor_traits` の特殊化を記述すればよい。\
+  > `functor_traits` は、\
+  > それが関数オブジェクトかどうかの情報を持ち、\
+  > 関数オブジェクトである場合には引数の数や型・戻り値の型などのシグニチャ情報を提供する。\
+  > 更に、関数オブジェクトとしての呼出を実行する為の関数も提供する。\
+  > また、`functor_ref`/`functor` に格納するデータの定義を `ref_tr`/`ins_tr` で与える。\
+  > `ref_tr`/`ins_tr` は多くの場合 `functor_case_traits<F>` の特殊化として実装すれば良い。\
+  > `ret_tr`/`ins_tr` は格納するデータの形式と関数オブジェクト型の間の相互変換を提供する。
+  >
+  > &pre(!cpp){
+  > namespace mwg{
+  >
+  > struct functor_traits<F1>{
+  >   typedef F1 fct_t;
+  >   static const bool is_functor=true;
+  >   static const int arity=5;
+  >   static const bool has_varargs=false;
+  >
+  >   // シグニチャ型
+  >   typedef hoge ret_t;
+  >   typedef hoge sgn_t;
+  >   typedef hoge arg1_t;
+  >   typedef hoge arg2_t;
+  >   typedef hoge arg3_t;
+  >   ...
+  >
+  >   typedef hoge ref_tr; // functor への参照を保持
+  >   typedef hoge ins_tr; // functor の複製インスタンスを保持
+  >   static ret_t invoke(const fct_t& f,...);
+  > };
+  >
+  > struct functor_case_traits<F1>{
+  >   typedef F1 fct_t;
+  >   typedef functor_traits<F1> fct_tr;
+  >   typedef fct_t case_data;
+  >   static const fct_t& endata(const fct_t& f){return f;}
+  >   static const fct_t& dedata(const fct_t& f){return f;}
+  > };
+  >
+  > }
+  > }
+  >
+  > これらの実装の為に使用出来る補助クラスが色々定義されている。詳しくはそれぞれの実装を見よ。
+  >
+  > -`mwg::functor_detail::functor_traits_signature`
+  > -`mwg::functor_detail::functor_traits_impl`
+  >
+  > ----
+  > **mwg.functor.ftypes - 2011.01.22
+  >
+  > 似た様なシグニチャの取り扱いをしているのに、\
+  > 別々に arities で一括生成している部分があり、\
+  > 管理がしにくいので統一的に扱う方法を考える。
+  >
+  > 型からのシグニチャの抽出を別のクラスにする。\
+  > 今迄は、この機能は functor_traits が担う物と考えていたが、\
+  > functor_traits の役割が多く、また、functor_traits 自体に似た様な色々の版を作らなければ行けなくなった。\
+  > 従って、型からのシグニチャなどの汎用的な操作については、もっと単純なそれに特化したクラスを作成した方が良いと考える。
+  >
+  > 汎用的な型に対する操作のクラスは、mwg,functor.ftypes.inl に纏めた。
+  >
+  > ***[traits.functor]
+  > &pre(!cpp,!diff) <<<EOF
+  >  #ifdef _MSC_VER /* VCBUG */
+  > +  template<typename F,typename S>
+  > +  struct functor_invoker_functor{};
+  > -  template<typename Mfp>
+  > -  struct functor_traits_ftorF{};
+  >    template<typename P,typename Mfp>
+  >    struct functor_traits_ftorP{};
+  >  #endif
+  > #-------------------------------------------------------------------------------
+  > # ↓ 汎用性が低いので少し書き換えてみる事に
+  > -#%define 1
+  > -  template<typename R,typename C %typenames%>
+  > -  struct functor_traits_ftorF<R(C::*)(%types%)>
+  > -    :functor_traits_impl<R(%types%),C,functor_case_traits_FunctorRef<C> >
+  > -    ,functor_invoker_functor<C,R(%types%)>
+  > -  {};
+  > -  template<typename R,typename C %typenames%>
+  > -  struct functor_traits_ftorF<R(C::*)(%types%) const>
+  > -    :functor_traits_ftorF<R(C::*)(%types%)>{};
+  > -#%define end
+  > -#%expand mwg::functor::arities
+  > #-------------------------------------------------------------------------------
+  > +#%define 1
+  > +  template<typename R,typename C %typenames%>
+  > +  struct functor_invoker_functor<C,R(%types%)>{
+  > +    static R invoke(const C& f %s_params%,...){
+  > +      return R(const_cast<C&>(f)(%args%));
+  > +    }
+  > +  };
+  > +#%define end
+  > +#%expand mwg::functor::arities
+  > #-------------------------------------------------------------------------------
+  > # ↓ これだと何故か VC で動かない
+  > -  template<typename C,typename S>
+  > -  struct functor_traits_ftorF<S C::*>
+  > -    :functor_traits_impl<S,C,functor_case_traits_FunctorRef<C> >
+  > -    ,functor_invoker_functor<C,S>
+  > -  {};
+  > -#%define 1
+  > -  template<typename R,typename C %typenames%>
+  > -  struct functor_traits_ftorF<R(C::*)(%types%) const>
+  > -    :functor_traits_ftorF<R(C::*)(%types%)>{};
+  > -#%define end
+  > -#%expand mwg::functor::arities
+  > #-------------------------------------------------------------------------------
+  > +  template<typename Mfp>
+  > +  struct signature_mfp{
+  > +    typedef void sgn;
+  > +    typedef void obj;
+  > +    typedef void sgn_t;
+  > +  };
+  > +#%define 1
+  > +  template<typename R,typename C %typenames%>
+  > +  struct signature_mfp<R(C::*)(%types%)>{
+  > +    typedef C obj;
+  > +    typedef R(sgn)(%types%);
+  > +    typedef R(sgn_t)(C& $".sep_for|K|1|%AR%+1|AK|,");
+  > +  };
+  > +  template<typename R,typename C %typenames%>
+  > +  struct signature_mfp<R(C::*)(%types%) const>{
+  > +    typedef const C obj;
+  > +    typedef R(sgn)(%types%);
+  > +    typedef R(sgn_t)(const C& $".sep_for|K|1|%AR%+1|AK|,");
+  > +  };
+  > +#%define end
+  > +#%expand mwg::functor::arities
+  > +  template<typename Mfp>
+  > +  struct functor_traits_ftorF
+  > +    :functor_traits_impl<
+  > +      typename signature_mfp<Mfp>::sgn,
+  > +      typename signature_mfp<Mfp>::obj,
+  > +      functor_case_traits_FunctorRef<typename signature_mfp<Mfp>::obj>
+  > +    >
+  > +    ,functor_invoker_functor<
+  > +      typename signature_mfp<Mfp>::obj,
+  > +      typename signature_mfp<Mfp>::sgn
+  > +    >
+  > +  {};
+  > EOF
+  >
+  > 更に、signature_mfp は is_memfun_pointer に改名した。
+  > ***[traits.vararg]
+  > &pre(!cpp,!diff) <<<EOF
+  > @ mwg.functor.inl @ 14:53 2011/01/22
+  >    template<typename T>
+  >    struct functor_traits<T>:functor_traits_switch<
+  >      T,void,
+  > +    is_vararg_function<T>::value?5:
+  > +    is_vararg_function_pointer<T>::value?5:
+  >      std::is_member_function_pointer<T>::value?3:
+  >      std::is_member_object_pointer<T>::value?4:
+  >      has_single_operator_functor<T>::value?1:
+  >      is_pointer_to_single_operator_functor<T>::value?2:
+  >      0
+  >    >{};
+  > @ mwg.functor.inl @ 14:53 2011/01/22
+  >    template<typename F,typename S>
+  >    struct functor_traits:functor_traits_switch<
+  >      F,S,
+  > +    is_vararg_function<F>::value?5:
+  > +    is_vararg_function_pointer<F>::value?5:
+  >      std::is_member_object_pointer<F>::value?4:
+  >      is_variant_signature<functor_traits<F>,functor_traits<S*> >::value?1:
+  >  #ifdef MWG_STD_DECLTYPE
+  >      can_be_called_as<F,S>::value?2:
+  >  #endif
+  >      0
+  > -  >{
+  > -    // ■ !functor_traits<F>::is_functor の物の中からも
+  > -  };
+  > +  >{};
+  > @ mwg.functor.varargs.inl @ 14:50 2011/01/22
+  > -#%define 1
+  > -  template<typename R %typenames%>
+  > -  struct functor_traits<R(*)(%types...%)>
+  > -    :functor_traits_signature<R(%types...%)>
+  > -  {
+  > -    typedef R (*fct_t)(%types...%);
+  > -  };
+  > -  template<typename R %typenames%>
+  > -  struct functor_traits<R(%types...%)>:functor_traits<R(*)(%types...%)>{
+  > -    typedef R (fct_t)(%types...%);
+  > -  };
+  > -#%define end
+  > -#%expand mwg::functor::arities
+  > +  template<typename S>
+  > +  struct functor_traits_switch<S*,void,5>:functor_traits_signature<S>{
+  > +    typedef S* fct_t;
+  > +  };
+  > +  template<typename S>
+  > +  struct functor_traits_switch<S,void,5>:functor_traits_signature<S>{
+  > +    typedef S fct_t;
+  > +  };
+  > @ mwg.functor.varargs.inl @ 14:48 2011/01/22
+  > -#%define 1
+  > -  template<typename S,typename R %typenames%>
+  > -  struct functor_traits_switch<R(*)(%types...%),S,5>
+  > -    :functor_traits_signature<S>
+  > -    ,functor_traits_vaarg_invoker<R(%types...%),S>
+  > -  {
+  > -    typedef R (*fct_t)(%types...%);
+  > -    typedef typename get_vaarg_variance<fct_t,S>::sgn_t data_sgn;
+  > -    typedef struct case_tr:functor_case_traits<data_sgn*>{
+  > -      using functor_case_traits<data_sgn*>::endata;
+  > -      static data_sgn* endata(mwg_vc_typename functor_traits_switch::fct_t f){return reinterpret_cast<data_sgn*>(f);}
+  > -    } ref_tr,ins_tr;
+  > -  };
+  > -  template<typename S,typename R %typenames%>
+  > -  struct functor_traits_switch<R(%types...%),S,5>
+  > -    :functor_traits_switch<R(*)(%types...%),S,5>
+  > -  {
+  > -    typedef R (fct_t)(%types...%);
+  > -  };
+  > -#%define end
+  > -#%expand mwg::functor::arities
+  > +  template<typename S,typename F>
+  > +  struct functor_traits_switch<F*,S,5>
+  > +    :functor_traits_signature<S>
+  > +    ,functor_traits_vaarg_invoker<F,S>
+  > +  {
+  > +    typedef F* fct_t;
+  > +    typedef typename get_vaarg_variance<fct_t,S>::sgn_t data_sgn;
+  > +    typedef struct case_tr:functor_case_traits<data_sgn*>{
+  > +      using functor_case_traits<data_sgn*>::endata;
+  > +      static data_sgn* endata(mwg_vc_typename functor_traits_switch::fct_t f){
+  > +        return reinterpret_cast<data_sgn*>(f);
+  > +      }
+  > +    } ref_tr,ins_tr;
+  > +  };
+  > +  template<typename S,typename F>
+  > +  struct functor_traits_switch<F,S,5>:functor_traits_switch<F*,S,5>{
+  > +    typedef F fct_t;
+  > +  };
+  > EOF
+  >
+  > ***[traits.pfunctor]
+  > &pre(!cpp,!diff) <<<EOF
+  > @ mwg.functor.cpp @ 15:16 2011/01/22
+  >  #ifdef _MSC_VER /* VCBUG */
+  > -  template<typename P,typename Mfp>
+  > -  struct functor_traits_ftorP{};
+  >    template<typename F,typename S>
+  >    struct functor_invoker_functor{};
+  >  #endif
+  > @ mwg.functor.cpp @ 15:16 2011/01/22
+  > +  template<typename P,typename C,typename S>
+  > +  struct functor_invoker_pfunctor;
+  > -#%define 1
+  > +#%define 1 (
+  > -  template<typename P,typename R,typename C %typenames%>
+  > -  struct functor_traits_ftorP<P,R(C::*)(%types%)>
+  > -    :functor_traits_impl<R(%types%),P>
+  > -  {
+  > +  template<typename P,typename C,typename R %typenames%>
+  > +  struct functor_invoker_pfunctor<P,C,R(%types%)>{
+  >      static R invoke(const P& f %s_params%,...){
+  >        return R(const_cast<C&>(*f)(%args%));
+  >      }
+  >    };
+  > -  template<typename P,typename R,typename C %typenames%>
+  > -  struct functor_traits_ftorP<P,R(C::*)(%types%) const>
+  > -    :functor_traits_ftorP<P,R(C::*)(%types%)>{};
+  > -#%define end
+  > +#%)
+  >  #%expand mwg::functor::arities
+  > +  template<typename P,typename SOp>
+  > +  struct functor_traits_ftorP
+  > +    :functor_traits_impl<typename is_memfun_pointer<SOp>::member_type,P>
+  > +    ,functor_invoker_pfunctor<
+  > +      P,
+  > +      typename is_memfun_pointer<SOp>::object_type,
+  > +      typename is_memfun_pointer<SOp>::member_type
+  > +    >
+  > +  {};
+  > EOF
+  > ----
+  > **変更. mwg_concept_is_valid_expression からの独立
+  > ***顛末
+  >
+  > mwg_concept_is_valid_expression は GCC では version 3 からでも動作するつもりでいた。\
+  > 然し、実はちゃんと動作しないという事が分かった。\
+  > decltype の代わりに sizeof を用いた sfinae で G++ 4.5.0 で動作確認をした様な気がするのだが、\
+  > 実は sizeof のSFINAE 動作自体 decltype の導入と共に定義し直された様である。\
+  > (実は C++11 になるに伴って、SFINAE に関係する部分の規格の文章が詳しくなって、\
+  > C++03 までは曖昧だった部分がはっきりと定められたのである。\
+  > sizeof の変更は C++11 に適合する様に更新した物であろう。)
+  >
+  > 今後の方針としては、
+  > G++3 以前でも適用可能な SFINAE を見つけるか、
+  > 或いは、他の方法を用いて実現するか…。
+  >
+  > -[[本の虫: has_xxxの実装方法>http://cpplover.blogspot.com/2008/10/hasxxx.html]]
+  >  そもそも VC については諦めていた訳であるが、\
+  >  ここには VC に対する workaround が紹介されている。\
+  >  (然し、結局ここで紹介されている物も、メンバの型を決め打ちで行かないと行けない。)
+  > -{型は何でもいいからメンバが存在するかどうかを確かめる方法?
+  >
+  > 図らずも、VC でそれを判定する方法が分かってしまった。VC9 でも OK。\
+  > g++ 4.3 (decltype/sizeof SFINAE が不完全な g++4.3 でも、\
+  > この方法によって判定が可能であるという事が分かった。\
+  > しかし、g++3 に関しては結局駄目である…。
+  > }
+  >
+  > ***変更
+  > 結局 g++3/g++4.3/vc 等に関しては mwg_concept_is_valid_expression を信用する事ができないという事を認める。\
+  > そして mwg_concept_is_valid_expression の設計方針も変更する事にした (mwg/concept.h の方を参照)。
+  >
+  > 更に、mwg_concept_is_valid_expression からできるだけ独立したコードに変更する事にする。
+
+  | &pre(!txt,title=functor.memo2.txt){
+  | -*- coding:utf-8 -*-
+  |
+  | ■mwg::function
+  |
+  | 何をどう実装するのか良く分からなくなってきたので、茲で、整理し直す。
+  |
+  | ■どんな使い方があるか? (案)
+  |
+  | 1. 関数型の引数 (速度重視)
+  | ~~~~~~~~~~~~~~~~~~~~~~~~~~
+  | 従来、以下の様にしていた物を、
+  | template<typaname F>
+  | int f(const F& functor);
+  |
+  | 次の様に書ける様にする。
+  |
+  | // is_functor: 厳密に int(int) のシグニチャを要求
+  | template<typename F>
+  | mwg_requires((mwg::is_functor<int(int),F>::value)
+  | int) f(const F& functor){
+  |   for(int i=0;i<10;i++)
+  |     mwg::apply<int(int),F>(f,i);
+  | }
+  |
+  | // be_functor: 共変引数・反変戻り値を許す形
+  | template<typename F>
+  | mwg_requires((mwg::be_functor<int(int),F>::value)
+  | void) f(const F& functor);
+  |
+  | 利点:
+  | 　この様にする事で、operator() を実装していない型でも、
+  | 　functor として扱う事ができる様になる。
+  | 　反変性・共変性にも対応出来る。
+  |
+  | 要素:
+  |   template<typename SGN,typename F> struct is_functor;
+  |   template<typename SGN,typename F> struct be_functor;
+  |   template<typename SGN,typename F> auto apply(const F&, ...args);
+  |
+  |   ※三つ目の overload は可能かどうか気になったが、
+  |     試しに簡単な物で実験した所、可能であった。(@ gcc3, gcc4, vc10)
+  |
+  | 2. 関数型の引数 (簡単定義)
+  | ~~~~~~~~~~~~~~~~~~~~~~~~~~
+  | 速度がそれ程気にならない場合には、
+  | 仮想関数を用いて呼び出す方式が使える。
+  | 次の様に書ける。
+  |
+  | // mwg::delegate: 厳密に int(int) のシグニチャを要求
+  | int f(const mwg::delegate<int(int)>&){
+  |   for(int i=0;i<10;i++)
+  |     mwg::apply<int(int),F>(f,i);
+  | }
+  |
+  | // mwg::delegate: 共変引数・反変戻り値を許す形
+  | int f(const mwg::var_delegate<int(int)>&){
+  |   for(int i=0;i<10;i++)
+  |     mwg::apply<int(int),F>(f,i);
+  | }
+  |
+  | 要素:
+  |   template<typename SGN,typename F> struct delegate;
+  |   template<typename SGN,typename F> struct var_delegate :delegate<SGN,F>;
+  |   template<typename SGN,typename F> struct function;
+  |   template<typename SGN,typename F> struct var_function :function<SGN,F>;
+  |
+  | 説明:
+  |   class hogehoge
+  |     ctor として int(int) 系の引数を取る
+  |     explicit ctor として int(int) に共変・反変な物を取る
+  |   class var_hogehoge
+  |     ctor として int(int) 系の引数を取る
+  |     ctor として int(int) に共変・反変な物を取る
+  |     これは、hogehoge を継承してコンストラクタを上書きするだけの簡単な実装にする。
+  |
+  |   class function
+  |     メンバ関数の場合、オブジェクトは複製を保持
+  |   class delegate
+  |     メンバ関数の場合、オブジェクトは参照を保持
+  |     delegate よりもオブジェクトの寿命が長い必要有り
+  |
+  | 3. 関数オブジェクトの格納
+  | ~~~~~~~~~~~~~~~~~~~~~~~~~
+  | これには、2. の delegate 及び function を流用する事にすれば良い。
+  |
+  | ■関数として扱う物体
+  |
+  | 1. 関数型
+  |   R (*)(params)
+  |   R (*)(params,...)
+  | 2. データメンバ型
+  |   R C::*;
+  | 3. メンバ関数型
+  |   R (C::*)(params)
+  |   R (C::*)(params,...)
+  |   R (C::*)(params) const
+  |   R (C::*)(params,...) const
+  | 4. インスタンス＋メンバ関数
+  |   R (C::*)(params)
+  |   R (C::*)(params,...)
+  |   R (C::*)(params) const
+  |   R (C::*)(params,...) const
+  | 5. Functor
+  |   having: R operator()(params);
+  |   having: R operator()(params,...);
+  |   having: R operator()(params) const;
+  |   having: R operator()(params,...) const;
+  | 6. pointer to functor
+  | 7. smart pointer to functor
+  |   having: F& *operator() const; where F is functor
+  |   having: const F& *operator() const; where F is functor
+  |
+  | <del>
+  | ※可変長引数 ... を含む関数の場合、
+  |   可変長引数を可変長引数の儘渡す方法がないので、
+  |   関数オブジェクトに入れるのは無理である。
+  |
+  |   実際に利用する際には、引数の個数を固定して渡すしか方法はない。
+  |   つまり、functor_traits は存在するが、その儘の ref_t ins_t は存在しない。
+  |   実際に使用する時には、共変性によって具体的な引数を持つ
+  |   function/delegate を初期化する形になる。
+  | </del>
+  |   可変長引数自体を渡す事はできないが、
+  |   template で型付で複数の引数個数に対する overload は作成する事が可能である。
+  |
+  | ■実装の手順
+  |   functor_traits
+  |   ・オブジェクトのシグニチャの決定
+  |     オブジェクトの型から自然に導出されるシグニチャを決定
+  |   ・テンプレート用
+  |     関数呼出
+  |   ・仮想関数用
+  |     ref_t
+  |       delegate オブジェクトのデータ
+  |       sizeof に上限を設定する
+  |       (delegate インスタンス内に placement)
+  |       仮想関数呼出
+  |     holder_t <- function オブジェクトのデータ
+  |       仮想関数呼出
+  |
+  |   fun_signature
+  |     反変・共変の処理
+  |
+  |   反変共変処理
+  |   ・functor_traits で決定出来る物
+  |     ・引数の共変性   void(derived)  <- void(base)
+  |     ・Arity の共変性 void(int,int)  <- void(int)
+  |     ・戻り値の反変性 base()         <- derived()
+  |   ・functor_traits で決定出来ない物
+  |     ・複数ある operator から適合する物を選択
+  |
+  | --------------------------------------------------------------------------------
+  | ■ VC SFINAE バグについて
+  |
+  |   mwg_concept_is_valid_expression が正しく動く様な方法をを探していたが、
+  |   どうやら、無理な様である。(一日ぐらい時間を潰してしまった...)
+  |
+  |   仕方がないので、VC 専用に代替のコードを考える様にする。
+  | --------------------------------------------------------------------------------
+  |
+  | ■現在のクラス構成
+  | □型動作定義
+  |   concept case_tr{
+  |     typename fct_t;
+  |     typename case_data;
+  |     typename fct_tr;
+  |       // 実行関数 static invoke を保持する functor_traits
+  |     static T endata(U);
+  |       // ファンクタインスタンス U を case_data に代入出来る型 T に変換する関数
+  |     static V dedata(case_data);
+  |       // case_data を invoke に渡せる型 V に変換する関数
+  |   };
+  |   実装補助: functor_case_traits<F>
+  |
+  |   class functor_traits<T>{
+  |     型 T を関数として扱いたい時の、
+  |     "既定の" シグニチャとそのシグニチャに対応した functor_case 型の提供
+  |
+  |     static const bool is_functor;
+  |       // 既定のシグニチャを持つ functor であるか否か
+  |       // (既定のシグニチャが複数ある場合には false)
+  |     static const int arity;
+  |       // 引数の数
+  |     static const bool has_varargs;
+  |       // 可変長引数を持つか否か (未使用)
+  |
+  |     typename sgn_t;
+  |     typename ret_t;
+  |     typename arg1_t;
+  |     typename arg2_t;
+  |     typename arg3_t;
+  |     typename arg4_t;
+  |     ...
+  |
+  |     typename ref_tr : case_tr;
+  |     typename ins_tr : case_tr;
+  |
+  |     static ret_t invoke(T, arg_t..., ...);
+  |   };
+  |   実装補助: functor_traits_signature<S>
+  |   実装補助: functor_traits_impl<S,F,RefTr=,InsTr=>
+  |
+  |   class functor_traits<T,S>{
+  |     型 T をシグニチャ S として扱いたい時の、
+  |     functor_case 型の提供
+  |
+  |     static const bool is_functor;
+  |       // T をシグニチャ S として扱う事が出来るか否か
+  |     typename ref_tr : case_tr;
+  |     typename ins_tr : case_tr;
+  |
+  |     static R invoke(T, As...);
+  |   };
+  |
+  |   is_functor<S,F>::value
+  |     // 型 F が既定のシグニチャとして S を持っているかどうかを判定
+  |   be_functor<S,F>::value
+  |     // 型 F がシグニチャ S の関数として振る舞う事が出来るかどうかを判定
+  |
+  | □コンテナ
+  |   interface functor_case<S>{
+  |     R call(%types%) const;
+  |     ~functor_case();
+  |     functor_case* placement_clone(void* ptr) const;
+  |   };
+  |   実装補助: class functor_case_data<S,T>;
+  |   実装補助: class functor_case_impl<S,Tr : case_tr>;
+  |
+  |   struct functor_base<S>{
+  |     R operator()(As...) const;
+  |   };
+  |   class functor_ref<S>;
+  |   class functor<S>;
+  |
+  |   class vfunctor_ref<S>;
+  |   class vfunctor<S>;
+  |     // 引数用のクラス
+  |
+  | ■実装
+  | □拡張
+  |   class functor_traits<T,S>
+  |
+  |   反変引数として扱う場合
+  |   1. 既定のシグニチャからの共変・反変性
+  |     ・型の変換 std::is_convertible [完]
+  |     ・引数の数の増加 [完]
+  |     ・可変長引数の具体化 [完]
+  |   2. 既定以外のシグニチャの可能性
+  |     ・関数オブジェクト
+  |       operator() のオーバーロードの選択 [完]
+  |       ※オーバーロードがない場合にのみ既定のシグニチャからの共変・反変性を考える
+  |         (そうでないと、対応出来ないし、対応出来たとしても、
+  |         曖昧・予期しない結果になる可能性があり問題)
+  |     ・メンバ型の場合
+  |       T&(C&) の他に const T&(const C&) も [完]
+  |
+  |
+  | □可変長引数の具体化について [完 23:39 2011/01/16]
+  |
+  |   例: printf(const char*,...)
+  |
+  |     functor<int(char*,int)> f=printf;
+  |     ・char* は const char* にキャストしてから渡す
+  |     ・int はその儘渡す
+  |
+  |     functor_traits<int(const char*,...),S(*)()>
+  | }

@@ -56,6 +56,7 @@ struct Str{
 #include <algorithm>
 #include <cstring>
 #include <mwg/std/type_traits>
+#include <mwg/std/utility>
 #include <mwg/concept.h>
 #include "funcsig.h"
 #include "functor.proto.h"
@@ -67,41 +68,47 @@ struct Str{
 # define mwg_attribute_may_alias
 #endif
 
-namespace mwg{
+#pragma%include "impl/VariadicMacros.pp"
+#pragma%include "bits/functor.type_traits.pp"
 
-#%include "bits/functor/functor.variadic.pp"
+namespace mwg{
 namespace functor_detail{
-#%include "bits/functor/functor.ftypes.pp"
-//NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN
+  namespace sig=mwg::funcsig;
+//NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN
 //
 //    Functor Traits
 //
-//TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
+//TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
 //  concept functor_traits
-//------------------------------------------------------------------------------
-#%(
-  template<typename F>
-  concept functor_traits{
-    typedef F fct_t;
-    static const bool is_functor;
-    static const int arity;
-    static const bool has_varargs;
-
-
-    typedef auto ret_t;
-    typedef auto sgn_t;
-    typedef auto arg1_t;
-    typedef auto arg2_t;
-    typedef auto arg3_t;
-    ...
-
-    typedef auto ref_tr; // functor への参照を保持
-    typedef auto ins_tr; // functor の複製インスタンスを保持
-    static ret_t invoke(const fct_t& f,...){
-      f(...);
-    }
-  };
-#%)
+//-----------------------------------------------------------------------------
+  /*?lwiki
+   * &pre*(!cpp){
+   * template<typename F>
+   * struct functor_traits{
+   *   static const bool is_functor;
+   *   typedef F fct_t;
+   *   typedef auto sgn_t;
+   *
+   *   typedef auto ref_tr; // functor への参照を保持
+   *   typedef auto ins_tr; // functor の複製インスタンスを保持
+   *   static '''return-type''' invoke(const fct_t& f,...){
+   *     f(...);
+   *   }
+   * };
+   * template<typename F,typename S>
+   * struct functor_traits{
+   *   static const bool is_functor;
+   *   typedef F fct_t;
+   *   typedef S sgn_t;
+   *
+   *   typedef auto ref_tr; // functor への参照を保持
+   *   typedef auto ins_tr; // functor の複製インスタンスを保持
+   *   static '''return-type''' invoke(const fct_t& f,...){
+   *     f(...);
+   *   }
+   * };
+   * }
+   */
   template<typename F>
   struct functor_case_traits{
     typedef F fct_t;
@@ -110,59 +117,49 @@ namespace functor_detail{
     static const fct_t& endata(const fct_t& f){return f;}
     static const fct_t& dedata(const fct_t& f){return f;}
   };
-//TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
+//TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
 //  functor_traits implementation helpers
-//------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
   struct functor_traits_empty{
     // not functor
     static const bool is_functor=false;
-    static const int arity=0;
-    static const bool has_varargs=false;
 
     typedef void fct_t;
     typedef void sgn_t;
-    typedef void ret_t;
-#%define 1
-    ${.for|K|1|ARITY_MAX+1|typedef void argK_t;|
-    }
-#%define end
-#%expand 1.i
     typedef void ref_tr;
     typedef void ins_tr;
   };
-#ifdef _MSC_VER /* VCBUG */
+
+  /*?lwiki
+   * :@class class functor_traits_signature<S>;
+   *  `functor_traits` 特殊化の実装に使うヘルパクラスです。以下の物を定義します。
+   *  &pre(!cpp){
+   *  static const bool is_functor=true;
+   *  typedef S sgn_t;
+   *  }
+   *  `struct functor_traits_signature` で定義される物の他に以下の物を定義する必要があります。
+   *  &pre(!cpp){
+   *  typedef auto fct_t;                // raw functor type
+   *  typedef auto ref_tr;               // traits of mwg::functor_ref case
+   *  typedef auto ins_tr;               // traits of mwg::functor data case
+   *  static R invoke(const fct_t&,...); // invoke functor object
+   *  }
+   */
   template<typename S>
   struct functor_traits_signature{};
-#endif
-#%define 1
-  template<typename R %s_typenames%>
-  struct functor_traits_signature<R(%types%)>:functor_traits_empty{
+#pragma%m 1
+  template<typename R,typename... A>
+  struct functor_traits_signature<R(A...)>:functor_traits_empty{
     static const bool is_functor=true;
-    static const int arity=%AR%;
-
-    typedef R (sgn_t)(%types%);
-    typedef R ret_t;
-    ${.for|K|1|%AR%+1|typedef AK argK_t;|
-    }
-    #%(
-    //::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    // requirements to be functor_traits:
-    typedef fct_t;                        // raw functor type
-    typedef ref_tr;                        // traits of mwg::functor_ref case
-    typedef ins_tr;                        // traits of mwg::functor data case
-    static R invoke(const fct_t&,%types%); // invoke functor object
-    //::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    #%)
+    typedef R (sgn_t)(A...);
   };
-  template<typename R %s_typenames%>
-  struct functor_traits_signature<R(%types...%)>
-    :functor_traits_signature<R(%types%)>
-  {
-    static const bool has_varargs=true;
-    typedef R (sgn_t)(%types...%);
+  template<typename R,typename... A>
+  struct functor_traits_signature<R(A...,...)>:functor_traits_empty{
+    static const bool is_functor=true;
+    typedef R (sgn_t)(A...,...);
   };
-#%define end
-#%expand mwg::functor::arities
+#pragma%end
+#pragma%x variadic_expand_0toArN
   template<
     typename S,
     typename F,
@@ -173,375 +170,251 @@ namespace functor_detail{
     typedef RefCaseTr ref_tr;
     typedef InsCaseTr ins_tr;
   };
-//TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
-  template<typename F,typename S,int L>
-  struct functor_traits_switch:functor_traits_empty{};
-  // L=1 [traits.functor]
-  // L=2 [traits.pfunctor]
-  // L=3 [traits.mfp]
-  // L=4 [traits.mp]
-  // L=5 [traits.vararg]
-  // L=101: is_variant_signature
-  // L=102: can_be_called_as_impl1 (overloaded functor)
-//TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
-//  class functor_traits<R (*)(params)>
-//  class functor_traits<R(params)>
-//------------------------------------------------------------------------------
-#%define 1
-  template<typename R %s_typenames%>
-  struct functor_traits<R(*)(%types%)>:functor_traits_impl<R(%types%),R(*)(%types%)>{
-    typedef R(*fct_t)(%types%);
-    static R invoke(fct_t f %s_params%,...){
-      return R(f(%args%));
-    }
-  };
-  template<typename R %s_typenames%>
-  struct functor_traits<R(%types%)>:functor_traits<R(*)(%types%)>{
-    typedef R (fct_t)(%types%);
-  };
-#%define end
-#%expand mwg::functor::arities
-//------------------------------------------------------------------------------
-// [traits.mfp] R (C::*)(params)
-// [traits.mfp] R (C::*)(params...) ■TODO
-  template<typename Mfp>
-  struct functor_invoker_mfp;
-#%define 1
-  template<typename R,typename C %s_typenames%>
-  struct functor_invoker_mfp<R (C::*)(%types%) %const%>{
-    static R invoke(R(C::*f)(%types%) %const%,%const% C& c %s_params%,...){
-      return R((c.*f)(%args%));
-    }
-  };
-#%define end
-#%define 1 (
-#%  expand 1.r#%const%##
-#%  expand 1.r#%const%#const#
-#%)
-#%expand mwg::functor::arities.r|#ARITY_MAX+1#|#ARITY_MAX#|
-  template<typename Mfp>
-  struct functor_traits_switch<Mfp,void,3>
-    :functor_traits_impl<typename is_memfun_pointer<Mfp>::functor_sgn,Mfp>
-    ,functor_invoker_mfp<Mfp>
-  {};
-//------------------------------------------------------------------------------
-// [traits.mp] T C::*
-  template<typename T,typename C>
-  struct functor_traits_switch<T C::*,void,4>:functor_traits_impl<T&(C&),T C::*>{
-    typedef T C::*fct_t;
-    static T& invoke(const fct_t& f,C& c,...){return c.*f;}
-    static const T& invoke(const fct_t& f,const C& c,...){return c.*f;}
-  };
-  template<typename T,typename C,typename S>
-  struct functor_traits_switch<T C::*,S,4>:functor_traits_switch<
-    T C::*,S,
-    (is_variant_signature<functor_traits_signature<T&(C&)>,functor_traits<S*> >::value?101:
-      is_variant_signature<functor_traits_signature<const T&(const C&)>,functor_traits<S*> >::value?101:
-      0)
-  >{};
-//TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
-//  class functor_traits<F /* having operator() */>
-//------------------------------------------------------------------------------
-#%(
-  template<typename F,typename S,int L>
-  struct functor_traits_switch;
-  template<typename C>
-  struct functor_case_traits_FunctorRef;
-  template<typename Mfp>
-  struct functor_traits_ftorF;
-  template<typename P,typename Mfp>
-  struct functor_traits_ftorP;
-//------------------------------------------------------------------------------
-/* TODO:
-  ■operator() と operator() const の両方が定義されている場合
-    どちらか一方を優先させる
-    ・decltype(&F::operator()) では望んだ方のポインタを取得出来ない
-*/
-//=============================================================================
-#%)
-  template<typename F,typename S>
-  struct functor_invoker_functor;
-  template<typename P,typename C,typename S>
-  struct functor_invoker_pfunctor;
-#ifdef _MSC_VER /* VCBUG */
-  template<typename F,typename S>
-  struct functor_invoker_functor{};
-  template<typename P,typename C,typename S>
-  struct functor_invoker_pfunctor{};
-#endif
-  template<typename C>
-  struct functor_case_traits_FunctorRef:functor_case_traits<C>{
-    typedef const C* case_data;
-    static const C* endata(const C& ins){return &ins;}
-    static const C& dedata(const C* p){return *p;}
-  };
-//-----------------------------------------------------------------------------
-#%define 1
-  template<typename R,typename C %s_typenames%>
-  struct functor_invoker_functor<C,R(%types%)>{
-    static R invoke(const C& f %s_params%,...){
-      return R(const_cast<C&>(f)(%args%));
-    }
-  };
-#%define end
-#%expand mwg::functor::arities
-#%define 1 (
-  template<typename P,typename C,typename R %s_typenames%>
-  struct functor_invoker_pfunctor<P,C,R(%types%)>{
-    static R invoke(const P& f %s_params%,...){
-      return R(const_cast<C&>(*f)(%args%));
-    }
-  };
-#%)
-#%expand mwg::functor::arities
-//=============================================================================
-#if defined(MWGCONF_STD_DECLTYPE)
-  template<typename Mfp>
-  struct functor_traits_ftorF;
-  template<typename P,typename Mfp>
-  struct functor_traits_ftorP;
-//-----------------------------------------------------------------------------
-// [traits.functor] F with R F::operator()(%types%)
-  template<typename Mfp>
-  struct functor_traits_ftorF
-    :functor_traits_impl<
-      typename is_memfun_pointer<Mfp>::member_type,
-      typename is_memfun_pointer<Mfp>::object_type,
-      functor_case_traits_FunctorRef<typename is_memfun_pointer<Mfp>::object_type>
-    >
-    ,functor_invoker_functor<
-      typename is_memfun_pointer<Mfp>::object_type,
-      typename is_memfun_pointer<Mfp>::member_type
-    >
-  {};
+//TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
+
+  struct functor_traits_end:functor_traits_empty{};
+
+  /*?lwiki
+   * :@class template<int L,typename F,typename=void> struct functor_traits_chain;
+   *  指定した型 `T` を関手として取り扱う方法を提供するリストです。
+   *  `L` について特殊化を定義することにより新しい方法を追加します。
+   *  具体的な `L` の値の決定は <?pp functor_traits_chain::register?>
+   *  マクロを使用します。実際の使用例を参照して下さい。
+   */
+  template<int L,typename F,typename=void>
+  struct functor_traits_chain:functor_traits_empty{};
+
+  /*?lwiki
+   * @class template<int L,typename F,typename S,typename=void> struct functor_traits_chain2;
+   *  指定した型 `T` を関手 `S` として取り扱う方法を提供するリストです。
+   *  `L` について特殊化を定義することにより新しい方法を追加します。
+   *  具体的な `L` の値の決定は <?pp functor_traits_chain::register?>
+   *  マクロを使用します。実際の使用例を参照して下さい。
+   */
+  template<int L,typename F,typename S,typename=void>
+  struct functor_traits_chain2:functor_traits_empty{};
+
+#pragma%[functor_traits_chain_count=0]
+#pragma%m functor_traits_chain::register
+#pragma%%x 1.r/@/$"functor_traits_chain_count"/.i
+#pragma%%[functor_traits_chain_count++]
+#pragma%end
+#pragma%m functor_traits_chain::terminate
+#pragma%%x
   template<typename F>
-  struct functor_traits_switch<F,void,1>
-    :functor_traits_ftorF<decltype(&F::operator())>{};
-//-----------------------------------------------------------------------------
-// [traits.pfunctor] P with F P::operator*() / R F::operator()(%types%)
-  template<typename P,typename SOp>
-  struct functor_traits_ftorP
-    :functor_traits_impl<typename is_memfun_pointer<SOp>::member_type,P>
-    ,functor_invoker_pfunctor<
-      P,
-      typename is_memfun_pointer<SOp>::object_type,
-      typename is_memfun_pointer<SOp>::member_type
-    >
-  {};
-  template<typename P>
-  struct functor_traits_switch<P,void,2>
-    :functor_traits_ftorP<P,typename is_pointer_to_single_operator_functor<P>::operator_type>{};
-//=============================================================================
-  template<typename T>
-  struct functor_traits<T>:functor_traits_switch<
-    T,void,
-    is_vararg_function<T>::value?5:
-    is_vararg_function_pointer<T>::value?5:
-    stdm::is_member_function_pointer<T>::value?3:
-    stdm::is_member_object_pointer<T>::value?4:
-    has_single_operator_functor<T>::value?1:
-    is_pointer_to_single_operator_functor<T>::value?2:
-    0
-  >{};
-#else
-  template<typename T>
-  struct functor_traits<T>:functor_traits_switch<
-    T,void,
-    (is_vararg_function<T>::value?5:
-      is_vararg_function_pointer<T>::value?5:
-      stdm::is_member_function_pointer<T>::value?3:
-      stdm::is_member_object_pointer<T>::value?4:
-      //has_single_operator_functor<T>::value?1:
-      //is_pointer_to_single_operator_functor<T>::value?2:
-      0)
-  >{};
-#endif
-//TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
-//  関数共変反変
-//------------------------------------------------------------------------------
-#%(
-  template<typename F,typename S,int L>
-  struct functor_traits_switch;
+  struct functor_traits_chain<$"functor_traits_chain_count",F,void>:functor_traits_end{};
   template<typename F,typename S>
-  struct functor_traits_switch<F,S,101>;
-  template<typename F,typename S>
-  struct functor_traits;
-//------------------------------------------------------------------------------
-#%)
-  template<typename F,typename S>
-  struct functor_traits_switch<F,S,101>:functor_traits<F>{typedef S sgn_t;};
-  template<typename F,typename S>
-  struct functor_traits_switch<F,S,102>
-    :functor_traits_signature<typename can_be_called_as<F,S>::signature_type>
-    ,functor_invoker_functor<F,typename can_be_called_as<F,S>::signature_type>
-  {
-    typedef F fct_t;
-    struct ref_tr:functor_case_traits_FunctorRef<F>{
-      typedef functor_traits_switch fct_tr;
-    };
-    struct ins_tr:functor_case_traits<F>{
-      typedef functor_traits_switch fct_tr;
-    };
-  };
+  struct functor_traits_chain2<$"functor_traits_chain_count",F,S,void>:functor_traits_end{};
+#pragma%%end.i
+#pragma%end
+
+  namespace detail{
+    template<
+      typename F,int L=0,
+      bool=functor_traits_chain<L,F>::is_functor,
+      bool=!stdm::is_base_of<functor_traits_end,functor_traits_chain<L,F> >::value>
+    struct functor_traits_selector:functor_traits_empty{};
+    template<typename F,int L,bool B>
+    struct functor_traits_selector<F,L,true ,B>:functor_traits_chain<L,F>{};
+    template<typename F,int L>
+    struct functor_traits_selector<F,L,false,true>:functor_traits_selector<F,L+1>{};
+    template<typename F,int L>
+    struct functor_traits_selector<F,L,false,false>:functor_traits_empty{};
+
+    template<
+      typename F,typename S=void,int L=0,
+      bool=functor_traits_chain2<L,F,S>::is_functor,
+      bool=!stdm::is_base_of<functor_traits_end,functor_traits_chain2<L,F,S> >::value>
+    struct functor_traits_selector2:functor_traits_empty{};
+    template<typename F,typename S,int L,bool B>
+    struct functor_traits_selector2<F,S,L,true ,B>:functor_traits_chain2<L,F,S>{};
+    template<typename F,typename S,int L>
+    struct functor_traits_selector2<F,S,L,false,true>:functor_traits_selector2<F,S,L+1>{};
+    template<typename F,typename S,int L>
+    struct functor_traits_selector2<F,S,L,false,false>:functor_traits_empty{};
+  }
 
   template<typename F,typename S>
-  struct functor_traits:functor_traits_switch<
-    F,S,
-    (is_vararg_function<F>::value?5:
-      is_vararg_function_pointer<F>::value?5:
-      stdm::is_member_object_pointer<F>::value?4:
-      is_variant_signature<functor_traits<F>,functor_traits<S*> >::value?101:
-      can_be_called_as<F,S>::value?102:
-      0)
-  >{};
+  struct functor_traits:detail::functor_traits_selector2<F,S>{};
+  template<typename F>
+  struct functor_traits<F,void>:detail::functor_traits_selector<F>{};
+}
+}
 
-#%include "bits/functor/functor.varargs.pp"
+#pragma%include "bits/functor.link.function.pp"
+#pragma%include "bits/functor.link.member.pp"
+#pragma%include "bits/functor.link.operator.pp"
+#pragma%include "bits/functor.link.variance.pp"
 
-//TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
+namespace mwg{
+namespace functor_detail{
+
+#pragma%x functor_traits_chain::terminate
+
+//TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
 //  class is_functor/be_functor
-//------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
   template<typename F,typename S>
   struct is_functor:stdm::is_same<S,typename mwg::functor_traits<F>::sgn_t>{};
   template<typename F,typename S>
   struct be_functor:stdm::integral_constant<bool,functor_traits<F,S>::is_functor>{};
 
-#ifdef MWGCONF_STD_RVALUE_REFERENCES
-//%define 1 (
-  template<typename S,typename F %s_typenames%> typename stdm::enable_if<
-    mwg::be_functor<F,S>::value,
-    typename mwg::functor_traits<F,S>::ret_t
-  >::type functor_invoke(const F& f $".for|K|1|%AR%+1|,AK&& aK|"){
-    return mwg::functor_traits<F,S>::invoke(f $".for|K|1|%AR%+1|,stdm::forward<AK>(aK)|");
+#pragma%m 1
+  template<typename S,typename F,typename... A>
+  typename stdm::enable_if<mwg::be_functor<F,S>::value,typename sig::returns<S>::type>::type
+  functor_invoke(const F& f,A mwg_forward_rvalue... a){
+    return mwg::functor_traits<F,S>::invoke(f,stdm::forward<A>(a)...);
   }
-//%)
-//%expand mwg::functor::arities
-#else
-////%define 1 (
-//  template<typename S,typename F> typename stdm::enable_if<
-//    mwg::be_functor<F,S>::value,//&&mwg::funcsig::get_arity<S>::value==%AR%,
-//    typename mwg::functor_traits<F,S>::ret_t
-//  >::type functor_invoke(const F& f $".for|K|1|%AR%+1|
-//    ,typename mwg::functor_traits<F,S>::argK_t aK|"
-//  ){
-//    return mwg::functor_traits<F,S>::invoke(f %s_args%);
-//  }
-////%)
-////%expand mwg::functor::arities
-//%define 1 (
-  template<typename S,typename F %s_typenames%> typename stdm::enable_if<
-    mwg::be_functor<F,S>::value,
-    typename mwg::functor_traits<F,S>::ret_t
-  >::type functor_invoke(const F& f $".for|K|1|%AR%+1|,AK& aK|"){
-    return mwg::functor_traits<F,S>::invoke(f %s_args%);
-  }
-//%)
-//%expand mwg::functor::arities
-#endif
+#pragma%end
+#pragma%x variadic_expand_0toArN
 
-//NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN
+}
+  using functor_detail::functor_invoke;
+}
+
+
+namespace mwg{
+namespace functor_detail{
+
+//NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN
 //
 //    Functor Classes
 //
-//TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
+//TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
 //  interface functor_case
-//------------------------------------------------------------------------------
-#pragma%define 1
-  template<typename R %s_typenames%>
-  struct functor_case<R(%types%)>{
-    virtual R call(%types%) const=0;
+//-----------------------------------------------------------------------------
+
+  //---------------------------------------------------------------------------
+  /*?lwiki
+   * @interface template<typename S> class functor_case;
+   */
+#pragma%m 1
+  template<typename R,typename... A>
+  struct functor_case<R(A...)>{
+    virtual R call(A...) const=0;
     virtual ~functor_case(){}
     virtual functor_case* placement_clone(void* ptr) const=0;
   };
-#pragma%define end
-#pragma%expand mwg::functor::arities
-  template<typename S,typename T,bool INTERIOR>
-  class functor_case_data:public functor_case<S>{
-    char m_data[sizeof(T)];
-  private:
-    typedef typename mwg::stdm::remove_cv<T>::type data_type;
-#if defined(__GNUC__)&&MWGCONF_GCC_VER<40000
-    const data_type* ptr() const{return (const data_type*)(&this->m_data);}
-    data_type* ptr(){return (data_type*)(&this->m_data);}
-#else
-    const data_type* ptr() const{return reinterpret_cast<const data_type*>(&this->m_data);}
-    data_type* ptr(){return reinterpret_cast<data_type*>(&this->m_data);}
-#endif
-  protected:
-    functor_case_data(const T& value){new(this->ptr()) T(value);}
-    ~functor_case_data(){get_ref().~T();}
-    const T& get_ref() const{return *this->ptr();}
-  private:
-    functor_case_data& operator=(const functor_case_data&) mwg_std_deleted;
-  };
-  template<typename S,typename T>
-  class functor_case_data<S,T,false>:functor_case<S>{
-    T* ptr;
-  protected:
-    functor_case_data(const T& value):ptr(new T(value)){}
-    functor_case_data(const functor_case_data& c):ptr(new T(*c.ptr)){}
-    ~functor_case_data(){delete this->ptr;this->ptr=nullptr;}
-    const T& get_ref() const{return *ptr;}
-  private:
-    functor_case_data& operator=(const functor_case_data&) mwg_std_deleted;
-  };
+#pragma%end
+#pragma%x variadic_expand_0toArN
+
+  //---------------------------------------------------------------------------
+  /*?lwiki
+   * :@class template<typename T,std::size_t I> class limited_storage;
+   *  上限サイズを定めてデータを保持するクラスです。
+   *  `T` を格納するのに必要なサイズが `I` 以下の時はメンバとして内部に保持します。
+   *  `T` のサイズが `I` に収まらない時は、`new`/`delete` によってヒープに確保します。
+   */
+  namespace detail{
+    // 参照型の実質サイズを正確に取るため holder に入れてから sizeof する。
+    template<typename F>
+    struct limited_storage__holder{F value;};
+
+    template<typename F,std::size_t I,bool IsFunction>
+    struct limited_storage__is_interior__impl
+      :stdm::integral_constant<bool,(sizeof(limited_storage__holder<F>)<=I)>{};
+    template<typename F,std::size_t I>
+    struct limited_storage__is_interior__impl<F,I,true>
+      :stdm::integral_constant<bool,(sizeof(limited_storage__holder<F*>)<=I)>{};
+    template<typename F,std::size_t I>
+    struct limited_storage__is_interior
+      :limited_storage__is_interior__impl<F,I,stdm::is_function<F>::value>{};
+  }
 
   // CHK: sizeof(void*)*2 の値は妥当か?
-  template<typename F,bool IsFunction>
-  struct functor_case_data__is_interior__impl
-    :stdm::integral_constant<bool,(sizeof(F)<=sizeof(void*)*2)>{};
-  template<typename F>
-  struct functor_case_data__is_interior__impl<F,true>
-    :stdm::integral_constant<bool,(sizeof(F*)<=sizeof(void*)*2)>{};
-  template<typename F>
-  struct functor_case_data__is_interior
-    :functor_case_data__is_interior__impl<F,stdm::is_function<F>::value>{};
+  template<
+    typename T,
+    std::size_t I=sizeof(void*)*2,
+    bool=detail::limited_storage__is_interior<T,I>::value>
+  class limited_storage{
+    typedef typename stdm::conditional<stdm::is_function<T>::value,T*,T>::type value_type;
+    value_type* m_ptr;
+  public:
+    limited_storage(T const& value):m_ptr(new value_type(value)){}
+    limited_storage(limited_storage const& c):m_ptr(new value_type(*c.m_ptr)){}
+    ~limited_storage(){delete this->m_ptr;this->m_ptr=nullptr;}
+    const value_type& ref() const{return *m_ptr;}
 
-#pragma%define 1
-  template<typename Tr,typename R %s_typenames%>
-  class functor_case_impl<R(%types%),Tr>
-    :public functor_case_data<R(%types%),typename Tr::case_data,functor_case_data__is_interior<R(%types%)>::value>
-  {
+    limited_storage& operator=(limited_storage const&) mwg_std_deleted;
+  };
+
+  template<typename T,std::size_t I>
+  class limited_storage<T,I,true>{
+    T m_data;
+    typedef typename stdx::add_const_reference<T>::type const_reference;
+  public:
+    limited_storage(const_reference value):m_data(value){}
+    limited_storage(limited_storage const& c):m_data(c.m_data){}
+    const_reference ref() const{return this->m_data;}
+
+    limited_storage& operator=(limited_storage const&) mwg_std_deleted;
+  };
+
+  //---------------------------------------------------------------------------
+  /*?lwiki
+   * @class template<typename S,typename Tr> class functor_case_impl;
+   */
+  template<typename S,typename Tr>
+  class functor_case_impl;
+
+  template<typename S,typename Tr>
+  class functor_case_base:public functor_case<S>{
+    typedef functor_case_impl<S,Tr> CRTP;
+
   public:
     typedef Tr case_tr; // used by others
-    typedef R (sgn_t)(%types%);
     typedef typename Tr::case_data case_data;
-    typedef functor_case_data<sgn_t,case_data,functor_case_data__is_interior<sgn_t>::value> base;
-  public:
-    functor_case_impl(const case_data& f):base(f){} // used by placement clone
-    template<typename F> functor_case_impl(const F& f):base(Tr::endata(f)){}
-    virtual R call(%params%) const{
-      typedef typename Tr::fct_tr fct_tr; // gcc-2.95.3 work around 一旦型に入れる必要有り。
-      return R(fct_tr::invoke(Tr::dedata(this->get_ref()) %s_args%));
-    }
-    virtual functor_case_impl* placement_clone(void* ptr) const{
-      return new(ptr) functor_case_impl(this->get_ref());
-    }
-  };
-#pragma%define end
-#pragma%expand mwg::functor::arities
 
-//TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
-//  interface functor_base
-//------------------------------------------------------------------------------
-#%define 1
-  template<typename R %s_typenames%>
-  struct functor_base<R(%types%)>{
-    functor_case<R(%types%)>* h;
-    R operator()(%params%) const{
-      return this->h->call(%args%);
+    virtual functor_case<S>* placement_clone(void* ptr) const{
+      return new(ptr) CRTP(this->ref());
+    }
+
+  protected:
+    functor_case_base(case_data const& value):m_data(value){}
+    case_data const& ref() const{return this->m_data.ref();}
+
+  private:
+    limited_storage<case_data,sizeof(void*)*2> m_data;
+  };
+
+#pragma%m 1
+  template<typename Tr,typename R,typename... A>
+  class functor_case_impl<R(A...),Tr>:public functor_case_base<R(A...),Tr>{
+    typedef functor_case_base<R(A...),Tr> base;
+    typedef typename base::case_data case_data;
+  public:
+    functor_case_impl(case_data const& f):base(f){} // used by placement clone
+    template<typename F> functor_case_impl(F const& f):base(Tr::endata(f)){}
+    virtual R call(A... arg) const{
+      typedef typename Tr::fct_tr fct_tr; // gcc-2.95.3 work around 一旦型に入れる必要有り。
+      return R(fct_tr::invoke(Tr::dedata(this->ref()),arg...));
     }
   };
-#%define end
-#%expand mwg::functor::arities
-//TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
+#pragma%end
+#pragma%x variadic_expand_0toArN
+
+//TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
+//  interface functor_base
+//-----------------------------------------------------------------------------
+#pragma%m 1
+  template<typename R,typename... A>
+  struct functor_base<R(A...)>{
+    functor_case<R(A...)>* h;
+    R operator()(A... a) const{
+      return this->h->call(a...);
+    }
+  };
+#pragma%end
+#pragma%x variadic_expand_0toArN
+//TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
 //  class functor
-//------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
   // 2016-03-25 gcc-2.95.3 bug work around:
   //   enable_if に複雑な式を指定すると ICE になる。
   template<typename F,typename S>
   struct is_explicit_functor:stdm::integral_constant<bool,(!is_functor<F,S>::value&&be_functor<F,S>::value)>{};
 
-#%define 1
+#pragma%m 1
   template<typename S>
   class functor_ref:public functor_base<S>{
     char buffer[3*sizeof(void*)];
@@ -622,14 +495,13 @@ namespace functor_detail{
       this->template init<F,functor_case_impl<S,typename functor_traits<F,S>::ref_tr> >(f);
     }
   };
-#%define end
-#%expand 1
-#%expand 1.r#functor_ref#functor#.r#ref_tr#ins_tr#
-//NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN
+#pragma%end
+#pragma%x 1
+#pragma%x 1.r#functor_ref#functor#.r#ref_tr#ins_tr#
+//NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN
 } // end of functor_detail
-  using functor_detail::functor_invoke;
 } // end of mwg
-//EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+//EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
 /*?lwiki
  * &pre(!cpp){
  * template<typename F>
@@ -644,11 +516,11 @@ namespace functor_detail{
  * }
  * }
  */
-//EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+//EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
 #endif
 #pragma%x begin_check
 
-//------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 // for debug
 
 #ifdef MWG_FUNCTOR_H__VariantFunctorEnabled
@@ -723,7 +595,7 @@ void debug_support_functor_object(){
 
   mwg_check(!(mwg::functor_traits<F>::is_functor));
   mwg_check( (mwg::functor_detail::can_be_called_as<F,int(int)>::value));
-  mwg_check( (mwg::functor_detail::functor_traits_switch<F,int(int),102>::is_functor));
+  //mwg_check( (mwg::functor_detail::functor_traits_chain2<6,F,int(int)>::is_functor));
   mwg_check( (mwg::functor_detail::functor_traits_signature<int(int)>::is_functor));
   mwg_check( (mwg::functor_traits<F,int(int)>::is_functor));
 #endif
@@ -733,7 +605,7 @@ void debug_support_functor_object(){
   typedef mwg::functor_detail::functor_case_traits_FunctorRef<F> case_tr;
   typedef mwg::functor_detail::functor_case_impl<void(int),case_tr> case_t;
   mwg_check((mwg::stdm::is_same<case_tr::case_data,const F*>::value));
-  mwg_check((mwg::stdm::is_same<case_t::base,mwg::functor_detail::functor_case_data<void(int),const F*,true> >::value));
+  //mwg_check((mwg::stdm::is_same<case_t::base,mwg::functor_detail::functor_case_base<void(int),const F*,true> >::value));
   //case_t::base x(reinterpret_cast<const F*>(0));
 #endif
 }
@@ -776,6 +648,9 @@ void check_member_object_pointer(){
   mwg::functor<int(const Str&)> f4_2(&Str::x);
   mwg_check(f4_2(hoge)==2011);
   mwg_check( (mwg::stdm::is_convertible<const int&,int>::value));
+
+  f4(hoge)=2016;
+  mwg_check(hoge.x==2016);
 }
 
 void check_variance(){
@@ -840,7 +715,7 @@ int main(){
 
   check_can_be_called_as();
 
-  //----------------------------------------------------------------------------
+  //---------------------------------------------------------------------------
   check_function_pointer();
 
   debug_support_member_function_pointer();
@@ -851,7 +726,7 @@ int main(){
 
   check_member_object_pointer();
 
-  //----------------------------------------------------------------------------
+  //---------------------------------------------------------------------------
   check_variance();
 
   return 0;
