@@ -295,126 +295,106 @@ namespace rwflags_detail{
       return head->read_data(&value,sizeof(T),1);
     }
   };
-  template<typename T,int I,typename X>
-  struct rwflags_impl_reinterpret{
-    typedef int wtype;
-    template<typename IT,int RWF>
-    static int write(const tape_head<IT,RWF>* head,const T& value){
-      return rwflags_impl<X,I>::template write<IT,RWF>(head,reinterpret_cast<const X&>(value));
-    }
-    typedef int rtype;
-    template<typename IT,int RWF>
-    static int read(const tape_head<IT,RWF>* head,T& value){
-      return rwflags_impl<X,I>::template read<IT,RWF>(head,reinterpret_cast<X&>(value));
-    }
-  };
 
-  template<typename T,int I>
-  struct rwflags_impl:rwflags_impl_default<T>{};
+  template<typename T, int EndianFlag, bool Enabled>
+  struct rwflags_impl_endian: rwflags_impl_default<T>{};
 
-  template<typename T,int I>
-  struct rwflags_impl2:rwflags_impl_default<T>{};
-
+  template<typename T>
+  struct rwflags_impl_endian<
+    T,
 #ifdef MWG_SYS_BIGENDIAN
-# define other_endian_flag little_endian_flag
+    little_endian_flag,
 #else
-# define other_endian_flag big_endian_flag
+    big_endian_flag,
 #endif
-  template<> struct rwflags_impl<u8t,other_endian_flag>{
+    true>
+  {
     typedef int wtype;
-    template<typename IT,int RWF>
-    static int write(const tape_head<IT,RWF>* head,const u8t& value){
-      return rwflags_impl_default<u8t>::template write<IT,RWF>(
-        head,
-        value<<56&0xFF00000000000000LL|
-        value<<40&0x00FF000000000000LL|
-        value<<24&0x0000FF0000000000LL|
-        value<< 8&0x000000FF00000000LL|
-        value>> 8&0x00000000FF000000|
-        value>>24&0x0000000000FF0000|
-        value>>40&0x000000000000FF00|
-        value>>56&0x00000000000000FF
-      );
-    }
     typedef int rtype;
-    template<typename IT,int RWF>
-    static int read(const tape_head<IT,RWF>* head,u8t& value){
-      u8t t;
-      int r=rwflags_impl_default<u8t>::template read<IT,RWF>(head,t);
-      if(r)
-        value=(
-          t<<56&0xFF00000000000000LL|
-          t<<40&0x00FF000000000000LL|
-          t<<24&0x0000FF0000000000LL|
-          t<< 8&0x000000FF00000000LL|
-          t>> 8&0x00000000FF000000|
-          t>>24&0x0000000000FF0000|
-          t>>40&0x000000000000FF00|
-          t>>56&0x00000000000000FF
-        );
-      return r;
-    }
-  };
-  template<> struct rwflags_impl<u4t,other_endian_flag>{
-    typedef int wtype;
-    template<typename IT,int RWF>
-    static int write(const tape_head<IT,RWF>* head,const u4t& value){
-      return rwflags_impl_default<u4t>::template write<IT,RWF>(
-        head,
-        value<<24&0xFF000000|
-        value<< 8&0x00FF0000|
-        value>> 8&0x0000FF00|
-        value>>24&0x000000FF
-      );
-    }
-    typedef int rtype;
-    template<typename IT,int RWF>
-    static int read(const tape_head<IT,RWF>* head,u4t& value){
-      u4t t;
-      int r=rwflags_impl_default<u4t>::template read<IT,RWF>(head,t);
-      if(r)
-        value=(
-          t<<24&0xFF000000|
-          t<< 8&0x00FF0000|
-          t>> 8&0x0000FF00|
-          t>>24&0x000000FF
-        );
-      return r;
-    }
-  };
-  template<> struct rwflags_impl<u2t,other_endian_flag>{
-    typedef int wtype;
-    template<typename IT,int RWF>
-    static int write(const tape_head<IT,RWF>* head,const u2t& value){
-      return rwflags_impl_default<u2t>::template write<IT,RWF>(
-        head,
-        value<<8&0xFF00|
-        value>>8&0x00FF
-      );
-    }
-    typedef int rtype;
-    template<typename IT,int RWF>
-    static int read(const tape_head<IT,RWF>* head,u2t& value){
-      u2t t;
-      int r=rwflags_impl_default<u2t>::template read<IT,RWF>(head,t);
-      if(r)
-        value=(
-          t<<8&0xFF00|
-          t>>8&0x00FF
-        );
-      return r;
-    }
-  };
-#undef other_endian_flag
 
-  template<int I> struct rwflags_impl<   u2t,I>:rwflags_impl2<u2t,I&(little_endian_flag|big_endian_flag)>{};
-  template<int I> struct rwflags_impl<   u4t,I>:rwflags_impl2<u4t,I&(little_endian_flag|big_endian_flag)>{};
-  template<int I> struct rwflags_impl<   u8t,I>:rwflags_impl2<u8t,I&(little_endian_flag|big_endian_flag)>{};
-  template<int I> struct rwflags_impl<   i2t,I>:rwflags_impl_reinterpret<   i2t,I,u2t>{};
-  template<int I> struct rwflags_impl<   i4t,I>:rwflags_impl_reinterpret<   i4t,I,u4t>{};
-  template<int I> struct rwflags_impl<   i8t,I>:rwflags_impl_reinterpret<   i8t,I,u8t>{};
-  template<int I> struct rwflags_impl< float,I>:rwflags_impl_reinterpret< float,I,u4t>{};
-  template<int I> struct rwflags_impl<double,I>:rwflags_impl_reinterpret<double,I,u8t>{};
+  private:
+    static mwg_constexpr u2t convert2(u2t value) {
+      return
+        value << 8 & 0xFF00 |
+        value >> 8 & 0x00FF;
+    }
+    static mwg_constexpr u4t convert4(u4t value) {
+      return
+        value << 24 & 0xFF000000 |
+        value <<  8 & 0x00FF0000 |
+        value >>  8 & 0x0000FF00 |
+        value >> 24 & 0x000000FF;
+    }
+
+    static mwg_constexpr u8t convert8(u8t value) {
+      return
+        value << 56 & 0xFF00000000000000LL |
+        value << 40 & 0x00FF000000000000LL |
+        value << 24 & 0x0000FF0000000000LL |
+        value <<  8 & 0x000000FF00000000LL |
+        value >>  8 & 0x00000000FF000000LL |
+        value >> 24 & 0x0000000000FF0000LL |
+        value >> 40 & 0x000000000000FF00LL |
+        value >> 56 & 0x00000000000000FFLL;
+    }
+
+  public:
+    template<typename IT, int RWF>
+    static inline int write(const tape_head<IT, RWF>* head, const T& value) {
+      if (sizeof(T) == 1) {
+        return rwflags_impl_default<T>::template write<IT, RWF>(head, value);
+      } else if (sizeof(T) == 2) {
+        return rwflags_impl_default<T>::template write<IT, RWF>(
+          head, convert2(reinterpret_cast<u2t const&>(value)));
+      } else if (sizeof(T) == 4) {
+        return rwflags_impl_default<T>::template write<IT, RWF>(
+          head, convert4(reinterpret_cast<u4t const&>(value)));
+      } else if (sizeof(T) == 8 && sizeof(u8t) == 8) {
+        return rwflags_impl_default<T>::template write<IT, RWF>(
+          head, convert8(reinterpret_cast<u8t const&>(value)));
+      } else {
+        byte const* src = reinterpret_cast<byte const*>(&value);
+        byte buffer[sizeof(T)];
+        for (std::size_t i = 0; i < sizeof(T); i++)
+          buffer[i] = src[sizeof(T) - 1 - i];
+        return head->write_data(buffer, sizeof(T), 1);
+      }
+    }
+
+    template<typename IT,int RWF>
+    static inline int read(const tape_head<IT, RWF>* head, T& value) {
+      byte buffer[sizeof(T)];
+      int const r = head->read_data(buffer, sizeof(T), 1);
+      if(r) {
+        if (sizeof(T) == 1) {
+          // do nothing
+        } else if (sizeof(T) == 2) {
+          u2t& data = *reinterpret_cast<u2t*>(buffer);
+          data = convert2(data);
+        } else if (sizeof(T) == 4) {
+          u4t& data = *reinterpret_cast<u4t*>(buffer);
+          data = convert4(data);
+        } else if (sizeof(T) == 8 && sizeof(u8t) == 8) {
+          u8t& data = *reinterpret_cast<u8t*>(buffer);
+          data = convert8(data);
+        } else {
+          for (std::size_t i = 0, j = sizeof(T) - 1; i < j; i++, j--)
+            std::swap(buffer[i], buffer[j]);
+        }
+
+        value = *reinterpret_cast<T const*>(buffer);
+      }
+
+      return r;
+    }
+  };
+
+  template<typename T,int I>
+  struct rwflags_impl: rwflags_impl_endian<
+    T,
+    I & (little_endian_flag|big_endian_flag),
+    mwg::stdm::is_arithmetic<T>::value> {};
+
 } /* endof namespace rwflags_detail */
 
 //NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN
