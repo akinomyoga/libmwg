@@ -755,7 +755,6 @@ namespace stdm {
    *   X -t'::round(x)' -oMWGCONF_HAS_ROUND math.h '::round(0.5)'
    */
 
-
 #if !defined(MWGCONF_HAS_STD_TRUNC)
 # ifdef MWGCONF_HAS_TRUNC
   using ::trunc;
