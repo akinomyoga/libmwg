@@ -22,6 +22,14 @@
 
 2016-10-26
 
+* functor: gcc-2.95.3 bug workaround
+
+  struct get_vaarg_variance の param を渡す所で駄目。
+
+  [[Full Text Bug Listing>https://gcc.gnu.org/bugzilla/show_bug.cgi?format=multiple&amp;id=2513]]
+  g++-2.95.3 ではクラステンプレートの中で定義されたテンプレートを、
+  テンプレートテンプレートパラメータに渡せない様だ。
+
 * mwg/bio/tape.h (tape_header): 64bit 整数に対応していない処理系の場合、
   64bit データの読み書きで間違いが生じる。そしてそれを検知していない。
   int64_t, uint64_t の無いシステムでは代替となる型を提供する必要があるのではないか。

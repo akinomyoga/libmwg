@@ -370,7 +370,7 @@ namespace stdm{
   // is_reference            U&     T
   // is_object               T&     T&&
   template<typename T> struct add_lvalue_reference
-    :detail::add_lvalue_reference__impl<typename remove_reference<T>::type,!is_void<T>::value&&!is_function<T>::value>{};
+    :detail::add_lvalue_reference__impl<typename remove_reference<T>::type,(!is_void<T>::value&&!is_function<T>::value)>{};
 
 # ifdef MWGCONF_STD_RVALUE_REFERENCES
   template<typename T> struct add_rvalue_reference

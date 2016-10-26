@@ -138,15 +138,16 @@ namespace cstdint_detail {
   typedef cstdint_detail::integer_switch<4>::uint_t uint32_t;
   typedef cstdint_detail::integer_switch<8>::uint_t uint64_t;
 
-  static_assert(
-    sizeof(int8_t) == 1
-    && sizeof(int16_t) == 2
-    && sizeof(int32_t) == 4
 #ifdef MWGCONF_HAS_64BIT_INTEGER
-    && sizeof(int64_t) == 8
-#endif
-    ,
+  static_assert(
+    sizeof(int8_t) == 1 && sizeof(int16_t) == 2 && sizeof(int32_t) == 4 && sizeof(int64_t) == 8,
     "mwg/std/cstdint: FATAL: sorry, failed to generate inttypes...");
+#else
+  // Note: gcc-2.95.3 ではマクロの中で #ifdef を記述できない。
+  static_assert(
+    sizeof(int8_t) == 1 && sizeof(int16_t) == 2 && sizeof(int32_t) == 4,
+    "mwg/std/cstdint: FATAL: sorry, failed to generate inttypes...");
+#endif
 
   typedef long long int intmax_t;
   typedef unsigned long long int uintmax_t;
