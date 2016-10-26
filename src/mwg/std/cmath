@@ -471,6 +471,38 @@ void test() {
 
 //HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 //
+// [C11 7.12.11] Manipulation functions
+//
+//-----------------------------------------------------------------------------
+/*?mconf
+ * X -t'std::copysign(x)' -oMWGCONF_HAS_STD_COPYSIGN cmath 'std::copysign(1.0, 2.0)' ||
+ *   X -t'::copysign(x)' -oMWGCONF_HAS_COPYSIGN math.h '::copysign(1.0, 2.0)'
+ */
+
+namespace mwg {
+namespace stdm {
+
+#if !defined(MWGCONF_HAS_STD_COPYSIGN)
+# ifdef MWGCONF_HAS_COPYSIGN
+  using ::copysign;
+# else
+  template<typename T, typename U>
+  typename cmath_detail::overload<T>::type copysign(T value, U sign) {
+    typedef typename cmath_detail::overload<T, U>::type R;
+    return (R) sign < 0? -(R) value: (R) value;
+  }
+  static inline float copysignf(float value) {return copysign(value);}
+  static inline long double copysignl(long double value) {return copysign(value);}
+# endif
+#elif defined(MWGCONF_GCC295BUG_USING_NAMESPACE_STD)
+  using ::std::copysign;
+#endif
+
+}
+}
+
+//HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+//
 // [C11 7.12.4] Trigonometric functions
 //
 //-----------------------------------------------------------------------------
@@ -560,6 +592,14 @@ namespace stdm {
 #endif
 }
 }
+
+#pragma%x begin_test
+void test() {
+  mwg_check(mwg::stdm::asinh(0.0) == 0.0);
+  mwg_check(mwg::stdm::acosh(1.0) == 0.0);
+  mwg_check(mwg::stdm::atanh(0.0) == 0.0);
+}
+#pragma%x end_test
 
 //HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 //
@@ -705,8 +745,7 @@ namespace stdm {
   template<typename T>
   typename cmath_detail::overload<T>::type cbrt(T value) {
     typedef typename cmath_detail::overload<T>::type R;
-    R const result = std::pow(std::abs((R) value), R(1.0 / 3.0));
-    return value < 0? -result: result;
+    return mwg::stdm::copysign(std::pow(std::abs((R) value), R(1.0 / 3.0)), value);
   }
   static inline float cbrtf(float value) {return cbrt(value);}
   static inline long double cbrtl(long double value) {return cbrt(value);}
@@ -736,6 +775,16 @@ namespace stdm {
 #elif defined(MWGCONF_GCC295BUG_USING_NAMESPACE_STD)
   using ::std::hypot;
 #endif
+
+#pragma%x begin_test
+  void test() {
+    mwg_check(mwg::stdm::cbrt(0.0) == 0.0);
+    mwg_check(mwg::stdm::cbrt(-8.0) == -2.0);
+    mwg_check(mwg::stdm::cbrt(+8.0) == +2.0);
+    mwg_check(mwg::stdm::cbrt(-1.0) == -1.0);
+    mwg_check(mwg::stdm::cbrt(+1.0) == +1.0);
+  }
+#pragma%x end_test
 
 }
 }
@@ -817,11 +866,6 @@ namespace stdm {
 #pragma%x begin_check
 int main(){
   managed_test::run_tests();
-
-  mwg_check(mwg::stdm::asinh(0.0) == 0.0);
-  mwg_check(mwg::stdm::acosh(1.0) == 0.0);
-  mwg_check(mwg::stdm::atanh(0.0) == 0.0);
-
   return 0;
 }
 #pragma%x end_check
