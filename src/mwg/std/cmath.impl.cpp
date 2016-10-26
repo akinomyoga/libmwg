@@ -1,8 +1,8 @@
 // -*- mode: c++; coding: utf-8 -*-
-#include <mwg/std/cfenv>
 #include <mwg/std/cmath>
 
 #if !defined(MWGCONF_HAS_STD_ILOGB) && !defined(MWGCONF_HAS_ILOGB)
+# include <mwg/std/cfenv>
 namespace mwg {
 namespace stdm {
 namespace cmath_detail {
@@ -43,6 +43,7 @@ namespace cmath_detail {
 #endif
 
 #if !defined(MWGCONF_HAS_STD_LOGB) && !defined(MWGCONF_HAS_LOGB)
+# include <mwg/std/cfenv>
 namespace mwg {
 namespace stdm {
 namespace cmath_detail {
@@ -74,6 +75,49 @@ namespace cmath_detail {
   int logb(float value) {return logb_impl(value);}
   int logb(double value) {return logb_impl(value);}
   int logb(long double value) {return logb_impl(value);}
+
+}
+}
+}
+#endif
+
+#if !defined(MWGCONF_HAS_STD_NEXTAFTER) && !defined(MWGCONF_HAS_NEXTAFTER)
+# include <mwg/std/cfenv>
+# include <mwg/std/limits>
+namespace mwg {
+namespace stdm {
+namespace cmath_detail {
+
+  template<typename T>
+  static T nextafter_impl(T from, T to) {
+    if (mwg::stdm::isnan(from) || mwg::stdm::isnan(to))
+      return NAN;
+    if (from == to)
+      return to;
+    if (mwg::stdm::isinf(from))
+      return from > T(0.0)? mwg::stdm::numeric_limits<T>::max(): mwg::stdm::numeric_limits<T>::lowest();
+    if (from == 0.0)
+      return mwg::stdm::copysign(mwg::stdm::numeric_limits<T>::min(), to);
+
+    int const exp = mwg::stdm::logb(from);
+    T man = mwg::stdm::scalbn(from, -exp);
+    if (from < to)
+      man += mwg::stdm::numeric_limits<T>::epsilon();
+    else
+      man -= mwg::stdm::numeric_limits<T>::epsilon();
+    T const next = mwg::stdm::scalbn(man, exp);
+
+    if (mwg::stdm::isinf(next))
+      feraiseexcept(FE_INEXACT | FE_OVERFLOW);
+    else if (next == 0.0 || !mwg::stdm::isnormal(next))
+      feraiseexcept(FE_INEXACT | FE_UNDERFLOW);
+
+    return next;
+  }
+
+  float nextafter(float lhs, float rhs) {return nextafter_impl(lhs, rhs);}
+  double nextafter(double lhs, double rhs) {return nextafter_impl(lhs, rhs);}
+  long double nextafter(long double lhs, long double rhs) {return nextafter_impl(lhs, rhs);}
 
 }
 }

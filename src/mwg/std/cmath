@@ -22,7 +22,6 @@
 #include <mwg/except.h>
 #pragma%x end_check
 
-// ToDo: nextafter nexttoward
 // ToDo: nearbyint rint lrint llrint
 // ToDo: Correct errhandling of round lround llround
 // ToDo: isgreater isgreaterequal isless islessequal islessgreater
@@ -109,15 +108,21 @@ namespace cmath_detail {
 
 // Note: 各コンパイラで警告が出ない表式が異なる。
 #ifndef INFINITY
-# ifdef _MSC_VER
-#  define INFINITY (float(1e100));
-# else
-#  define INFINITY (1.0f / 0.0f);
-# endif
+// # ifdef _MSC_VER
+// #  define INFINITY (float(1e100));
+// # else
+// #  define INFINITY (1.0f / 0.0f);
+// # endif
+# include <limits>
+# define INFINITY (::std::numeric_limits<float>::infinity())
 #endif
 
+//?mconf X -t'qNAN' -oMWGCONF_FLOAT_HAS_QUIET_NAN limits 'char arr[std::numeric_limits<float>::has_quiet_NaN? 1: -1];'
 #ifndef NAN
-# include <mwg/std/cfenv>
+# ifdef MWGCONF_FLOAT_HAS_QUIET_NAN
+#  define NAN (::std::numeric_limits<float>::quiet_NaN())
+# else
+#  include <mwg/std/cfenv>
 namespace mwg {
 namespace stdm {
 namespace cmath_detail {
@@ -134,7 +139,8 @@ namespace cmath_detail {
 }
 }
 }
-# define NAN (::mwg::stdm::cmath_detail::qnan())
+#  define NAN (::mwg::stdm::cmath_detail::qnan())
+# endif
 #endif
 
 #pragma%x begin_test
@@ -766,6 +772,37 @@ namespace stdm {
   }
 #endif
 #pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/logb/.r|@expr|cmath_detail::logb((R) value)|
+
+#if !defined(MWGCONF_HAS_STD_NEXTAFTER) && !defined(MWGCONF_HAS_NEXTAFTER)
+  namespace cmath_detail {
+    float nextafter(float lhs, float rhs);
+    double nextafter(double lhs, double rhs);
+    long double nextafter(long double lhs, long double rhs);
+  }
+#endif
+#pragma%x MWG_STDM_CMATH::ImportBinaryMathFunction.r/@fname/nextafter/.r|@expr|cmath_detail::nextafter((R) lhs, (R) rhs)|
+
+/*?mconf
+ * X -t'std::nexttoward(x, y)' -oMWGCONF_HAS_STD_NEXTTOWARD cmath 'std::nexttoward(1.0, 2L)' ||
+ *   X -t'::nexttoward(x, y)' -oMWGCONF_HAS_NEXTTOWARD math.h '::nexttoward(1.0, 2L)'
+ */
+#if !defined(MWGCONF_HAS_STD_SCALBLN)
+# ifdef MWGCONF_HAS_SCALBLN
+  using ::nexttoward;
+# else
+  template<typename T>
+  typename cmath_detail::overload<T>::type nexttoward(T from, long double to) {
+    typedef typename cmath_detail::overload<T>::type R;
+    if ((long double) from == to) return (R) to;
+    if (mwg::stdm::isnan(from) || mwg::stdm::isnan(to)) return (R) NAN;
+    return mwg::stdm::nextafter((R) from, (long double) from > to? (R) -INFINITY: (R) INFINITY):
+  }
+  static inline float nexttowardf(float from, long double to) {return nexttoward(from, to);}
+  static inline long double nexttowardl(long double from, long double to) {return nexttoward(from, to);}
+# endif
+#elif defined(MWGCONF_GCC295BUG_USING_NAMESPACE_STD)
+  using ::std::nexttoward;
+#endif
 
 #pragma%x begin_test
   void test() {
