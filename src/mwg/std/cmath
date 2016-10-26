@@ -22,10 +22,10 @@
 #include <mwg/except.h>
 #pragma%x end_check
 
+// ToDo: nan nanf nanl
+// ToDo: remainder remquo fma fmax fmin fdim
 // ToDo: nearbyint rint lrint llrint
 // ToDo: Correct errhandling of round lround llround
-// ToDo: isgreater isgreaterequal isless islessequal islessgreater
-// ToDo: isunordered
 // ToDo: erf erfc tgamma lgamma
 // ToDo: 古くからある関数や using した関数でも arithmetic overloads を追加する。
 
@@ -891,7 +891,75 @@ namespace stdm {
 }
 
 //HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+//
+// [C11 7.12.14] Comparison macros
+//
+//-----------------------------------------------------------------------------
+
+#pragma%m MWG_STDM_CMATH::ImportComparisonMacros
+#pragma%%[fname="@fname",FNAME=fname.toupper(),expr="@expr"]
+#pragma%%[ret = ("@ret" != "@" + "ret")? "enable<@ret>::type": "type"]
+#pragma%%x
+/*?mconf
+ * if ! X -t'std::fname(x, y)' -oMWGCONF_HAS_STD_FNAME cmath 'std::fname(1.0, 2.0)'; then
+ *   X -t'::fname(x, y)' -oMWGCONF_HAS_FNAME cmath $'\n#undef fname\n::fname(1.0, 2.0);'
+ * fi
+ */
+#ifndef MWGCONF_HAS_STD_FNAME
+namespace mwg {
+namespace stdm_detail {
+# ifdef fname
+  static inline bool fname_impl(float lhs, float rhs) {return fname(lhs, rhs) != 0;}
+  static inline bool fname_impl(double lhs, double rhs) {return fname(lhs, rhs) != 0;}
+  static inline bool fname_impl(long double lhs, long double rhs) {return fname(lhs, rhs) != 0;}
+#  undef fname
+#  ifndef MWGCONF_HAS_FNAME
+#   define MWG_STDM_CMATH_DefinesGlobalIsunordered
+#  endif
+# elif defined(MWGCONF_HAS_FNAME)
+  template<typename T>
+  bool fname_impl(T lhs, T rhs) {
+    return ::fname(lhs, rhs);
+  }
+# else
+  template<typename T>
+  bool fname_impl(T lhs, T rhs) {
+    return [expression];
+  }
+# endif
+}
+namespace stdm {
+  template<typename T, typename U>
+  typename cmath_detail::overload<T, U>::type fname(T x, U y) {
+    typedef typename cmath_detail::overload<T, U>::type R;
+    return ::mwg::stdm_detail::fname_impl((R) x, (R) y);
+  }
+}
+}
+# ifdef MWG_STDM_CMATH_DefinesGlobalIsunordered
+using ::mwg::stdm::fname;
+# endif
+#elif defined(MWGCONF_GCC295BUG_USING_NAMESPACE_STD)
+namespace mwg {
+namespace stdm {
+  using ::std::fname;
+}
+}
+#endif
+#pragma%%end.r/FNAME/${FNAME}/.r/fname/${fname}/.r/\[expression\]/${expr}/.r/return_type/${ret}/.i
+#pragma%end
+
+#pragma%x MWG_STDM_CMATH::ImportComparisonMacros.r/@fname/isunordered/   .r#@expr#mwg::stdm::isnan(lhs) || mwg::stdm::isnan(rhs)#
+#pragma%x MWG_STDM_CMATH::ImportComparisonMacros.r/@fname/isgreater/     .r#@expr#mwg::stdm::isunordered(lhs, rhs)? false: lhs > rhs#
+#pragma%x MWG_STDM_CMATH::ImportComparisonMacros.r/@fname/isless/        .r#@expr#mwg::stdm::isunordered(lhs, rhs)? false: lhs < rhs#
+#pragma%x MWG_STDM_CMATH::ImportComparisonMacros.r/@fname/isgreaterequal/.r#@expr#mwg::stdm::isunordered(lhs, rhs)? false: lhs >= rhs#
+#pragma%x MWG_STDM_CMATH::ImportComparisonMacros.r/@fname/islessequal/   .r#@expr#mwg::stdm::isunordered(lhs, rhs)? false: lhs <= rhs#
+#pragma%x MWG_STDM_CMATH::ImportComparisonMacros.r/@fname/islessgreater/ .r#@expr#mwg::stdm::isunordered(lhs, rhs)? false: lhs < rhs || lhs > rhs#
+
+//HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+//
 //  extended basic functions
+//
 //=============================================================================
 
 namespace mwg {
