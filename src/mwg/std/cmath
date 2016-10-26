@@ -8,6 +8,7 @@
 #ifndef _GNU_SOURCE
 # define _GNU_SOURCE 1
 #endif
+#include <math.h>
 #include <cmath>
 #include <mwg/defs.h>
 #include <mwg/std/type_traits>
@@ -19,23 +20,28 @@
 #include <mwg/except.h>
 #pragma%x end_check
 
-// ToDo: isgreater
-// ToDo: isgreaterequal
-// ToDo: isless
-// ToDo: islessequal
-// ToDo: islessgreater
+// ToDo: ilogb logb FP_ILOGB0 FP_ILOGBNAN
+// ToDo: nextafter nexttoward copysign scalbn scalbln
+// ToDo: nearbyint rint lrint llrint
+// ToDo: Correct errhandling of round lround llround
+// ToDo: isgreater isgreaterequal isless islessequal islessgreater
 // ToDo: isunordered
+// ToDo: erf erfc (c.f. Numerical Recipes in C 2nd p220) tgamma lgamma
+// ToDo: 古くからある関数や using した関数でも arithmetic overloads を追加する。
 
 namespace mwg {
 namespace stdm {
 namespace cmath_detail {
-  template<typename T>
-  struct overload:
-    mwg::stdm::conditional<
-      mwg::stdm::is_floating_point<T>::value, mwg::identity<T>,
-      mwg::stdm::enable_if<mwg::stdm::is_integral<T>::value, double> >::type
+  template<typename T, typename U = T>
+  struct overload: mwg::stdm::enable_if<
+    (mwg::stdm::is_arithmetic<T>::value && mwg::stdm::is_arithmetic<U>::value),
+    typename mwg::stdm::conditional<
+      (mwg::stdm::is_same<T, long double>::value || mwg::stdm::is_same<U, long double>::value), long double,
+      typename mwg::stdm::conditional<
+        (mwg::stdm::is_same<T, float>::value && mwg::stdm::is_same<U, float>::value), float,
+        double>::type>::type>
   {
-    static const bool value = mwg::stdm::is_floating_point<T>::value || mwg::stdm::is_integral<T>::value;
+    static const bool value = mwg::stdm::is_arithmetic<T>::value && mwg::stdm::is_arithmetic<U>::value;
     template<typename R> struct enable: mwg::stdm::enable_if<value, R> {};
   };
 }
@@ -465,23 +471,50 @@ void test() {
 
 //HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 //
-// [C11 7.12.5] Hyperbolic functions
+// [C11 7.12.4] Trigonometric functions
 //
 //-----------------------------------------------------------------------------
 
-//?mconf X -t'std::asinh(x)' -oMWGCONF_HAS_STD_ASINH cmath 'std::asinh(2.0)'
-//?mconf X -t'std::acosh(x)' -oMWGCONF_HAS_STD_ACOSH cmath 'std::acosh(2.0)'
-//?mconf X -t'std::atanh(x)' -oMWGCONF_HAS_STD_ATANH cmath 'std::atanh(0.5)'
+#ifdef MWGCONF_GCC295BUG_USING_NAMESPACE_STD
+namespace mwg {
+namespace stdm {
+  using ::std::sin;
+  using ::std::cos;
+  using ::std::tan;
+  using ::std::asin;
+  using ::std::acos;
+  using ::std::atan;
+  using ::std::atan2;
+}
+}
+#endif
+
+//HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+//
+// [C11 7.12.5] Hyperbolic functions
+//
+//-----------------------------------------------------------------------------
+/*?mconf
+ * X -t'std::asinh(x)' -oMWGCONF_HAS_STD_ASINH cmath 'std::asinh(2.0)' ||
+ *   X -t'::asinh(x)' -oMWGCONF_HAS_ASINH math.h '::asinh(2.0)'
+ * X -t'std::acosh(x)' -oMWGCONF_HAS_STD_ACOSH cmath 'std::acosh(2.0)' ||
+ *   X -t'::acosh(x)' -oMWGCONF_HAS_ACOSH math.h '::acosh(2.0)'
+ * X -t'std::atanh(x)' -oMWGCONF_HAS_STD_ATANH cmath 'std::atanh(0.5)' ||
+ *   X -t'::atanh(x)' -oMWGCONF_HAS_ATANH math.h '::atanh(0.5)'
+ */
 
 namespace mwg {
 namespace stdm {
 #ifdef MWGCONF_GCC295BUG_USING_NAMESPACE_STD
   using ::std::sinh;
   using ::std::cosh;
-  using ::std::sinh;
+  using ::std::tanh;
 #endif
 
 #if !defined(MWGCONF_HAS_STD_ASINH)
+# ifdef MWGCONF_HAS_ASINH
+  using ::asinh;
+# else
   template<typename T>
   typename cmath_detail::overload<T>::type asinh(T value) {
     typedef typename cmath_detail::overload<T>::type R;
@@ -489,11 +522,15 @@ namespace stdm {
   }
   static inline float asinhf(float value) {return asinh(value);}
   static inline long double asinhl(long double value) {return asinh(value);}
+# endif
 #elif defined(MWGCONF_GCC295BUG_USING_NAMESPACE_STD)
   using ::std::asinh;
 #endif
 
 #if !defined(MWGCONF_HAS_STD_ACOSH)
+# ifdef MWGCONF_HAS_ACOSH
+  using ::acosh;
+# else
   template<typename T>
   typename cmath_detail::overload<T>::type acosh(T value) {
     typedef typename cmath_detail::overload<T>::type R;
@@ -501,11 +538,15 @@ namespace stdm {
   }
   static inline float acoshf(float value) {return acosh(value);}
   static inline long double acoshl(long double value) {return acosh(value);}
+# endif
 #elif defined(MWGCONF_GCC295BUG_USING_NAMESPACE_STD)
   using ::std::acosh;
 #endif
 
 #if !defined(MWGCONF_HAS_STD_ATANH)
+# ifdef MWGCONF_HAS_ATANH
+  using ::atanh;
+# else
   template<typename T>
   typename cmath_detail::overload<T>::type atanh(T value) {
     typedef typename cmath_detail::overload<T>::type R;
@@ -513,6 +554,7 @@ namespace stdm {
   }
   static inline float atanhf(float value) {return atanh(value);}
   static inline long double atanhl(long double value) {return atanh(value);}
+# endif
 #elif defined(MWGCONF_GCC295BUG_USING_NAMESPACE_STD)
   using ::std::atanh;
 #endif
@@ -524,16 +566,15 @@ namespace stdm {
 // [C11 7.12.6] Exponential and logarithmic functions
 //
 //-----------------------------------------------------------------------------
-
 /*?mconf
  * X -t'std::exp2(x)' -oMWGCONF_HAS_STD_EXP2 cmath 'std::exp2(2.0)' ||
- *   X -t'::exp2(x)' -oMWGCONF_HAS_EXP2 math.h 'std::exp2(2.0)'
+ *   X -t'::exp2(x)' -oMWGCONF_HAS_EXP2 math.h '::exp2(2.0)'
  * X -t'std::expm1(x)' -oMWGCONF_HAS_STD_EXPM1 cmath 'std::expm1(2.0)' ||
- *   X -t'::expm1(x)' -oMWGCONF_HAS_EXPM1 math.h 'std::expm1(2.0)'
+ *   X -t'::expm1(x)' -oMWGCONF_HAS_EXPM1 math.h '::expm1(2.0)'
  * X -t'std::log2(x)' -oMWGCONF_HAS_STD_LOG2 cmath 'std::log2(2.0)' ||
- *   X -t'::log2(x)' -oMWGCONF_HAS_LOG2 math.h 'std::log2(2.0)'
+ *   X -t'::log2(x)' -oMWGCONF_HAS_LOG2 math.h '::log2(2.0)'
  * X -t'std::log1p(x)' -oMWGCONF_HAS_STD_LOG1P cmath 'std::log1p(2.0)' ||
- *   X -t'::log1p(x)' -oMWGCONF_HAS_LOG1P math.h 'std::log1p(2.0)'
+ *   X -t'::log1p(x)' -oMWGCONF_HAS_LOG1P math.h '::log1p(2.0)'
  */
 
 namespace mwg {
@@ -585,7 +626,7 @@ namespace stdm {
 
 #if !defined(MWGCONF_HAS_STD_LOG2)
 # ifdef MWGCONF_HAS_LOG2
-  using ::expm1;
+  using ::log2;
 # else
   template<typename T>
   typename cmath_detail::overload<T>::type log2(T value) {
@@ -601,7 +642,7 @@ namespace stdm {
 
 #if !defined(MWGCONF_HAS_STD_LOG1P)
 # ifdef MWGCONF_HAS_LOG1P
-  using ::expm1;
+  using ::log1p;
 # else
   template<typename T>
   typename cmath_detail::overload<T>::type log1p(T value) {
@@ -625,8 +666,77 @@ namespace stdm {
     double const b = mwg::stdm::expm1(1e-5);
     double const c = mwg::stdm::log2(1e-5);
     double const d = mwg::stdm::log1p(1e-5);
+
+    mwg_unused(a);
+    mwg_unused(b);
+    mwg_unused(c);
+    mwg_unused(d);
   }
 #pragma%x end_test
+}
+}
+
+//HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+//
+// [C11 7.12.7] Power and absolute-value functions
+//
+//-----------------------------------------------------------------------------
+/*?mconf
+ * X -t'std::cbrt(x)' -oMWGCONF_HAS_STD_CBRT cmath 'std::cbrt(2.0)' ||
+ *   X -t'::cbrt(x)' -oMWGCONF_HAS_CBRT math.h '::cbrt(2.0)'
+ * X -t'std::hypot(x)' -oMWGCONF_HAS_STD_HYPOT cmath 'std::hypot(1.0, 2.0)' ||
+ *   X -t'::hypot(x)' -oMWGCONF_HAS_HYPOT math.h '::hypot(1.0, 2.0)'
+ */
+
+namespace mwg {
+namespace stdm {
+
+#ifdef MWGCONF_GCC295BUG_USING_NAMESPACE_STD
+  using ::std::abs;
+  using ::std::fabs;
+  using ::std::pow;
+  using ::std::sqrt;
+#endif
+
+#if !defined(MWGCONF_HAS_STD_CBRT)
+# ifdef MWGCONF_HAS_CBRT
+  using ::cbrt;
+# else
+  template<typename T>
+  typename cmath_detail::overload<T>::type cbrt(T value) {
+    typedef typename cmath_detail::overload<T>::type R;
+    R const result = std::pow(std::abs((R) value), R(1.0/3.0));
+    return value < 0? -result: result;
+  }
+  static inline float cbrtf(float value) {return cbrt(value);}
+  static inline long double cbrtl(long double value) {return cbrt(value);}
+# endif
+#elif defined(MWGCONF_GCC295BUG_USING_NAMESPACE_STD)
+  using ::std::cbrt;
+#endif
+
+#if !defined(MWGCONF_HAS_STD_HYPOT)
+# ifdef MWGCONF_HAS_HYPOT
+  using ::hypot;
+# else
+  template<typename T, typename U>
+  typename cmath_detail::overload<T, U>::type hypot(T x, U y) {
+    typedef typename cmath_detail::overload<T, U>::type R;
+    R const x_ = std::abs((R) x), y_ = std::abs((R) y);
+    if (x_ == 0.0 && y_ == 0.0)
+      return 0.0;
+    else if (x_ < y_)
+      return y_ * std::sqrt(1.0 + (x_ / y_) * (x_ / y_));
+    else
+      return x_ * std::sqrt(1.0 + (y_ / x_) * (y_ / x_));
+  }
+  static inline float hypotf(float lhs, float rhs) {return hypot(lhs, rhs);}
+  static inline long double hypotl(long double lhs, long double rhs) {return hypot(lhs, rhs);}
+# endif
+#elif defined(MWGCONF_GCC295BUG_USING_NAMESPACE_STD)
+  using ::std::hypot;
+#endif
+
 }
 }
 
@@ -634,22 +744,32 @@ namespace stdm {
 //  extended basic functions
 //=============================================================================
 
-namespace mwg{
-namespace stdm{
+namespace mwg {
+namespace stdm {
 
   // C99 Features
-  //?mconf X -t'std::trunc(x)' -oMWGCONF_HAS_STD_TRUNC cmath 'std::trunc(0.5)'
-  //?mconf X -t'std::round(x)' -oMWGCONF_HAS_STD_ROUND cmath 'std::round(0.5)'
+  /*?mconf
+   * X -t'std::trunc(x)' -oMWGCONF_HAS_STD_TRUNC cmath 'std::trunc(0.5)' ||
+   *   X -t'::trunc(x)' -oMWGCONF_HAS_TRUNC math.h '::trunc(0.5)'
+   * X -t'std::round(x)' -oMWGCONF_HAS_STD_ROUND cmath 'std::round(0.5)' ||
+   *   X -t'::round(x)' -oMWGCONF_HAS_ROUND math.h '::round(0.5)'
+   */
 
 
 #if !defined(MWGCONF_HAS_STD_TRUNC)
+# ifdef MWGCONF_HAS_TRUNC
+  using ::trunc;
+# else
   template<typename T>
-  typename mwg::stdm::enable_if<mwg::stdm::is_floating_point<T>::value,T>::type
-  trunc(T value mwg_gcc3_concept_overload(1)){return value>=0?std::floor(value):std::ceil(value);}
-
-  template<typename T>
-  typename mwg::stdm::enable_if<mwg::stdm::is_integral<T>::value,double>::type
-  trunc(T value mwg_gcc3_concept_overload(2)){return trunc(double(value));}
+  typename cmath_detail::overload<T>::type trunc(T value) {
+    typedef typename cmath_detail::overload<T>::type R;
+    return (R) value >= 0? std::floor((R) value): std::ceil((R) value);
+  }
+  static inline float truncf(float value) {return trunc(value);}
+  static inline long double truncl(long double value) {return trunc(value);}
+# endif
+#elif defined(MWGCONF_GCC295BUG_USING_NAMESPACE_STD)
+  using ::std::trunc;
 #endif
 
 #if !defined(MWGCONF_HAS_STD_ROUND)
