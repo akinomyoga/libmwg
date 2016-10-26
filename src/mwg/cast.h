@@ -1,5 +1,4 @@
 // -*- mode:C++;coding:utf-8 -*-
-#pragma once
 #ifndef MWG_CAST_H
 #define MWG_CAST_H
 #include <cstdlib>

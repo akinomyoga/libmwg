@@ -1,5 +1,4 @@
 // -*- mode:C++;coding:utf-8 -*-
-#pragma once
 #include <memory>
 #include <algorithm>
 #include <utility>

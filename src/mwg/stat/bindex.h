@@ -1,5 +1,4 @@
 // -*- mode:c++ -*-
-#pragma once
 #ifndef MWG_STAT_BINDEX_H
 #define MWG_STAT_BINDEX_H
 namespace mwg{

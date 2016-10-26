@@ -1,5 +1,4 @@
 // -*- mode:C++;coding:utf-8 -*-
-#pragma once
 #ifndef MWG_BIO_TAPE_STREAM_INL
 #define MWG_BIO_TAPE_STREAM_INL
 #include <string>

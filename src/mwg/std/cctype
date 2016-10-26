@@ -1,5 +1,4 @@
 // -*- mode:C++;coding:utf-8 -*-
-#pragma once
 #ifndef MWG_STDM_CCTYPE
 #define MWG_STDM_CCTYPE
 #include <cctype>

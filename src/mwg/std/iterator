@@ -1,5 +1,4 @@
 // -*- mode:c++;coding:utf-8 -*-
-#pragma once
 #ifndef MWG_STDM_ITERATOR
 #define MWG_STDM_ITERATOR
 #include <mwg/defs.h>

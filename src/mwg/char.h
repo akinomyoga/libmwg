@@ -1,5 +1,4 @@
 // -*- mode:C++;coding:utf-8 -*-
-#pragma once
 #ifndef MWG_CHAR_H
 #define MWG_CHAR_H
 #include <mwg/defs.h>

@@ -1,5 +1,4 @@
 // -*- mode:C++;coding:utf-8 -*-
-#pragma once
 #ifndef MWG_FUNCSIG_H
 #define MWG_FUNCSIG_H
 #include <cstddef>

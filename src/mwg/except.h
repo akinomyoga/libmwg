@@ -11,7 +11,6 @@
 // #include "mwg/except.h"
 //
 // ---------------------------------------------------------------------------
-#pragma once
 #ifndef MWG_EXCEPT_H
 #define MWG_EXCEPT_H
 #include <cstdio>

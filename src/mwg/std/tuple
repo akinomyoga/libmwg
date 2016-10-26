@@ -1,5 +1,4 @@
 // -*- mode:C++;coding:utf-8 -*-
-#pragma once
 #ifndef MWG_STDM_TUPLE
 #define MWG_STDM_TUPLE
 #include <mwg/defs.h>

@@ -1,5 +1,4 @@
 // -*- mode:C++;coding:utf-8 -*-
-#pragma once
 #ifndef MWG_MPL_H
 #define MWG_MPL_H
 #include <cstddef>

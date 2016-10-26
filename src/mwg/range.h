@@ -1,5 +1,4 @@
 // -*- mode:C++;coding:utf-8 -*-
-#pragma once
 #ifndef MWG_RANGE_H
 #define MWG_RANGE_H
 #include <algorithm>

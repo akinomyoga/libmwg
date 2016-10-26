@@ -1,5 +1,4 @@
 // -*- mode:C++;coding:utf-8 -*-
-#pragma once
 #ifndef MWG_FUNCTOR_H
 #define MWG_FUNCTOR_H
 #pragma%x begin_check
