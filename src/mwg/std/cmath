@@ -10,6 +10,8 @@
 #endif
 #include <math.h>
 #include <cmath>
+#include <cfloat>
+#include <climits>
 #include <mwg/defs.h>
 #include <mwg/std/type_traits>
 
@@ -20,8 +22,7 @@
 #include <mwg/except.h>
 #pragma%x end_check
 
-// ToDo: ilogb logb FP_ILOGB0 FP_ILOGBNAN
-// ToDo: nextafter nexttoward copysign scalbn scalbln
+// ToDo: nextafter nexttoward
 // ToDo: nearbyint rint lrint llrint
 // ToDo: Correct errhandling of round lround llround
 // ToDo: isgreater isgreaterequal isless islessequal islessgreater
@@ -99,6 +100,52 @@ namespace cmath_detail {
 #ifndef M_SQRT1_2
 # define M_SQRT1_2  7.07106781186547524401e-001
 #endif
+
+//HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+//
+// [C11 7.12] Macros
+//
+//-----------------------------------------------------------------------------
+
+// Note: 各コンパイラで警告が出ない表式が異なる。
+#ifndef INFINITY
+# ifdef _MSC_VER
+#  define INFINITY (float(1e100));
+# else
+#  define INFINITY (1.0f / 0.0f);
+# endif
+#endif
+
+#ifndef NAN
+# include <mwg/std/cfenv>
+namespace mwg {
+namespace stdm {
+namespace cmath_detail {
+  inline float qnan() {
+    static mwg::stdm::fenv_t env;
+    static float tmp;
+    static float value = (
+      mwg::stdm::feholdexcept(&env),
+      tmp = -std::sqrt(float(-1)),
+      mwg::stdm::fesetenv(&env),
+      tmp);
+    return value;
+  }
+}
+}
+}
+# define NAN (::mwg::stdm::cmath_detail::qnan())
+#endif
+
+#pragma%x begin_test
+void test() {
+  float a;
+  //a = mwg::stdm::cmath_detail::qnan();
+  a = INFINITY;
+  a = NAN;
+  (void) a;
+}
+#pragma%x end_test
 
 //HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 //
@@ -431,12 +478,8 @@ using mwg::stdm::fpclassify;
 
 #pragma%x begin_test
 void test() {
-#ifdef _MSC_VER
-  double const inf = double(float(1e100));
-#else
-  double const inf = 1.0 / 0.0;
-#endif
-  double const qnan = std::sqrt(double(-1));
+  double const inf = INFINITY;
+  double const qnan = NAN;
   mwg_check(!mwg::stdm::isnan(0.0));
   mwg_check(!mwg::stdm::isnan(1.0));
   mwg_check(!mwg::stdm::isnan(inf));
@@ -481,6 +524,7 @@ namespace stdm {
 
 #pragma%m MWG_STDM_CMATH::ImportUnaryMathFunction
 #pragma%%[fname="@fname",FNAME=fname.toupper(),expr="@expr"]
+#pragma%%[ret = ("@ret" != "@" + "ret")? "enable<@ret>::type": "type"]
 #pragma%%x
 /*?mconf
  * X -t'std::fname(x)' -oMWGCONF_HAS_STD_FNAME cmath 'std::fname(2.0)' ||
@@ -491,7 +535,7 @@ namespace stdm {
   using ::fname;
 # else
   template<typename T>
-  typename cmath_detail::overload<T>::type fname(T value) {
+  typename cmath_detail::overload<T>::return_type fname(T value) {
     typedef typename cmath_detail::overload<T>::type R;
     return [expression];
   }
@@ -501,7 +545,7 @@ namespace stdm {
 #elif defined(MWGCONF_GCC295BUG_USING_NAMESPACE_STD)
   using ::std::fname;
 #endif
-#pragma%%end.r/FNAME/${FNAME}/.r/fname/${fname}/.r/\[expression\]/${expr}/.i
+#pragma%%end.r/FNAME/${FNAME}/.r/fname/${fname}/.r/\[expression\]/${expr}/.r/return_type/${ret}/.i
 #pragma%end
 
 #pragma%m MWG_STDM_CMATH::ImportBinaryMathFunction
@@ -533,20 +577,6 @@ namespace stdm {
 }
 
 #pragma%end
-
-//HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
-//
-// [C11 7.12.11] Manipulation functions
-//
-//-----------------------------------------------------------------------------
-
-namespace mwg {
-namespace stdm {
-
-#pragma%x MWG_STDM_CMATH::ImportBinaryMathFunction.r/@fname/copysign/.r|@expr|(R) rhs < 0? -(R) lhs: (R) lhs|
-
-}
-}
 
 //HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 //
@@ -664,19 +694,105 @@ namespace stdm {
   using ::std::log1p;
 #endif
 
+/*?mconf
+ * X -t'std::scalbn(x, y)' -oMWGCONF_HAS_STD_SCALBN cmath 'std::scalbn(1.0, 2)' ||
+ *   X -t'::scalbn(x, y)' -oMWGCONF_HAS_SCALBN math.h '::scalbn(1.0, 2)'
+ */
+#if !defined(MWGCONF_HAS_STD_SCALBN)
+# ifdef MWGCONF_HAS_SCALBN
+  using ::scalbn;
+# else
+  template<typename T>
+  typename cmath_detail::overload<T>::type scalbn(T value, int n) {
+    typedef typename cmath_detail::overload<T>::type R;
+    if (FLT_RADIX == 2)
+      return std::ldexp((R) value, n);
+    else
+      return (R) value * std::pow((R) FLT_RADIX, (R) n);
+  }
+  static inline float scalbnf(float value, int n) {return scalbn(value, n);}
+  static inline long double scalbnl(long double value, int n) {return scalbn(value, n);}
+# endif
+#elif defined(MWGCONF_GCC295BUG_USING_NAMESPACE_STD)
+  using ::std::scalbn;
+#endif
+
+/*?mconf
+ * X -t'std::scalbln(x, y)' -oMWGCONF_HAS_STD_SCALBLN cmath 'std::scalbln(1.0, 2L)' ||
+ *   X -t'::scalbln(x, y)' -oMWGCONF_HAS_SCALBLN math.h '::scalbln(1.0, 2L)'
+ */
+#if !defined(MWGCONF_HAS_STD_SCALBLN)
+# ifdef MWGCONF_HAS_SCALBLN
+  using ::scalbln;
+# else
+  template<typename T>
+  typename cmath_detail::overload<T>::type scalbln(T value, long n) {
+    typedef typename cmath_detail::overload<T>::type R;
+    static_assert(
+      INT_MIN <= (mwg::stdm::is_same<R, float>::value? FLT_MIN_EXP:
+        mwg::stdm::is_same<R, long double>::value? LDBL_MIN_EXP:
+        DBL_MIN_EXP) &&
+      INT_MAX >= (mwg::stdm::is_same<R, float>::value? FLT_MAX_EXP:
+        mwg::stdm::is_same<R, long double>::value? LDBL_MAX_EXP:
+        DBL_MAX_EXP),
+      "the exponent of the floating-point type is too wide");
+    return mwg::stdm::scalbn((R) value, n > INT_MAX? INT_MAX: n < INT_MIN? INT_MIN: n);
+  }
+  static inline float scalblnf(float value, long n) {return scalbln(value, n);}
+  static inline long double scalblnl(long double value, long n) {return scalbln(value, n);}
+# endif
+#elif defined(MWGCONF_GCC295BUG_USING_NAMESPACE_STD)
+  using ::std::scalbln;
+#endif
+
+#if !defined(MWGCONF_HAS_STD_ILOGB) && !defined(MWGCONF_HAS_ILOGB)
+# undef FP_ILOGB0
+# undef FP_ILOGBNAN
+# define FP_ILOGB0   -INT_MAX
+# define FP_ILOGBNAN  INT_MIN
+  namespace cmath_detail {
+    int ilogb(float value);
+    int ilogb(double value);
+    int ilogb(long double value);
+  }
+#endif
+#pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/ilogb/.r/@ret/int/.r|@expr|cmath_detail::ilogb((R) value)|
+
+#if !defined(MWGCONF_HAS_STD_LOGB) && !defined(MWGCONF_HAS_LOGB)
+  namespace cmath_detail {
+    int logb(float value);
+    int logb(double value);
+    int logb(long double value);
+  }
+#endif
+#pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/logb/.r|@expr|cmath_detail::logb((R) value)|
+
 #pragma%x begin_test
   void test() {
-    double const a = mwg::stdm::exp2(1e-5);
-    double const b = mwg::stdm::expm1(1e-5);
-    double const c = mwg::stdm::log2(1e-5);
-    double const d = mwg::stdm::log1p(1e-5);
-
-    mwg_unused(a);
-    mwg_unused(b);
-    mwg_unused(c);
-    mwg_unused(d);
+    mwg::stdm::exp2(1e-5);
+    mwg::stdm::log2(1e-5);
+    mwg::stdm::expm1(1e-5);
+    mwg::stdm::log1p(1e-5);
+    mwg_check((mwg::stdm::expm1(0.0) == 0.0));
+    mwg_check((mwg::stdm::log1p(0.0) == 0.0));
   }
 #pragma%x end_test
+}
+}
+
+//HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+//
+// [C11 7.12.11] Manipulation functions (1)
+//
+//-----------------------------------------------------------------------------
+
+namespace mwg {
+namespace stdm {
+
+#pragma%x MWG_STDM_CMATH::ImportBinaryMathFunction.r/@fname/copysign/.r|@expr|(R) rhs < 0? -(R) lhs: (R) lhs|
+
+// ToDo: nan
+
 }
 }
 
@@ -727,10 +843,10 @@ namespace stdm {
 #pragma%x begin_test
   void test() {
     mwg_check(mwg::stdm::cbrt(0.0) == 0.0);
-    mwg_check(mwg::stdm::cbrt(-8.0) == -2.0);
-    mwg_check(mwg::stdm::cbrt(+8.0) == +2.0);
-    mwg_check(mwg::stdm::cbrt(-1.0) == -1.0);
-    mwg_check(mwg::stdm::cbrt(+1.0) == +1.0);
+    mwg_check((mwg::stdm::cbrt(-8.0) - -2.0) <= 1e-14);
+    mwg_check((mwg::stdm::cbrt(+8.0) - +2.0) <= 1e-14);
+    mwg_check((mwg::stdm::cbrt(-1.0) - -1.0) <= 1e-14);
+    mwg_check((mwg::stdm::cbrt(+1.0) - +1.0) <= 1e-14);
   }
 #pragma%x end_test
 
