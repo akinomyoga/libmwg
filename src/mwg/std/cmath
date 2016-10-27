@@ -24,8 +24,7 @@
 
 // ToDo: nan nanf nanl
 // ToDo: remainder remquo fma fmax fmin fdim
-// ToDo: nearbyint rint lrint llrint
-// ToDo: Correct errhandling of round lround llround
+// ToDo: nearbyint
 // ToDo: erf erfc tgamma lgamma
 // ToDo: 古くからある関数や using した関数でも arithmetic overloads を追加する。
 
@@ -626,6 +625,8 @@ namespace stdm {
 
 #pragma%x begin_test
 void test() {
+  mwg_check(mwg::stdm::sinh(0) == 0.0);
+  mwg_check(mwg::stdm::asinh(0) == 0.0);
   mwg_check(mwg::stdm::asinh(0.0) == 0.0);
   mwg_check(mwg::stdm::acosh(1.0) == 0.0);
   mwg_check(mwg::stdm::atanh(0.0) == 0.0);
@@ -766,9 +767,9 @@ namespace stdm {
 
 #if !defined(MWGCONF_HAS_STD_LOGB) && !defined(MWGCONF_HAS_LOGB)
   namespace cmath_detail {
-    int logb(float value);
-    int logb(double value);
-    int logb(long double value);
+    float logb(float value);
+    doble logb(double value);
+    long double logb(long double value);
   }
 #endif
 #pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/logb/.r|@expr|cmath_detail::logb((R) value)|
@@ -958,19 +959,11 @@ namespace stdm {
 
 //HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 //
-//  extended basic functions
+//  [C11 7.12.9] Nearest integer functions
 //
 //=============================================================================
 
-namespace mwg {
-namespace stdm {
-
-#pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/trunc/.r|@expr|(R) value >= 0? std::floor((R) value): std::ceil((R) value)|
-
 /*?mconf
- * X -t'std::round(x)' -oMWGCONF_HAS_STD_ROUND cmath 'std::round(0.5)' ||
- *   X -t'::round(x)' -oMWGCONF_HAS_ROUND math.h '::round(0.5)'
- *
  * # 何と gcc-2.95 ではそもそも同じ arity の SFINAE 関数を複数定義できない?
  * # → そもそも SFINAE は gcc 3.0 以降でしか有効でないようだ。
  * S -t'"sfinae"' 'STD_SFINAE' '' '
@@ -981,32 +974,52 @@ namespace stdm {
  * int main(){foo(1);}
  * '
  */
-#if !defined(MWGCONF_HAS_STD_ROUND)
-# ifndef MWGCONF_HAS_ROUND
-  using ::round;
-# else
-  template<typename T>
-  typename cmath_detail::overload<T>::type round(T value) {
-    typedef typename cmath_detail::overload<T>::type R;
-    return (R) value >= 0? std::floor((R) value + R(0.5)): std::ceil((R) value - R(0.5));
+
+namespace mwg {
+namespace stdm {
+#ifdef MWGCONF_GCC295BUG_USING_NAMESPACE_STD
+  using ::std::ceil;
+  using ::std::floor;
+#endif
+
+#pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/trunc/.r|@expr|(R) value >= 0? std::floor((R) value): std::ceil((R) value)|
+#pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/round/.r|@expr|(R) value >= 0? std::floor((R) value + R(0.5)): std::ceil((R) value - R(0.5))|
+
+  // ToDo: nearbyint
+
+#if !defined(MWGCONF_HAS_STD_RINT) && !defined(MWGCONF_HAS_RINT)
+  namespace cmath_detail {
+    float rint(float value);
+    doble rint(double value);
+    long double rint(long double value);
   }
-  static inline float roundf(float value) {return round(value);}
-  static inline long double roundl(long double value) {return round(value);}
-# endif
+#endif
+#pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/rint/.r|@expr|cmath_detail::rint((R) value)|
 
-  template<typename T>
-  long lround(T value) {return round(value);}
-  static inline long lroundf(float value) {return (long) round(value);}
-  static inline long lroundl(long double value) {return (long) round(value);}
+#if ((!defined(MWGCONF_HAS_STD_LRINT) && !defined(MWGCONF_HAS_LRINT)) \
+  || (!defined(MWGCONF_HAS_STD_LROUND) && !defined(MWGCONF_HAS_LROUND)))
+#define MWG_STDM_CMATH_Defines_lint
+  namespace cmath_detail {
+    long lint(float value);
+    long lint(double value);
+    long lint(long double value);
+  }
+#endif
+#pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/lround/.r/@ret/long/.r|@expr|cmath_detail::lint(mwg::stdm::round((R) value))|
+#pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/lrint/.r/@ret/long/.r|@expr|cmath_detail::lint(mwg::stdm::rint((R) value))|
 
-# ifdef MWGCONF_HAS_LONGLONG
-  template<typename T>
-  long long llround(T value) {return round(value);}
-  static inline long long llroundf(float value) {return (long long) round(value);}
-  static inline long long llroundl(long double value) {return (long long) round(value);}
-# endif
-#elif defined(MWGCONF_GCC295BUG_USING_NAMESPACE_STD)
-  using ::std::round;
+#ifdef MWGCONF_HAS_LONGLONG
+#if ((!defined(MWGCONF_HAS_STD_LLRINT) && !defined(MWGCONF_HAS_LLRINT)) \
+  || (!defined(MWGCONF_HAS_STD_LLROUND) && !defined(MWGCONF_HAS_LLROUND)))
+#define MWG_STDM_CMATH_Defines_llint
+  namespace cmath_detail {
+    long long llint(float value);
+    long long llint(double value);
+    long long llint(long double value);
+  }
+#endif
+#pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/llround/.r/@ret/long long/.r|@expr|cmath_detail::llint(mwg::stdm::round((R) value))|
+#pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/llrint/.r/@ret/long long/.r|@expr|cmath_detail::llint(mwg::stdm::rint((R) value))|
 #endif
 
 }
