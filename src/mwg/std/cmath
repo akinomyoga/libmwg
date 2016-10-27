@@ -100,9 +100,37 @@ namespace cmath_detail {
 
 //HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 //
-// [C11 7.12] Macros
+// [C11 7.12] Types and Macros
 //
 //-----------------------------------------------------------------------------
+/*?mconf
+ * X -t'std::float_t' -oMWGCONF_HAS_STD_FLOAT_T cmath 'std::float_t a' ||
+ *   X -t'::float_t' -oMWGCONF_HAS_FLOAT_T math.h '::float_t a'
+ * X -t'std::double_t' -oMWGCONF_HAS_STD_DOUBLE_T cmath 'std::double_t a' ||
+ *   X -t'::double_t' -oMWGCONF_HAS_DOUBLE_T math.h '::double_t a'
+ */
+
+namespace mwg {
+namespace stdm {
+
+#ifndef MWGCONF_HAS_STD_FLOAT_T
+# ifdef MWGCONF_HAS_FLOAT_T
+  typedef ::float_t float_t;
+# else
+  typedef float float_t;
+# endif
+#endif
+
+#ifndef MWGCONF_HAS_STD_DOUBLE_T
+# ifdef MWGCONF_HAS_DOUBLE_T
+  typedef ::double_t double_t;
+# else
+  typedef double double_t;
+# endif
+#endif
+
+}
+}
 
 // Note: 各コンパイラで警告が出ない表式が異なる。
 #ifndef INFINITY
@@ -775,7 +803,7 @@ namespace stdm {
 #if !defined(MWGCONF_HAS_STD_LOGB) && !defined(MWGCONF_HAS_LOGB)
   namespace cmath_detail {
     float logb(float value);
-    doble logb(double value);
+    double logb(double value);
     long double logb(long double value);
   }
 #endif
