@@ -23,7 +23,7 @@
 #pragma%x end_check
 
 // ToDo: nan nanf nanl
-// ToDo: remainder remquo fma fmax fmin fdim
+// ToDo: remainder remquo fma
 // ToDo: erf erfc tgamma lgamma
 // ToDo: 古くからある関数や using した関数でも arithmetic overloads を追加する?
 
@@ -142,6 +142,12 @@ namespace stdm {
 # include <limits>
 # define INFINITY (::std::numeric_limits<float>::infinity())
 #endif
+#ifndef HUGE_VALF
+# define HUGE_VALF INFINITY
+#endif
+#ifndef HUGE_VALL
+# define HUGE_VALL ((long double) INFINITY)
+#endif
 
 //?mconf X -t'qNAN' -oMWGCONF_FLOAT_HAS_QUIET_NAN limits 'char arr[std::numeric_limits<float>::has_quiet_NaN? 1: -1];'
 #ifndef NAN
@@ -167,6 +173,16 @@ namespace cmath_detail {
 }
 #  define NAN (::mwg::stdm::cmath_detail::qnan())
 # endif
+#endif
+
+#ifndef MATH_ERRNO
+# define MATH_ERRNO 1
+#endif
+#ifndef MATH_ERREXCEPT
+# define MATH_ERREXCEPT 2
+#endif
+#ifndef math_errhandling
+# define math_errhandling (MATH_ERRNO | MATH_ERREXCEPT)
 #endif
 
 #pragma%x begin_test
@@ -1061,6 +1077,21 @@ namespace stdm {
 }
 }
 
+//HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+//
+//  [C11 7.12.12] Maximum, minimum, and positive difference functions
+//
+//=============================================================================
+
+namespace mwg {
+namespace stdm {
+
+#pragma%x MWG_STDM_CMATH::ImportBinaryMathFunction.r/@fname/fmin/.r|@expr|mwg::stdm::isnan((R) lhs)? rhs: mwg::stdm::isnan((R) rhs)? lhs: (R) lhs <= (R) rhs? (R) lhs: (R) rhs|
+#pragma%x MWG_STDM_CMATH::ImportBinaryMathFunction.r/@fname/fmax/.r|@expr|mwg::stdm::isnan((R) lhs)? rhs: mwg::stdm::isnan((R) rhs)? lhs: (R) lhs >= (R) rhs? (R) lhs: (R) rhs|
+#pragma%x MWG_STDM_CMATH::ImportBinaryMathFunction.r/@fname/fdim/.r|@expr|mwg::stdm::fmax((R) lhs - (R) rhs, (R) 0.0)|
+
+}
+}
 //HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 #endif /* end of MWG_STDM_CMATH */
 #pragma%x begin_check
