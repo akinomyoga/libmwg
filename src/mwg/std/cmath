@@ -24,7 +24,6 @@
 
 // ToDo: nan nanf nanl
 // ToDo: remainder remquo fma fmax fmin fdim
-// ToDo: nearbyint
 // ToDo: erf erfc tgamma lgamma
 // ToDo: 古くからある関数や using した関数でも arithmetic overloads を追加する。
 
@@ -985,16 +984,17 @@ namespace stdm {
 #pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/trunc/.r|@expr|(R) value >= 0? std::floor((R) value): std::ceil((R) value)|
 #pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/round/.r|@expr|(R) value >= 0? std::floor((R) value + R(0.5)): std::ceil((R) value - R(0.5))|
 
-  // ToDo: nearbyint
-
-#if !defined(MWGCONF_HAS_STD_RINT) && !defined(MWGCONF_HAS_RINT)
+#if ((!defined(MWGCONF_HAS_STD_NEARBYINT) && !defined(MWGCONF_HAS_NEARBYINT)) \
+  || (!defined(MWGCONF_HAS_STD_RINT) && !defined(MWGCONF_HAS_RINT)))
+#define MWG_STDM_CMATH_Defines_nearbyint
   namespace cmath_detail {
-    float rint(float value);
-    doble rint(double value);
-    long double rint(long double value);
+    float nearbyint(float value);
+    double nearbyint(double value);
+    long double nearbyint(long double value);
   }
 #endif
-#pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/rint/.r|@expr|cmath_detail::rint((R) value)|
+#pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/nearbyint/.r|@expr|cmath_detail::nearbyint((R) value)|
+#pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/rint/     .r|@expr|cmath_detail::nearbyint((R) value)|
 
 #if ((!defined(MWGCONF_HAS_STD_LRINT) && !defined(MWGCONF_HAS_LRINT)) \
   || (!defined(MWGCONF_HAS_STD_LROUND) && !defined(MWGCONF_HAS_LROUND)))

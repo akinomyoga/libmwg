@@ -124,14 +124,15 @@ namespace cmath_detail {
 }
 #endif
 
-#if !defined(MWGCONF_HAS_STD_RINT) && !defined(MWGCONF_HAS_RINT)
+#define MWG_STDM_CMATH_Defines_nearbyint
+#ifdef MWG_STDM_CMATH_Defines_nearbyint
 # include <mwg/std/cfenv>
 namespace mwg {
 namespace stdm {
 namespace cmath_detail {
 
   template<typename T>
-  static T rint_impl(T value) {
+  static T nearbyint_impl(T value) {
     switch (fegetround()) {
     case FE_DOWNWARD:
       return std::floor(value);
@@ -141,13 +142,16 @@ namespace cmath_detail {
       return mwg::stdm::trunc(value);
     case FE_TONEAREST:
     default:
-      return mwg::stdm::round(value);
+      if (mwg::stdm::isnan(value)) return value;
+      T const ret = std::floor(value);
+      T const frac = value - ret;
+      return (frac == 0.5? mwg::stdm::trunc(ret * 0.5) == ret * 0.5: frac < 0.5)? ret: ret + T(1.0);
     }
   }
 
-  float rint(float value) {return rint_impl(value);}
-  doble rint(double value) {return rint_impl(value);}
-  long double rint(long double value) {return rint_impl(value);}
+  float nearbyint(float value) {return nearbyint_impl(value);}
+  double nearbyint(double value) {return nearbyint_impl(value);}
+  long double nearbyint(long double value) {return nearbyint_impl(value);}
 
 }
 }
