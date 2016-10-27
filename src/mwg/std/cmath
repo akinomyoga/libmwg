@@ -169,7 +169,7 @@ void test() {
  *   # って (名前空間を指定せずに) signbit を使う事ができたのができなくなる。既存
  *   # のコードがコンパイルできなくなるのを防ぐ為、この場合に限ってグローバル名前
  *   # 空間に signbit の定義を引き出す。その他の fpclassify マクロも同様。
- *   X -t'::signbit' -oMWGCONF_HAS_GLOBAL_SIGNBIT cmath $'\n#undef signbit\nsignbit(0.0);'
+ *   X -t'::signbit' -oMWGCONF_HAS_SIGNBIT cmath $'\n#undef signbit\nsignbit(0.0);'
  * fi
  */
 
@@ -181,7 +181,7 @@ namespace stdm_detail {
   static inline bool signbit_impl(double value) {return signbit(value) != 0;}
   static inline bool signbit_impl(long double value) {return signbit(value) != 0;}
 #  undef signbit
-#  ifndef MWGCONF_HAS_GLOBAL_SIGNBIT
+#  ifndef MWGCONF_HAS_SIGNBIT
 #   define MWG_STDM_CMATH_DefinesGlobalSignbit
 #  endif
 # else
@@ -218,18 +218,6 @@ using ::mwg::stdm::signbit;
  * @fn bool mwg::stdm::isnormal(float);
  * @fn bool mwg::stdm::isnormal(double);
  * @fn bool mwg::stdm::isnormal(long double);
- */
-
-/*?mconf
- * if ! X -t'std::isnan(x)' -oMWGCONF_HAS_STD_ISNAN cmath 'std::isnan(2.0)'; then
- *   # floating-point classification macros
- *   #   C99 に従えばマクロで定義されるので ifdef で判定可能だが、
- *   #   C++ では関数として定義されている事があるので個別にチェックする必要がある。
- *   X -t'::isnan' -oMWGCONF_HAS_GLOBAL_ISNAN cmath $'\n#undef isnan\nisnan(0.0);'
- *   X -t'::isinf' -oMWGCONF_HAS_GLOBAL_ISINF cmath $'\n#undef isinf\nisinf(0.0);'
- *   X -t'::isfinite' -oMWGCONF_HAS_GLOBAL_ISFINITE cmath $'\n#undef isfinite\nisfinite(0.0);'
- *   X -t'::isnormal' -oMWGCONF_HAS_GLOBAL_ISNORMAL cmath $'\n#undef isnormal\nisnormal(0.0);'
- * fi
  */
 
 #ifndef MWGCONF_HAS_STD_ISNAN
@@ -362,7 +350,7 @@ namespace cmath_detail {
 
 /*?mconf
  * if ! X -t'std::fpclassify(x)' -oMWGCONF_HAS_STD_FPCLASSIFY cmath 'std::fpclassify(2.0)'; then
- *   X -t'::fpclassify' -oMWGCONF_HAS_GLOBAL_FPCLASSIFY cmath $'\n#undef fpclassify\nfpclassify(0.0);'
+ *   X -t'::fpclassify' -oMWGCONF_HAS_FPCLASSIFY cmath $'\n#undef fpclassify\nfpclassify(0.0);'
  * fi
  */
 
@@ -423,7 +411,7 @@ namespace stdm_detail {
   static inline int fpclassify_impl(double value) {return fpclassify(value);}
   static inline int fpclassify_impl(long double value) {return fpclassify(value);}
 #   undef fpclassify
-#   ifndef MWGCONF_HAS_GLOBAL_FPCLASSIFY
+#   ifndef MWGCONF_HAS_FPCLASSIFY
 #    define MWG_STDM_CMATH_DefinesGlobalFpclassify
 #   endif
 #  else
@@ -509,6 +497,43 @@ void test() {
 namespace mwg {
 namespace stdm {
 
+#pragma%m MWG_STDM_CMATH::ImportUnaryMathFunction::UseCOverload
+  using ::@fname;
+  using ::@fnamel;
+  using ::@fnamef;
+  static inline float @fname(float value) {return ::@fnamef(value);}
+  static inline long double @fname(long double value) {return ::@fnamel(value);}
+  template<typename T>
+  typename cmath_detail::overload<T>::type @fname(T value) {
+    typedef typename cmath_detail::overload<T>::type R;
+    return @fname((R) value);
+  }
+#pragma%end
+#pragma%m MWG_STDM_CMATH::ImportBinaryMathFunction::UseCOverload
+  using ::@fname;
+  using ::@fnamel;
+  using ::@fnamef;
+  static inline float @fname(float lhs, float rhs) {return ::@fnamef(lhs, rhs);}
+  static inline long double @fname(long double lhs, long double rhs) {return ::@fnamel(lhs, rhs);}
+  template<typename T, typename U>
+  typename cmath_detail::overload<T, U>::type @fname(T lhs, T rhs) {
+    typedef typename cmath_detail::overload<T, U>::type R;
+    return @fname((R) lhs, (R) rhs);
+  }
+#pragma%end
+#pragma%m MWG_STDM_CMATH::ImportMathFunctionFFI::UseCOverload
+  using ::@fname;
+  using ::@fnamel;
+  using ::@fnamef;
+  static inline float @fname(float value, @int rhs) {return ::@fnamef(value, rhs);}
+  static inline long double @fname(long double value, @int rhs) {return ::@fnamel(value, rhs);}
+  template<typename T>
+  typename cmath_detail::overload<T>::type @fname(T value, @int rhs) {
+    typedef typename cmath_detail::overload<T>::type R;
+    return @fname((R) value, rhs);
+  }
+#pragma%end
+
 #pragma%m MWG_STDM_CMATH::ImportUnaryMathFunction
 #pragma%%[fname="@fname",FNAME=fname.toupper(),expr="@expr"]
 #pragma%%[ret = ("@ret" != "@" + "ret")? "enable<@ret>::type": "type"]
@@ -519,25 +544,13 @@ namespace stdm {
  */
 #if !defined(MWGCONF_HAS_STD_FNAME)
 # ifdef MWGCONF_HAS_FNAME
-namespace cmath_detail {
-  using ::fname;
-  static inline float fname(float value) {return ::fnamef(value);}
-  static inline long double fname(long double value) {return ::fnamel(value);}
-}
-# endif
+#pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction::UseCOverload.r/@fname/fname/
+# else
   template<typename T>
   typename cmath_detail::overload<T>::return_type fname(T value) {
     typedef typename cmath_detail::overload<T>::type R;
-# ifdef MWGCONF_HAS_FNAME
-    return cmath_detail::fname((R) value);
-# else
     return [expression];
-# endif
   }
-# ifdef MWGCONF_HAS_FNAME
-  using ::fnamef;
-  using ::fnamel;
-# else
   static inline float fnamef(float value) {return fname(value);}
   static inline long double fnamel(long double value) {return fname(value);}
 # endif
@@ -556,25 +569,13 @@ namespace cmath_detail {
  */
 #if !defined(MWGCONF_HAS_STD_FNAME)
 # ifdef MWGCONF_HAS_FNAME
-namespace cmath_detail {
-  using ::fname;
-  static inline float fname(float lhs, float rhs) {return ::fnamef(lhs, rhs);}
-  static inline long double fname(long double lhs, long double rhs) {return ::fnamel(lhs, rhs);}
-}
-# endif
+#pragma%x MWG_STDM_CMATH::ImportBinaryMathFunction::UseCOverload.r/@fname/fname/
+# else
   template<typename T, typename U>
   typename cmath_detail::overload<T, U>::type fname(T lhs, U rhs) {
     typedef typename cmath_detail::overload<T, U>::type R;
-# ifdef MWGCONF_HAS_FNAME
-    return cmath_detail::fname((R) lhs, (R) rhs);
-# else
     return [expression];
-# endif
   }
-# ifdef MWGCONF_HAS_FNAME
-  using ::fnamef;
-  using ::fnamel;
-# else
   static inline float fnamef(float lhs, float rhs) {return fname(lhs, rhs);}
   static inline long double fnamel(long double lhs, long double rhs) {return fname(lhs, rhs);}
 # endif
@@ -661,11 +662,11 @@ namespace stdm {
 
 /*?mconf
  * X -t'std::expm1(x)' -oMWGCONF_HAS_STD_EXPM1 cmath 'std::expm1(2.0)' ||
- *   X -t'::expm1(x)' -oMWGCONF_HAS_EXPM1 math.h '::expm1(2.0)'
+ *   X -t'::expm1(x)' -oMWGCONF_HAS_EXPM1 math.h '::expm1(2.0);::expm1f(2.0f);::expm1l(2.0L);'
  */
 #if !defined(MWGCONF_HAS_STD_EXPM1)
 # ifdef MWGCONF_HAS_EXPM1
-  using ::expm1;
+#pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction::UseCOverload.r/@fname/expm1/
 # else
   template<typename T>
   typename cmath_detail::overload<T>::type expm1(T value) {
@@ -685,11 +686,11 @@ namespace stdm {
 
 /*?mconf
  * X -t'std::log1p(x)' -oMWGCONF_HAS_STD_LOG1P cmath 'std::log1p(2.0)' ||
- *   X -t'::log1p(x)' -oMWGCONF_HAS_LOG1P math.h '::log1p(2.0)'
+ *   X -t'::log1p(x)' -oMWGCONF_HAS_LOG1P math.h '::log1p(2.0);::log1pf(2.0f);::log1pl(2.0L);'
  */
 #if !defined(MWGCONF_HAS_STD_LOG1P)
 # ifdef MWGCONF_HAS_LOG1P
-  using ::log1p;
+#pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction::UseCOverload.r/@fname/log1p/
 # else
   template<typename T>
   typename cmath_detail::overload<T>::type log1p(T value) {
@@ -709,11 +710,11 @@ namespace stdm {
 
 /*?mconf
  * X -t'std::scalbn(x, y)' -oMWGCONF_HAS_STD_SCALBN cmath 'std::scalbn(1.0, 2)' ||
- *   X -t'::scalbn(x, y)' -oMWGCONF_HAS_SCALBN math.h '::scalbn(1.0, 2)'
+ *   X -t'::scalbn(x, y)' -oMWGCONF_HAS_SCALBN math.h '::scalbn(1.0, 2);::scalbnf(1.0f, 2);::scalbnl(1.0L, 2);'
  */
 #if !defined(MWGCONF_HAS_STD_SCALBN)
 # ifdef MWGCONF_HAS_SCALBN
-  using ::scalbn;
+#pragma%x MWG_STDM_CMATH::ImportMathFunctionFFI::UseCOverload.r/@fname/scalbn/.r/@int/int/
 # else
   template<typename T>
   typename cmath_detail::overload<T>::type scalbn(T value, int n) {
@@ -732,11 +733,11 @@ namespace stdm {
 
 /*?mconf
  * X -t'std::scalbln(x, y)' -oMWGCONF_HAS_STD_SCALBLN cmath 'std::scalbln(1.0, 2L)' ||
- *   X -t'::scalbln(x, y)' -oMWGCONF_HAS_SCALBLN math.h '::scalbln(1.0, 2L)'
+ *   X -t'::scalbln(x, y)' -oMWGCONF_HAS_SCALBLN math.h '::scalbln(1.0, 2L);::scalblnf(1.0f, 2L);::scalblnl(1.0L, 2L);'
  */
 #if !defined(MWGCONF_HAS_STD_SCALBLN)
 # ifdef MWGCONF_HAS_SCALBLN
-  using ::scalbln;
+#pragma%x MWG_STDM_CMATH::ImportMathFunctionFFI::UseCOverload.r/@fname/scalbln/.r/@int/long/
 # else
   template<typename T>
   typename cmath_detail::overload<T>::type scalbln(T value, long n) {
@@ -791,11 +792,11 @@ namespace stdm {
 
 /*?mconf
  * X -t'std::nexttoward(x, y)' -oMWGCONF_HAS_STD_NEXTTOWARD cmath 'std::nexttoward(1.0, 2L)' ||
- *   X -t'::nexttoward(x, y)' -oMWGCONF_HAS_NEXTTOWARD math.h '::nexttoward(1.0, 2L)'
+ *   X -t'::nexttoward(x, y)' -oMWGCONF_HAS_NEXTTOWARD math.h '::nexttoward(1.0, 2L);::nexttowardf(1.0f, 2L);::nexttowardl(1.0L, 2L);'
  */
 #if !defined(MWGCONF_HAS_STD_SCALBLN)
 # ifdef MWGCONF_HAS_SCALBLN
-  using ::nexttoward;
+#pragma%x MWG_STDM_CMATH::ImportMathFunctionFFI::UseCOverload.r/@fname/nexttoward/.r/@int/long double/
 # else
   template<typename T>
   typename cmath_detail::overload<T>::type nexttoward(T from, long double to) {
@@ -860,11 +861,11 @@ namespace stdm {
 
 /*?mconf
  * X -t'std::hypot(x, y)' -oMWGCONF_HAS_STD_HYPOT cmath 'std::hypot(1.0, 2.0)' ||
- *   X -t'::hypot(x, y)' -oMWGCONF_HAS_HYPOT math.h '::hypot(1.0, 2.0)'
+ *   X -t'::hypot(x, y)' -oMWGCONF_HAS_HYPOT math.h '::hypot(1.0, 2.0);::hypotf(1.0f, 2.0f);::hypotl(1.0L, 2.0L);'
  */
 #if !defined(MWGCONF_HAS_STD_HYPOT)
 # ifdef MWGCONF_HAS_HYPOT
-  using ::hypot;
+#pragma%x MWG_STDM_CMATH::ImportBinaryMathFunction::UseCOverload.r/@fname/hypot/
 # else
   template<typename T, typename U>
   typename cmath_detail::overload<T, U>::type hypot(T x, U y) {
