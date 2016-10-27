@@ -124,15 +124,15 @@ namespace cmath_detail {
 }
 #endif
 
-#define MWG_STDM_CMATH_Defines_nearbyint
-#ifdef MWG_STDM_CMATH_Defines_nearbyint
+#define MWG_STDM_CMATH_Defines_nbint
+#ifdef MWG_STDM_CMATH_Defines_nbint
 # include <mwg/std/cfenv>
 namespace mwg {
 namespace stdm {
 namespace cmath_detail {
 
   template<typename T>
-  static T nearbyint_impl(T value) {
+  static T nbint_impl(T value) {
     switch (fegetround()) {
     case FE_DOWNWARD:
       return std::floor(value);
@@ -149,9 +149,9 @@ namespace cmath_detail {
     }
   }
 
-  float nearbyint(float value) {return nearbyint_impl(value);}
-  double nearbyint(double value) {return nearbyint_impl(value);}
-  long double nearbyint(long double value) {return nearbyint_impl(value);}
+  float nbint(float value) {return nbint_impl(value);}
+  double nbint(double value) {return nbint_impl(value);}
+  long double nbint(long double value) {return nbint_impl(value);}
 
 }
 }

@@ -25,7 +25,7 @@
 // ToDo: nan nanf nanl
 // ToDo: remainder remquo fma fmax fmin fdim
 // ToDo: erf erfc tgamma lgamma
-// ToDo: 古くからある関数や using した関数でも arithmetic overloads を追加する。
+// ToDo: 古くからある関数や using した関数でも arithmetic overloads を追加する?
 
 namespace mwg {
 namespace stdm {
@@ -257,63 +257,72 @@ namespace stdm {
 }
 #else /* !defined(_MSC_VER) */
 # include <cfloat>
+
+#pragma%#ppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp#
+#pragma%#                                                                     #
+#pragma%# ppmacro: MWG_STDM_CMATH::ImportClassificationMacros                 #
+#pragma%#                                                                     #
+#pragma%#---------------------------------------------------------------------#
+// floating-point classification macros
+//   C99 に従えばマクロで定義されるので ifdef で判定可能だが、
+//   C++ では関数として定義されている事があるので個別にチェックする必要がある。
+#pragma%m MWG_STDM_CMATH::ImportClassificationMacros
+#pragma%%[fname="@fname",FNAME=fname.toupper(),expr="@expr"]
+#pragma%%x
+/*?mconf
+ * X -t'std::fname(x)' -oMWGCONF_HAS_STD_ISNAN cmath 'std::fname(2.0)' ||
+ *   X -t'::fname' -oMWGCONF_HAS_ISNAN cmath $'\n#undef fname\n::fname(0.0);'
+ */
+#if !defined(MWGCONF_HAS_STD_FNAME)
 namespace mwg {
 namespace stdm_detail {
-
-#ifdef isnan
-  static inline bool isnan_impl(double value) {return isnan(value) != 0;}
-  static inline bool isnan_impl(long double value) {return isnan(value) != 0;}
-  static inline bool isnan_impl(float value) {return isnan(value) != 0;}
-# undef isnan
-# ifndef MWGCONF_HAS_GLOBAL_ISNAN
-#  define MWG_STDM_CMATH_DefinesGlobalIsnan
-# endif
-#else
+# ifdef fname
+  static inline bool fname_impl(double value) {return fname(value) != 0;}
+  static inline bool fname_impl(long double value) {return fname(value) != 0;}
+  static inline bool fname_impl(float value) {return fname(value) != 0;}
+#  undef fname
+#  ifndef MWGCONF_HAS_FNAME
+#   define MWG_STDM_CMATH_DefinesGlobalFNAME
+#  endif
+# elif defined(MWGCONF_HAS_FNAME)
   template<typename T>
-  bool isnan_impl(const T& value) {
-    return value != value;
+  bool fname_impl(T value) {
+    return ::fname(value);
   }
-#endif
-
-#ifdef isinf
-  static inline bool isinf_impl(float value) {return isinf(value) != 0;}
-  static inline bool isinf_impl(double value) {return isinf(value) != 0;}
-  static inline bool isinf_impl(long double value) {return isinf(value) != 0;}
-# undef isinf
-# ifndef MWGCONF_HAS_GLOBAL_ISINF
-#  define MWG_STDM_CMATH_DefinesGlobalIsinf
-# endif
-#else
+# else
   template<typename T>
-  bool isinf_impl(const T& value) {
-    return value == HUGE_VAL || value == -HUGE_VAL;
+  bool fname_impl(T value) {
+    return [expression];
   }
-#endif
-
-#ifdef isfinite
-  static inline bool isfinite_impl(float value) {return isfinite(value) != 0;}
-  static inline bool isfinite_impl(double value) {return isfinite(value) != 0;}
-  static inline bool isfinite_impl(long double value) {return isfinite(value) != 0;}
-# undef isfinite
-# ifndef MWGCONF_HAS_GLOBAL_ISFINITE
-#  define MWG_STDM_CMATH_DefinesGlobalIsfinite
 # endif
-#else
+}
+
+namespace stdm {
   template<typename T>
-  bool isfinite_impl(const T& value) {
-    return !(mwg::stdm_detail::isnan_impl(value) || mwg::stdm_detail::isinf_impl(value));
+  typename cmath_detail::overload<T>::template enable<bool>::type fname(T x) {
+    typedef typename cmath_detail::overload<T>::type R;
+    return mwg::stdm_detail::fname_impl((R) x);
   }
-#endif
-
-#ifdef isnormal
-  static inline bool isnormal_impl(float value) {return isnormal(value) != 0;}
-  static inline bool isnormal_impl(double value) {return isnormal(value) != 0;}
-  static inline bool isnormal_impl(long double value) {return isnormal(value) != 0;}
-# undef isnormal
-# ifndef MWGCONF_HAS_GLOBAL_ISNORMAL
-#  define MWG_STDM_CMATH_DefinesGlobalIsnormal
+}
+}
+# ifdef MWG_STDM_CMATH_DefinesGlobalFNAME
+using ::mwg::stdm::fname;
 # endif
-#else
+#elif defined(MWGCONF_GCC295BUG_USING_NAMESPACE_STD)
+namespace mwg {
+namespace stdm {
+  using ::std::fname;
+}
+}
+#endif
+#pragma%%end.r/FNAME/${FNAME}/.r/fname/${fname}/.r/\[expression\]/${expr}/.i
+#pragma%end
+#pragma%#ppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp#
+
+#if !defined(MWGCONF_HAS_STD_ISNORMAL) && !defined(MWGCONF_HAS_ISNORMAL) && !defined(isnormal)
+namespace mwg {
+namespace stdm {
+namespace cmath_detail {
   static inline bool isnormal_impl(const float& value) {
     if (!mwg::stdm_detail::isfinite_impl(value)) return false;
     return value >= FLT_MIN || -FLT_MIN >= value;
@@ -326,41 +335,15 @@ namespace stdm_detail {
     if (!mwg::stdm_detail::isfinite_impl(value)) return false;
     return value >= LDBL_MIN || -LDBL_MIN >= value;
   }
+}
+}
+}
 #endif
-}
+#pragma%x MWG_STDM_CMATH::ImportClassificationMacros.r/@fname/isnan/   .r/@expr/value != value/
+#pragma%x MWG_STDM_CMATH::ImportClassificationMacros.r/@fname/isinf/   .r/@expr/value == (T) INFINITY || value == (T) -INFINITY/
+#pragma%x MWG_STDM_CMATH::ImportClassificationMacros.r/@fname/isfinite/.r/@expr/!(mwg::stdm_detail::isnan_impl(value) || mwg::stdm_detail::isinf_impl(value))/
+#pragma%x MWG_STDM_CMATH::ImportClassificationMacros.r/@fname/isnormal/.r/@expr/mwg::stdm::cmath_detail::isnormal_impl(value)/
 
-namespace stdm{
-  template<typename T>
-  typename cmath_detail::overload<T>::template enable<bool>::type isnan(const T& x) {
-    return mwg::stdm_detail::isnan_impl((typename cmath_detail::overload<T>::type) x);
-  }
-  template<typename T>
-  typename cmath_detail::overload<T>::template enable<bool>::type isinf(const T& x) {
-    return mwg::stdm_detail::isinf_impl((typename cmath_detail::overload<T>::type) x);
-  }
-  template<typename T>
-  typename cmath_detail::overload<T>::template enable<bool>::type isfinite(const T& x) {
-    return mwg::stdm_detail::isfinite_impl((typename cmath_detail::overload<T>::type) x);
-  }
-  template<typename T>
-  typename cmath_detail::overload<T>::template enable<bool>::type isnormal(const T& x) {
-    return mwg::stdm_detail::isnormal_impl((typename cmath_detail::overload<T>::type) x);
-  }
-}
-}
-
-# ifdef MWG_STDM_CMATH_DefinesGlobalIsnan
-using mwg::stdm::isnan;
-# endif
-# ifdef MWG_STDM_CMATH_DefinesGlobalIsinf
-using mwg::stdm::isinf;
-# endif
-# ifdef MWG_STDM_CMATH_DefinesGlobalIsfinite
-using mwg::stdm::isfinite;
-# endif
-# ifdef MWG_STDM_CMATH_DefinesGlobalIsnormal
-using mwg::stdm::isnormal;
-# endif
 #endif /* end of !defined(_MSC_VER) */
 #endif /* end of !defined(MWGCONF_HAS_STD_ISNAN) */
 
@@ -532,17 +515,29 @@ namespace stdm {
 #pragma%%x
 /*?mconf
  * X -t'std::fname(x)' -oMWGCONF_HAS_STD_FNAME cmath 'std::fname(2.0)' ||
- *   X -t'::fname(x)' -oMWGCONF_HAS_FNAME math.h '::fname(2.0)'
+ *   X -t'::fname(x)' -oMWGCONF_HAS_FNAME math.h '::fname(2.0);::fnamef(2.0f);::fnamel(2.0L);'
  */
 #if !defined(MWGCONF_HAS_STD_FNAME)
 # ifdef MWGCONF_HAS_FNAME
+namespace cmath_detail {
   using ::fname;
-# else
+  static inline float fname(float value) {return ::fnamef(value);}
+  static inline long double fname(long double value) {return ::fnamel(value);}
+}
+# endif
   template<typename T>
   typename cmath_detail::overload<T>::return_type fname(T value) {
     typedef typename cmath_detail::overload<T>::type R;
+# ifdef MWGCONF_HAS_FNAME
+    return cmath_detail::fname((R) value);
+# else
     return [expression];
+# endif
   }
+# ifdef MWGCONF_HAS_FNAME
+  using ::fnamef;
+  using ::fnamel;
+# else
   static inline float fnamef(float value) {return fname(value);}
   static inline long double fnamel(long double value) {return fname(value);}
 # endif
@@ -557,17 +552,29 @@ namespace stdm {
 #pragma%%x
 /*?mconf
  * X -t'std::fname(x, y)' -oMWGCONF_HAS_STD_FNAME cmath 'std::fname(1.0, 2.0)' ||
- *   X -t'::fname(x, y)' -oMWGCONF_HAS_FNAME math.h '::fname(1.0, 2.0)'
+ *   X -t'::fname(x, y)' -oMWGCONF_HAS_FNAME math.h '::fname(1.0, 2.0);::fnamef(1.0f, 2.0f);::fnamel(1.0L, 2.0L);'
  */
 #if !defined(MWGCONF_HAS_STD_FNAME)
 # ifdef MWGCONF_HAS_FNAME
+namespace cmath_detail {
   using ::fname;
-# else
+  static inline float fname(float lhs, float rhs) {return ::fnamef(lhs, rhs);}
+  static inline long double fname(long double lhs, long double rhs) {return ::fnamel(lhs, rhs);}
+}
+# endif
   template<typename T, typename U>
   typename cmath_detail::overload<T, U>::type fname(T lhs, U rhs) {
     typedef typename cmath_detail::overload<T, U>::type R;
+# ifdef MWGCONF_HAS_FNAME
+    return cmath_detail::fname((R) lhs, (R) rhs);
+# else
     return [expression];
+# endif
   }
+# ifdef MWGCONF_HAS_FNAME
+  using ::fnamef;
+  using ::fnamel;
+# else
   static inline float fnamef(float lhs, float rhs) {return fname(lhs, rhs);}
   static inline long double fnamel(long double lhs, long double rhs) {return fname(lhs, rhs);}
 # endif
@@ -981,20 +988,20 @@ namespace stdm {
   using ::std::floor;
 #endif
 
-#pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/trunc/.r|@expr|(R) value >= 0? std::floor((R) value): std::ceil((R) value)|
-#pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/round/.r|@expr|(R) value >= 0? std::floor((R) value + R(0.5)): std::ceil((R) value - R(0.5))|
+#pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/trunc/.r|@expr|mwg::stdm::isnan((R) value)? NAN: (R) value >= 0? std::floor((R) value): std::ceil((R) value)|
+#pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/round/.r|@expr|mwg::stdm::isnan((R) value)? NAN: (R) value >= 0? std::floor((R) value + R(0.5)): std::ceil((R) value - R(0.5))|
 
 #if ((!defined(MWGCONF_HAS_STD_NEARBYINT) && !defined(MWGCONF_HAS_NEARBYINT)) \
   || (!defined(MWGCONF_HAS_STD_RINT) && !defined(MWGCONF_HAS_RINT)))
-#define MWG_STDM_CMATH_Defines_nearbyint
+#define MWG_STDM_CMATH_Defines_nbint
   namespace cmath_detail {
-    float nearbyint(float value);
-    double nearbyint(double value);
-    long double nearbyint(long double value);
+    float nbint(float value);
+    double nbint(double value);
+    long double nbint(long double value);
   }
 #endif
-#pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/nearbyint/.r|@expr|cmath_detail::nearbyint((R) value)|
-#pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/rint/     .r|@expr|cmath_detail::nearbyint((R) value)|
+#pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/nearbyint/.r|@expr|cmath_detail::nbint((R) value)|
+#pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/rint/     .r|@expr|cmath_detail::nbint((R) value)|
 
 #if ((!defined(MWGCONF_HAS_STD_LRINT) && !defined(MWGCONF_HAS_LRINT)) \
   || (!defined(MWGCONF_HAS_STD_LROUND) && !defined(MWGCONF_HAS_LROUND)))
