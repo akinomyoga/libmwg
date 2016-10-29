@@ -546,6 +546,79 @@ void test() {
 //
 //-----------------------------------------------------------------------------
 
+#pragma%m MWG_STDM_CMATH::CommonDefinitions
+/*?mconf
+
+cfunc_list[1]=' asinh acosh atanh exp2 log2 expm1 log1p ilogb logb cbrt trunc round nearbyint rint lround lrint llround llrint '
+cfunc_list[2]=' hypot nextafter copysign fmin fmax fdim '
+cfunc_list[3]=' fma '
+cfunc_param[1]='x'
+cfunc_param[2]='x, y'
+cfunc_param[3]='x, y, z'
+cfunc_arg[1]='1.0'
+cfunc_arg[2]='1.0, 2.0'
+cfunc_arg[3]='1.0, 2.0, 3.0'
+cfunc_argf[1]='1.0f'
+cfunc_argf[2]='1.0f, 2.0f'
+cfunc_argf[3]='1.0f, 2.0f, 3.0f'
+cfunc_argl[1]='1.0L'
+cfunc_argl[2]='1.0L, 2.0L'
+cfunc_argl[3]='1.0L, 2.0L, 3.0L'
+
+function check_all {
+  local arity fname
+  for arity in 1 2 3; do
+    local std_src='' raw_src=''
+    for fname in ${cfunc_list[arity]}; do
+      std_src="${std_src}std::$fname(${arg[arity]});"
+      raw_src="${raw_src}::$fname(${cfunc_arg[arity]});"
+      raw_src="${raw_src}::${fname}f(${cfunc_argf[arity]});"
+      raw_src="${raw_src}::${fname}l(${cfunc_argl[arity]});"
+    done
+    if X -t"\"C math functions std::fname($arity)\"" -o- cmath "$std_src"; then
+      cfunc_std_complete[arity]=1
+    elif X -t"\"C math functions ::fname($arity)\"" -o- cmath "$raw_src"; then
+      cfunc_raw_complete[arity]=1
+    fi
+  done
+}
+
+check_all
+
+function check_cfunc {
+  local arity=$1 fname=$2 FNAME=$3
+
+  if [[ ${cfunc_std_complete[arity]} && ${cfunc_list[arity]} == *" $fname "* ]]; then
+    D "MWGCONF_HAS_STD_$FNAME" 1
+    return 0
+  fi
+
+  local std_src="std::$fname(${cfunc_arg[arity]})"
+  if X -t"std::$fname(${cfunc_param[arity]})" -o"MWGCONF_HAS_STD_$FNAME" cmath "$std_src"; then
+    echo "chked std::$fname($arity)"
+    return 0
+  fi
+
+  if [[ ${cfunc_raw_complete[arity]} && ${cfunc_list[arity]} == *" $fname "* ]]; then
+    D "MWGCONF_HAS_$FNAME" 1
+    return 0
+  fi
+
+  local raw_src=
+  raw_src="${raw_src}::$fname(${cfunc_arg[arity]});"
+  raw_src="${raw_src}::${fname}f(${cfunc_argf[arity]});"
+  raw_src="${raw_src}::${fname}l(${cfunc_argl[arity]});"
+  if X -t"::$fname(${cfunc_param[arity]})" -o"MWGCONF_HAS_$FNAME" math.h "$raw_src"; then
+    echo "chked ::$fname($arity)"
+    return 0
+  fi
+
+  return 1
+}
+
+ */
+#pragma%end
+
 namespace mwg {
 namespace stdm {
 
@@ -602,10 +675,7 @@ namespace stdm {
 #pragma%%[fname="@fname",FNAME=fname.toupper(),expr="@expr"]
 #pragma%%[ret = ("@ret" != "@" + "ret")? "enable<@ret>::type": "type"]
 #pragma%%x
-/*?mconf
- * X -t'std::fname(x)' -oMWGCONF_HAS_STD_FNAME cmath 'std::fname(2.0)' ||
- *   X -t'::fname(x)' -oMWGCONF_HAS_FNAME math.h '::fname(2.0);::fnamef(2.0f);::fnamel(2.0L);'
- */
+//?mconf check_cfunc 1 fname FNAME
 #if !defined(MWGCONF_HAS_STD_FNAME)
 # ifdef MWGCONF_HAS_FNAME
 #pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction::UseCOverload.r/@fname/fname/
@@ -627,10 +697,7 @@ namespace stdm {
 #pragma%m MWG_STDM_CMATH::ImportBinaryMathFunction
 #pragma%%[fname="@fname",FNAME=fname.toupper(),expr="@expr"]
 #pragma%%x
-/*?mconf
- * X -t'std::fname(x, y)' -oMWGCONF_HAS_STD_FNAME cmath 'std::fname(1.0, 2.0)' ||
- *   X -t'::fname(x, y)' -oMWGCONF_HAS_FNAME math.h '::fname(1.0, 2.0);::fnamef(1.0f, 2.0f);::fnamel(1.0L, 2.0L);'
- */
+//?mconf check_cfunc 2 fname FNAME
 #if !defined(MWGCONF_HAS_STD_FNAME)
 # ifdef MWGCONF_HAS_FNAME
 #pragma%x MWG_STDM_CMATH::ImportBinaryMathFunction::UseCOverload.r/@fname/fname/
@@ -652,10 +719,7 @@ namespace stdm {
 #pragma%m MWG_STDM_CMATH::ImportTernaryMathFunction
 #pragma%%[fname="@fname",FNAME=fname.toupper(),expr="@expr"]
 #pragma%%x
-/*?mconf
- * X -t'std::fname(x, y, z)' -oMWGCONF_HAS_STD_FNAME cmath 'std::fname(1.0, 2.0, 3.0)' ||
- *   X -t'::fname(x, y, z)' -oMWGCONF_HAS_FNAME math.h '::fname(1.0, 2.0, 3.0);::fnamef(1.0f, 2.0f, 3.0f);::fnamel(1.0L, 2.0L, 3.0L);'
- */
+//?mconf check_cfunc 3 fname FNAME
 #if !defined(MWGCONF_HAS_STD_FNAME)
 # ifdef MWGCONF_HAS_FNAME
 #pragma%x MWG_STDM_CMATH::ImportTernaryMathFunction::UseCOverload.r/@fname/fname/
@@ -678,6 +742,7 @@ namespace stdm {
 }
 
 #pragma%end
+#pragma%x MWG_STDM_CMATH::CommonDefinitions
 
 //HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 //
@@ -749,10 +814,7 @@ namespace stdm {
 #pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/exp2/.r|@expr|std::pow(R(2.0), (R) value)|
 #pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/log2/.r|@expr|R(M_LOG2E) * std::log((R) value)|
 
-/*?mconf
- * X -t'std::expm1(x)' -oMWGCONF_HAS_STD_EXPM1 cmath 'std::expm1(2.0)' ||
- *   X -t'::expm1(x)' -oMWGCONF_HAS_EXPM1 math.h '::expm1(2.0);::expm1f(2.0f);::expm1l(2.0L);'
- */
+//?mconf check_cfunc 1 expm1 EXPM1
 #if !defined(MWGCONF_HAS_STD_EXPM1)
 # ifdef MWGCONF_HAS_EXPM1
 #pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction::UseCOverload.r/@fname/expm1/
@@ -773,10 +835,7 @@ namespace stdm {
   using ::std::expm1;
 #endif
 
-/*?mconf
- * X -t'std::log1p(x)' -oMWGCONF_HAS_STD_LOG1P cmath 'std::log1p(2.0)' ||
- *   X -t'::log1p(x)' -oMWGCONF_HAS_LOG1P math.h '::log1p(2.0);::log1pf(2.0f);::log1pl(2.0L);'
- */
+//?mconf check_cfunc 1 log1p LOG1P
 #if !defined(MWGCONF_HAS_STD_LOG1P)
 # ifdef MWGCONF_HAS_LOG1P
 #pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction::UseCOverload.r/@fname/log1p/
@@ -948,10 +1007,7 @@ namespace stdm {
 
 #pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/cbrt/.r|@expr|mwg::stdm::copysign(std::pow(std::abs((R) value), R(1.0 / 3.0)), value)|
 
-/*?mconf
- * X -t'std::hypot(x, y)' -oMWGCONF_HAS_STD_HYPOT cmath 'std::hypot(1.0, 2.0)' ||
- *   X -t'::hypot(x, y)' -oMWGCONF_HAS_HYPOT math.h '::hypot(1.0, 2.0);::hypotf(1.0f, 2.0f);::hypotl(1.0L, 2.0L);'
- */
+//?mconf check_cfunc 2 hypot HYPOT
 #if !defined(MWGCONF_HAS_STD_HYPOT)
 # ifdef MWGCONF_HAS_HYPOT
 #pragma%x MWG_STDM_CMATH::ImportBinaryMathFunction::UseCOverload.r/@fname/hypot/
