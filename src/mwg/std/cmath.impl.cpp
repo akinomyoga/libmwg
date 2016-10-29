@@ -145,7 +145,7 @@ namespace cmath_detail {
       if (mwg::stdm::isnan(value)) return value;
       T const ret = std::floor(value);
       T const frac = value - ret;
-      return (frac == 0.5? mwg::stdm::trunc(ret * 0.5) == ret * 0.5: frac < 0.5)? ret: ret + T(1.0);
+      return (frac == (T) 0.5? mwg::stdm::trunc(ret * (T) 0.5) == ret * (T) 0.5: frac < (T) 0.5)? ret: ret + T(1.0);
     }
   }
 
@@ -195,6 +195,36 @@ namespace cmath_detail {
   long long llint(double value) {return lint_impl<long long>(value);}
   long long llint(long double value) {return lint_impl<long long>(value);}
 # endif
+
+}
+}
+}
+#endif
+
+#if !defined(MWGCONF_HAS_STD_REMQUO) && !defined(MWGCONF_HAS_REMQUO)
+namespace mwg {
+namespace stdm {
+namespace cmath_detail {
+
+  template<typename T>
+  static T remquo_impl(T lhs, T rhs, int* quo) {
+    if (mwg::stdm::isnan(lhs) || mwg::stdm::isnan(rhs)) return lhs;
+    if (mwg::stdm::isinf(lhs) || rhs == (T) 0.0) {
+      feraiseexcept(FE_INVALID);
+      return NAN;
+    }
+
+    T const div = lhs / rhs;
+    T const flor = std::floor(div);
+    T const frac = div - flor;
+    T const n = (frac == (T) 0.5? mwg::stdm::trunc(flor * (T) 0.5) == flor * (T) 0.5: frac < (T) 0.5)? flor: flor + T(1.0);
+    *quo = (int) n;
+    return lhs - n * rhs;
+  }
+
+  float remquo(float lhs, float rhs, int* quo) {return remquo_impl(lhs, rhs, quo);}
+  double remquo(double lhs, double rhs, int* quo) {return remquo_impl(lhs, rhs, quo);}
+  long double remquo(long double lhs, long double rhs, int* quo) {return remquo_impl(lhs, rhs, quo);}
 
 }
 }

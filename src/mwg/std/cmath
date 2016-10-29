@@ -23,7 +23,6 @@
 #pragma%x end_check
 
 // ToDo: nan nanf nanl
-// ToDo: remainder remquo fma
 // ToDo: erf erfc tgamma lgamma
 // ToDo: 古くからある関数や using した関数でも arithmetic overloads を追加する?
 
@@ -550,7 +549,7 @@ void test() {
 /*?mconf
 
 cfunc_list[1]=' asinh acosh atanh exp2 log2 expm1 log1p ilogb logb cbrt trunc round nearbyint rint lround lrint llround llrint '
-cfunc_list[2]=' hypot nextafter copysign fmin fmax fdim '
+cfunc_list[2]=' hypot nextafter copysign fmin fmax fdim remainder '
 cfunc_list[3]=' fma '
 cfunc_param[1]='x'
 cfunc_param[2]='x, y'
@@ -595,7 +594,6 @@ function check_cfunc {
 
   local std_src="std::$fname(${cfunc_arg[arity]})"
   if X -t"std::$fname(${cfunc_param[arity]})" -o"MWGCONF_HAS_STD_$FNAME" cmath "$std_src"; then
-    echo "chked std::$fname($arity)"
     return 0
   fi
 
@@ -609,7 +607,6 @@ function check_cfunc {
   raw_src="${raw_src}::${fname}f(${cfunc_argf[arity]});"
   raw_src="${raw_src}::${fname}l(${cfunc_argl[arity]});"
   if X -t"::$fname(${cfunc_param[arity]})" -o"MWGCONF_HAS_$FNAME" math.h "$raw_src"; then
-    echo "chked ::$fname($arity)"
     return 0
   fi
 
@@ -670,6 +667,18 @@ namespace stdm {
     return @fname((R) value, rhs);
   }
 #pragma%end
+#pragma%m MWG_STDM_CMATH::ImportMathFunctionFFFI::UseCOverload
+  using ::@fname;
+  using ::@fnamel;
+  using ::@fnamef;
+  static inline float @fname(float lhs, float rhs, @int quo) {return ::@fnamef(lhs, rhs, quo);}
+  static inline long double @fname(long double lhs, long double rhs, @int quo) {return ::@fnamel(lhs, rhs, quo);}
+  template<typename T, typename U>
+  typename cmath_detail::overload<T, U>::type @fname(T lhs, U rhs, @int quo) {
+    typedef typename cmath_detail::overload<T, U>::type R;
+    return @fname((R) lhs, (R) rhs, quo);
+  }
+#pragma%end
 
 #pragma%m MWG_STDM_CMATH::ImportUnaryMathFunction
 #pragma%%[fname="@fname",FNAME=fname.toupper(),expr="@expr"]
@@ -683,7 +692,7 @@ namespace stdm {
   template<typename T>
   typename cmath_detail::overload<T>::return_type fname(T value) {
     typedef typename cmath_detail::overload<T>::type R;
-    return [expression];
+    [expression];
   }
   static inline float fnamef(float value) {return fname(value);}
   static inline long double fnamel(long double value) {return fname(value);}
@@ -705,7 +714,7 @@ namespace stdm {
   template<typename T, typename U>
   typename cmath_detail::overload<T, U>::type fname(T lhs, U rhs) {
     typedef typename cmath_detail::overload<T, U>::type R;
-    return [expression];
+    [expression];
   }
   static inline float fnamef(float lhs, float rhs) {return fname(lhs, rhs);}
   static inline long double fnamel(long double lhs, long double rhs) {return fname(lhs, rhs);}
@@ -727,7 +736,7 @@ namespace stdm {
   template<typename T, typename U, typename V>
   typename cmath_detail::overload<T, U, V>::type fname(T x, U y, V z) {
     typedef typename cmath_detail::overload<T, U, V>::type R;
-    return [expression];
+    [expression];
   }
   static inline float fnamef(float x, float y, float z) {return fname(x, y, z);}
   static inline long double fnamel(long double x, long double y, long double z) {return fname(x, y, z);}
@@ -778,9 +787,9 @@ namespace stdm {
   using ::std::tanh;
 #endif
 
-#pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/asinh/.r|@expr|std::log((R) value + std::sqrt((R) value * (R) value + R(1.0)))|
-#pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/acosh/.r|@expr|std::log((R) value + std::sqrt((R) value * (R) value - R(1.0)))|
-#pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/atanh/.r|@expr|R(0.5) * std::log((R(1.0) + (R) value) / (R(1.0) - (R) value))|
+#pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/asinh/.r|@expr|return std::log((R) value + std::sqrt((R) value * (R) value + R(1.0)))|
+#pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/acosh/.r|@expr|return std::log((R) value + std::sqrt((R) value * (R) value - R(1.0)))|
+#pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/atanh/.r|@expr|return R(0.5) * std::log((R(1.0) + (R) value) / (R(1.0) - (R) value))|
 }
 }
 
@@ -811,8 +820,8 @@ namespace stdm {
   using ::std::modf;
 #endif
 
-#pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/exp2/.r|@expr|std::pow(R(2.0), (R) value)|
-#pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/log2/.r|@expr|R(M_LOG2E) * std::log((R) value)|
+#pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/exp2/.r|@expr|return std::pow(R(2.0), (R) value)|
+#pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/log2/.r|@expr|return R(M_LOG2E) * std::log((R) value)|
 
 //?mconf check_cfunc 1 expm1 EXPM1
 #if !defined(MWGCONF_HAS_STD_EXPM1)
@@ -918,7 +927,7 @@ namespace stdm {
     int ilogb(long double value);
   }
 #endif
-#pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/ilogb/.r/@ret/int/.r|@expr|cmath_detail::ilogb((R) value)|
+#pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/ilogb/.r/@ret/int/.r|@expr|return cmath_detail::ilogb((R) value)|
 
 #if !defined(MWGCONF_HAS_STD_LOGB) && !defined(MWGCONF_HAS_LOGB)
   namespace cmath_detail {
@@ -927,7 +936,7 @@ namespace stdm {
     long double logb(long double value);
   }
 #endif
-#pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/logb/.r|@expr|cmath_detail::logb((R) value)|
+#pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/logb/.r|@expr|return cmath_detail::logb((R) value)|
 
 #if !defined(MWGCONF_HAS_STD_NEXTAFTER) && !defined(MWGCONF_HAS_NEXTAFTER)
   namespace cmath_detail {
@@ -936,14 +945,14 @@ namespace stdm {
     long double nextafter(long double lhs, long double rhs);
   }
 #endif
-#pragma%x MWG_STDM_CMATH::ImportBinaryMathFunction.r/@fname/nextafter/.r|@expr|cmath_detail::nextafter((R) lhs, (R) rhs)|
+#pragma%x MWG_STDM_CMATH::ImportBinaryMathFunction.r/@fname/nextafter/.r|@expr|return cmath_detail::nextafter((R) lhs, (R) rhs)|
 
 /*?mconf
  * X -t'std::nexttoward(x, y)' -oMWGCONF_HAS_STD_NEXTTOWARD cmath 'std::nexttoward(1.0, 2L)' ||
  *   X -t'::nexttoward(x, y)' -oMWGCONF_HAS_NEXTTOWARD math.h '::nexttoward(1.0, 2L);::nexttowardf(1.0f, 2L);::nexttowardl(1.0L, 2L);'
  */
-#if !defined(MWGCONF_HAS_STD_SCALBLN)
-# ifdef MWGCONF_HAS_SCALBLN
+#if !defined(MWGCONF_HAS_STD_NEXTTOWARD)
+# ifdef MWGCONF_HAS_NEXTTOWARD
 #pragma%x MWG_STDM_CMATH::ImportMathFunctionFFI::UseCOverload.r/@fname/nexttoward/.r/@int/long double/
 # else
   template<typename T>
@@ -982,7 +991,7 @@ namespace stdm {
 namespace mwg {
 namespace stdm {
 
-#pragma%x MWG_STDM_CMATH::ImportBinaryMathFunction.r/@fname/copysign/.r|@expr|(R) rhs < 0? -(R) lhs: (R) lhs|
+#pragma%x MWG_STDM_CMATH::ImportBinaryMathFunction.r/@fname/copysign/.r|@expr|return (R) rhs < 0? -(R) lhs: (R) lhs|
 
 // ToDo: nan
 
@@ -1005,7 +1014,7 @@ namespace stdm {
   using ::std::sqrt;
 #endif
 
-#pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/cbrt/.r|@expr|mwg::stdm::copysign(std::pow(std::abs((R) value), R(1.0 / 3.0)), value)|
+#pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/cbrt/.r|@expr|return mwg::stdm::copysign(std::pow(std::abs((R) value), R(1.0 / 3.0)), value)|
 
 //?mconf check_cfunc 2 hypot HYPOT
 #if !defined(MWGCONF_HAS_STD_HYPOT)
@@ -1068,8 +1077,8 @@ namespace stdm {
   using ::std::floor;
 #endif
 
-#pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/trunc/.r|@expr|mwg::stdm::isnan((R) value)? NAN: (R) value >= 0? std::floor((R) value): std::ceil((R) value)|
-#pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/round/.r|@expr|mwg::stdm::isnan((R) value)? NAN: (R) value >= 0? std::floor((R) value + R(0.5)): std::ceil((R) value - R(0.5))|
+#pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/trunc/.r|@expr|return mwg::stdm::isnan((R) value)? NAN: (R) value >= 0? std::floor((R) value): std::ceil((R) value)|
+#pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/round/.r|@expr|return mwg::stdm::isnan((R) value)? NAN: (R) value >= 0? std::floor((R) value + R(0.5)): std::ceil((R) value - R(0.5))|
 
 #if ((!defined(MWGCONF_HAS_STD_NEARBYINT) && !defined(MWGCONF_HAS_NEARBYINT)) \
   || (!defined(MWGCONF_HAS_STD_RINT) && !defined(MWGCONF_HAS_RINT)))
@@ -1080,8 +1089,8 @@ namespace stdm {
     long double nbint(long double value);
   }
 #endif
-#pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/nearbyint/.r|@expr|cmath_detail::nbint((R) value)|
-#pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/rint/     .r|@expr|cmath_detail::nbint((R) value)|
+#pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/nearbyint/.r|@expr|return cmath_detail::nbint((R) value)|
+#pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/rint/     .r|@expr|return cmath_detail::nbint((R) value)|
 
 #if ((!defined(MWGCONF_HAS_STD_LRINT) && !defined(MWGCONF_HAS_LRINT)) \
   || (!defined(MWGCONF_HAS_STD_LROUND) && !defined(MWGCONF_HAS_LROUND)))
@@ -1092,8 +1101,8 @@ namespace stdm {
     long lint(long double value);
   }
 #endif
-#pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/lround/.r/@ret/long/.r|@expr|cmath_detail::lint(mwg::stdm::round((R) value))|
-#pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/lrint/.r/@ret/long/.r|@expr|cmath_detail::lint(mwg::stdm::rint((R) value))|
+#pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/lround/.r/@ret/long/.r|@expr|return cmath_detail::lint(mwg::stdm::round((R) value))|
+#pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/lrint/.r/@ret/long/.r|@expr|return cmath_detail::lint(mwg::stdm::rint((R) value))|
 
 #ifdef MWGCONF_HAS_LONGLONG
 #if ((!defined(MWGCONF_HAS_STD_LLRINT) && !defined(MWGCONF_HAS_LLRINT)) \
@@ -1105,9 +1114,43 @@ namespace stdm {
     long long llint(long double value);
   }
 #endif
-#pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/llround/.r/@ret/long long/.r|@expr|cmath_detail::llint(mwg::stdm::round((R) value))|
-#pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/llrint/.r/@ret/long long/.r|@expr|cmath_detail::llint(mwg::stdm::rint((R) value))|
+#pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/llround/.r/@ret/long long/.r|@expr|return cmath_detail::llint(mwg::stdm::round((R) value))|
+#pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/llrint/.r/@ret/long long/.r|@expr|return cmath_detail::llint(mwg::stdm::rint((R) value))|
 #endif
+
+}
+}
+
+//HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+//
+//  [C11 7.12.10] Remainder functions
+//
+//=============================================================================
+
+namespace mwg {
+namespace stdm {
+
+/*?mconf
+ * X -t'std::remquo(x, y, &q)' -oMWGCONF_HAS_STD_REMQUO cmath 'int  d;std::remquo(1.0, 2.0, &d)' ||
+ *   X -t'::remquo(x, y, &q)' -oMWGCONF_HAS_REMQUO math.h 'int d;::remquo(1.0, 2.0, &d);::remquof(1.0f, 2.0f, &d);::remquol(1.0L, 2.0L, &d);'
+ */
+#if !defined(MWGCONF_HAS_STD_REMQUO)
+# ifdef MWGCONF_HAS_REMQUO
+#pragma%x MWG_STDM_CMATH::ImportMathFunctionFFFI::UseCOverload.r/@fname/remquo/.r/@int/int*/
+# else
+  template<typename T, typename U>
+  typename cmath_detail::overload<T, U>::type remquo(T lhs, U rhs, int* quo) {
+    typedef typename cmath_detail::overload<T, U>::type R;
+    return mwg::stdm::cmath_detail::remquo((R) lhs, (R) rhs, quo);
+  }
+  static inline float remquof(float lhs, float rhs, int* quo) {return remquo(lhs, rhs, quo);}
+  static inline long double remquol(long double lhs, long double rhs, int* quo) {return remquo(lhs, rhs, quo);}
+# endif
+#elif defined(MWGCONF_GCC295BUG_USING_NAMESPACE_STD)
+  using ::std::remquo;
+#endif
+
+#pragma%x MWG_STDM_CMATH::ImportBinaryMathFunction.r/@fname/remainder/.r|@expr|int d; return mwg::stdm::cmath_detail::remquo((R) lhs, (R) rhs, d)|
 
 }
 }
@@ -1121,9 +1164,9 @@ namespace stdm {
 namespace mwg {
 namespace stdm {
 
-#pragma%x MWG_STDM_CMATH::ImportBinaryMathFunction.r/@fname/fmin/.r|@expr|mwg::stdm::isnan((R) lhs)? rhs: mwg::stdm::isnan((R) rhs)? lhs: (R) lhs <= (R) rhs? (R) lhs: (R) rhs|
-#pragma%x MWG_STDM_CMATH::ImportBinaryMathFunction.r/@fname/fmax/.r|@expr|mwg::stdm::isnan((R) lhs)? rhs: mwg::stdm::isnan((R) rhs)? lhs: (R) lhs >= (R) rhs? (R) lhs: (R) rhs|
-#pragma%x MWG_STDM_CMATH::ImportBinaryMathFunction.r/@fname/fdim/.r|@expr|mwg::stdm::fmax((R) lhs - (R) rhs, (R) 0.0)|
+#pragma%x MWG_STDM_CMATH::ImportBinaryMathFunction.r/@fname/fmin/.r|@expr|return mwg::stdm::isnan((R) lhs)? rhs: mwg::stdm::isnan((R) rhs)? lhs: (R) lhs <= (R) rhs? (R) lhs: (R) rhs|
+#pragma%x MWG_STDM_CMATH::ImportBinaryMathFunction.r/@fname/fmax/.r|@expr|return mwg::stdm::isnan((R) lhs)? rhs: mwg::stdm::isnan((R) rhs)? lhs: (R) lhs >= (R) rhs? (R) lhs: (R) rhs|
+#pragma%x MWG_STDM_CMATH::ImportBinaryMathFunction.r/@fname/fdim/.r|@expr|return mwg::stdm::fmax((R) lhs - (R) rhs, (R) 0.0)|
 
 }
 }
@@ -1137,7 +1180,7 @@ namespace stdm {
 namespace mwg {
 namespace stdm {
 
-#pragma%x MWG_STDM_CMATH::ImportTernaryMathFunction.r/@fname/fma/.r|@expr|x * y + z|
+#pragma%x MWG_STDM_CMATH::ImportTernaryMathFunction.r/@fname/fma/.r|@expr|return x * y + z|
 #if !defined(MWGCONF_HAS_STD_FMA) && !defined(MWGCONF_HAS_FMA)
 # undef FP_FAST_FMA
 # undef FP_FAST_FMAF
@@ -1181,7 +1224,7 @@ namespace stdm_detail {
 # else
   template<typename T>
   bool fname_impl(T lhs, T rhs) {
-    return [expression];
+    [expression];
   }
 # endif
 }
@@ -1206,12 +1249,12 @@ namespace stdm {
 #pragma%%end.r/FNAME/${FNAME}/.r/fname/${fname}/.r/\[expression\]/${expr}/.r/return_type/${ret}/.i
 #pragma%end
 
-#pragma%x MWG_STDM_CMATH::ImportComparisonMacros.r/@fname/isunordered/   .r#@expr#mwg::stdm::isnan(lhs) || mwg::stdm::isnan(rhs)#
-#pragma%x MWG_STDM_CMATH::ImportComparisonMacros.r/@fname/isgreater/     .r#@expr#mwg::stdm::isunordered(lhs, rhs)? false: lhs > rhs#
-#pragma%x MWG_STDM_CMATH::ImportComparisonMacros.r/@fname/isless/        .r#@expr#mwg::stdm::isunordered(lhs, rhs)? false: lhs < rhs#
-#pragma%x MWG_STDM_CMATH::ImportComparisonMacros.r/@fname/isgreaterequal/.r#@expr#mwg::stdm::isunordered(lhs, rhs)? false: lhs >= rhs#
-#pragma%x MWG_STDM_CMATH::ImportComparisonMacros.r/@fname/islessequal/   .r#@expr#mwg::stdm::isunordered(lhs, rhs)? false: lhs <= rhs#
-#pragma%x MWG_STDM_CMATH::ImportComparisonMacros.r/@fname/islessgreater/ .r#@expr#mwg::stdm::isunordered(lhs, rhs)? false: lhs < rhs || lhs > rhs#
+#pragma%x MWG_STDM_CMATH::ImportComparisonMacros.r/@fname/isunordered/   .r#@expr#return mwg::stdm::isnan(lhs) || mwg::stdm::isnan(rhs)#
+#pragma%x MWG_STDM_CMATH::ImportComparisonMacros.r/@fname/isgreater/     .r#@expr#return mwg::stdm::isunordered(lhs, rhs)? false: lhs > rhs#
+#pragma%x MWG_STDM_CMATH::ImportComparisonMacros.r/@fname/isless/        .r#@expr#return mwg::stdm::isunordered(lhs, rhs)? false: lhs < rhs#
+#pragma%x MWG_STDM_CMATH::ImportComparisonMacros.r/@fname/isgreaterequal/.r#@expr#return mwg::stdm::isunordered(lhs, rhs)? false: lhs >= rhs#
+#pragma%x MWG_STDM_CMATH::ImportComparisonMacros.r/@fname/islessequal/   .r#@expr#return mwg::stdm::isunordered(lhs, rhs)? false: lhs <= rhs#
+#pragma%x MWG_STDM_CMATH::ImportComparisonMacros.r/@fname/islessgreater/ .r#@expr#return mwg::stdm::isunordered(lhs, rhs)? false: lhs < rhs || lhs > rhs#
 
 //HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 #endif /* end of MWG_STDM_CMATH */
