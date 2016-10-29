@@ -30,16 +30,24 @@
 namespace mwg {
 namespace stdm {
 namespace cmath_detail {
-  template<typename T, typename U = T>
+  template<typename T, typename U = T, typename V = T>
   struct overload: mwg::stdm::enable_if<
-    (mwg::stdm::is_arithmetic<T>::value && mwg::stdm::is_arithmetic<U>::value),
+    (mwg::stdm::is_arithmetic<T>::value
+      && mwg::stdm::is_arithmetic<U>::value
+      && mwg::stdm::is_arithmetic<V>::value),
     typename mwg::stdm::conditional<
-      (mwg::stdm::is_same<T, long double>::value || mwg::stdm::is_same<U, long double>::value), long double,
+      (mwg::stdm::is_same<T, long double>::value
+        || mwg::stdm::is_same<U, long double>::value
+        || mwg::stdm::is_same<U, long double>::value), long double,
       typename mwg::stdm::conditional<
-        (mwg::stdm::is_same<T, float>::value && mwg::stdm::is_same<U, float>::value), float,
+        (mwg::stdm::is_same<T, float>::value
+          && mwg::stdm::is_same<U, float>::value
+          && mwg::stdm::is_same<V, float>::value), float,
         double>::type>::type>
   {
-    static const bool value = mwg::stdm::is_arithmetic<T>::value && mwg::stdm::is_arithmetic<U>::value;
+    static const bool value = mwg::stdm::is_arithmetic<T>::value
+      && mwg::stdm::is_arithmetic<U>::value
+      && mwg::stdm::is_arithmetic<V>::value;
     template<typename R> struct enable: mwg::stdm::enable_if<value, R> {};
   };
 }
@@ -560,9 +568,21 @@ namespace stdm {
   static inline float @fname(float lhs, float rhs) {return ::@fnamef(lhs, rhs);}
   static inline long double @fname(long double lhs, long double rhs) {return ::@fnamel(lhs, rhs);}
   template<typename T, typename U>
-  typename cmath_detail::overload<T, U>::type @fname(T lhs, T rhs) {
+  typename cmath_detail::overload<T, U>::type @fname(T lhs, U rhs) {
     typedef typename cmath_detail::overload<T, U>::type R;
     return @fname((R) lhs, (R) rhs);
+  }
+#pragma%end
+#pragma%m MWG_STDM_CMATH::ImportTernaryMathFunction::UseCOverload
+  using ::@fname;
+  using ::@fnamel;
+  using ::@fnamef;
+  static inline float @fname(float x, float y, float z) {return ::@fnamef(x, y, z);}
+  static inline long double @fname(long double x, long double y, long double z) {return ::@fnamel(x, y, z);}
+  template<typename T, typename U, typename V>
+  typename cmath_detail::overload<T, U, V>::type @fname(T x, U y, V z) {
+    typedef typename cmath_detail::overload<T, U, V>::type R;
+    return @fname((R) x, (R) y, (R) z);
   }
 #pragma%end
 #pragma%m MWG_STDM_CMATH::ImportMathFunctionFFI::UseCOverload
@@ -622,6 +642,31 @@ namespace stdm {
   }
   static inline float fnamef(float lhs, float rhs) {return fname(lhs, rhs);}
   static inline long double fnamel(long double lhs, long double rhs) {return fname(lhs, rhs);}
+# endif
+#elif defined(MWGCONF_GCC295BUG_USING_NAMESPACE_STD)
+  using ::std::fname;
+#endif
+#pragma%%end.r/FNAME/${FNAME}/.r/fname/${fname}/.r/\[expression\]/${expr}/.i
+#pragma%end
+
+#pragma%m MWG_STDM_CMATH::ImportTernaryMathFunction
+#pragma%%[fname="@fname",FNAME=fname.toupper(),expr="@expr"]
+#pragma%%x
+/*?mconf
+ * X -t'std::fname(x, y, z)' -oMWGCONF_HAS_STD_FNAME cmath 'std::fname(1.0, 2.0, 3.0)' ||
+ *   X -t'::fname(x, y, z)' -oMWGCONF_HAS_FNAME math.h '::fname(1.0, 2.0, 3.0);::fnamef(1.0f, 2.0f, 3.0f);::fnamel(1.0L, 2.0L, 3.0L);'
+ */
+#if !defined(MWGCONF_HAS_STD_FNAME)
+# ifdef MWGCONF_HAS_FNAME
+#pragma%x MWG_STDM_CMATH::ImportTernaryMathFunction::UseCOverload.r/@fname/fname/
+# else
+  template<typename T, typename U, typename V>
+  typename cmath_detail::overload<T, U, V>::type fname(T x, U y, V z) {
+    typedef typename cmath_detail::overload<T, U, V>::type R;
+    return [expression];
+  }
+  static inline float fnamef(float x, float y, float z) {return fname(x, y, z);}
+  static inline long double fnamel(long double x, long double y, long double z) {return fname(x, y, z);}
 # endif
 #elif defined(MWGCONF_GCC295BUG_USING_NAMESPACE_STD)
   using ::std::fname;
@@ -944,72 +989,6 @@ namespace stdm {
 
 //HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 //
-// [C11 7.12.14] Comparison macros
-//
-//-----------------------------------------------------------------------------
-
-#pragma%m MWG_STDM_CMATH::ImportComparisonMacros
-#pragma%%[fname="@fname",FNAME=fname.toupper(),expr="@expr"]
-#pragma%%[ret = ("@ret" != "@" + "ret")? "enable<@ret>::type": "type"]
-#pragma%%x
-/*?mconf
- * if ! X -t'std::fname(x, y)' -oMWGCONF_HAS_STD_FNAME cmath 'std::fname(1.0, 2.0)'; then
- *   X -t'::fname(x, y)' -oMWGCONF_HAS_FNAME cmath $'\n#undef fname\n::fname(1.0, 2.0);'
- * fi
- */
-#ifndef MWGCONF_HAS_STD_FNAME
-namespace mwg {
-namespace stdm_detail {
-# ifdef fname
-  static inline bool fname_impl(float lhs, float rhs) {return fname(lhs, rhs) != 0;}
-  static inline bool fname_impl(double lhs, double rhs) {return fname(lhs, rhs) != 0;}
-  static inline bool fname_impl(long double lhs, long double rhs) {return fname(lhs, rhs) != 0;}
-#  undef fname
-#  ifndef MWGCONF_HAS_FNAME
-#   define MWG_STDM_CMATH_DefinesGlobalIsunordered
-#  endif
-# elif defined(MWGCONF_HAS_FNAME)
-  template<typename T>
-  bool fname_impl(T lhs, T rhs) {
-    return ::fname(lhs, rhs);
-  }
-# else
-  template<typename T>
-  bool fname_impl(T lhs, T rhs) {
-    return [expression];
-  }
-# endif
-}
-namespace stdm {
-  template<typename T, typename U>
-  typename cmath_detail::overload<T, U>::type fname(T x, U y) {
-    typedef typename cmath_detail::overload<T, U>::type R;
-    return ::mwg::stdm_detail::fname_impl((R) x, (R) y);
-  }
-}
-}
-# ifdef MWG_STDM_CMATH_DefinesGlobalIsunordered
-using ::mwg::stdm::fname;
-# endif
-#elif defined(MWGCONF_GCC295BUG_USING_NAMESPACE_STD)
-namespace mwg {
-namespace stdm {
-  using ::std::fname;
-}
-}
-#endif
-#pragma%%end.r/FNAME/${FNAME}/.r/fname/${fname}/.r/\[expression\]/${expr}/.r/return_type/${ret}/.i
-#pragma%end
-
-#pragma%x MWG_STDM_CMATH::ImportComparisonMacros.r/@fname/isunordered/   .r#@expr#mwg::stdm::isnan(lhs) || mwg::stdm::isnan(rhs)#
-#pragma%x MWG_STDM_CMATH::ImportComparisonMacros.r/@fname/isgreater/     .r#@expr#mwg::stdm::isunordered(lhs, rhs)? false: lhs > rhs#
-#pragma%x MWG_STDM_CMATH::ImportComparisonMacros.r/@fname/isless/        .r#@expr#mwg::stdm::isunordered(lhs, rhs)? false: lhs < rhs#
-#pragma%x MWG_STDM_CMATH::ImportComparisonMacros.r/@fname/isgreaterequal/.r#@expr#mwg::stdm::isunordered(lhs, rhs)? false: lhs >= rhs#
-#pragma%x MWG_STDM_CMATH::ImportComparisonMacros.r/@fname/islessequal/   .r#@expr#mwg::stdm::isunordered(lhs, rhs)? false: lhs <= rhs#
-#pragma%x MWG_STDM_CMATH::ImportComparisonMacros.r/@fname/islessgreater/ .r#@expr#mwg::stdm::isunordered(lhs, rhs)? false: lhs < rhs || lhs > rhs#
-
-//HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
-//
 //  [C11 7.12.9] Nearest integer functions
 //
 //=============================================================================
@@ -1092,6 +1071,92 @@ namespace stdm {
 
 }
 }
+
+//HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+//
+//  [C11 7.12.13] Floating multiply-add
+//
+//=============================================================================
+
+namespace mwg {
+namespace stdm {
+
+#pragma%x MWG_STDM_CMATH::ImportTernaryMathFunction.r/@fname/fma/.r|@expr|x * y + z|
+#if !defined(MWGCONF_HAS_STD_FMA) && !defined(MWGCONF_HAS_FMA)
+# undef FP_FAST_FMA
+# undef FP_FAST_FMAF
+# undef FP_FAST_FMAL
+#endif
+
+}
+}
+
+//HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+//
+// [C11 7.12.14] Comparison macros
+//
+//-----------------------------------------------------------------------------
+
+#pragma%m MWG_STDM_CMATH::ImportComparisonMacros
+#pragma%%[fname="@fname",FNAME=fname.toupper(),expr="@expr"]
+#pragma%%[ret = ("@ret" != "@" + "ret")? "enable<@ret>::type": "type"]
+#pragma%%x
+/*?mconf
+ * if ! X -t'std::fname(x, y)' -oMWGCONF_HAS_STD_FNAME cmath 'std::fname(1.0, 2.0)'; then
+ *   X -t'::fname(x, y)' -oMWGCONF_HAS_FNAME cmath $'\n#undef fname\n::fname(1.0, 2.0);'
+ * fi
+ */
+#ifndef MWGCONF_HAS_STD_FNAME
+namespace mwg {
+namespace stdm_detail {
+# ifdef fname
+  static inline bool fname_impl(float lhs, float rhs) {return fname(lhs, rhs) != 0;}
+  static inline bool fname_impl(double lhs, double rhs) {return fname(lhs, rhs) != 0;}
+  static inline bool fname_impl(long double lhs, long double rhs) {return fname(lhs, rhs) != 0;}
+#  undef fname
+#  ifndef MWGCONF_HAS_FNAME
+#   define MWG_STDM_CMATH_DefinesGlobalIsunordered
+#  endif
+# elif defined(MWGCONF_HAS_FNAME)
+  template<typename T>
+  bool fname_impl(T lhs, T rhs) {
+    return ::fname(lhs, rhs);
+  }
+# else
+  template<typename T>
+  bool fname_impl(T lhs, T rhs) {
+    return [expression];
+  }
+# endif
+}
+namespace stdm {
+  template<typename T, typename U>
+  typename cmath_detail::overload<T, U>::type fname(T x, U y) {
+    typedef typename cmath_detail::overload<T, U>::type R;
+    return ::mwg::stdm_detail::fname_impl((R) x, (R) y);
+  }
+}
+}
+# ifdef MWG_STDM_CMATH_DefinesGlobalIsunordered
+using ::mwg::stdm::fname;
+# endif
+#elif defined(MWGCONF_GCC295BUG_USING_NAMESPACE_STD)
+namespace mwg {
+namespace stdm {
+  using ::std::fname;
+}
+}
+#endif
+#pragma%%end.r/FNAME/${FNAME}/.r/fname/${fname}/.r/\[expression\]/${expr}/.r/return_type/${ret}/.i
+#pragma%end
+
+#pragma%x MWG_STDM_CMATH::ImportComparisonMacros.r/@fname/isunordered/   .r#@expr#mwg::stdm::isnan(lhs) || mwg::stdm::isnan(rhs)#
+#pragma%x MWG_STDM_CMATH::ImportComparisonMacros.r/@fname/isgreater/     .r#@expr#mwg::stdm::isunordered(lhs, rhs)? false: lhs > rhs#
+#pragma%x MWG_STDM_CMATH::ImportComparisonMacros.r/@fname/isless/        .r#@expr#mwg::stdm::isunordered(lhs, rhs)? false: lhs < rhs#
+#pragma%x MWG_STDM_CMATH::ImportComparisonMacros.r/@fname/isgreaterequal/.r#@expr#mwg::stdm::isunordered(lhs, rhs)? false: lhs >= rhs#
+#pragma%x MWG_STDM_CMATH::ImportComparisonMacros.r/@fname/islessequal/   .r#@expr#mwg::stdm::isunordered(lhs, rhs)? false: lhs <= rhs#
+#pragma%x MWG_STDM_CMATH::ImportComparisonMacros.r/@fname/islessgreater/ .r#@expr#mwg::stdm::isunordered(lhs, rhs)? false: lhs < rhs || lhs > rhs#
+
 //HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 #endif /* end of MWG_STDM_CMATH */
 #pragma%x begin_check
