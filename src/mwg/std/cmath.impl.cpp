@@ -230,3 +230,59 @@ namespace cmath_detail {
 }
 }
 #endif
+
+#if !defined(MWGCONF_HAS_STD_NAN) && !defined(MWGCONF_HAS_NAN)
+#include <cstdlib>
+#include <cstring>
+namespace mwg {
+namespace stdm {
+namespace cmath_detail {
+
+  static inline const char* nan_strtod_arg(const char* arg) {
+    static std::size_t size = 0;
+    static char* data = nullptr;
+
+    std::size_t const len = arg? 6 + std::strlen(arg): 4;
+    if (size < len) {
+      if (data) std::free(data);
+      size = len + 10;
+      data = (char*) std::malloc(size);
+      std::strcpy(data, "NAN");
+    }
+
+    if (arg) {
+      data[3] = '\0';
+    } else {
+      data[3] = '(';
+      std::strcpy(data + 4, arg);
+      data[len - 2] = ')';
+      data[len - 1] = '\0';
+    }
+
+    return data;
+  }
+  double nan(const char* arg) {
+    return std::strtod(cmath_detail::nan_strtod_arg(arg), (char**) nullptr);
+  }
+  float nanf(const char* arg) {
+#ifdef MWGCONF_HAS_STD_STRTOF
+    return mwg::stdm::strtof(cmath_detail::nan_strtod_arg(arg), (char**) nullptr);
+#elif defined(MWGCONF_HAS_STRTOF)
+    return ::stdm::strtof(cmath_detail::nan_strtod_arg(arg), (char**) nullptr);
+#else
+    return (float) nan(arg);
+#endif
+  }
+  long double nanl(const char* arg) {
+#ifdef MWGCONF_HAS_STD_STRTOLD
+    return mwg::stdm::strtold(cmath_detail::nan_strtod_arg(arg), (char**) nullptr);
+#elif defined(MWGCONF_HAS_STRTOLD)
+    return ::stdm::strtold(cmath_detail::nan_strtod_arg(arg), (char**) nullptr);
+#else
+    return (long double) nan(arg);
+#endif
+  }
+}
+}
+}
+#endif

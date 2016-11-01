@@ -22,8 +22,8 @@
 #include <mwg/except.h>
 #pragma%x end_check
 
-// ToDo: nan nanf nanl
 // ToDo: erf erfc tgamma lgamma
+// ToDo: strtof strtold 関連を cstdlib に移動(真面目に実装するとなると少々面倒であるが)。
 // ToDo: 古くからある関数や using した関数でも arithmetic overloads を追加する?
 
 namespace mwg {
@@ -122,17 +122,17 @@ namespace stdm {
 
 #ifndef MWGCONF_HAS_STD_FLOAT_T
 # ifdef MWGCONF_HAS_FLOAT_T
-  typedef ::float_t float_t;
+    typedef ::float_t float_t;
 # else
-  typedef float float_t;
+    typedef float float_t;
 # endif
 #endif
 
 #ifndef MWGCONF_HAS_STD_DOUBLE_T
 # ifdef MWGCONF_HAS_DOUBLE_T
-  typedef ::double_t double_t;
+    typedef ::double_t double_t;
 # else
-  typedef double double_t;
+    typedef double double_t;
 # endif
 #endif
 
@@ -988,12 +988,46 @@ namespace stdm {
 //
 //-----------------------------------------------------------------------------
 
+#if !defined(MWGCONF_HAS_STD_NAN) && !defined(MWGCONF_HAS_NAN)
+#include <cstdlib>
+#include <cstring>
+#endif
+
 namespace mwg {
 namespace stdm {
 
 #pragma%x MWG_STDM_CMATH::ImportBinaryMathFunction.r/@fname/copysign/.r|@expr|return (R) rhs < 0? -(R) lhs: (R) lhs|
 
-// ToDo: nan
+/*?mconf
+ * function check_nan {
+ *   X -t'std::nan(arg)' -oMWGCONF_HAS_STD_NAN cmath 'std::nan("")' ||
+ *     X -t'::nan(arg)' -oMWGCONF_HAS_NAN math.h '::nan("");::nanf("");::nanl("");'
+ * }
+ * if ! check_nan; then
+ *   X -t'std::strtof(arg)' -oMWGCONF_HAS_STD_STRTOF cmath 'std::strtof("1.0", 0)' ||
+ *     X -t'::strtof(arg)' -oMWGCONF_HAS_STRTOF math.h '::strtof("1.0", 0);'
+ *   X -t'std::strtold(arg)' -oMWGCONF_HAS_STD_STRTOLD cmath 'std::strtold("1.0", 0)' ||
+ *     X -t'::strtold(arg)' -oMWGCONF_HAS_STRTOLD math.h '::strtold("1.0", 0);'
+ * fi
+ */
+#if !defined(MWGCONF_HAS_STD_NAN)
+# ifdef MWGCONF_HAS_NAN
+  using ::nan;
+  using ::nanl;
+  using ::nanf;
+# else
+namespace cmath_detail {
+  double nan(const char* arg);
+  float nanf(const char* arg);
+  long double nanl(const char* arg);
+}
+  using cmath_detail::nan;
+  using cmath_detail::nanf;
+  using cmath_detail::nanl;
+# endif
+#elif defined(MWGCONF_GCC295BUG_USING_NAMESPACE_STD)
+  using ::std::nan;
+#endif
 
 }
 }
