@@ -29,7 +29,9 @@ Makefile: Makefile.pp
 #%x AddCxxHeader.r|%file%|mwg/impl/DeclareVariadicFunction.inl|
 #%x AddCxxHeader.r|%file%|mwg/std/utility|
 #%x AddCxxHeader.r|%file%|mwg/std/chrono|
+#%x AddCxxHeader.r|%file%|mwg/std/cfenv|
 #%x AddCxxHeader.r|%file%|mwg/std/cmath|
+#%x AddCxxSource.r|%file%|mwg/std/cmath.impl.cpp|
 #%x AddCxxHeader.r|%file%|mwg/std/cstdint|
 #%x AddCxxHeader.r|%file%|mwg/std/cctype|
 #%x AddCxxHeader.r|%file%|mwg/std/cwctype|
