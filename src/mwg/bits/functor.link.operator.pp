@@ -70,7 +70,7 @@ namespace functor_detail{
 
 #pragma%m 1
   template<typename F>
-  struct functor_traits_chain<@,F,typename stdm::enable_if<has_single_operator_functor<T>::value>::type>
+  struct functor_traits_chain<@,F,typename stdm::enable_if<has_single_operator_functor<F>::value>::type>
     :functor_traits_ftorF<decltype(&F::operator())>{};
 #pragma%end
 #pragma%x functor_traits_chain::register
@@ -90,7 +90,7 @@ namespace functor_detail{
 
 #pragma%m 1
   template<typename P>
-  struct functor_traits_chain<@,P,typename stdm::enable_if<is_pointer_to_single_operator_functor<T>::value>::type>
+  struct functor_traits_chain<@,P,typename stdm::enable_if<is_pointer_to_single_operator_functor<P>::value>::type>
     :functor_traits_ftorP<P,typename is_pointer_to_single_operator_functor<P>::operator_type>{};
 #pragma%end
 #pragma%x functor_traits_chain::register

@@ -272,7 +272,7 @@ namespace functor_detail{
 #pragma%m 1
     template<typename F,typename R,typename... A>
     struct can_be_called_as_impl1<F,R(A...)>{
-      MWG_FUNCTOR_H__can_be_called_as__content((A...),(expr<AK>()...));
+      MWG_FUNCTOR_H__can_be_called_as__content((A...),(expr<A>()...));
     };
 #pragma%end
 #pragma%x variadic_expand_0toArN
