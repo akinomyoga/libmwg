@@ -116,140 +116,140 @@
 //-----------------------------------------------------------------------------
 // mwg::xprintf_detail::read_fmtspec
 
-namespace mwg{
-namespace xprintf_detail{
-namespace{
+namespace mwg {
+namespace xprintf_detail {
+namespace {
 
-  int read_posspec(const char*& _p){
-    int digits=0;
-    int pos=0;
-    const char* p=_p;
-    while(std::isdigit(*p)){
+  int read_posspec(const char*& _p) {
+    int digits = 0;
+    int pos = 0;
+    const char* p = _p;
+    while (std::isdigit(*p)) {
       digits++;
-      pos=pos*10+(*p++-'0');
+      pos = pos * 10 + (*p++-'0');
     }
-    if(digits&&*p=='$'){
-      _p=p+1;
+    if (digits && *p == '$') {
+      _p = p + 1;
       return pos;
-    }else{
+    } else {
       return 0;
     }
   }
 
   // <width>? = /(\d+|\*(?:\d+\$)?)?/
-  void read_widthspec(int& width,int& width_pos,const char*& _p){
-    const char* p=_p;
-    width=0;
-    width_pos=-1;
-    if(std::isdigit(*p)){
-      int w=0;
-      while(std::isdigit(*p))
-        w=w*10+(*p++-'0');
-      width=w;
-    }else if(*p=='*'){
+  void read_widthspec(int& width, int& width_pos, const char*& _p) {
+    const char* p = _p;
+    width = 0;
+    width_pos = -1;
+    if (std::isdigit(*p)) {
+      int w = 0;
+      while (std::isdigit(*p))
+        w = w * 10 + (*p++-'0');
+      width = w;
+    } else if (*p == '*') {
       p++;
-      width_pos=read_posspec(p);
+      width_pos = read_posspec(p);
     }
-    _p=p;
+    _p = p;
   }
 
-  fmtspec_type read_typespec(const char*& p){
-    switch(*p){
+  fmtspec_type read_typespec(const char*& p) {
+    switch(*p) {
     case 'h':
-      if(p[1]=='h'){
-        p+=2;
+      if (p[1] == 'h') {
+        p += 2;
         return type_hh;
-      }else{
+      } else {
         p++;
         return type_h;
       }
     case 'l':
-      if(p[1]=='l'){
-        p+=2;
+      if (p[1] == 'l') {
+        p += 2;
         return type_ll;
-      }else{
+      } else {
         p++;
         return type_l;
       }
     case 'I':
-      if(p[1]=='3'){
-        if(p[2]=='2'){
-          p+=3;
+      if (p[1] == '3') {
+        if (p[2] == '2') {
+          p += 3;
           return type_I32;
         }
-      }else if(p[1]=='6'){
-        if(p[2]=='4'){
-          p+=3;
+      } else if (p[1] == '6') {
+        if (p[2] == '4') {
+          p += 3;
           return type_I64;
         }
-      }else if(p[1]=='1'){
-        if(p[2]=='6'){
-          p+=3;
+      } else if (p[1] == '1') {
+        if (p[2] == '6') {
+          p += 3;
           return type_I16;
         }
-      }else if(p[1]=='8'){
-        p+=2;
+      } else if (p[1] == '8') {
+        p += 2;
         return type_I8;
       }
       p++;
       return type_I;
-    case 'L':p++;return type_L;
-    case 'j':p++;return type_j;
-    case 'z':p++;return type_z;
-    case 't':p++;return type_t;
-    case 'q':p++;return type_q;
-    case 'w':p++;return type_w;
+    case 'L': p++; return type_L;
+    case 'j': p++; return type_j;
+    case 'z': p++; return type_z;
+    case 't': p++; return type_t;
+    case 'q': p++; return type_q;
+    case 'w': p++; return type_w;
     }
 
     return type_default;
   }
 }
 
-  void read_fmtspec(fmtspec& spec,const char*& _p){
-    const char* p=_p;
+  void read_fmtspec(fmtspec& spec, const char*& _p) {
+    const char* p = _p;
 
     // /%{pos}?{flag}{width}?(\.{prec}?)?{type}(.|$)/g
-    mwg_assert(*p=='%');
+    mwg_assert(*p == '%');
     p++;
 
     // <pos>? = /(?:(\d+)\$)?/
-    spec.pos=read_posspec(p);
+    spec.pos = read_posspec(p);
 
     // <flag> = /([-+ 0#']*)/
-    spec.flags=0;
-    for(;*p;p++){
-      switch(*p){
-      case '-':spec.flags|=flag_left;continue;
-      case '0':spec.flags|=flag_zero;continue;
-      case '+':spec.flags|=flag_plus;continue;
-      case ' ':spec.flags|=flag_space;continue;
-      case '#':spec.flags|=flag_hash;continue;
-      case '\'':spec.flags|=flag_quote;continue;
+    spec.flags = 0;
+    for (; *p; p++) {
+      switch(*p) {
+      case '-': spec.flags |= flag_left; continue;
+      case '0': spec.flags |= flag_zero; continue;
+      case '+': spec.flags |= flag_plus; continue;
+      case ' ': spec.flags |= flag_space; continue;
+      case '#': spec.flags |= flag_hash; continue;
+      case '\'': spec.flags |= flag_quote; continue;
       }
       break;
     }
 
     // <width>? = /(\d+|\*(?:\d+\$)?)?/
-    read_widthspec(spec.width,spec.width_pos,p);
+    read_widthspec(spec.width, spec.width_pos, p);
 
     // (.<prec>?)?
-    if(*p=='.'){
+    if (*p == '.') {
       p++;
       // <prec>? = /(?:\d+|\*(?:\d+\$)?)?/
-      read_widthspec(spec.precision,spec.precision_pos,p);
-    }else{
-      spec.precision=-1;
-      spec.precision_pos=-1;
+      read_widthspec(spec.precision, spec.precision_pos, p);
+    } else {
+      spec.precision = -1;
+      spec.precision_pos = -1;
     }
 
     // <type>? = /([hlLjztqw]|hh|ll|I(?:32|64)?)?/
-    spec.type=read_typespec(p);
+    spec.type = read_typespec(p);
 
     // <conv> = /(.|$)/
-    spec.conv=*p;
-    if(*p)p++;
+    spec.conv = *p;
+    if (*p) p++;
 
-    _p=p;
+    _p = p;
   }
 
 }
@@ -258,73 +258,73 @@ namespace{
 //-----------------------------------------------------------------------------
 // converters
 
-namespace mwg{
-namespace xprintf_detail{
-  static const int  GROUPING_DIGITS=3;
-  static const char GROUPING_CHAR=',';
-  static const char* const digitsLower="0123456789abcdefxnan\0inf\0";
-  static const char* const digitsUpper="0123456789ABCDEFXNAN\0INF\0";
-  static const int IDIGITS_E  =14;
-  static const int IDIGITS_X  =16;
-  static const int IDIGITS_NAN=17;
-  static const int IDIGITS_INF=21;
+namespace mwg {
+namespace xprintf_detail {
+  static const int  GROUPING_DIGITS = 3;
+  static const char GROUPING_CHAR = ',';
+  static const char* const digitsLower = "0123456789abcdefxnan\0inf\0";
+  static const char* const digitsUpper = "0123456789ABCDEFXNAN\0INF\0";
+  static const int IDIGITS_E   = 14;
+  static const int IDIGITS_X   = 16;
+  static const int IDIGITS_NAN = 17;
+  static const int IDIGITS_INF = 21;
 
-  enum integral_conversion_flags{
-    iflag_signed    =0x01,
-    iflag_group     =0x02,
+  enum integral_conversion_flags {
+    iflag_signed     = 0x01,
+    iflag_group      = 0x02,
 
-    iflag_base_hex  =0x10,
-    iflag_base_octal=0x20,
+    iflag_base_hex   = 0x10,
+    iflag_base_octal = 0x20,
   };
 
-  class integer_converter{
+  class integer_converter {
     const char* digits;
     int base;
     fmtspec const& spec;
     integral_conversion_flags iflags;
     bool isGrouped;
   public:
-    integer_converter(const char* digits,int base,fmtspec const& spec,int iflags)
-      :digits(digits),base(base),spec(spec),iflags(integral_conversion_flags(iflags))
+    integer_converter(const char* digits, int base, fmtspec const& spec, int iflags)
+      :digits(digits), base(base), spec(spec), iflags(integral_conversion_flags(iflags))
     {
-      this->isGrouped=spec.flags&flag_quote&&iflags&iflag_group;
+      this->isGrouped = spec.flags & flag_quote && iflags & iflag_group;
     }
 
   private:
     int nzero;
   public:
-    int count_body(mwg::u8t value){
-      bool const valueIsZero=value==0;
+    int count_body(mwg::u8t value) {
+      bool const valueIsZero = value == 0;
 
-      if(iflags&iflag_signed&&reinterpret_cast<mwg::i8t const&>(value)<0)
-        value=1+~value; // -INT8_MIN は ? なので mwg::u8t のまま変換
+      if (iflags & iflag_signed && reinterpret_cast<mwg::i8t const&>(value) < 0)
+        value = 1 + ~value; // -INT8_MIN は ? なので mwg::u8t のまま変換
 
-      int len=0;
-      do{
-        value/=base;
+      int len = 0;
+      do {
+        value /= base;
         len++;
-      }while(value>0);
+      } while (value > 0);
 
-      if(isGrouped)
-        len+=(len-1)/GROUPING_DIGITS;
+      if (isGrouped)
+        len += (len - 1) / GROUPING_DIGITS;
 
-      nzero=0;
-      if(spec.precision>=0&&len<spec.precision)
-        nzero=spec.precision-len;
-      if((iflags&iflag_base_octal)&&(spec.flags&flag_hash)&&!valueIsZero&&nzero==0)
-        nzero=1;
+      nzero = 0;
+      if (spec.precision >= 0 && len < spec.precision)
+        nzero = spec.precision - len;
+      if ((iflags & iflag_base_octal) && (spec.flags & flag_hash) && !valueIsZero && nzero == 0)
+        nzero = 1;
 
-      return len+nzero;
+      return len + nzero;
     }
 
   private:
     template<typename Writer>
-    void put_digits(Writer const& buff,mwg::u8t value,int idigit) const{
-      char c=digits[value%base];
-      value/=base;
-      if(value>0){
-        this->put_digits(buff,value,idigit+1);
-        if(isGrouped&&(idigit+1)%GROUPING_DIGITS==0)
+    void put_digits(Writer const& buff, mwg::u8t value, int idigit) const {
+      char c = digits[value % base];
+      value /= base;
+      if (value > 0) {
+        this->put_digits(buff, value, idigit + 1);
+        if (isGrouped && (idigit + 1) % GROUPING_DIGITS == 0)
           buff.put(GROUPING_CHAR);
       }
       buff.put(c);
@@ -332,197 +332,197 @@ namespace xprintf_detail{
 
   public:
     template<typename Writer>
-    void output_body(Writer const& buff,mwg::u8t value){
-      if(iflags&iflag_signed&&reinterpret_cast<mwg::i8t const&>(value)<0)
-        value=1+~value; // -INT8_MIN は ? なので mwg::u8t のまま変換
+    void output_body(Writer const& buff, mwg::u8t value) {
+      if (iflags & iflag_signed && reinterpret_cast<mwg::i8t const&>(value) < 0)
+        value = 1 + ~value; // -INT8_MIN は ? なので mwg::u8t のまま変換
 
       // nzero padding
-      int nzero=this->nzero;
-      while(nzero--)buff.put(digits[0]);
-      this->put_digits(buff,value,0);
+      int nzero = this->nzero;
+      while (nzero--) buff.put(digits[0]);
+      this->put_digits(buff, value, 0);
     }
 
-    int count_prefix(mwg::u8t const& value){
-      int ret=0;
-      if(iflags&iflag_signed){
-        if(reinterpret_cast<mwg::i8t const&>(value)<0)
-          ret+=1;
-        else if(spec.flags&(flag_plus|flag_space))
-          ret+=1;
+    int count_prefix(mwg::u8t const& value) {
+      int ret = 0;
+      if (iflags & iflag_signed) {
+        if (reinterpret_cast<mwg::i8t const&>(value) < 0)
+          ret += 1;
+        else if (spec.flags & (flag_plus | flag_space))
+          ret += 1;
       }
 
-      if(iflags&iflag_base_hex&&spec.flags&flag_hash)
-        ret+=2;
+      if (iflags & iflag_base_hex && spec.flags & flag_hash)
+        ret += 2;
 
       return ret;
     }
     template<typename Writer>
-    void output_prefix(Writer const& buff,mwg::u8t const& value){
-      if(iflags&iflag_signed){
-        if(reinterpret_cast<mwg::i8t const&>(value)<0){
+    void output_prefix(Writer const& buff, mwg::u8t const& value) {
+      if (iflags & iflag_signed) {
+        if (reinterpret_cast<mwg::i8t const&>(value) < 0) {
           buff.put('-');
-        }else if(spec.flags&flag_plus){
+        } else if (spec.flags & flag_plus) {
           buff.put('+');
-        }else if(spec.flags&flag_space){
+        } else if (spec.flags & flag_space) {
           buff.put(' ');
         }
       }
 
-      if(iflags&iflag_base_hex&&spec.flags&flag_hash){
+      if (iflags & iflag_base_hex && spec.flags & flag_hash) {
         buff.put('0');
         buff.put(digits[IDIGITS_X]);
       }
     }
-    bool has_leading_zeroes(mwg::u8t const&) const{
+    bool has_leading_zeroes(mwg::u8t const&) const {
       // precision を指定している場合は、自分で 0 を出力する
-      if(spec.precision>=0)return false;
+      if (spec.precision >= 0) return false;
       return true;
     }
   };
 
-  class character_converter{
+  class character_converter {
   public:
-    int count_body(std::wint_t ch) const{mwg_unused(ch);return 1;}
+    int count_body(std::wint_t ch) const {mwg_unused(ch); return 1;}
     template<typename Writer>
-    void output_body(Writer& buff,std::wint_t ch) const{buff.put(ch);}
-    int count_prefix(std::wint_t ch) const{mwg_unused(ch);return 0;}
+    void output_body(Writer& buff, std::wint_t ch) const {buff.put(ch);}
+    int count_prefix(std::wint_t ch) const {mwg_unused(ch); return 0;}
     template<typename Writer>
-    void output_prefix(Writer& buff,std::wint_t ch) const{mwg_unused(buff);mwg_unused(ch);}
-    static bool has_leading_zeroes(std::wint_t const&){
+    void output_prefix(Writer& buff, std::wint_t ch) const {mwg_unused(buff); mwg_unused(ch);}
+    static bool has_leading_zeroes(std::wint_t const&) {
       return false;
     }
   };
 
-  class bool_alpha_converter{
+  class bool_alpha_converter {
     bool upperCase;
   public:
-    bool_alpha_converter(bool upperCase):upperCase(upperCase){}
+    bool_alpha_converter(bool upperCase): upperCase(upperCase) {}
 
-    int count_body(bool value) const{
-      return value?4:5;
+    int count_body(bool value) const {
+      return value? 4: 5;
     }
     template<typename Writer>
-    void output_body(Writer& buff,bool value) const{
-      if(upperCase)
-        xputs(buff,value?"TRUE":"FALSE");
+    void output_body(Writer& buff, bool value) const {
+      if (upperCase)
+        xputs(buff, value? "TRUE": "FALSE");
       else
-        xputs(buff,value?"true":"false");
+        xputs(buff, value? "true": "false");
     }
-    int count_prefix(bool value) const{mwg_unused(value);return 0;}
+    int count_prefix(bool value) const {mwg_unused(value); return 0;}
     template<typename Writer>
-    void output_prefix(Writer& buff,bool value) const{mwg_unused(buff);mwg_unused(value);}
-    static bool has_leading_zeroes(bool const&){return false;}
+    void output_prefix(Writer& buff, bool value) const {mwg_unused(buff); mwg_unused(value);}
+    static bool has_leading_zeroes(bool const&) {return false;}
   };
 
   template<typename Writer>
-  int basic_convert_impl<Writer>::convert_integer(Writer const& buff,fmtspec const& spec,mwg::u8t value,bool isSigned,int size){
-    if(spec.type!=type_default){
-      int ssize=0;
+  int basic_convert_impl<Writer>::convert_integer(Writer const& buff, fmtspec const& spec, mwg::u8t value, bool isSigned, int size) {
+    if (spec.type != type_default) {
+      int ssize = 0;
 
-      switch(spec.type){
+      switch(spec.type) {
       case type_hh:
-        ssize=sizeof(char);
+        ssize = sizeof(char);
         break;
       case type_h:
-        ssize=sizeof(short);
+        ssize = sizeof(short);
         break;
       case type_l:
-        ssize=sizeof(long);
+        ssize = sizeof(long);
         break;
       case type_ll: // C99
 #ifdef MWGCONF_HAS_LONGLONG
-        ssize=sizeof(long long);
+        ssize = sizeof(long long);
 #else
-        ssize=sizeof(long);
+        ssize = sizeof(long);
 #endif
         break;
       case type_t: // C99
-        ssize=sizeof(std::ptrdiff_t);
+        ssize = sizeof(std::ptrdiff_t);
         break;
       case type_z: // C99
-        ssize=sizeof(std::size_t);
+        ssize = sizeof(std::size_t);
         break;
       case type_I: // MSC
-        ssize=isSigned?sizeof(std::ptrdiff_t):sizeof(std::size_t);
+        ssize = isSigned? sizeof(std::ptrdiff_t): sizeof(std::size_t);
         break;
       case type_j: // C99
-        ssize=sizeof(mwg::stdm::intmax_t);
+        ssize = sizeof(mwg::stdm::intmax_t);
         break;
       case type_I32: // MSC
-        ssize=4;
+        ssize = 4;
         break;
       case type_I64: // MSC
       case type_q: // BSD
-        ssize=8;
+        ssize = 8;
         break;
       case type_I8: // 独自
-        ssize=1;
+        ssize = 1;
         break;
       case type_I16: // 独自
-        ssize=2;
+        ssize = 2;
         break;
       default:
-        ssize=0;
+        ssize = 0;
         break;
       }
 
-      if(ssize&&size>ssize)size=ssize;
+      if (ssize && size > ssize) size = ssize;
     }
 
-    mwg::u8t const mask=((std::size_t)size<sizeof(mwg::u8t)?mwg::u8t(1)<<(size<<3):0)-1;
-    value&=mask;
+    mwg::u8t const mask = ((std::size_t) size < sizeof(mwg::u8t)? mwg::u8t(1) << (size << 3): 0) - 1;
+    value &= mask;
 
     // preferences
-    const char* digitCharacters=digitsLower;
-    int radix=10;
-    int iflags=0;
-    switch(spec.conv){
+    const char* digitCharacters = digitsLower;
+    int radix = 10;
+    int iflags = 0;
+    switch(spec.conv) {
     case 'd':
     case 'i':
-      if(isSigned){
-        if(value<<1&~mask)value|=~mask; // sign extension
-        iflags=iflag_signed|iflag_group;
-      }else{
-        iflags=iflag_group;
+      if (isSigned) {
+        if (value << 1 & ~mask) value |= ~mask; // sign extension
+        iflags = iflag_signed | iflag_group;
+      } else {
+        iflags = iflag_group;
       }
       goto integer;
     case 'X':
-      digitCharacters=digitsUpper;
+      digitCharacters = digitsUpper;
       /*FALLTHROUGH*/
     case 'x':
-      radix=16;
-      iflags=iflag_base_hex;
+      radix = 16;
+      iflags = iflag_base_hex;
       goto integer;
     case 'o':
-      radix=8;
-      iflags=iflag_base_octal;
+      radix = 8;
+      iflags = iflag_base_octal;
       goto integer;
     case 'u':
-      iflags=iflag_group;
+      iflags = iflag_group;
       goto integer;
     integer:
       {
-        integer_converter conv(digitCharacters,radix,spec,iflags);
-        return convert_aligned(buff,spec,value,conv);
+        integer_converter conv(digitCharacters, radix, spec, iflags);
+        return convert_aligned(buff, spec, value, conv);
       }
     case 'c':
       {
         character_converter conv;
-        return convert_aligned(buff,spec,value,conv);
+        return convert_aligned(buff, spec, value, conv);
       }
-    case 's':case 'S':
+    case 's': case 'S':
       {
-        bool_alpha_converter conv(spec.conv=='S');
-        return convert_aligned(buff,spec,value,conv);
+        bool_alpha_converter conv(spec.conv == 'S');
+        return convert_aligned(buff, spec, value, conv);
       }
-    case 'e':case 'E':
-    case 'f':case 'F':
-    case 'g':case 'G':
-    case 'a':case 'A':
-      if(isSigned)
-        return basic_convert_impl<Writer>::convert_floating_point(buff,spec,(double)(mwg::i8t)value);
+    case 'e': case 'E':
+    case 'f': case 'F':
+    case 'g': case 'G':
+    case 'a': case 'A':
+      if (isSigned)
+        return basic_convert_impl<Writer>::convert_floating_point(buff, spec, (double) (mwg::i8t) value);
       else
-        return basic_convert_impl<Writer>::convert_floating_point(buff,spec,(double)(mwg::u8t)value);
+        return basic_convert_impl<Writer>::convert_floating_point(buff, spec, (double) (mwg::u8t) value);
     default:
       return xprint_convert_unknown_conv;
     }
@@ -530,16 +530,16 @@ namespace xprintf_detail{
 }
 }
 
-namespace mwg{
-namespace xprintf_detail{
+namespace mwg {
+namespace xprintf_detail {
 
-  enum fptype{
+  enum fptype {
     fptype_fixed,       // %f
     fptype_exponent,    // %e
     fptype_significant, // %g
   };
 
-  class floating_point_converter{
+  class floating_point_converter {
   protected:
     fmtspec const& spec;
     int type;
@@ -549,29 +549,29 @@ namespace xprintf_detail{
     const char* digits;
   public:
     floating_point_converter(fmtspec const& spec)
-      :spec(spec),type(fptype_fixed),echar('?'),radix(10),_log2(M_LN2/M_LN10),digits(digitsLower)
+      :spec(spec), type(fptype_fixed), echar('?'), radix(10), _log2(M_LN2 / M_LN10), digits(digitsLower)
     {
       // 作業変数の初期化。不要だが文句を言うコンパイラがいるので。
-      this->pd_pos     =0;
-      this->isGrouped  =false;
-      this->hasPoint   =false;
-      this->hasExponent=false;
-      this->frac       =0.0;
-      this->exp        =0;
-      this->fprec      =0;
-      this->iprec      =0;
+      this->pd_pos      = 0;
+      this->isGrouped   = false;
+      this->hasPoint    = false;
+      this->hasExponent = false;
+      this->frac        = 0.0;
+      this->exp         = 0;
+      this->fprec       = 0;
+      this->iprec       = 0;
     }
 
-    void set_type(char ch,char exponentChar){
-      this->type=ch;
-      this->echar=exponentChar;
+    void set_type(char ch, char exponentChar) {
+      this->type = ch;
+      this->echar = exponentChar;
     }
-    void set_radix(int radix,double _log2){
-      this->radix=radix;
-      this->_log2=_log2;
+    void set_radix(int radix, double _log2) {
+      this->radix = radix;
+      this->_log2 = _log2;
     }
-    void set_digits(const char* digits){
-      this->digits=digits;
+    void set_digits(const char* digits) {
+      this->digits = digits;
     }
 
   protected:
@@ -585,160 +585,160 @@ namespace xprintf_detail{
 
     // 繰り上がりで桁が増えるかどうかを判定
     // (0.9999999... の場合に起こる)
-    bool checkFullCarry(int ndigit,int& nzero) const{
-      double value=frac;
-      nzero=0; // 末尾の零の数
+    bool checkFullCarry(int ndigit, int& nzero) const {
+      double value = frac;
+      nzero = 0; // 末尾の零の数
 
-      int ncarry=0;
-      bool carryStop=false;
-      while(--ndigit>0){
-        int nextDigit=int(value*=radix);
-        value-=nextDigit;
-        if(nextDigit==radix-1)
+      int ncarry = 0;
+      bool carryStop = false;
+      while (--ndigit > 0) {
+        int nextDigit = int(value *= radix);
+        value -= nextDigit;
+        if (nextDigit == radix - 1)
           ncarry++;
-        else{
-          ncarry=0;
-          carryStop=true;
+        else {
+          ncarry = 0;
+          carryStop = true;
         }
 
-        if(nextDigit==0)
+        if (nextDigit == 0)
           nzero++;
         else
-          nzero=0;
+          nzero = 0;
       }
 
-      int last=(int)stdm::round(value*radix);
-      if(last==0){
+      int last = (int) stdm::round(value * radix);
+      if (last == 0) {
         nzero++;
-      }else if(last==radix){
-        nzero=ncarry+1;
-        if(!carryStop)return true;
-      }else{
-        nzero=0;
+      } else if (last == radix) {
+        nzero = ncarry + 1;
+        if (!carryStop) return true;
+      } else {
+        nzero = 0;
       }
 
       return false;
     }
 
-    void _frexp(double const& value,double& frac,int& exp) const{
-      if(value==0.0){
-        exp=1; // 0.0 の時は一の位の 0 を most-significant digit とする
-        frac=0.0;
+    void _frexp(double const& value, double& frac, int& exp) const {
+      if (value == 0.0) {
+        exp = 1; // 0.0 の時は一の位の 0 を most-significant digit とする
+        frac = 0.0;
         return;
       }
 
       int exp2;
-      double const frac2=std::frexp(value,&exp2);
-      double const expf=exp2*_log2;
-      exp=(int)std::ceil(expf);
-      frac=frac2*std::pow((double)radix,expf-exp);
-      if(frac*radix<1.0){
-        frac*=radix;
+      double const frac2 = std::frexp(value, &exp2);
+      double const expf = exp2 * _log2;
+      exp = (int) std::ceil(expf);
+      frac = frac2 * std::pow((double) radix, expf - exp);
+      if (frac * radix < 1.0) {
+        frac *= radix;
         exp--;
       }
-      mwg_assert(frac==0.0||(1.0/radix<=frac&&frac<1.0));
+      mwg_assert(frac == 0.0 || (1.0 / radix <= frac && frac < 1.0));
     }
 
   public:
-    int count_body(double value){
-      if(!stdm::isfinite(value))
+    int count_body(double value) {
+      if (!stdm::isfinite(value))
         return 3;
 
-      if(value<0.0)
-        value=-value;
+      if (value < 0.0)
+        value = -value;
 
-      int precision=spec.precision;
-      if(precision<0)precision=6;
+      int precision = spec.precision;
+      if (precision < 0) precision = 6;
 
-      this->isGrouped=(spec.flags&flag_quote)!=0;
+      this->isGrouped = (spec.flags & flag_quote) != 0;
 
-      bool fOmitTrailingZero=false;
-      if(type==fptype_significant){
-        fOmitTrailingZero=(spec.flags&flag_hash)==0;
-        if((value<std::pow((double)radix,(double)-4.0)&&value!=0.0)||std::pow((double)radix,(double)precision)<=value+0.5){
-          type=fptype_exponent;
+      bool fOmitTrailingZero = false;
+      if (type == fptype_significant) {
+        fOmitTrailingZero = (spec.flags & flag_hash) == 0;
+        if ((value < std::pow((double) radix, (double) - 4.0) && value != 0.0) || std::pow((double) radix, (double) precision) <= value + 0.5) {
+          type = fptype_exponent;
           precision--;
         }
       }
 
       int nzero;
-      if(type==fptype_exponent){
-        this->hasExponent=true;
+      if (type == fptype_exponent) {
+        this->hasExponent = true;
 
-        this->_frexp(value,this->frac,this->exp);
-        if(checkFullCarry(1+precision,nzero)){
-          frac/=radix;
+        this->_frexp(value, this->frac, this->exp);
+        if (checkFullCarry(1 + precision, nzero)) {
+          frac /= radix;
           exp++;
           nzero--;
         }
 
-        iprec=1;
-        exp-=iprec;
-        fprec=precision;
+        iprec = 1;
+        exp -= iprec;
+        fprec = precision;
 
-      }else{
-        this->hasExponent=false;
-        if(type==fptype_significant){
+      } else {
+        this->hasExponent = false;
+        if (type == fptype_significant) {
           // precision = 有効数字桁数
-          this->_frexp(value,this->frac,this->exp);
-          if(exp>0){
-            if(checkFullCarry(precision,nzero))exp++;
+          this->_frexp(value, this->frac, this->exp);
+          if (exp > 0) {
+            if (checkFullCarry(precision, nzero)) exp++;
 
-            fprec=precision-exp;
-            if(fprec<0)fprec=0;
-          }else{
-            if(checkFullCarry(precision,nzero)){
-              mwg_assert(nzero==precision);
+            fprec = precision - exp;
+            if (fprec < 0) fprec = 0;
+          } else {
+            if (checkFullCarry(precision, nzero)) {
+              mwg_assert(nzero == precision);
               exp++;
               nzero--;
             }
-            fprec=precision-exp;
+            fprec = precision - exp;
 
-            this->frac=value/radix;
-            this->exp=1;
+            this->frac = value / radix;
+            this->exp = 1;
           }
 
-          iprec=exp;
-          exp=0;
-          mwg_assert(fprec>=0);
-        }else{
+          iprec = exp;
+          exp = 0;
+          mwg_assert(fprec >= 0);
+        } else {
           // precision = 小数部桁数
-          fprec=precision;
-          if(value>=1.0){
-            this->_frexp(value,this->frac,this->exp);
-            if(exp==0){
-              frac/=radix;
+          fprec = precision;
+          if (value >= 1.0) {
+            this->_frexp(value, this->frac, this->exp);
+            if (exp == 0) {
+              frac /= radix;
               exp++;
             }
-          }else{
-            this->frac=value/radix;
-            this->exp=1;
+          } else {
+            this->frac = value / radix;
+            this->exp = 1;
           }
 
-          mwg_assert(0.0<=frac&&frac<1.0&&exp>0,"frac=%g exp=%d",frac,exp);
+          mwg_assert(0.0 <= frac && frac < 1.0 && exp > 0, "frac=%g exp=%d", frac, exp);
 
-          iprec=exp;
-          exp=0;
-          if(checkFullCarry(iprec+fprec,nzero))iprec++;
+          iprec = exp;
+          exp = 0;
+          if (checkFullCarry(iprec + fprec, nzero)) iprec++;
         }
       }
 
-      if(fOmitTrailingZero){
-        if(fprec<nzero)
-          fprec=0;
+      if (fOmitTrailingZero) {
+        if (fprec < nzero)
+          fprec = 0;
         else
-          fprec-=nzero;
+          fprec -= nzero;
       }
-      this->hasPoint=fprec>0||spec.flags&flag_hash;
+      this->hasPoint = fprec > 0 || spec.flags & flag_hash;
 
-      int cseq=iprec+fprec;
-      if(this->isGrouped)
-        cseq+=(iprec-1)/GROUPING_DIGITS;
-      if(this->hasPoint)
+      int cseq = iprec + fprec;
+      if (this->isGrouped)
+        cseq += (iprec - 1) / GROUPING_DIGITS;
+      if (this->hasPoint)
         cseq++;
-      if(hasExponent){
-        cseq+=5;
-        if(exp>=1000)cseq++;
+      if (hasExponent) {
+        cseq += 5;
+        if (exp >= 1000) cseq++;
       }
       return cseq;
     }
@@ -747,198 +747,198 @@ namespace xprintf_detail{
     int pd_pos;
     int pd_nzero;
     template<typename Writer>
-    void put_digit(Writer& buff,int digit){
+    void put_digit(Writer& buff, int digit) {
       buff.put(digits[digit]);
-      if(--pd_pos>=0){
-        if(pd_pos==0){
-          if(hasPoint)
+      if (--pd_pos >= 0) {
+        if (pd_pos == 0) {
+          if (hasPoint)
             buff.put('.');
-        }else if(isGrouped&&pd_pos%3==0)
+        } else if (isGrouped && pd_pos % 3 == 0)
           buff.put(GROUPING_CHAR);
       }
     }
 
   protected:
     template<typename Writer>
-    void generateFloatingSequence(Writer& buff,int integralDigits,int fractionDigits){
-      double value=frac;
-      pd_pos=integralDigits;
-      pd_nzero=0;
+    void generateFloatingSequence(Writer& buff, int integralDigits, int fractionDigits) {
+      double value = frac;
+      pd_pos = integralDigits;
+      pd_nzero = 0;
 
-      int ndigit=pd_pos+fractionDigits;
+      int ndigit = pd_pos + fractionDigits;
 
-      int prevDigit=-1;
-      int nreach=0;
-      while(--ndigit>0){
-        int nextDigit=int(value*=radix);
-        value-=nextDigit;
-        if(nextDigit==radix-1){
+      int prevDigit = -1;
+      int nreach = 0;
+      while (--ndigit > 0) {
+        int nextDigit = int(value *= radix);
+        value -= nextDigit;
+        if (nextDigit == radix - 1) {
           nreach++;
-        }else{
-          if(prevDigit>=0)
-            put_digit(buff,prevDigit);
-          for(;nreach>0;nreach--)
-            put_digit(buff,radix-1);
+        } else {
+          if (prevDigit >= 0)
+            put_digit(buff, prevDigit);
+          for (; nreach > 0; nreach--)
+            put_digit(buff, radix - 1);
 
-          prevDigit=nextDigit;
+          prevDigit = nextDigit;
         }
       }
 
-      int last=(int)stdm::round(value*radix);
-      if(last==radix){
+      int last = (int) stdm::round(value * radix);
+      if (last == radix) {
         // 繰り上がり
         nreach++;
-        if(prevDigit>=0)
-          put_digit(buff,prevDigit+1);
-        else{
-          put_digit(buff,1); //★桁数が一つ多くなる
+        if (prevDigit >= 0)
+          put_digit(buff, prevDigit + 1);
+        else {
+          put_digit(buff, 1); //★桁数が一つ多くなる
           nreach--;
         }
 
-        for(;nreach>0;nreach--)
-          put_digit(buff,0);
-      }else{
-        if(prevDigit>=0)
-          put_digit(buff,prevDigit);
-        for(;nreach>0;nreach--)
-          put_digit(buff,radix-1);
-        put_digit(buff,last);
+        for (; nreach > 0; nreach--)
+          put_digit(buff, 0);
+      } else {
+        if (prevDigit >= 0)
+          put_digit(buff, prevDigit);
+        for (; nreach > 0; nreach--)
+          put_digit(buff, radix - 1);
+        put_digit(buff, last);
       }
     }
 
   public:
     template<typename Writer>
-    void output_body(Writer const& buff,double const& value){
-      if(!stdm::isfinite(value)){
-        if(stdm::isnan(value))
-          xputs(buff,&digits[IDIGITS_NAN]);
+    void output_body(Writer const& buff, double const& value) {
+      if (!stdm::isfinite(value)) {
+        if (stdm::isnan(value))
+          xputs(buff, &digits[IDIGITS_NAN]);
         else
-          xputs(buff,&digits[IDIGITS_INF]);
+          xputs(buff, &digits[IDIGITS_INF]);
         return;
       }
 
-      generateFloatingSequence(buff,iprec,fprec);
+      generateFloatingSequence(buff, iprec, fprec);
 
-      if(hasExponent){
+      if (hasExponent) {
         buff.put(digits[IDIGITS_E]);
-        if(exp<0){
+        if (exp < 0) {
           buff.put('-');
-          exp=-exp;
-        }else
+          exp = -exp;
+        } else
           buff.put('+');
-        if(exp>=1000) // 4倍精度では 4932 まで可能
-          buff.put(digits[exp/1000%10]);
-        buff.put(digits[exp/100%10]);
-        buff.put(digits[exp/10%10]);
-        buff.put(digits[exp%10]);
+        if (exp >= 1000) // 4倍精度では 4932 まで可能
+          buff.put(digits[exp / 1000 % 10]);
+        buff.put(digits[exp / 100 % 10]);
+        buff.put(digits[exp / 10 % 10]);
+        buff.put(digits[exp % 10]);
       }
     }
 
   public:
-    int count_prefix(double const& value){
-      int ret=0;
+    int count_prefix(double const& value) {
+      int ret = 0;
 #ifdef XPRINTF__NAN_HAS_NO_SIGN
-      if(stdm::isnan(value))return 0;
+      if (stdm::isnan(value)) return 0;
 #endif
-      if(value<0.0||spec.flags&(flag_plus|flag_space))
+      if (value < 0.0 || spec.flags & (flag_plus | flag_space))
         ret++;
       return ret;
     }
     template<typename Writer>
-    void output_prefix(Writer const& buff,double const& value){
+    void output_prefix(Writer const& buff, double const& value) {
 #ifdef XPRINTF__NAN_HAS_NO_SIGN
-      if(stdm::isnan(value))return;
+      if (stdm::isnan(value)) return;
 #endif
-      if(value<0.0)
+      if (value < 0.0)
         buff.put('-');
-      else if(spec.flags&flag_plus)
+      else if (spec.flags & flag_plus)
         buff.put('+');
-      else if(spec.flags&flag_space)
+      else if (spec.flags & flag_space)
         buff.put(' ');
     }
-    static bool has_leading_zeroes(double const& value){
+    static bool has_leading_zeroes(double const& value) {
       return stdm::isfinite(value);
     }
   };
 
   template<typename Writer>
-  int basic_convert_impl<Writer>::convert_floating_point(Writer const& buff,fmtspec const& spec,double const& value){
+  int basic_convert_impl<Writer>::convert_floating_point(Writer const& buff, fmtspec const& spec, double const& value) {
     floating_point_converter conv(spec);
 
-    switch(spec.conv){
-    case 'f':break;
+    switch(spec.conv) {
+    case 'f': break;
     case 'F':
       conv.set_digits(digitsUpper);
       break;
     case 'e':
-      conv.set_type(fptype_exponent,'e');
+      conv.set_type(fptype_exponent, 'e');
       break;
     case 'E':
-      conv.set_type(fptype_exponent,'E');
+      conv.set_type(fptype_exponent, 'E');
       conv.set_digits(digitsUpper);
       break;
     case 'g':
-      conv.set_type(fptype_significant,'e');
+      conv.set_type(fptype_significant, 'e');
       break;
     case 'G':
-      conv.set_type(fptype_significant,'E');
+      conv.set_type(fptype_significant, 'E');
       conv.set_digits(digitsUpper);
       break;
     case 'a':
-      conv.set_type(fptype_exponent,'p');
-      conv.set_radix(16,0.25);
+      conv.set_type(fptype_exponent, 'p');
+      conv.set_radix(16, 0.25);
       break;
     case 'A':
-      conv.set_type(fptype_exponent,'P');
-      conv.set_radix(16,0.25);
+      conv.set_type(fptype_exponent, 'P');
+      conv.set_radix(16, 0.25);
       conv.set_digits(digitsUpper);
       break;
     default:
       return xprint_convert_unknown_conv;
     }
 
-    return convert_aligned(buff,spec,value,conv);
+    return convert_aligned(buff, spec, value, conv);
   }
 
-  class string_converter{
+  class string_converter {
     std::size_t s;
   public:
-    string_converter(fmtspec const& spec,std::size_t len)
+    string_converter(fmtspec const& spec, std::size_t len)
       :s(len)
     {
-      if(spec.precision>=0&&(std::size_t)spec.precision<len)
-        this->s=spec.precision;
+      if (spec.precision >= 0 && (std::size_t) spec.precision < len)
+        this->s = spec.precision;
     }
   public:
-    int count_body(const char* str) const{mwg_unused(str);return s;}
+    int count_body(const char* str) const {mwg_unused(str); return s;}
     template<typename Writer>
-    void output_body(Writer& buff,const char* str) const{
-      for(std::size_t i=0;i<s;i++)buff.put(str[i]);
+    void output_body(Writer& buff, const char* str) const {
+      for (std::size_t i = 0; i < s; i++) buff.put(str[i]);
     }
-    int count_prefix(const char* str) const{mwg_unused(str);return 0;}
+    int count_prefix(const char* str) const {mwg_unused(str); return 0;}
     template<typename Writer>
-    void output_prefix(Writer& buff,const char* str) const{mwg_unused(buff);mwg_unused(str);}
-    static bool has_leading_zeroes(const char*){
+    void output_prefix(Writer& buff, const char* str) const {mwg_unused(buff); mwg_unused(str);}
+    static bool has_leading_zeroes(const char*) {
       return false;
     }
   };
 
   template<typename Writer>
-  int basic_convert_impl<Writer>::convert_string(Writer const& buff,fmtspec const& spec,const char* str,std::size_t len){
-    string_converter conv(spec,len);
-    switch(spec.conv){
-    case 's':break;
+  int basic_convert_impl<Writer>::convert_string(Writer const& buff, fmtspec const& spec, const char* str, std::size_t len) {
+    string_converter conv(spec, len);
+    switch(spec.conv) {
+    case 's': break;
     default:
       return xprint_convert_unknown_conv;
     }
-    return convert_aligned(buff,spec,str,conv);
+    return convert_aligned(buff, spec, str, conv);
   }
 
 }
 }
 
-namespace mwg{
-namespace xprintf_detail{
+namespace mwg {
+namespace xprintf_detail {
 
   template struct basic_convert_impl<xprintf_writer>;
   template struct basic_convert_impl<empty_writer>;
