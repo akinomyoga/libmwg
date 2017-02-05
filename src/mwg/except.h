@@ -29,7 +29,7 @@
 #  endif
 # endif
 # ifndef MWG_STD_VA_ARGS
-#  if defined(_MSC_VER)?(_MSC_VER>=1400):(defined(__GNUC__)?(__GNUC__>=3):1)
+#  if defined(_MSC_VER)? (_MSC_VER >= 1400): (defined(__GNUC__)? (__GNUC__ >= 3): 1)
 #   define MWG_STD_VA_ARGS
 #  endif
 # endif
@@ -58,51 +58,51 @@
 # endif
 #endif
 
-namespace mwg{
+namespace mwg {
   // エラーコード
   typedef unsigned ecode_t;
 
-  static const ecode_t ecode_error=0;
-  //static const ecode_t ecode_base=0x00100000;
+  static const ecode_t ecode_error = 0;
+  //static const ecode_t ecode_base = 0x00100000;
 
-  struct ecode{
-    static const ecode_t error=0;
+  struct ecode {
+    static const ecode_t error = 0;
 
-    static const ecode_t CATEGORY_MASK=0xFFFF0000;
+    static const ecode_t CATEGORY_MASK = 0xFFFF0000;
 
     //--------------------------------------------------------------------------
     //  Flags
     //--------------------------------------------------------------------------
-    static const ecode_t FLAG_MASK=0x0FF00000;
+    static const ecode_t FLAG_MASK = 0x0FF00000;
     // bit 27
-    static const ecode_t EAssert  =0x08000000; // assert 失敗。プログラム自体が誤っている
+    static const ecode_t EAssert  = 0x08000000; // assert 失敗。プログラム自体が誤っている
 
     // bit 24-26 (種別)
-    static const ecode_t ESupport =0x01000000; // サポートしていない操作・値
-    static const ecode_t ETrial   =0x02000000; // 試行失敗 (通信など潜在的に失敗の可能性を含む物)
-    static const ecode_t EAccess  =0x03000000; // アクセス権限
-    static const ecode_t EAbort   =0x04000000; // 操作中止の為の人為的例外
+    static const ecode_t ESupport = 0x01000000; // サポートしていない操作・値
+    static const ecode_t ETrial   = 0x02000000; // 試行失敗 (通信など潜在的に失敗の可能性を含む物)
+    static const ecode_t EAccess  = 0x03000000; // アクセス権限
+    static const ecode_t EAbort   = 0x04000000; // 操作中止の為の人為的例外
 
     // bit 20-21 (主格)
-    static const ecode_t EArgument  =0x00100000; // (明らかな)引数指定の誤りに起因
-    static const ecode_t EData      =0x00200000; // 自身・引数の内部状態に起因
-    static const ecode_t EOperation =0x00300000; // 操作の実装
+    static const ecode_t EArgument  = 0x00100000; // (明らかな)引数指定の誤りに起因
+    static const ecode_t EData      = 0x00200000; // 自身・引数の内部状態に起因
+    static const ecode_t EOperation = 0x00300000; // 操作の実装
 
     // bit 22-23 (原因)
-    static const ecode_t ENull      =0x00400000; // 値が NULL 又は未初期化である事による物
-    static const ecode_t ERange     =0x00800000; // 値の範囲がおかしい物
-    static const ecode_t EClose     =0x00C00000; // 既に始末処理が行われている物
+    static const ecode_t ENull      = 0x00400000; // 値が NULL 又は未初期化である事による物
+    static const ecode_t ERange     = 0x00800000; // 値の範囲がおかしい物
+    static const ecode_t EClose     = 0x00C00000; // 既に始末処理が行われている物
 
     // 複合
-    static const ecode_t EArgRange=EArgument|ERange;
-    static const ecode_t EArgNull =EArgument|ENull;
-    static const ecode_t EDatRange=EData|ERange;
-    static const ecode_t EDatNull =EData|ENull;
-    static const ecode_t EImpl    =EOperation|ENull;    // 未実装
-    static const ecode_t EInvalid =EOperation|ESupport; // 禁止操作・無効操作
+    static const ecode_t EArgRange = EArgument | ERange;
+    static const ecode_t EArgNull  = EArgument | ENull;
+    static const ecode_t EDatRange = EData | ERange;
+    static const ecode_t EDatNull  = EData | ENull;
+    static const ecode_t EImpl     = EOperation | ENull;    // 未実装
+    static const ecode_t EInvalid  = EOperation | ESupport; // 禁止操作・無効操作
     //--------------------------------------------------------------------------
 
-    static const ecode_t io=0x00020000;
+    static const ecode_t io = 0x00020000;
   };
 
   //****************************************************************************
@@ -131,7 +131,7 @@ namespace mwg{
   //   std::overflow_error
   //   std::underflow_error
 
-  class except:public std::exception{
+  class except: public std::exception {
   protected:
     std::string msg;
     ecode_t ecode;
@@ -140,96 +140,91 @@ namespace mwg{
   //  初期化
   //--------------------------------------------------------------------------
   public:
-    explicit except(const std::string& message,ecode_t ecode,const std::exception& orig)
-      :msg(message),
-       ecode(ecode),original(CopyException(&orig))
-    {}
-    explicit except(const std::string& message,ecode_t ecode=mwg::ecode_error)
-      :msg(message),
-       ecode(ecode),original(NULL)
-    {}
-    except()
-      :msg("mwg::except"),ecode(0),original(NULL)
-    {}
-    virtual ~except() throw(){
+    explicit except(const std::string& message, ecode_t ecode, const std::exception& orig):
+      msg(message), ecode(ecode), original(CopyException(&orig)) {}
+    explicit except(const std::string& message, ecode_t ecode = mwg::ecode_error):
+      msg(message), ecode(ecode), original(NULL) {}
+    except():
+      msg("mwg::except"), ecode(0), original(NULL) {}
+    virtual ~except() throw() {
       this->internal_free();
     }
   private:
-    void internal_free(){
-      if(this->original!=NULL){
-        // virtual ~except(){} なので、全て delete で処分しておけば OK。
+    void internal_free() {
+      if (this->original != NULL) {
+        // virtual ~except() {} なので、全て delete で処分しておけば OK。
         delete this->original;
-        this->original=NULL;
+        this->original = NULL;
       }
     }
   public:
-    except& operator=(const except& cpy){
-      if(&cpy==this)return *this;
+    except& operator=(const except& cpy) {
+      if (&cpy == this) return *this;
       this->internal_free();
-      this->msg=cpy.msg;
-      this->ecode=cpy.ecode;
-      this->original=CopyException(cpy.original);
+      this->msg = cpy.msg;
+      this->ecode = cpy.ecode;
+      this->original = CopyException(cpy.original);
 
       return *this;
     }
-    except(const except& cpy)
-      :std::exception(cpy),
-       msg(cpy.msg),
-       ecode(cpy.ecode),
-       original(CopyException(cpy.original))
+    except(const except& cpy):
+      std::exception(cpy),
+      msg(cpy.msg),
+      ecode(cpy.ecode),
+      original(CopyException(cpy.original))
     {}
   //--------------------------------------------------------------------------
   //  original exception の為のメモリ管理
   //--------------------------------------------------------------------------
   protected:
-    virtual except* copy() const{return new except(*this);}
+    virtual except* copy() const {return new except(*this);}
 
   private:
-    static except* CopyException(const except* e){
-      if(e==NULL)return NULL;
+    static except* CopyException(const except* e) {
+      if (e == NULL) return NULL;
       return e->copy();
     }
-    static except* CopyException(const std::exception* e){
-      if(e==NULL)return NULL;
+    static except* CopyException(const std::exception* e) {
+      if (e == NULL) return NULL;
 
-      const except* err=dynamic_cast<const except*>(e);
-      if(err)return CopyException(err);
+      const except* err = dynamic_cast<const except*>(e);
+      if (err) return CopyException(err);
 
       return new except(
-        std::string("type<")+typeid(*e).name()+">: "+e->what(),
-        (ecode_t)0);
+        std::string("type<") + typeid(*e).name() + ">: " + e->what(),
+        (ecode_t) 0);
     }
   //--------------------------------------------------------------------------
   //  機能
   //--------------------------------------------------------------------------
   public:
-    virtual const char* what() const throw(){return this->msg.c_str();}
-    ecode_t code() const{return this->ecode;}
+    virtual const char* what() const throw() {return this->msg.c_str();}
+    ecode_t code() const {return this->ecode;}
   };
 
-#define mwg_define_class_error(errorName) mwg_define_class_error_ex(errorName,mwg::except,mwg::ecode_error)
-#define mwg_define_class_error_ex(errorName,BASE,ECODE)                                      \
-  class errorName:public BASE{                                                               \
-  public:                                                                                    \
-    explicit errorName(const std::string& message,ecode_t ecode,const std::exception& orig)  \
-      :BASE(message,ecode,orig)                                                              \
-    {ecode|=(ECODE&ecode::CATEGORY_MASK);}                                                   \
-    explicit errorName(const std::string& message,ecode_t ecode=ECODE)                       \
-      :BASE(message,ecode)                                                                   \
-    {ecode|=(ECODE&ecode::CATEGORY_MASK);}                                                   \
-    errorName():BASE(#errorName,ECODE){}                                                     \
-    errorName(const errorName& err):BASE(err){}                                              \
-  public:                                                                                    \
-    virtual errorName* copy() const{return new errorName(*this);}                            \
-  }                                                                                          /**/
+#define mwg_define_class_error(errorName) mwg_define_class_error_ex(errorName, mwg::except, mwg::ecode_error)
+#define mwg_define_class_error_ex(errorName, BASE, ECODE)                                      \
+  class errorName: public BASE {                                                               \
+  public:                                                                                      \
+    explicit errorName(const std::string& message, ecode_t ecode, const std::exception& orig): \
+      BASE(message, ecode, orig)                                                               \
+    {ecode |= (ECODE & ecode::CATEGORY_MASK);}                                                 \
+    explicit errorName(const std::string& message, ecode_t ecode = ECODE):                     \
+      BASE(message, ecode)                                                                     \
+    {ecode |= (ECODE & ecode::CATEGORY_MASK);}                                                 \
+    errorName(): BASE(#errorName, ECODE) {}                                                    \
+    errorName(const errorName& err): BASE(err) {}                                              \
+  public:                                                                                      \
+    virtual errorName* copy() const {return new errorName(*this);}                             \
+  }                                                                                         /**/
 
-//mwg_define_class_error_ex(argument_error,except,ecode::EArgument);
+//mwg_define_class_error_ex(argument_error, except, ecode::EArgument);
 //→ std::invalid_argument
 //*****************************************************************************
 //    ASSERTION
 //=============================================================================
-mwg_define_class_error_ex(assertion_error  ,except,ecode::EAssert);
-mwg_define_class_error_ex(invalid_operation,except,ecode::EInvalid);
+mwg_define_class_error_ex(assertion_error  , except, ecode::EAssert);
+mwg_define_class_error_ex(invalid_operation, except, ecode::EInvalid);
 }
 /**----------------------------------------------------------------------------
 mwg_check/mwg_assert
@@ -320,170 +315,170 @@ mwg_check/mwg_assert
 # include <cstdlib>
 #endif
 
-namespace mwg{
-namespace except_detail{
-  struct sgr{
+namespace mwg {
+namespace except_detail {
+  struct sgr {
     int value;
-    sgr(int value):value(value){}
+    sgr(int value): value(value) {}
   };
 
-  class dbgput{
+  class dbgput {
     FILE* file;
     bool m_isatty;
   public:
 #if defined(__unix__)
-    dbgput(FILE* file):file(file),m_isatty(isatty(fileno(file))){}
+    dbgput(FILE* file): file(file), m_isatty(isatty(fileno(file))) {}
 #elif defined(_WIN32)
-    dbgput(FILE* file):file(file),m_isatty(false){
-      const char* envterm=std::getenv("TERM");
-      if(envterm&&*envterm)
-        this->m_isatty=true;
+    dbgput(FILE* file): file(file), m_isatty(false) {
+      const char* envterm = std::getenv("TERM");
+      if (envterm && *envterm)
+        this->m_isatty = true;
     }
 #else
-    dbgput(FILE* file):file(file),m_isatty(false){}
+    dbgput(FILE* file): file(file), m_isatty(false) {}
 #endif
-    dbgput& operator<<(const char* str){
-      while(*str)std::putc(*str++,file);
+    dbgput& operator<<(const char* str) {
+      while (*str) std::putc(*str++, file);
       return *this;
     }
-    dbgput& operator<<(char c){
-      std::putc(c,file);
+    dbgput& operator<<(char c) {
+      std::putc(c, file);
       return *this;
     }
   private:
-    void putsgr(int num){
-      if(!m_isatty)return;
+    void putsgr(int num) {
+      if (!m_isatty) return;
 
-      std::putc('\x1b',file);
-      std::putc('[',file);
-      if(num>0){
-        int x=1;
-        while(x*10<=num)x*=10;
-        for(;x>=1;x/=10)std::putc('0'+num/x%10,file);
+      std::putc('\x1b', file);
+      std::putc('[', file);
+      if (num > 0) {
+        int x = 1;
+        while (x * 10 <= num) x *= 10;
+        for (; x >= 1; x /= 10) std::putc('0' + num / x % 10, file);
       }
-      std::putc('m',file);
+      std::putc('m', file);
     }
   public:
-    dbgput& operator<<(sgr const& sgrnum){
+    dbgput& operator<<(sgr const& sgrnum) {
       putsgr(sgrnum.value);
       return *this;
     }
   };
 
-  static void mwg_vprintd_(const char* pos,const char* func,const char* fmt,va_list arg){
+  static void mwg_vprintd_(const char* pos, const char* func, const char* fmt, va_list arg) {
     using namespace ::mwg::except_detail;
     dbgput d(stderr);
 
-    std::fprintf(stderr,"%s:",pos);
-    if(fmt&&*fmt){
-      d<<' '<<sgr(94);//sgr(35);
-      std::vfprintf(stderr,fmt,arg);
-      d<<sgr(0);
-      if(func)
-        d<<" @ "<<sgr(32)<<'"'<<func<<'"'<<sgr(0);
-      d<<'\n';
-    }else{
-      if(func){
-        d<<" mwg_printd @ "<<sgr(32)<<'"'<<func<<'"'<<sgr(0)<<'\n';
-      }else
-        d<<" mwg_printd\n";
+    std::fprintf(stderr, "%s:", pos);
+    if (fmt && *fmt) {
+      d << ' ' << sgr(94);//sgr(35);
+      std::vfprintf(stderr, fmt, arg);
+      d << sgr(0);
+      if (func)
+        d << " @ " << sgr(32) << '"' << func << '"' << sgr(0);
+      d << '\n';
+    } else {
+      if (func) {
+        d << " mwg_printd @ " << sgr(32) << '"' << func << '"' << sgr(0) << '\n';
+      } else
+        d << " mwg_printd\n";
     }
     std::fflush(stderr);
   }
 
   MWG_ATTRIBUTE_UNUSED
-  static void mwg_printd_(const char* pos,const char* func,const char* fmt,...){
+  static void mwg_printd_(const char* pos, const char* func, const char* fmt, ...) {
     va_list arg;
-    va_start(arg,fmt);
-    mwg_vprintd_(pos,func,fmt,arg);
+    va_start(arg, fmt);
+    mwg_vprintd_(pos, func, fmt, arg);
     va_end(arg);
   }
 
-  static mwg_noinline int increment_fail_count(int delta=1){
-    static int fail_nothrow_count=0;
+  static mwg_noinline int increment_fail_count(int delta = 1) {
+    static int fail_nothrow_count = 0;
     return fail_nothrow_count+=delta; // dummy operation to set break point
   }
-  static bool vprint_fail_impl(const char* expr,const char* pos,const char* func,const char* fmt,va_list arg){
+  static bool vprint_fail_impl(const char* expr, const char* pos, const char* func, const char* fmt, va_list arg) {
     using namespace ::mwg::except_detail;
     dbgput d(stderr);
     // first line
-    d<<sgr(1)<<"mwg_assertion_failure!"<<sgr(0)<<' '<<sgr(91)<<expr<<sgr(0);
-    if(fmt&&*fmt){
-      d<<", \""<<sgr(31);
-      std::vfprintf(stderr,fmt,arg);
-      d<<"\""<<sgr(0);
+    d << sgr(1) << "mwg_assertion_failure!" << sgr(0) << ' ' << sgr(91) << expr << sgr(0);
+    if (fmt && *fmt) {
+      d << ", \"" << sgr(31);
+      std::vfprintf(stderr, fmt, arg);
+      d << "\"" << sgr(0);
     }
-    d<<'\n';
+    d << '\n';
 
     // second line
-    d<<"  @ "<<sgr(4)<<pos<<sgr(0);
-    if(func)
-      d<<':'<<func<<'\n';
+    d << "  @ " << sgr(4) << pos << sgr(0);
+    if (func)
+      d << ':' << func << '\n';
 
-    // std::fprintf(stderr,"%s:",pos);
+    // std::fprintf(stderr, "%s:", pos);
     // if(func)
-    //   d<<sgr(32)<<'"'<<func<<'"'<<sgr(0)<<':';
-    // d<<" mwg_assertion_failure! ";
-    // if(fmt&&*fmt){
-    //   d<<sgr(35);
-    //   std::vfprintf(stderr,fmt,arg);
-    //   d<<sgr(0);
+    //   d << sgr(32) << '"' << func << '"' << sgr(0) << ':';
+    // d << " mwg_assertion_failure! ";
+    // if(fmt && *fmt) {
+    //   d << sgr(35);
+    //   std::vfprintf(stderr, fmt, arg);
+    //   d << sgr(0);
     // }
-    // d<<"[expr: "<<sgr(94)<<expr<<sgr(0)<<"]\n";
+    // d << "[expr: " << sgr(94) << expr << sgr(0) << "]\n";
     std::fflush(stderr);
 
     return false;
   }
 
   MWG_ATTRIBUTE_NORETURN
-  static bool vthrow_fail_impl(const char* expr,const char* pos,const char* /* func */,const char* fmt,va_list arg){
+  static bool vthrow_fail_impl(const char* expr, const char* pos, const char* /* func */, const char* fmt, va_list arg) {
     std::string buff("assertion failed! ");
-    if(fmt&&*fmt){
+    if (fmt && *fmt) {
       char message[1024];
 #ifdef MWGCONF_HAS_VSNPRINTF
       // C99 vsnprintf
       /*?mconf
-       * # X snprintf    cstdio           'char b[9];::snprintf(b,9,"");'
-       * X vsnprintf -h'cstdio' -h'cstdarg' 'char b[9];va_list a;::vsnprintf(b,9,"",a);'
+       * # X snprintf    cstdio           'char b[9];::snprintf(b, 9, "");'
+       * X vsnprintf -h'cstdio' -h'cstdarg' 'char b[9];va_list a;::vsnprintf(b, 9, "", a);'
        */
-      ::vsnprintf(message,sizeof message,fmt,arg);
+      ::vsnprintf(message, sizeof message, fmt, arg);
 #else
-      std::vsprintf(message,fmt,arg);
+      std::vsprintf(message, fmt, arg);
 #endif
-      buff+=message;
-      buff+=" ";
+      buff += message;
+      buff += " ";
     }
-    buff+="[expr = ";
-    buff+=expr;
-    buff+=" @ ";
-    buff+=pos;
-    buff+=" ]";
+    buff += "[expr = ";
+    buff += expr;
+    buff += " @ ";
+    buff += pos;
+    buff += " ]";
     throw mwg::assertion_error(buff);
   }
 
   MWG_ATTRIBUTE_UNUSED
-  static bool mwg_noinline vprint_fail(const char* expr,const char* pos,const char* func,const char* fmt,va_list arg){
+  static bool mwg_noinline vprint_fail(const char* expr, const char* pos, const char* func, const char* fmt, va_list arg) {
     increment_fail_count();
-    vprint_fail_impl(expr,pos,func,fmt,arg);
+    vprint_fail_impl(expr, pos, func, fmt, arg);
     return false;
   }
   MWG_ATTRIBUTE_UNUSED
-  static bool mwg_noinline print_fail(const char* expr,const char* pos,const char* func,const char* fmt,...){
+  static bool mwg_noinline print_fail(const char* expr, const char* pos, const char* func, const char* fmt, ...) {
     va_list arg;
-    va_start(arg,fmt);
-    vprint_fail(expr,pos,func,fmt,arg);
+    va_start(arg, fmt);
+    vprint_fail(expr, pos, func, fmt, arg);
     va_end(arg);
     return false;
   }
 
   MWG_ATTRIBUTE_NORETURN
   MWG_ATTRIBUTE_UNUSED
-  static bool mwg_noinline vthrow_fail(const char* expr,const char* pos,const char* func,const char* fmt,va_list arg1,va_list arg2){
+  static bool mwg_noinline vthrow_fail(const char* expr, const char* pos, const char* func, const char* fmt, va_list arg1, va_list arg2) {
     increment_fail_count();
-#if MWG_DEBUG||!defined(NDEBUG)
-    vprint_fail_impl(expr,pos,func,fmt,arg1);
+#if MWG_DEBUG || !defined(NDEBUG)
+    vprint_fail_impl(expr, pos, func, fmt, arg1);
 #endif
-    vthrow_fail_impl(expr,pos,func,fmt,arg2);
+    vthrow_fail_impl(expr, pos, func, fmt, arg2);
 
     /*NOTREACHED*/
     throw;
@@ -492,19 +487,19 @@ namespace except_detail{
   // [[noreturn]] は __attribute__((unused)) より前になければならない
   MWG_ATTRIBUTE_NORETURN
   MWG_ATTRIBUTE_UNUSED
-  static bool mwg_noinline throw_fail(const char* expr,const char* pos,const char* func,const char* fmt,...){
+  static bool mwg_noinline throw_fail(const char* expr, const char* pos, const char* func, const char* fmt, ...) {
     va_list arg1;
     va_list arg2;
-    va_start(arg1,fmt);
-    va_start(arg2,fmt);
-    vthrow_fail(expr,pos,func,fmt,arg1,arg2);
+    va_start(arg1, fmt);
+    va_start(arg2, fmt);
+    vthrow_fail(expr, pos, func, fmt, arg1, arg2);
     va_end(arg1);
     va_end(arg2);
     /*NOTREACHED*/
     throw;
   }
 
-  inline bool nop_succuss(){return true;}
+  inline bool nop_succuss() {return true;}
 
 /* 実装メモ: GCC で unused-function の警告が出ることについて
  *
@@ -554,11 +549,11 @@ namespace except_detail{
 /* 実装メモ: mwg_assert の展開式をどの様にするか?
  * 1 (condition||print) にする理由
  *
- *   #define assert(condition,message) check_condition_to_throw(condition,message);
+ *   #define assert(condition, message) check_condition_to_throw(condition, message);
  *
  *   としていると message 部分に含まれる (possibly) 複雑な式が遅延評価にならない。従って、
  *
- *   #define assert(condition,message) ((condition)||print(message));
+ *   #define assert(condition, message) ((condition)||print(message));
  *
  *   の様な感じにする。
  *
@@ -568,84 +563,84 @@ namespace except_detail{
  *
  *   という警告を出してきてうるさい。特に mwg_assert を使った回数だけ表示される。
  *
- *   a #define mwg_check(condition,message) do{if(!condition)print(message)}while(0)
+ *   a #define mwg_check(condition, message) do {if(!condition)print(message)}while(0)
  *     などとすれば警告は出ないがこれだと式の中に組み込めない。
  *
- *   b #define mwg_check(condition,message) ((condition)?true:(print(message)))
+ *   b #define mwg_check(condition, message) ((condition)?true:(print(message)))
  *     → 同じ警告が出る。
  *
  *   c いきなり true ではなくて dummy の関数呼び出しをしたらどうだろう。
- *     #define mwg_check(condition,message) ((condition)?nop():(throw1(message),false));
+ *     #define mwg_check(condition, message) ((condition)?nop():(throw1(message), false));
  *     → warning: right operand of comma operator has no effect
  *
- *   d #define mwg_check(condition,message) ((condition)?nop():throw1(message));
+ *   d #define mwg_check(condition, message) ((condition)?nop():throw1(message));
  *     → 警告なし!
  *
  */
 #ifdef MWG_STD_VA_ARGS
-# define mwg_printd(...)                    mwg::except_detail::mwg_printd_(mwg_assert_position,mwg_assert_funcname,"" __VA_ARGS__)
+# define mwg_printd(...)                    mwg::except_detail::mwg_printd_(mwg_assert_position, mwg_assert_funcname, "" __VA_ARGS__)
 # ifdef _MSC_VER
-#  define mwg_check_nothrow(condition,...)   ((condition)||(mwg::except_detail::print_fail(#condition,mwg_assert_position,mwg_assert_funcname,"" __VA_ARGS__),false))
-#  define mwg_check(condition,...)           ((condition)||(mwg::except_detail::throw_fail(#condition,mwg_assert_position,mwg_assert_funcname,"" __VA_ARGS__),false))
+#  define mwg_check_nothrow(condition, ...)   ((condition) || (mwg::except_detail::print_fail(#condition, mwg_assert_position, mwg_assert_funcname, "" __VA_ARGS__), false))
+#  define mwg_check(condition, ...)           ((condition) || (mwg::except_detail::throw_fail(#condition, mwg_assert_position, mwg_assert_funcname, "" __VA_ARGS__), false))
 # else
-#  define mwg_check_nothrow(condition,...)   ((condition)?mwg::except_detail::nop_succuss():mwg::except_detail::print_fail(#condition,mwg_assert_position,mwg_assert_funcname,"" __VA_ARGS__))
-#  define mwg_check(condition,...)           ((condition)?mwg::except_detail::nop_succuss():mwg::except_detail::throw_fail(#condition,mwg_assert_position,mwg_assert_funcname,"" __VA_ARGS__))
+#  define mwg_check_nothrow(condition, ...)   ((condition)? mwg::except_detail::nop_succuss(): mwg::except_detail::print_fail(#condition, mwg_assert_position, mwg_assert_funcname, "" __VA_ARGS__))
+#  define mwg_check(condition, ...)           ((condition)? mwg::except_detail::nop_succuss(): mwg::except_detail::throw_fail(#condition, mwg_assert_position, mwg_assert_funcname, "" __VA_ARGS__))
 # endif
 #else
 // __VA_ARGS__ が使えない環境ではその場で関手を生成する。
 
-namespace mwg{
-namespace except_detail{
-  struct mwg_printd_proxy{
+namespace mwg {
+namespace except_detail {
+  struct mwg_printd_proxy {
     const char* position;
     const char* funcname;
-    mwg_printd_proxy(const char* position,const char* funcname)
-      :position(position),funcname(funcname){}
+    mwg_printd_proxy(const char* position, const char* funcname):
+      position(position), funcname(funcname) {}
 
-    void operator()() const{
-      mwg_printd_(position,funcname,"");
+    void operator()() const {
+      mwg_printd_(position, funcname, "");
     }
-    void operator()(const char* fmt,...) const{
+    void operator()(const char* fmt, ...) const {
       va_list arg;
-      va_start(arg,fmt);
-      mwg_vprintd_(position,funcname,fmt,arg);
+      va_start(arg, fmt);
+      mwg_vprintd_(position, funcname, fmt, arg);
       va_end(arg);
     }
   };
 
   template<bool Throw>
-  struct mwg_check_proxy{
+  struct mwg_check_proxy {
     const char* expression;
     const char* position;
     const char* funcname;
-    mwg_check_proxy(const char* expression,const char* position,const char* funcname)
-      :expression(expression),position(position),funcname(funcname){}
+    mwg_check_proxy(const char* expression, const char* position, const char* funcname):
+      expression(expression), position(position), funcname(funcname) {}
 
-    bool operator()(bool condition) const{
-      if(!condition){
-        if(Throw){
-          throw_fail(expression,position,funcname,"");
-        }else{
-          print_fail(expression,position,funcname,"");
+    bool operator()(bool condition) const {
+      if(!condition) {
+        if(Throw) {
+          throw_fail(expression, position, funcname, "");
+        }else {
+          print_fail(expression, position, funcname, "");
         }
       }
       return condition;
     }
 
-    bool operator()(bool condition,const char* fmt,...) const{
-      if(!condition){
-        if(Throw){
+    bool operator()(bool condition, const char* fmt, ...) const {
+      if(!condition) {
+        if(Throw) {
           va_list arg1;
           va_list arg2;
-          va_start(arg1,fmt);
-          va_start(arg2,fmt);
-          vthrow_fail(expression,position,funcname,fmt,arg1,arg2);
+          va_start(arg1, fmt);
+          va_start(arg2, fmt);
+          vthrow_fail(expression, position, funcname, fmt, arg1, arg2);
           va_end(arg1);
           va_end(arg2);
-        }else{
+        }else {
           va_list arg;
-          va_start(arg,fmt);
-          vprint_fail(expression,position,funcname,fmt,arg);
+          va_start(arg, fmt);
+          vprint_fail(expression, position, funcname, fmt, arg);
           va_end(arg);
         }
       }
@@ -656,9 +651,9 @@ namespace except_detail{
 }
 }
 
-# define mwg_printd        (::mwg::except_detail::mwg_printd_proxy(mwg_assert_position,mwg_assert_funcname))
-# define mwg_check_nothrow (::mwg::except_detail::mwg_check_proxy<false>("N/A",mwg_assert_position,mwg_assert_funcname))
-# define mwg_check         (::mwg::except_detail::mwg_check_proxy<true> ("N/A",mwg_assert_position,mwg_assert_funcname))
+# define mwg_printd        (::mwg::except_detail::mwg_printd_proxy(mwg_assert_position, mwg_assert_funcname))
+# define mwg_check_nothrow (::mwg::except_detail::mwg_check_proxy<false>("N/A", mwg_assert_position, mwg_assert_funcname))
+# define mwg_check         (::mwg::except_detail::mwg_check_proxy<true> ("N/A", mwg_assert_position, mwg_assert_funcname))
 #endif
 
 #if MWG_DEBUG||!defined(NDEBUG)
@@ -667,14 +662,14 @@ namespace except_detail{
 # define mwg_assert_nothrow mwg_check_nothrow
 # define mwg_assert         mwg_check
 #else
-  static inline int mwg_assert_empty(){return 1;}
-  static inline int mwg_assert_empty(bool condition,...){return condition;}
+  static inline int mwg_assert_empty() {return 1;}
+  static inline int mwg_assert_empty(bool condition, ...) {return condition;}
 # ifdef MWG_STD_VA_ARGS
-#  define mwg_verify(condition,...)         mwg_assert_empty(condition)
-#  define mwg_verify_nothrow(condition,...) mwg_assert_empty(condition)
+#  define mwg_verify(condition, ...)         mwg_assert_empty(condition)
+#  define mwg_verify_nothrow(condition, ...) mwg_assert_empty(condition)
 #  ifdef _MSC_VER
-#    define mwg_assert(condition,...)         __assume(condition)
-#    define mwg_assert_nothrow(condition,...) __assume(condition)
+#    define mwg_assert(condition, ...)         __assume(condition)
+#    define mwg_assert_nothrow(condition, ...) __assume(condition)
 #  else
 #    define mwg_assert(...)                   mwg_assert_empty()
 #    define mwg_assert_nothrow(...)           mwg_assert_empty()
@@ -686,6 +681,6 @@ namespace except_detail{
 #  define mwg_assert_nothrow   mwg_assert_empty
 # endif
 #endif
-#define MWG_NOTREACHED /* NOTREACHED */ mwg_assert(0,"NOTREACHED")
+#define MWG_NOTREACHED /* NOTREACHED */ mwg_assert(0, "NOTREACHED")
 
 #endif
