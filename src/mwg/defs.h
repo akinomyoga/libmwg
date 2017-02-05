@@ -17,10 +17,10 @@
 //X 試験
 //------------------------------------------------------------------------------
 
-namespace std{namespace tr1{}}
+namespace std {namespace tr1 {}}
 
-namespace mwg{
-  namespace stdm{
+namespace mwg {
+  namespace stdm {
     using namespace ::std;
 
     // ※以下は元々 C++03 with TR1 の環境のための物だが問題がある。
@@ -29,10 +29,10 @@ namespace mwg{
     // using namespace ::std::tr1;
   }
 
-#   define MWG_PREPROC_ADDLINE__(H,L) H##L
-#   define MWG_PREPROC_ADDLINE_(H,L)  MWG_PREPROC_ADDLINE__(H,L)
-#   define MWG_PREPROC_ADDLINE(H)     MWG_PREPROC_ADDLINE_(H,__LINE__)
-#   define MWG_PREPROC_COMMA          ,
+#   define MWG_PREPROC_ADDLINE__(H, L) H##L
+#   define MWG_PREPROC_ADDLINE_(H, L)  MWG_PREPROC_ADDLINE__(H, L)
+#   define MWG_PREPROC_ADDLINE(H)      MWG_PREPROC_ADDLINE_(H, __LINE__)
+#   define MWG_PREPROC_COMMA           ,
 
 #ifndef MWG_ATTRIBUTE_UNUSED
 # ifdef __GNUC__
@@ -51,7 +51,7 @@ namespace mwg{
 //MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
 //  C++03 Features
 //------------------------------------------------------------------------------
-#if defined(_MSC_VER)||defined(__WIN32)
+#if defined(_MSC_VER) || defined(__WIN32)
 # define MWG_STD_WCHAR_UTF16
 #else
 # define MWG_STD_WCHAR_UTF32
@@ -62,23 +62,23 @@ namespace mwg{
 //  nullptr
 //------------------------------------------------------------------------------
 //?mconf X -t'std::nullptr_t' -oMWGCONF_STD_NULLPTR_T cstddef 'std::nullptr_t* value=0'
-#if !defined(MWGCONF_STD_NULLPTR)&&!defined(nullptr)
-namespace mwg{
-namespace stdm{
-  static const class nullptr_t{
+#if !defined(MWGCONF_STD_NULLPTR) && !defined(nullptr)
+namespace mwg {
+namespace stdm {
+  static const class nullptr_t {
   public:
     template<class T>
-    operator T*() const{return 0;}
+    operator T*() const {return 0;}
     template<class C, class T>
-    operator T C::*() const{return 0;}
+    operator T C::*() const {return 0;}
   private:
     void operator&() const;
     void operator*() const;
-  } nullptr_instance={};
+  } nullptr_instance = {};
 
 #   define MWG_TEMP_OP(O)                                               \
-  template<typename T> bool operator O(T* p,const nullptr_t&){return p O 0;} \
-  template<typename T> bool operator O(const nullptr_t&,T* p){return 0 O p;} /**/
+  template<typename T> bool operator O(T* p, const nullptr_t&) {return p O 0;} \
+  template<typename T> bool operator O(const nullptr_t&, T* p) {return 0 O p;} /**/
   MWG_TEMP_OP(==)
   MWG_TEMP_OP(!=)
   MWG_TEMP_OP(<)
@@ -89,9 +89,9 @@ namespace stdm{
 }
 }
 #   define nullptr mwg::stdm::nullptr_instance
-#elif !defined(MWGCONF_STD_NULLPTR_T)&&defined(MWGCONF_STD_DECLTYPE)
-namespace mwg{
-namespace stdm{
+#elif !defined(MWGCONF_STD_NULLPTR_T) && defined(MWGCONF_STD_DECLTYPE)
+namespace mwg {
+namespace stdm {
   typedef decltype(nullptr) nullptr_t;
 }
 }
@@ -100,12 +100,12 @@ namespace stdm{
 //  Defaulted/deleted member functions
 //------------------------------------------------------------------------------
 #ifdef MWGCONF_STD_DEFAULTED_FUNCTIONS
-# define mwg_std_defaulted =default
+# define mwg_std_defaulted = default
 #else
 # define mwg_std_defaulted
 #endif
 #ifdef MWGCONF_STD_DELETED_FUNCTIONS
-# define mwg_std_deleted =delete
+# define mwg_std_deleted = delete
 #else
 # define mwg_std_deleted
 #endif
@@ -131,15 +131,15 @@ namespace stdm{
 //  static_assert
 //------------------------------------------------------------------------------
 #ifndef MWGCONF_STD_STATIC_ASSERT
-namespace mwg{
-  namespace detail{
-    template<bool B,int LINE>
-    struct static_assert_tester{};
+namespace mwg {
+  namespace detail {
+    template<bool B, int LINE>
+    struct static_assert_tester {};
     template<int LINE>
-    struct static_assert_tester<true,LINE>{
-      static_assert_tester(...){} /* to suppress unused warnings */
+    struct static_assert_tester<true, LINE> {
+      static_assert_tester(...) {} /* to suppress unused warnings */
       typedef int type;
-      static const int value=LINE;
+      static const int value = LINE;
     };
   }
 
@@ -154,26 +154,26 @@ namespace mwg{
 
 /* 実装のメモ
  *
- * 1 static tester<C,__LINE__> dummy; とすると
+ * 1 static tester<C, __LINE__> dummy; とすると
  *   クラス内で使った時に実体の定義を要求されてしまう。
  *   といって static を外すとクラスのサイズが無駄に大きくなってしまう。
  *   また static const int dummy=hello; という形にする訳にも行かない。
  *
- * 2 tester<C,__LINE__>::type dummy; とすると
+ * 2 tester<C, __LINE__>::type dummy; とすると
  *   C が template type parameter に依存している時に typename が必要になる。
  *
-# define static_assert(C,Message)                                       \
-  static MWG_ATTRIBUTE_UNUSED const mwg::detail::static_assert_tester<C,__LINE__>::type      \
-    MWG_PREPROC_ADDLINE(static_assert_at_line_)=(0);
+# define static_assert(C, Message)                                       \
+  static MWG_ATTRIBUTE_UNUSED const mwg::detail::static_assert_tester<C, __LINE__>::type      \
+    MWG_PREPROC_ADDLINE(static_assert_at_line_) = (0);
  */
-# define static_assert(C,Message)                                       \
-  enum{ MWG_PREPROC_ADDLINE(static_assert_at_line_) = mwg::detail::static_assert_tester<C,__LINE__>::value }
+# define static_assert(C, Message)                                       \
+  enum{ MWG_PREPROC_ADDLINE(static_assert_at_line_) = mwg::detail::static_assert_tester<C, __LINE__>::value }
 }
 #endif
 //------------------------------------------------------------------------------
 //  __VA_ARGS__
 //------------------------------------------------------------------------------
-#if defined(_MSC_VER)?(_MSC_VER>=1400):(defined(__GNUC__)?(__GNUC__>=3):1)
+#if defined(_MSC_VER)? (_MSC_VER >= 1400): (defined(__GNUC__)? (__GNUC__ >= 3): 1)
 # define MWG_STD_VA_ARGS
 #endif
 //MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
@@ -185,49 +185,49 @@ namespace mwg{
 #else
 # define mwg_vc_typename
 #endif
-#if defined(MWGCONF_GCC_VER)&&(MWGCONF_GCC_VER>=40200)
+#if defined(MWGCONF_GCC_VER) && (MWGCONF_GCC_VER >= 40200)
 # define MWG_STD_GccCvQualifiedFunctionType
 #endif
-#if (MWGCONF_GCC_VER&&MWGCONF_GCC_VER<30400)
+#if (MWGCONF_GCC_VER && MWGCONF_GCC_VER < 30400)
 # define mwg_gcc336bug20160326_template template
 #else
 # define mwg_gcc336bug20160326_template
 #endif
-#if (MWGCONF_GCC_VER&&MWGCONF_GCC_VER<30000)
+#if (MWGCONF_GCC_VER && MWGCONF_GCC_VER < 30000)
 # define MWGCONF_GCC295BUG_USING_NAMESPACE_STD
 #endif
 //TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
 //  Utility
 //------------------------------------------------------------------------------
-namespace mwg{
-  template<typename T> struct identity{typedef T type;};
+namespace mwg {
+  template<typename T> struct identity {typedef T type;};
 
 #ifdef MWGCONF_STD_RVALUE_REFERENCES
   template<typename T>
-  struct declval_type:mwg::identity<T&&>{typedef T&& reference_type;};
-  template<typename T,unsigned N>
-  struct declval_type<T[N]>:mwg::identity<T(&&)[N]>{typedef T (&&reference_type)[N];};
+  struct declval_type:mwg::identity<T&&> {typedef T&& reference_type;};
+  template<typename T, unsigned N>
+  struct declval_type<T[N]>:mwg::identity<T (&&)[N]> {typedef T (&&reference_type)[N];};
   template<typename T>
-  struct declval_type<T[]>:mwg::identity<T(&&)[1]>{typedef T (&&reference_type)[1];};
+  struct declval_type<T[]>:mwg::identity<T (&&)[1]> {typedef T (&&reference_type)[1];};
 #else
   template<typename T>
-  struct declval_type:mwg::identity<T>{typedef T& reference_type;};
+  struct declval_type:mwg::identity<T> {typedef T& reference_type;};
   template<typename T>
-  struct declval_type<T&>:mwg::identity<T&>{typedef T& reference_type;};
-  template<typename T,unsigned N>
-  struct declval_type<T[N]>:mwg::identity<T(&)[N]>{typedef T (&reference_type)[N];};
+  struct declval_type<T&>:mwg::identity<T&> {typedef T& reference_type;};
+  template<typename T, unsigned N>
+  struct declval_type<T[N]>:mwg::identity<T (&)[N]> {typedef T (&reference_type)[N];};
   template<typename T>
-  struct declval_type<T[]>:mwg::identity<T(&)[1]>{typedef T (&reference_type)[1];};
+  struct declval_type<T[]>:mwg::identity<T (&)[1]> {typedef T (&reference_type)[1];};
 #endif
 
-  template<> struct declval_type<void>{};
-  template<> struct declval_type<void const>{};
-  template<> struct declval_type<void volatile>{};
-  template<> struct declval_type<void const volatile>{};
+  template<> struct declval_type<void> {};
+  template<> struct declval_type<void const> {};
+  template<> struct declval_type<void volatile> {};
+  template<> struct declval_type<void const volatile> {};
 
   //template<typename T> T&& declval();
-  template<typename T> typename declval_type<T>::type declval(){
-    static struct{char m[sizeof(T)];} dummy;
+  template<typename T> typename declval_type<T>::type declval() {
+    static struct {char m[sizeof(T)];} dummy;
     return reinterpret_cast<typename declval_type<T>::reference_type>(dummy);
   }
 }
@@ -235,7 +235,7 @@ namespace mwg{
 //  整数型の定義
 //------------------------------------------------------------------------------
 #include <mwg/std/cstdint> /* requires static_assert */
-namespace mwg{
+namespace mwg {
   typedef mwg::stdm::int8_t   i1t;
   typedef mwg::stdm::int16_t  i2t;
   typedef mwg::stdm::int32_t  i4t;
@@ -269,10 +269,10 @@ namespace mwg{
 //  文字型の定義
 
   // defined in <mwg/char.h>
-  template<typename T,int CP=0>
+  template<typename T, int CP = 0>
   struct char_data;
 
-  template<typename T,int CP=0>
+  template<typename T, int CP = 0>
   class char_t;
 
 #ifdef _MSC_VER
