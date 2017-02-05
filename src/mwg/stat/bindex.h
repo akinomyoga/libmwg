@@ -1,4 +1,4 @@
-// -*- mode:c++ -*-
+// -*- mode: c++; coding: utf-8 -*-
 #ifndef MWG_STAT_BINDEX_H
 #define MWG_STAT_BINDEX_H
 namespace mwg{
