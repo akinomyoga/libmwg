@@ -1,4 +1,4 @@
-// -*- mode:C++;coding:utf-8 -*-
+// -*- mode: c++; coding: utf-8 -*-
 #ifndef MWG_BIO_TAPE_STREAM_INL
 #define MWG_BIO_TAPE_STREAM_INL
 #include <string>

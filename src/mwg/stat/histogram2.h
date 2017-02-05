@@ -1,4 +1,4 @@
-// -*- mode:C++;coding:utf-8 -*-
+// -*- mode: c++; coding: utf-8 -*-
 #ifndef MWG_STAT_HISTOGRAM_IMPL2_H
 #define MWG_STAT_HISTOGRAM_IMPL2_H
 #include <cmath>

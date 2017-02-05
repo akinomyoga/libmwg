@@ -1,4 +1,4 @@
-// -*- mode:C++;coding:utf-8 -*-
+// -*- mode: c++; coding: utf-8 -*-
 #pragma%x begin_check
 #include <vector>
 #include <mwg/except.h>

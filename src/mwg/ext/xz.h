@@ -1,4 +1,4 @@
-// -*- mode:C++;coding:utf-8 -*-
+// -*- mode: c++; coding: utf-8 -*-
 #ifndef MWG_EXT_XZ_H
 #define MWG_EXT_XZ_H
 #include <mwg/defs.h>

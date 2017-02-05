@@ -1,4 +1,4 @@
-// -*- mode:C++;coding:utf-8 -*-
+// -*- mode: c++; coding: utf-8 -*-
 //
 // ----- Usage of mwg/except.h as a standalone header file --------------------
 //

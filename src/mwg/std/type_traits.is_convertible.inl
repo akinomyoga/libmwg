@@ -1,4 +1,4 @@
-// -*- mode:C++;coding:utf-8 -*-
+// -*- mode: c++; coding: utf-8 -*-
 #ifndef MWG_STDM_TYPE_TRAITS__IS_CONVERTIBLE
 #define MWG_STDM_TYPE_TRAITS__IS_CONVERTIBLE
 #include <mwg/concept.h>

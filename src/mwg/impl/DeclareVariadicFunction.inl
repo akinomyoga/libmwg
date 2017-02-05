@@ -1,4 +1,4 @@
-// -*- mode:C++;coding:utf-8 -*-
+// -*- mode: c++; coding: utf-8 -*-
 // #include <mwg/std/utility>
 
 #pragma%[ArN=10]

@@ -1,4 +1,4 @@
-// -*- mode:C++;coding:utf-8 -*-
+// -*- mode: c++; coding: utf-8 -*-
 #ifndef MWG_STDM_TYPE_TRAITS__IS_CONSTRUCTIBLE
 #define MWG_STDM_TYPE_TRAITS__IS_CONSTRUCTIBLE
 #if MWGCONF_HEADER_STD>=2011

@@ -1,4 +1,4 @@
-// -*- mode:C++;coding:utf-8 -*-
+// -*- mode: c++; coding: utf-8 -*-
 #ifndef MWG_STDM_CCTYPE
 #define MWG_STDM_CCTYPE
 #include <cctype>

@@ -1,4 +1,4 @@
-// -*- mode:C++;coding:utf-8 -*-
+// -*- mode: c++; coding: utf-8 -*-
 #ifndef MWG_FUNCTOR_H
 #define MWG_FUNCTOR_H
 #pragma%x begin_check

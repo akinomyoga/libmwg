@@ -1,4 +1,4 @@
-// -*- mode:C++;coding:utf-8 -*-
+// -*- mode: c++; coding: utf-8 -*-
 #ifndef MWG_BIO_TTX2_H
 #define MWG_BIO_TTX2_H
 #include <cstdio>

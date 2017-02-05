@@ -1,4 +1,4 @@
-// -*- mode:C++;coding:utf-8 -*-
+// -*- mode: c++; coding: utf-8 -*-
 #ifndef MWG_STAT_ACCUMULATOR_H
 #define MWG_STAT_ACCUMULATOR_H
 #include <cmath>

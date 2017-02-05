@@ -1,4 +1,4 @@
-// -*- mode:C++;coding:utf-8 -*-
+// -*- mode: c++; coding: utf-8 -*-
 //?mconf H -t'"xz Library"' -oMWGCONF_LIBRARY_XZ lzma.h
 #include <mwg_config.h>
 #ifdef MWGCONF_LIBRARY_XZ
