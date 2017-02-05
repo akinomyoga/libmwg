@@ -308,8 +308,8 @@ namespace stdm {
 #pragma%%[fname="@fname",FNAME=fname.toupper(),expr="@expr"]
 #pragma%%x
 /*?mconf
- * X -t'std::fname(x)' -oMWGCONF_HAS_STD_ISNAN cmath 'std::fname(2.0)' ||
- *   X -t'::fname' -oMWGCONF_HAS_ISNAN cmath $'\n#undef fname\n::fname(0.0);'
+ * X -t'std::fname(x)' -oMWGCONF_HAS_STD_FNAME cmath 'std::fname(2.0)'
+ * X -t'::fname' -oMWGCONF_HAS_FNAME cmath $'\n#undef fname\n::fname(0.0);'
  */
 #if !defined(MWGCONF_HAS_STD_FNAME)
 namespace mwg {
@@ -383,6 +383,36 @@ namespace cmath_detail {
 #pragma%x MWG_STDM_CMATH::ImportClassificationMacros.r/@fname/isnormal/.r/@expr/mwg::stdm::cmath_detail::isnormal_impl(value)/
 
 #endif /* end of !defined(_MSC_VER) */
+#else /* if defined(MWGCONF_HAS_STD_ISNAN) */
+//
+// Note: どうやら世の中には std::isnan は使えるけれども実はマクロであるという
+// 処理系がある様だ (icc 14.0 on i686 fc25)。isnan を undef しても無害の様であ
+// るので undef してしまう。
+//
+# ifdef isnan
+#  undef isnan
+#  ifndef MWGCONF_HAS_ISNAN
+using ::std::isnan;
+#  endif
+# endif
+# ifdef isinf
+#  undef isinf
+#  ifndef MWGCONF_HAS_ISINF
+using ::std::isinf;
+#  endif
+# endif
+# ifdef isfinite
+#  undef isfinite
+#  ifndef MWGCONF_HAS_FINITE
+using ::std::isfinite;
+#  endif
+# endif
+# ifdef isnormal
+#  undef isnormal
+#  ifndef MWGCONF_HAS_ISNORMAL
+using ::std::isnormal;
+#  endif
+# endif
 #endif /* end of !defined(MWGCONF_HAS_STD_ISNAN) */
 
 //-----------------------------------------------------------------------------
@@ -399,9 +429,8 @@ namespace cmath_detail {
  */
 
 /*?mconf
- * if ! X -t'std::fpclassify(x)' -oMWGCONF_HAS_STD_FPCLASSIFY cmath 'std::fpclassify(2.0)'; then
- *   X -t'::fpclassify' -oMWGCONF_HAS_FPCLASSIFY cmath $'\n#undef fpclassify\nfpclassify(0.0);'
- * fi
+ * X -t'std::fpclassify(x)' -oMWGCONF_HAS_STD_FPCLASSIFY cmath 'std::fpclassify(2.0)'
+ * X -t'::fpclassify' -oMWGCONF_HAS_FPCLASSIFY cmath $'\n#undef fpclassify\nfpclassify(0.0);'
  */
 
 #ifndef MWGCONF_HAS_STD_FPCLASSIFY
@@ -494,7 +523,14 @@ namespace stdm {
 using mwg::stdm::fpclassify;
 #  endif
 # endif /* end of !defined(_MSC_VER) */
-#endif /* end of !defined(MWGCONF_HAS_STD_FPCLASSIFY) */
+#else /* if defined(MWGCONF_HAS_STD_FPCLASSIFY) */
+# ifdef fpclassify
+#  undef fpclassify
+#  ifndef MWGCONF_HAS_FPCLASSIFY
+using ::std::fpclassify;
+#  endif
+# endif
+#endif /* end of defined(MWGCONF_HAS_STD_FPCLASSIFY) */
 
 //-----------------------------------------------------------------------------
 //
