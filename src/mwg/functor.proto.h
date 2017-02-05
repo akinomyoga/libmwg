@@ -1,8 +1,8 @@
 // -*- mode: c++; coding: utf-8 -*-
 #ifndef MWG_FUNCTOR_PROTO_H
 #define MWG_FUNCTOR_PROTO_H
-namespace mwg{
-namespace functor_detail{
+namespace mwg {
+namespace functor_detail {
   template<typename F>
   struct functor_case_traits;
     // Tr::fct_t
@@ -44,4 +44,3 @@ namespace functor_detail{
   using functor_detail::be_functor;
 }
 #endif
-
