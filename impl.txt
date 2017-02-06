@@ -20,11 +20,229 @@
   ToDo
 ------------------------------------------------------------------------------
 
+2017-02-06
+
+* mwg/functor: 重荷になっている。整理したい。
+
+  特に C++11+ 前提での実装はどうなるかについて考え直したい。
+  そのために現在の構造について全体がどうなっているか再度整理する必要がある。
+
+  hint: concept_map
+
+  先ず functor.proto.h を見てみる事にする。まあ、大体以下のような感じになっている。
+
+  | struct mwg::functor_traits          <typename F, typename S = void>;
+  |   struct mwg::functor_traits_empty                ;
+  |   struct mwg::functor_traits_signature<typename S>;
+  | 
+  | class  mwg::functor_detail::functor     <typename S>;
+  | class  mwg::functor_detail::functor_ref <typename S>;
+  | class  mwg::functor_detail::vfunctor    <typename S>;
+  | class  mwg::functor_detail::vfunctor_ref<typename S>;
+  |   struct mwg::functor_base<typename S>;
+  |   struct mwg::functor_case_traits<typename F>;
+  |   struct mwg::functor_case       <typename S>;
+  |   class  mwg::functor_case_impl  <typename S, typename Tr>;
+  | 
+  | struct mwg::functor_detail::is_functor<typename F, typename S>;
+  | struct mwg::functor_detail::be_functor<typename F, typename S>;
+
+  functor.h を上から順番に見ていく事にする。
+  先ず functor_traits は concept の積りの様である。
+
+  | template<typename F>
+  | struct functor_traits {
+  |   static const bool is_functor;
+  |   typedef F fct_t;
+  |   typedef auto sgn_t;
+  |
+  |   typedef auto ref_tr; // functor への参照を保持
+  |   typedef auto ins_tr; // functor の複製インスタンスを保持
+  |   static '''return-type''' invoke(const fct_t& f, ...) {
+  |     f(...);
+  |   }
+  | };
+  | template<typename F, typename S>
+  | struct functor_traits {
+  |   static const bool is_functor;
+  |   typedef F fct_t;
+  |   typedef S sgn_t;
+  |
+  |   typedef auto ref_tr; // functor への参照を保持
+  |   typedef auto ins_tr; // functor の複製インスタンスを保持
+  |   static '''return-type''' invoke(const fct_t& f, ...) {
+  |     f(...);
+  |   }
+  | };
+
+  functor_traits には以下の2種類がある。
+
+  - functor_traits<F>    ... 型 F の自然な関数としての振る舞い
+  - functor_traits<F, S> ... 型 F を関数型 S の様にして使う時の振る舞い
+
+    基本的に functor_traits<F, S> の振る舞いは
+    functor_traits<F> から導出されるべきである。
+
+  functor_traits は以下のメンバを持つ
+
+  - is_functor
+    これは (指定した) 関数型として振る舞うかどうかを表す。
+
+  - fct_t, sgn_t
+    fct_t は本体の関数オブジェクトの型で、
+    sgn_t はどの関数型として振る舞うかを示す。
+
+  - invoke 関数
+
+    実はこれは concept_map みたいな実装にした方が良いかもしれない。
+
+    ★可変長引数 (...) で余分の引数を捨てる設計になっている事
+      functor_traits<F, S> として使う場合にはシグニチャが確定しているから良いが、
+      functor_traits<F> として使う場合にはより緩い invoke が必要である。
+      その為に ... で余分の引数を捨てている。
+      しかしここで緩い invoke をするのは違う様な気がする。
+      と思ったが緩くするために一段関数を挟んでも良い様な気もする。
+      (しかし perfect forward を何段も行うというのもなかなか気が引ける。
+      現在の実装になっているのはこの段数を少なくする為だったかもしれない…)。
+
+  - ref_tr, ins_tr
+    それぞれ、参照・実体を保持する為の functor_case_traits.
+    つまり functor_ref, functor を記述するための型特性である。
+
+    ref_tr は普通に参照を保持すれば良い様な気もするが、
+    関数の参照を採ることができない (?) という事と、
+    参照を保持する関数オブジェクトと実体を保持する
+    関数オブジェクトを区別して取り扱うのが面倒というのがある。
+
+    勿論、ラムダ式も保持できる様にしてある (はずである)。
+
+    唯の concept_map と異なるのは型消去を行うという点である。
+
+  次に見るのは functor_case_traits である。
+  これは ref_tr, ins_tr のインターフェイスを決定する。
+  (実際、ref_tr 及び ins_tr は独自に定義して良いが、
+  この functor_case_traits を通して定義するのが簡単である。)
+
+  | template<typename F>
+  | struct functor_case_traits {
+  |   typedef F fct_t;
+  |   typedef functor_traits<F> fct_tr;
+  |   typedef fct_t case_data;
+  |   static const case_data& endata(const fct_t    & f) {return f;}
+  |   static const fct_t    & dedata(const case_data& f) {return f;}
+  | };
+
+  次に functor_traits_chain の定義が来る。
+  これは既定の functor_traits の実装に用いられている。
+  あれでなければこれ、これでなければそれ、という具合にして優先順位の順に
+  functor_traits の実装を条件式で切り替える手法で使う。
+
+  実際の functor_traits_chain の実装は以下の include 先で行われる。
+
+  | #pragma%include "bits/functor.link.function.pp"
+  | #pragma%include "bits/functor.link.member.pp"
+  | #pragma%include "bits/functor.link.operator.pp"
+  | #pragma%include "bits/functor.link.variance.pp"
+  | #pragma%x functor_traits_chain::terminate
+
+  functor_ref/functor の類はこれまでに定義した物を利用して
+  ごちゃごちゃと実装しているにすぎない様だ。
+  実は多くの場合は functor_ref/functor は不要であり、
+  ここまでの物の間で interface を分かりやすくすれば、
+  functor_ref/functor の実装も簡単になるだろう。
+
+  因みに functor_ref/functor の実装についても見てみる。
+
+  ★内部で char 配列に全てを入れて placement new を実行しているのは何故だろう。
+    これは型消去に関係している。
+    普通に型消去をすると別の場所に new して自身はポインタを保持することになる。
+    しかし new/delete を避ける為に自身の内部にインスタンスを保持しても良い。
+    その為の領域をこちらで用意しておいてその上で placement new すれば良いのだ。
+    そしてそこへの functor_case* ポインタを取得して保持する。
+    結局 functor は以下の様な構造になっている。
+
+    struct {
+      functor_case<S>* h;
+      char buffer[3 * sizeof(void*)];
+    };
+
+    さて。疑問は本当にこの様な構造にしなければ実現できないのかという事である。
+    先ず、其処にメンバとして有限のサイズを持たせるのだとしたら、
+    そして内部に好きな型のメンバを定義できる様にするのだとしたら、
+    特定の型を持ったメンバを其処に配置する訳には行かない。
+    strict type aliasing などを考えれば結局 char 型の配列にするしかないのだ。
+    そしてその様にしている以上は placement new をするしかない。
+
+    次の疑問は placement_clone 等という物が必要なのかという事である。
+    ただ単に代入演算子などでコピーするだけでは駄目なのだろうか。
+    代入演算子を使う場合には代入元と代入先が一緒の型でなければならない。
+    今回の場合には結局代入先を先に破壊してから、
+    代入元からコピー構築をするという具合にしなければならない。
+    所が、代入元の実際の型を知っているのは代入元だけである。
+    結局コピー構築を実行するのを仮想関数で実現しなければならない。
+    よって placement_clone という仮想関数を導入する必要がある。
+
+    もう一つの疑問。functor_case<S>* h というポインタを別に
+    保持する必要はあるのだろうか。
+    buffer の内部にも vptr があるのだし何だか重複している様な気がする。
+    しかし vptr が buffer の内部の何処に配置されるのかというのは実のところ不明である。
+    勝手に reinterpret_cast するのも危険だろう。
+    という訳で functor_case<S>* という変数を別に保持する必要があるのだ。
+    しかし、これは仮想関数の仕組みを使う事に拘らずに自分で vptr 擬きを作れば良い気がする。
+    則ち
+
+      template<typename S> struct vtbl {
+        ctor_func_t (*_ctor)(char*, void*);
+        copy_func_t (*_copy)(char*, char*);
+        dtor_func_t (*_dtor)(char*);
+        S* _call;
+      };
+      template<typename S> struct functor {
+        vtbl<S>* vptr;
+        char buffer[sizeof(char) * 3]; // ← ここには非仮想クラスを構築
+      };
+
+    そして vtbl は型ごとに用意するのである。
+    さて、同じ構造を何故仮想関数なしに実現できないのだろうか。
+    実は、もし static_cast<functor_case<S>*>() と、
+    reinterpret_cast<functor_case<S>*>() が一緒であれば、
+    元々 functor_case<S>* h を省略できて何も問題は生じないのである…。
+
+  ★ところで swap の実装は駄目なんじゃないのか?
+    ポインタを単純に交換しているが、これだと互いに相手のバッファの中にある
+    位置を指す様になってしまう。一方が破壊されると他方は異常な状態になる。
+    それ以前に異なる型の物体を指すことになるから全然駄目である。
+
+  ★それから functor_case の alignment がどうなっているのかは危ない。
+
+  ★std::aligned_storage の strict type aliasing はどうなっているのか。
+
+    色々試してみたが大丈夫の様な気がする。
+
+    http://melpon.org/wandbox/permlink/p7AtDxtXhq2L6RHx
+
+    1.関数 A を通じて placement new され結果のポインタ p を得、
+      p を使い終わった後にまた関数 B を通じて異なる型の結果のポインタ q を得たとする。
+      この時、コンパイラはちゃんと p と q が同じ位置を示しているかもしれないという事を考慮に入れなければならない。
+      というのも関数 B の中で p で確保した領域を解放してから q の領域を確保するかもしれず、
+      その時に p が失効する可能性を排除できないからである。
+      だとすれば p から読み取るという操作を関数 B の呼び出しより後に移動することはできない。
+
+    2.もしインライン展開されるのだとしたら、尚の事同じ位置を指しているという事は、
+      コンパイラに分かってしまうので、より問題は起きにくくなる。
+      同じ位置を指しているという事を検出できないのだとしたら、
+      やはり結局 p がその瞬間に失効するかもしれないという可能性を排除できないので、
+      結局読み取りのタイミングを変更することはできなくなる (と思われる)。
+
+
 2016-10-26
 
 * 演算子周辺のスペースの変更について
 
-  ToDo: functor.h と #%include している一連の物
+  done> functor.h
+
+  ToDo: functor.h から #%include している一連の物
+  ToDo: subdirectory 全て
 
   - \([^[:space:]:<*][:?,]\)\([^:>[:space:][:cntrl:]]\) -> \1 \2
     ※* < や > を除外するのは lwiki の /*? <? ?> に反応しない為である。
@@ -33,7 +251,7 @@
     ※重複した一致 (例: 1,2,3 は 1,2 と 2,3 に一致しなければならない) があるので、
       2回全体の置換を試行する必要がある。
 
-  - \(\_>\|[]})'"]\)\(\(?:[-+*/%^|&<>=]\|>>\|<<\)=?\|!=\|||\|&&\)\(\_<\|[*!~({['"]\) → \1 \2 \3
+  - \(\_>\|[]})'"]\)\(\(?:[-+*/%^|&<>=]\|>>\|<<\)=?\|!=\|||\|&&\)\(\_<\|[*&!~({['"]\) → \1 \2 \3
   - \(\_>\|[])'"]\)\(\(?:[*/%^|&<>=]\|>>\|<<\)=?\|!=\|||\|&&\)\([-+]\) → \1 \2 \3
 
   - \([^[:space:]]\)\({\) → \1 \2

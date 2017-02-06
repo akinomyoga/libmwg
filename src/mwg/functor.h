@@ -5,6 +5,7 @@
 #include <cstdio>
 #include <cstring>
 #include <mwg/std/type_traits>
+#include <mwg/std/utility>
 #include <mwg/except.h>
 #include <mwg/concept.h>
 #include <mwg/functor.h>
@@ -293,6 +294,7 @@ namespace functor_detail {
     virtual R call(A...) const = 0;
     virtual ~functor_case() {}
     virtual functor_case* placement_clone(void* ptr) const = 0;
+    virtual functor_case* placement_move(void* ptr) const = 0;
   };
 #pragma%end
 #pragma%x variadic_expand_0toArN
@@ -367,6 +369,9 @@ namespace functor_detail {
     virtual functor_case<S>* placement_clone(void* ptr) const {
       return new(ptr) CRTP(this->ref());
     }
+    virtual functor_case<S>* placement_move(void* ptr) const {
+      return new(ptr) CRTP(mwg::stdm::move(this->ref()));
+    }
 
   protected:
     functor_case_base(case_data const& value): m_data(value) {}
@@ -416,7 +421,10 @@ namespace functor_detail {
 #pragma%m 1
   template<typename S>
   class functor_ref: public functor_base<S> {
-    char buffer[3 * sizeof(void*)];
+    union {
+      void* forceAlign;
+      char buffer[3 * sizeof(void*)];
+    };
   protected:
     functor_ref() {}
     template<typename F, typename Case>
@@ -426,6 +434,7 @@ namespace functor_detail {
 #else
       static_assert(sizeof(Case) <= sizeof(mwg::declval<functor_ref>().buffer), "sizeof(Case) too large");
 #endif
+      static_assert((mwg::stdm::alignment_of<Case>::value <= mwg::stdm::alignment_of<void*>::value), "alignof(Case) too large");
       this->h = new(this->buffer) Case(f);
     }
   public:
@@ -434,25 +443,8 @@ namespace functor_detail {
       this->init<F, functor_case_impl<S, typename functor_traits<F>::ref_tr> >(f);
     }
     template<typename F>
-    explicit functor_ref(const F& f, typename stdm::enable_if<is_explicit_functor<F, S>::value, mwg::invalid_type*>::type = 0) {
+    explicit functor_ref(const F& f, typename stdm::enable_if<is_explicit_functor<F, S>::value, mwg::invalid_type*>::type = nullptr) {
       this->init<F, functor_case_impl<S, typename functor_traits<F, S>::ref_tr> >(f);
-    }
-    ~functor_ref() {this->free();}
-
-    void swap(functor_ref& right) {
-      std::swap(this->h, right.h);
-      char temp[sizeof this->buffer];
-      std::memcpy(temp,         this->buffer, sizeof this->buffer);
-      std::memcpy(this->buffer, right.buffer, sizeof this->buffer);
-      std::memcpy(right.buffer, temp,         sizeof this->buffer);
-    }
-    functor_ref(const functor_ref& f) {
-      this->h = f.h->placement_clone(this->buffer);
-    }
-    functor_ref& operator=(const functor_ref& f) {
-      this->free();
-      this->h = f.h->placement_clone(this->buffer);
-      return *this;
     }
     template<typename F>
     typename stdm::enable_if<is_explicit_functor<F, S>::value, functor_ref&>::type
@@ -461,18 +453,34 @@ namespace functor_detail {
       this->init<F, functor_case_impl<S, typename functor_traits<F, S>::ref_tr> >(f);
       return *this;
     }
+    ~functor_ref() {this->free();}
+
+    functor_ref(const functor_ref& f) {
+      this->h = f.h->placement_clone(this->buffer);
+    }
+    functor_ref& operator=(const functor_ref& f) {
+      this->free();
+      this->h = f.h->placement_clone(this->buffer);
+      return *this;
+    }
 #ifdef MWGCONF_STD_RVALUE_REFERENCES
     functor_ref(functor_ref&& f) {
-      if (this==&f) return;
-      this->h = nullptr;
-      this->swap(f);
+      if (this == &f) return;
+      this->h = f.h->placement_move(this->buffer);
     }
     functor_ref& operator=(functor_ref&& f) {
-      if (this==&f) return *this;
-      this->swap(f);
+      if (this == &f) return;
+      this->free();
+      this->h = f.h->placement_move(this->buffer);
       return *this;
     }
 #endif
+
+    void swap(functor_ref& rhs) {
+      functor_ref tmp(std::move(*this));
+      *this = std::move(rhs);
+      rhs = std::move(tmp);
+    }
   private:
     void free() {
       if (this->h) {
