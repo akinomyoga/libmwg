@@ -1,7 +1,7 @@
 // -*- mode: c++; coding: utf-8 -*-
 #include <mwg/std/type_traits>
 #include <mwg/concept.h>
-#include "funcsig.h"
+#include <mwg/funcsig.h>
 
 namespace mwg{
 namespace functor_detail{
