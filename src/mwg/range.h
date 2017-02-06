@@ -71,21 +71,19 @@ public:
   bool operator==(const range_base& r) const {
     return m_begin == r.m_begin && m_end == r.m_end;
   }
-  // //--------------------------------------------------------------------------
-  // template<typename F>
-  // typename stdm::enable_if<range_detail::foreach_switch<F, T>::value == 0, void>::type
-  // foreach(const F& _f) const {
-  //   F& f = const_cast<F&>(_f);
-  //   for (value_type i = m_begin; i < m_end; i++)
-  //     mwg::functor_invoke<void(const value_type&)>(f, i);
-  // }
-  // template<typename F>
-  // typename stdm::enable_if<range_detail::foreach_switch<F, T>::value == 1, void>::type
-  // foreach(const F& _f mwg_gcc3_concept_overload(1)) const {
-  //   F& f = const_cast<F&>(_f);
-  //   for (value_type i = m_begin; i < m_end; i++)
-  //     if (!mwg::functor_invoke<bool(const value_type&)>(f, i)) break;
-  // }
+  //--------------------------------------------------------------------------
+  template<typename F>
+  typename stdm::enable_if<range_detail::foreach_switch<F, T>::value == 0, void>::type
+  foreach(const F& _f) const {
+    typename mwg::as_functor<F, void(T const&)>::adapter func(_f);
+    for (value_type i = m_begin; i < m_end; i++) func(i);
+  }
+  template<typename F>
+  typename stdm::enable_if<range_detail::foreach_switch<F, T>::value == 1, void>::type
+  foreach(const F& _f mwg_gcc3_concept_overload(1)) const {
+    typename mwg::as_functor<F, bool(T const&)>::adapter func(_f);
+    for (value_type i = m_begin; i < m_end; i++) if(!func(i)) break;
+  }
 };
 
 template<typename T>
@@ -132,4 +130,40 @@ T clamp(T const& value, mwg::range<T> r) {
 
 //==============================================================================
 }
+#pragma%x begin_check
+#include <cstdio>
+#include <mwg/range.h>
+#include <mwg/except.h>
+
+struct counter {
+  int count;
+  counter(): count(0) {}
+  void operator()(const char* const& p) {count++;}
+};
+
+struct counter_until_w {
+  int count;
+  counter_until_w(): count(0) {}
+  bool operator()(const char* const& p) {count++; return *p != 'w';}
+};
+
+void test1() {
+  const char* p = "hello world";
+  mwg::range<const char*> r1(p, p + 12);
+
+  counter c1;
+  r1.foreach(c1);
+  mwg_check(c1.count == 12);
+
+  counter_until_w c2;
+  r1.foreach(c2);
+  mwg_check(c2.count == 7);
+}
+
+int main() {
+  test1();
+  return 0;
+}
+
+#pragma%x end_check
 #endif

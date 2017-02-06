@@ -259,17 +259,32 @@ namespace functor_detail {
   template<typename F, typename S>
   struct be_functor: stdm::integral_constant<bool, functor_traits<F, S>::is_functor> {};
 
+  template<typename F, typename S, typename CaseTr>
+  struct _as_functor_adapter {};
+// ToDo: struct _as_functor_adapter<F, R (A..., ...)>;
 #pragma%m 1
-  template<typename S, typename F, typename... A>
-  typename stdm::enable_if<mwg::be_functor<F, S>::value, typename sig::returns<S>::type>::type
-  functor_invoke(const F& f, A mwg_forward_rvalue... a) {
-    return mwg::functor_traits<F, S>::invoke(f, stdm::forward<A>(a)...);
-  }
+  template<typename F, typename CaseTr, typename R, typename... A>
+  struct _as_functor_adapter<F, R (A...), CaseTr> {
+    typename CaseTr::case_data m_ref;
+    _as_functor_adapter(F const& func): m_ref(CaseTr::endata(func)) {}
+    R operator()(A... a) const {
+      return mwg::functor_traits<F, R (A...)>::invoke(CaseTr::dedata(m_ref), stdm::forward<A>(a)...);
+    }
+  };
 #pragma%end
 #pragma%x variadic_expand_0toArN
 
+  template<typename F, typename S, typename = void>
+  struct _as_functor: mwg::stdm::false_type {};
+  template<typename F, typename S>
+  struct _as_functor<F, S, typename mwg::stdm::enable_if<mwg::be_functor<F, S>::value>::type>: mwg::stdm::true_type {
+    typedef _as_functor_adapter<F, S, typename functor_traits<F, S>::ref_tr> adapter;
+  };
+
+  template<typename F, typename S>
+  struct as_functor: _as_functor<F, S> {};
 }
-  using functor_detail::functor_invoke;
+  using functor_detail::as_functor;
 }
 
 
@@ -477,9 +492,9 @@ namespace functor_detail {
 #endif
 
     void swap(functor_ref& rhs) {
-      functor_ref tmp(std::move(*this));
-      *this = std::move(rhs);
-      rhs = std::move(tmp);
+      functor_ref tmp(mwg::stdm::move(*this));
+      *this = mwg::stdm::move(rhs);
+      rhs = mwg::stdm::move(tmp);
     }
   private:
     void free() {
