@@ -91,7 +91,6 @@ namespace concept_detail {
   mwg_concept_condition(mwg_concept_bool_eval(sfinae_checker::template eval<T> ARGS))
 //-----------------------------------------------------------------------------
 //  mwcro: mwg_concept_sfinae_typeOverload(name,T,X,(X*,...),(declval<T>(),...))
-//  mwcro: mwg_concept_sfinae_typeDecltypeOverload(name,T,X,(EXPR))
 //    条件 MWGCONF_STD_DECLTYPE
 //-----------------------------------------------------------------------------
 #define mwg_concept_sfinae_typeOverload(NAME,T,X,PARAMS,ARGS)                 \
@@ -102,20 +101,10 @@ namespace concept_detail {
     };                                                                        \
     mwg_concept_sfinae_param_check(T, ARGS);                                  \
   }                                                                        /**/
-#if defined(MWGCONF_STD_DECLTYPE)&&defined(MWGCONF_STD_AUTO_TYPE)
-# define mwg_concept_sfinae_typeDecltypeOverload(NAME, T, X, EXPR)            \
-  struct NAME {                                                               \
-    mwg_concept_sfinae_param {                                                \
-      template<class X> static auto eval(int)                                 \
-        -> decltype(EXPR, mwg::concept_detail::true_t());                     \
-      mwg_concept_sfinae_param_false(X, (...));                               \
-    };                                                                        \
-    mwg_concept_sfinae_param_check(T, (0));                                   \
-  }                                                                        /**/
-#endif
 //-----------------------------------------------------------------------------
 //  mwg_concept_is_valid_expression(name, T, X, 検証対象の式)
 //-----------------------------------------------------------------------------
+#if !defined(_MSC_VER) && defined(MWGCONF_STD_DECLTYPE)&&defined(MWGCONF_STD_AUTO_TYPE)
   /**
    * @def mwg_concept_is_valid_expression(name,T,X,...)
    * \a __VA_ARGS__ で指定した式が型的に有効な式かどうかを判定するクラスを定義します。
@@ -144,16 +133,25 @@ namespace concept_detail {
    *   my_super_function(T const\& lhs){lhs-\>*123;}
    * \endcode
    */
-#if !defined(_MSC_VER) && defined(mwg_concept_sfinae_typeDecltypeOverload)
+# define mwg_concept_is_valid_expression_impl(NAME, T, X, EXPR)            \
+  struct NAME {                                                               \
+    mwg_concept_sfinae_param {                                                \
+      template<class X> static auto eval(int)                                 \
+        -> decltype(EXPR, mwg::concept_detail::true_t());                     \
+      mwg_concept_sfinae_param_false(X, (...));                               \
+    };                                                                        \
+    mwg_concept_sfinae_param_check(T, (0));                                   \
+  }                                                                        /**/
 # ifdef MWG_STD_VA_ARGS
 #   define mwg_concept_is_valid_expression(name, T, X, ...)                   \
-      mwg_concept_sfinae_typeDecltypeOverload(name, T, X, (__VA_ARGS__))
+      mwg_concept_is_valid_expression_impl(name, T, X, (__VA_ARGS__))
 # else
 #   define mwg_concept_is_valid_expression(name, T, X, EXPR)                  \
-      mwg_concept_sfinae_typeDecltypeOverload(name, T, X, EXPR)
+      mwg_concept_is_valid_expression_impl(name, T, X, EXPR)
 # endif
 #endif
 
+#if defined(_MSC_VER) && defined(MWGCONF_STD_DECLTYPE)
   /**
    * @def mwg_concept_is_valid_expression_vc2010A(name,T,X,...)
    * vc2010 用の mwg_concept_is_valid_expression(name,T,X,...) の代替実装です。
@@ -167,7 +165,6 @@ namespace concept_detail {
    * - OK + T(),                vc2010
    * - NG - T(),                vc2010 when T = int*, int[1] etc
    */
-#if defined(_MSC_VER) && defined(MWGCONF_STD_DECLTYPE)
 # define mwg_concept_is_valid_expression_vc2010A(name, T, X, ...)             \
   struct name {                                                               \
     struct fromN {};                                                          \
@@ -181,6 +178,7 @@ namespace concept_detail {
   }                                                                        /**/
 #endif
 
+#if defined(_MSC_VER)&&(_MSC_VER>=1400)
   /**
    * @def mwg_concept_is_valid_expression_vc2008s(name,T,X,...)
    * vc2008 用の mwg_concept_is_valid_expression(name,T,X,...) の代替実装です。
@@ -200,7 +198,6 @@ namespace concept_detail {
    *
    * ※ 何故か choker を中で定義しないと正しく動作しない。
    */
-#if defined(_MSC_VER)&&(_MSC_VER>=1400)
 # define mwg_concept_is_valid_expression_vc2008s(name, T, X, ...)             \
   struct name {                                                               \
     mwg_concept_sfinae_param {                                                \
@@ -213,6 +210,38 @@ namespace concept_detail {
     mwg_concept_sfinae_param_check(T, (0));                                   \
   };                                                                       /**/
 #endif
+
+/*?lwiki
+ * Note (2017-02-06): より現代的な手法を採るとすれば以下の様にできる。
+ * `is_instantiatable` は汎用に使うことができるが、C++03 で同様のインターフェイスを提供するのは難しい。
+ * 更に、汎用 `is_instantiatable` を綺麗に実現するには decltype に加えて
+ * alias templates や variadic templates も必要である。
+ *
+ * &pre(!cpp){
+ * namespace mwg {
+ * namespace concept_detail {
+ *   template<typename...> using void_t = void;
+ *   namespace detail {
+ *     template<typename Void, template<typename...> class Template, typename... Args>
+ *     struct is_instantiatable_impl: std::false_type {};
+ *     template<template<typename...> class Template, typename... Args>
+ *     struct is_instantiatable_impl<void_t<Template<Args...>>, Template, Args...>:
+ *       std::true_type, kashiwa::identity<Template<Args...>> {};
+ *   }
+ *   template<template<typename...> class Template, typename... Args>
+ *   using is_instantiatable = detail::is_instantiatable_impl<void, Template, Args...>;
+ * #define mwg_concept_is_valid_expression(Name, T, X, Expr) \
+ *   struct Name { \
+ *     template<typename X> using checker = decltype((Expr)); \
+ *     enum {value = ::mwg::concept_detail::is_instantiatable<checker, T>::value}; \
+ *   }
+ * #define mwg_concept_is_valid_expression_template(Name, T, X, Expr) \
+ *   template<typename X> using Name##_checker_ = decltype((Expr)); \
+ *   template<typename T> using Name = ::mwg::concept_detail::is_instantiatable<Name##_checker_, T>::value
+ * }
+ * }
+ * }
+ */
 
 //-----------------------------------------------------------------------------
 //  mwg_concept_is_valid_type(name, T, X, Xを含む型名)::value
