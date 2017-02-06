@@ -20,6 +20,46 @@
   ToDo
 ------------------------------------------------------------------------------
 
+2017-02-07
+
+* mwg/funcsig: bug arity_pop が variadic templates で動かない。
+
+  http://melpon.org/wandbox/permlink/M1ikUAaqJe55Lg8j
+
+  | #include <type_traits>
+  | #include <assert.h>
+  | 
+  | template<typename S, typename Add>
+  | struct push_back: std::false_type {};
+  | template<typename R, typename Add, typename... A>
+  | struct push_back<R (A...), Add>: std::true_type {using type = R(A..., Add);};
+  | 
+  | template<typename S>
+  | struct pop_back: std::false_type {};
+  | template<typename R, typename Tail, typename... A>
+  | struct pop_back<R (A..., Tail)>: std::true_type {using type = R(A...);};
+  |
+  | template<typename S>
+  | struct pop_front: std::false_type {};
+  | template<typename R, typename Head, typename... A>
+  | struct pop_front<R (Head, A...)>: std::true_type {using type = R(A...);};
+  | 
+  | int main() {
+  |     assert((push_back<void (int, int), int>::value)); // ok
+  |     assert((std::is_same<push_back<void(int,int),int>::type, void(int,int,int)>::value)); // ok
+  |     assert((pop_front<void (int, int)>::value)); // ok
+  |     assert((pop_back<void (int, int)>::value)); // fails
+  |     
+  |     return 0;
+  | }
+
+  型パラメータを使ってもこういう一致の仕方はしない様だ。
+  先頭を取り出すことはできる。末端を取り出すことはできない。
+
+  さて arity_pop を variadic templates で一体どの様に実装すれば良いのだろうか。
+  例えば arity_rotate する事はできる。
+
+
 2017-02-06
 
 * mwg/functor: 重荷になっている。整理したい。

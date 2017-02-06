@@ -17,15 +17,48 @@ namespace funcsig {
 #pragma%end
 #pragma%x variadic_expand_0toArN
 
+  //
   // arity_pop
+  //
+  // Note: variadic templates の SFINAE で直接 `R (A..., ATail)`
+  //   に一致させる事はできない様だ。仕方がないので `R (AHead, A...)`
+  //   に一致させて回転を行ってから削除する。
+  //
+#ifdef MWGCONF_STD_VARIADIC_TEMPLATES
+  namespace detail {
+    template<typename S>
+    struct _arity_front_manipulation {};
+    template<typename R, typename A1, typename... A>
+    struct _arity_front_manipulation<R (A1, A...)> {
+      typedef R shifted(A...);
+      typedef R rotated(A..., A1);
+    };
+
+    template<typename S, std::size_t N>
+    struct arity_rotate: arity_rotate<
+      typename _arity_front_manipulation<S>::rotated,
+      (N - 1) % arity<S>::value> {};
+    template<typename S>
+    struct arity_rotate<S, 0u>: mwg::identity<S> {};
+
+    template<typename S>
+    struct arity_shift: mwg::identity<typename _arity_front_manipulation<S>::shifted> {};
+  }
+  template<typename S>
+  struct arity_pop: detail::arity_shift<
+    typename detail::arity_rotate<S, arity<S>::value - 1>::type> {};
+#else
   template<typename S> struct arity_pop {};
 #pragma%m 1
   template<typename R, typename ATail, typename... A>
   struct arity_pop<R(A..., ATail)>: mwg::identity<R(A...)> {};
 #pragma%end
-#pragma%x variadic_expand_0toArNm1
+#pragma%x variadic_expand::with_arity.f/__arity__/0/ArN/
+#endif
 
+  //
   // arity_push
+  //
   template<typename S, typename ATail>
   struct arity_push {};
 #pragma%m 1
