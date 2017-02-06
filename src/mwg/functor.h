@@ -484,7 +484,7 @@ namespace functor_detail {
       this->h = f.h->placement_move(this->buffer);
     }
     functor_ref& operator=(functor_ref&& f) {
-      if (this == &f) return;
+      if (this == &f) return *this;
       this->free();
       this->h = f.h->placement_move(this->buffer);
       return *this;
