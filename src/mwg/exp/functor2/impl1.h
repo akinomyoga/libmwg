@@ -12,6 +12,26 @@
 #include <mwg/funcsig.h>
 #pragma%include "../../bits/functor.type_traits.pp"
 namespace mwg {
+namespace funcsig {
+
+  namespace detail {
+    template<typename S, std::size_t N, template<typename A> class Filter>
+    struct filtered_rotate: filtered_rotate<typename filtered_rotate<S, 1, Filter>::type, N - 1, Filter> {};
+    template<template<typename A> class Filter, typename S>
+    struct filtered_rotate<S, 0, Filter>: mwg::identity<S> {};
+#pragma%m 1
+    template<template<class A> class Filter, class R, class Head, class... A>
+    struct filtered_rotate<R (Head, A...), 1, Filter>: mwg::identity<R(A..., typename Filter<Head>::type)> {};
+#pragma%end
+#pragma%x variadic_expand_0toArNm1
+  }
+
+  template<typename S, std::size_t N = 1>
+  struct rotate: detail::filtered_rotate<S, N % arity<S>::value, mwg::identity> {};
+  template<typename S, template<typename A> class Filter>
+  struct filter: detail::filtered_rotate<S, arity<S>::value, Filter> {};
+
+}
 namespace functor_detail {
 
   enum invokation_type {
@@ -175,7 +195,7 @@ namespace functor_detail {
     typename sig::returns<XS>::type> {};
 
   template<typename XS, int Index>
-  struct param: sig::parameter<Index,XS> {};
+  struct param: sig::parameter<Index, XS> {};
 
 
 #ifdef MWGCONF_STD_VARIADIC_TEMPLATES
@@ -186,7 +206,7 @@ namespace functor_detail {
     template<class F> functor_invoker_function_call(F const& func): CRTP(func) {}
     template<class XS>
     typename sig::returns<XS>::type
-    forward(A... a, ...) const {
+    forward(typename stdx::add_const_reference<A>::type... a, ...) const {
       return (CRTP::get())(fwd<A>(a)...);
     }
   };
@@ -195,7 +215,7 @@ namespace functor_detail {
     template<class F> functor_invoker_function_call(F const& func): CRTP(func) {}
     template<class XS, class... B>
     typename sig::returns<XS>::type
-    forward(A... a, B mwg_rfwd... b) const {
+    forward(typename stdx::add_const_referece<A>::type... a, B mwg_rfwd... b) const {
       return (CRTP::get())(fwd<A>(a)..., fwd<B>(b)...);
     }
   };
@@ -368,8 +388,13 @@ namespace functor_detail {
   template<typename F>
   struct _as_functor<F, void, typename stdm::enable_if<functor_traits<F>::value>::type>: stdm::true_type {
     typedef functor_traits<F> traits_type;
-    typedef functor_interface<
+
+  private:
+    typedef typename sig::filter<
       typename traits_type::intrinsic_signature,
+      stdx::add_const_reference>::type interface_signature;
+  public:
+    typedef functor_interface<interface_signature,
       typename functor_invoker_selector<
         traits_type::invokation,
         typename traits_type::intrinsic_signature,
@@ -378,7 +403,11 @@ namespace functor_detail {
   template<typename F, typename S>
   struct _as_functor<F, S, typename stdm::enable_if<functor_traits<F, S>::value>::type>: stdm::true_type {
     typedef functor_traits<F, S> traits_type;
-    typedef functor_interface<S,
+
+  private:
+    typedef typename sig::filter<S, stdx::add_const_reference>::type interface_signature;
+  public:
+    typedef functor_interface<interface_signature,
       typename functor_invoker_selector<
         traits_type::invokation,
         typename traits_type::intrinsic_signature,
@@ -430,6 +459,18 @@ namespace functor_detail {
 }
 #pragma%x begin_check
 
+namespace test_funcsig {
+  void run() {
+    using namespace mwg::funcsig;
+    mwg_check((mwg::stdm::is_same<
+        filter<int (int, char, short&), mwg::stdx::add_const_reference>::type,
+        int (int const&, char const&, short&)>::value));
+    mwg_check((mwg::stdm::is_same<
+        filter<int (int&, char, short), mwg::stdx::add_const_reference>::type,
+        int (int&, char const&, short const&)>::value));
+  }
+}
+
 namespace test_function {
   int test_var = 0;
 
@@ -479,6 +520,7 @@ void test_member() {
 }
 
 int main() {
+  test_funcsig::run();
   test_function::run();
   test_member();
   //make_adapter<S(*)>();
