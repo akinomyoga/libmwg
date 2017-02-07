@@ -241,12 +241,12 @@ namespace functor_detail {
 
   template<typename S, typename CRTP>
   struct functor_invoker_member_object {};
-  template<typename T, typename C, typename CRTP>
-  struct functor_invoker_member_object<T&(C&), CRTP>: CRTP {
+  template<typename R, typename A0, typename CRTP>
+  struct functor_invoker_member_object<R(A0), CRTP>: CRTP {
     template<typename F> functor_invoker_member_object(F const& func): CRTP(func) {}
     template<typename XS>
     typename sig::returns<XS>::type
-    forward(C& obj, ...) const {return obj.*CRTP::get();}
+    forward(A0 a0, ...) const {return CRTP::getobj(a0).*CRTP::get();}
   };
 
   template<typename S, typename CRTP>
@@ -344,40 +344,42 @@ namespace functor_detail {
   template<typename MemberPtr, typename R, typename A>
   struct functor_traits_member_object<MemberPtr, R(A)>: stdm::true_type {
     static const int invokation = invokation_member_object;
-
-  private:
-    typedef typename stdx::add_const_reference<R>::type member_reference;
-    typedef typename stdx::add_const_reference<A>::type object_reference;
-  public:
-    typedef member_reference intrinsic_signature(object_reference);
-
+    typedef R intrinsic_signature(A);
     typedef struct holder {
       MemberPtr m_memptr;
       template<typename T> holder(T const& fun): m_memptr(fun) {}
+
+    public:
       MemberPtr get() const {return m_memptr;}
+
+      template<typename C> static C const& getobj(C const& obj) {return obj;}
+      template<typename C> static C& getobj(C& obj) {return obj;}
+      template<typename C> static C const& getobj(C const* ptr) {return *ptr;}
+      template<typename C> static C& getobj(C* ptr) {return *ptr;}
     } byref_holder, byval_holder;
   };
   template<typename F, typename S = void, typename = void>
   struct functor_traits_member: stdm::false_type {};
-  template<typename T, typename C>
-  struct functor_traits_member<T C::*, void,
-    typename stdm::enable_if<stdm::is_member_object_pointer<T C::*>::value>::type>:
-    functor_traits_member_object<T C::*, typename stdx::add_const_reference<T>::type (C const&)> {};
+  template<
+    typename T, typename C, typename S,
+    int = (!stdm::is_member_object_pointer<T C::*>::value? 0:
+      is_variant_function<typename stdm::add_lvalue_reference<T>::type (C&), S>::value? 1:
+      is_variant_function<typename stdx::add_const_reference<T>::type (C const&), S>::value || stdm::is_void<S>::value? 2:
+      is_variant_function<typename stdm::add_lvalue_reference<T>::type (C*), S>::value? 3:
+      is_variant_function<typename stdx::add_const_reference<T>::type (C const*), S>::value? 4: 0)>
+  struct functor_traits_member_object_switch: stdm::false_type {};
   template<typename T, typename C, typename S>
-  struct functor_traits_member<T C::*, S,
-    typename stdm::enable_if<
-      stdm::is_member_object_pointer<T C::*>::value &&
-      is_variant_function<typename stdm::add_lvalue_reference<T>::type (C&), S>::value
-      >::type>:
-    functor_traits_member_object<T C::*, typename stdm::add_lvalue_reference<T>::type (C&)> {};
+  struct functor_traits_member_object_switch<T, C, S, 1>: functor_traits_member_object<T C::*, typename stdx::add_lvalue_reference<T>::type (C&)> {};
   template<typename T, typename C, typename S>
-  struct functor_traits_member<T C::*, S,
-    typename stdm::enable_if<
-      stdm::is_member_object_pointer<T C::*>::value &&
-      !is_variant_function<typename stdm::add_lvalue_reference<T>::type (C&), S>::value &&
-      is_variant_function<typename stdx::add_const_reference<T>::type (C const&), S>::value
-      >::type>:
-    functor_traits_member_object<T C::*, typename stdx::add_const_reference<T>::type (C const&)> {};
+  struct functor_traits_member_object_switch<T, C, S, 2>: functor_traits_member_object<T C::*, typename stdx::add_const_reference<T>::type (C const&)> {};
+  template<typename T, typename C, typename S>
+  struct functor_traits_member_object_switch<T, C, S, 3>: functor_traits_member_object<T C::*, typename stdx::add_lvalue_reference<T>::type (C*)> {};
+  template<typename T, typename C, typename S>
+  struct functor_traits_member_object_switch<T, C, S, 4>: functor_traits_member_object<T C::*, typename stdx::add_const_reference<T>::type (C const*)> {};
+  template<typename T, typename C, typename S>
+  struct functor_traits_member<T C::*, S, typename stdm::enable_if<functor_traits_member_object_switch<T, C, S>::value>::type>:
+    functor_traits_member_object_switch<T, C, S> {};
+
   // @@ToDo is_member_function_pointer
   template<typename F, typename S>
   struct functor_traits_rule<traits_priority_member, F, S>:
@@ -421,6 +423,16 @@ namespace functor_detail {
   struct as_functor: _as_functor<F, S> {};
 
   /*?lwiki
+   *
+   * 課題:
+   *
+   * 実は既に関数型だったり関数オブジェクトだったりする物については、
+   * adapter は自分自身の型への参照にすれば良いのでは。
+   * そちらの方が多重定義を失う事もないし良い。
+   *
+   * と思ったがその為には現在の様に as_functor の内部で adapter を定義するという方法は使えない。
+   * 自分で特別な adapter を生成する場合には functor_traits に `intrinsic_adapter` という名前で、
+   * 型メンバーを提供する様にすれば良い。
    *
    * 課題:
    *
@@ -506,24 +518,36 @@ namespace test_function {
   }
 }
 
-struct Rect {int x, y, w, h;};
-void test_member() {
-  Rect rect1;
-  int Rect::*hoge = &Rect::x;
-  mwg_check((mwg::stdm::is_member_object_pointer<int Rect::*>::value &&
-      mwg::functor_detail::is_variant_function<mwg::stdm::add_lvalue_reference<int>::type (Rect&), int& (Rect&)>::value));
-  mwg::as_functor<int Rect::*, int& (Rect&)>::adapter f1(&Rect::x);
-  f1(rect1) = 12;
-  mwg::as_functor<int Rect::*, int (Rect const&)>::adapter f2(&Rect::x);
-  mwg_check((rect1.x == 12));
-  mwg_check((f2(rect1) == 12));
+namespace test_member {
+  struct Rect {int x, y, w, h;};
+  void run() {
+    mwg_check((mwg::stdm::is_member_object_pointer<int Rect::*>::value &&
+        mwg::functor_detail::is_variant_function<mwg::stdm::add_lvalue_reference<int>::type (Rect&), int& (Rect&)>::value));
+
+    mwg::as_functor<int Rect::*, int& (Rect&)>::adapter f1(&Rect::x);
+    mwg::as_functor<int Rect::*, int (Rect const&)>::adapter f2(&Rect::x);
+    mwg::as_functor<int Rect::*, int& (Rect*)>::adapter f3(&Rect::x);
+    mwg::as_functor<int Rect::*, int (Rect const*)>::adapter f4(&Rect::x);
+
+    Rect rect1;
+    f1(rect1) = 12;
+    mwg_check((rect1.x == 12));
+    mwg_check((f2(rect1) == 12));
+
+    f3(&rect1) = 321;
+    mwg_check((rect1.x == 321));
+    mwg_check((f4(&rect1) == 321));
+
+#ifdef MWGCONF_STD_AUTO_TYPE
+    //auto hoge = mwg::fun<void(int)>(&Rect::x);
+#endif
+  }
 }
 
 int main() {
   test_funcsig::run();
   test_function::run();
-  test_member();
-  //make_adapter<S(*)>();
+  test_member::run();
 
   return 0;
 }
