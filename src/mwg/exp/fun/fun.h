@@ -1,10 +1,10 @@
 // -*- mode: c++; coding: utf-8 -*-
-#ifndef MWG_FUNCTOR2_H
-#define MWG_FUNCTOR2_H
+#ifndef MWG_FUN_H
+#define MWG_FUN_H
 #pragma%include "../../impl/VariadicMacros.pp"
 #pragma%[ArN=10]
 #pragma%x begin_check
-#include <mwg/exp/functor2/impl1.h>
+#include <mwg/exp/fun/fun.h>
 #include <mwg/except.h>
 #pragma%x end_check
 #include <mwg/std/type_traits>

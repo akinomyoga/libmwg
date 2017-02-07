@@ -51,7 +51,7 @@ Makefile: Makefile.pp
 #%x AddCxxHeader.r|%file%|mwg/funcsig.h|
 #%x AddCxxHeader.r|%file%|mwg/functor.h|
 #%x AddCxxHeader.r|%file%|mwg/functor.proto.h|
-#%x AddCxxHeader.r|%file%|mwg/exp/functor2/impl1.h|
+#%x AddCxxHeader.r|%file%|mwg/exp/fun/fun.h|
 
 #%x AddCxxHeader.r|%file%|mwg/xprintf.h|
 #%x AddCxxSource.r|%file%|mwg/xprintf.cpp|
