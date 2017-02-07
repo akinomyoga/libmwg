@@ -15,7 +15,7 @@ namespace mwg {
 namespace functor_detail {
 
   enum invokation_type {
-    invokation_function,
+    invokation_function_call,
     invokation_member_object,
     invokation_member_function
   };
@@ -35,7 +35,7 @@ namespace functor_detail {
   fwdp(typename stdm::remove_reference<typename sig::parameter<Index, S>::type>::type& value){
     return static_cast<typename sig::parameter<Index, S>::type&&>(value);
   }
-  template<typename T, int Index>
+  template<typename S, int Index>
   typename sig::parameter<Index, S>::type&&
   fwdp(typename stdm::remove_reference<typename sig::parameter<Index, S>::type>::type&& value){
     return static_cast<typename sig::parameter<Index, S>::type&&>(value);
@@ -160,6 +160,15 @@ namespace functor_detail {
 #pragma%end.i
 #endif
 
+  //
+  //
+  // struct functor_invoker<Invokation, S, CRTP>;
+  //
+  //
+
+  template<int Invokation, typename S, typename CRTP>
+  struct functor_invoker_selector {};
+
   template<typename S, typename XS, int Arity>
   struct enable_forward: stdm::enable_if<
     (Arity == (is_vararg_function<S>::value? sig::arity<XS>::value: sig::arity<S>::value)),
@@ -168,12 +177,13 @@ namespace functor_detail {
   template<typename XS, int Index>
   struct param: sig::parameter<Index,XS> {};
 
+
 #ifdef MWGCONF_STD_VARIADIC_TEMPLATES
   template<typename S, typename CRTP>
-  struct functor_invoker_call {};
+  struct functor_invoker_function_call {};
   template<class CRTP, class R, class... A>
-  struct functor_invoker_call<R (A...), CRTP>: CRTP {
-    template<class F> functor_invoker_call(F const& func): CRTP(func) {}
+  struct functor_invoker_function_call<R (A...), CRTP>: CRTP {
+    template<class F> functor_invoker_function_call(F const& func): CRTP(func) {}
     template<class XS>
     typename sig::returns<XS>::type
     forward(A... a, ...) const {
@@ -181,8 +191,8 @@ namespace functor_detail {
     }
   };
   template<class CRTP, class R, class... A>
-  struct functor_invoker_call<R (A..., ...), CRTP>: CRTP {
-    template<class F> functor_invoker_call(F const& func): CRTP(func) {}
+  struct functor_invoker_function_call<R (A..., ...), CRTP>: CRTP {
+    template<class F> functor_invoker_function_call(F const& func): CRTP(func) {}
     template<class XS, class... B>
     typename sig::returns<XS>::type
     forward(A... a, B mwg_rfwd... b) const {
@@ -191,8 +201,8 @@ namespace functor_detail {
   };
 #else
   template<class S, class CRTP>
-  struct functor_invoker_call: CRTP {
-    template<class F> functor_invoker_call(F const& func): CRTP(func) {}
+  struct functor_invoker_function_call: CRTP {
+    template<class F> functor_invoker_function_call(F const& func): CRTP(func) {}
 #pragma%m 1
     template<class XS>
     typename enable_forward<S, XS, __arity__>::type
@@ -204,39 +214,268 @@ namespace functor_detail {
   };
 #endif
 
+  template<typename S, typename CRTP>
+  struct functor_invoker_selector<invokation_function_call, S, CRTP>:
+    mwg::identity<functor_invoker_function_call<S, CRTP> > {};
+
+
+  template<typename S, typename CRTP>
+  struct functor_invoker_member_object {};
+  template<typename T, typename C, typename CRTP>
+  struct functor_invoker_member_object<T&(C&), CRTP>: CRTP {
+    template<typename F> functor_invoker_member_object(F const& func): CRTP(func) {}
+    template<typename XS>
+    typename sig::returns<XS>::type
+    forward(C& obj, ...) const {return obj.*CRTP::get();}
+  };
+
+  template<typename S, typename CRTP>
+  struct functor_invoker_selector<invokation_member_object, S, CRTP>:
+    mwg::identity<functor_invoker_member_object<S, CRTP> > {};
+
+
+  /*?lwiki
+   *
+   * 次に as_functor の実装について考える。
+   * 取り敢えず関数の呼び出しは既にできるという事が分かった。
+   * variant_functor についても実は呼び出しができるという事がわかった。
+   * 今後の実装で何が必要になるだろうか。
+   *
+   * - 一つがその関数オブジェクトの自然な関数型である。
+   *
+   *   実際に関数呼出しを実行することができるかどうかは、
+   *   この関数型を経由することによって判定できる。
+   *
+   *   但し、多重定義のメンバ関数などの場合には、
+   *   この自然な関数型という物を取得できないが、
+   *   要求する関数型を指定されればそれに適合するかどうか判定できるという種類の物もある。
+   *   そう言った物に関しては別に指定を行う必要がある。
+   *
+   * - また functor に入れる為・adapter を生成する為には、
+   *
+   *   byref_holder と byval_holder を提供する必要がある。
+   *   これは mwg/functor1 の ref_tr と ins_tr に対応する。
+   *   但し、そんなに複雑な機能が必要になるかどうかは疑問である。
+   *   結局の所、operator()() さえ提供できれば何も問題ない気がする。
+   *
+   *   `typedef functor_interface<Sfwd, functor_invoker<Ffwd, holder> adapter;` を定義するのは、
+   *   外部で自動的にやった方が良い。`Sfwd` 及び `Ffwd` の決定は関数オブジェクトの種類とは独立である。
+   *   一方で `functor_invoker` の種類は関数オブジェクトに依存する。
+   *   どの種類の関数呼び出しを行うかについては整数か何かで指定できる様にしておくと便利である。
+   *
+   * これらをまとめた型として functor_traits を定義すれば良い。
+   */
+
+  template<typename F, typename S = void>
+  struct functor_traits;
+
+  template<int Priority, typename F, typename S = void>
+  struct functor_traits_rule: stdm::false_type {};
+
+  template<int Pr, typename F, typename S>
+  struct functor_traits_check: stdm::conditional<
+    functor_traits_rule<Pr, F, S>::value,
+    functor_traits_rule<Pr, F, S>,
+    functor_traits_check<Pr - 1, F, S> >::type {};
+  template<typename F, typename S>
+  struct functor_traits_check<0, F, S>:
+    functor_traits_rule<0, F, S> {};
+
+
+  template<typename F>
+  struct functor_traits_function_base: stdm::true_type {
+    static const int invokation = invokation_function_call;
+    typedef F intrinsic_signature;
+    typedef struct holder {
+      F* m_fun;
+      template<typename T> holder(T const& fun): m_fun(fun) {}
+      F* get() const {return m_fun;}
+    } byref_holder, byval_holder;
+  };
+  template<typename F, typename S = void, typename = void>
+  struct functor_traits_function: stdm::false_type {};
+  template<typename F>
+  struct functor_traits_function<F , void, typename stdm::enable_if<stdm::is_function<F>::value>::type>:
+    functor_traits_function_base<F> {};
+  template<typename F>
+  struct functor_traits_function<F*, void, typename stdm::enable_if<stdm::is_function<F>::value>::type>:
+    functor_traits_function_base<F> {};
+  template<typename F, typename S>
+  struct functor_traits_function<F , S, typename stdm::enable_if<is_variant_function<F, S>::value>::type>:
+    functor_traits_function_base<F> {};
+  template<typename F, typename S>
+  struct functor_traits_function<F*, S, typename stdm::enable_if<is_variant_function<F, S>::value>::type>:
+    functor_traits_function_base<F> {};
+
+  template<typename F, typename S>
+  struct functor_traits_rule<5, F, S>: functor_traits_function<F, S> {};
+
+  template<typename MemberPtr, typename S>
+  struct functor_traits_member_object: stdm::false_type {};
+  template<typename MemberPtr, typename R, typename A>
+  struct functor_traits_member_object<MemberPtr, R(A)>: stdm::true_type {
+    static const int invokation = invokation_member_object;
+
+  private:
+    typedef typename stdx::add_const_reference<R>::type member_reference;
+    typedef typename stdx::add_const_reference<A>::type object_reference;
+  public:
+    typedef member_reference intrinsic_signature(object_reference);
+
+    typedef struct holder {
+      MemberPtr m_memptr;
+      template<typename T> holder(T const& fun): m_memptr(fun) {}
+      MemberPtr get() const {return m_memptr;}
+    } byref_holder, byval_holder;
+  };
+  template<typename F, typename S = void, typename = void>
+  struct functor_traits_member: stdm::false_type {};
+  template<typename T, typename C>
+  struct functor_traits_member<T C::*, void,
+    typename stdm::enable_if<stdm::is_member_object_pointer<T C::*>::value>::type>:
+    functor_traits_member_object<T C::*, typename stdx::add_const_reference<T>::type (C const&)> {};
+  template<typename T, typename C, typename S>
+  struct functor_traits_member<T C::*, S,
+    typename stdm::enable_if<
+      stdm::is_member_object_pointer<T C::*>::value &&
+      is_variant_function<typename stdm::add_lvalue_reference<T>::type (C&), S>::value
+      >::type>:
+    functor_traits_member_object<T C::*, typename stdm::add_lvalue_reference<T>::type (C&)> {};
+  template<typename T, typename C, typename S>
+  struct functor_traits_member<T C::*, S,
+    typename stdm::enable_if<
+      stdm::is_member_object_pointer<T C::*>::value &&
+      !is_variant_function<typename stdm::add_lvalue_reference<T>::type (C&), S>::value &&
+      is_variant_function<typename stdx::add_const_reference<T>::type (C const&), S>::value
+      >::type>:
+    functor_traits_member_object<T C::*, typename stdx::add_const_reference<T>::type (C const&)> {};
+  // @@ToDo is_member_function_pointer
+  template<typename F, typename S>
+  struct functor_traits_rule<4, F, S>: functor_traits_member<F, S> {};
+
+  template<typename F, typename S>
+  struct functor_traits: functor_traits_check<5, F, S> {};
+
   template<typename F, typename S, typename = void>
   struct _as_functor: stdm::false_type {};
-  template<typename F, typename S>
-  struct _as_functor<F, S, typename stdm::enable_if<stdm::is_function<F>::value && stdm::is_same<F, S>::value>::type>: stdm::true_type {
-    struct base1 {
-      F* m_fun;
-      template<typename T> base1(T const& fun): m_fun(fun) {}
-      F* get() const {return m_fun;}
-    };
-    typedef functor_interface<S, functor_invoker_call<S, base1> > adapter;
+  template<typename F>
+  struct _as_functor<F, void, typename stdm::enable_if<functor_traits<F>::value>::type>: stdm::true_type {
+    typedef functor_traits<F> traits_type;
+    typedef functor_interface<
+      typename traits_type::intrinsic_signature,
+      typename functor_invoker_selector<
+        traits_type::invokation,
+        typename traits_type::intrinsic_signature,
+        typename traits_type::byref_holder>::type> adapter;
   };
+  template<typename F, typename S>
+  struct _as_functor<F, S, typename stdm::enable_if<functor_traits<F, S>::value>::type>: stdm::true_type {
+    typedef functor_traits<F, S> traits_type;
+    typedef functor_interface<S,
+      typename functor_invoker_selector<
+        traits_type::invokation,
+        typename traits_type::intrinsic_signature,
+        typename traits_type::byref_holder>::type> adapter;
+  };
+
 
   template<typename F, typename S = void>
   struct as_functor;
   template<typename F, typename S>
   struct as_functor: _as_functor<F, S> {};
 
-#undef mwg_rfwd mwg_forward_rvalue
+  /*?lwiki
+   *
+   * 課題:
+   *
+   * メンバポインタに関連して。受け取るオブジェクトに応じて戻り値の型が変わる。
+   * つまり、`T C::*` は `T& (C&)` と `T& (C&)` の多重定義を持つ関数オブジェクトと考えられる。
+   * より一般化して多重定義を持つ関数オブジェクトをどの様に実現するのかという事である。
+   *
+   * 例えば、多重定義を持つ関数オブジェクトの場合には `intrinsic_signature` として関数型ではなくて、
+   * `std::pair<S1, std::pair<S2, S3> >` の様な物を指定することにするのはどうだろう。
+   * そして `functor_interaface` は `std::pair` に対する特殊化を用意して、
+   * 何とか `operator` を複数用意する事にするのである。
+   *
+   * 取り敢えず現状では `T& (C&)` を使用する事にする。
+   *
+   * 課題:
+   *
+   * is_functor/be_functor に対応する物は何か。
+   * mwg/functor では is_functor は厳密に一致するシグニチャを持つ物であった。
+   * 一方で be_functor は (引数の個数が異なる物も含めて) 適合するシグニチャを持つ物であった。
+   * is_functor の条件は厳しすぎる一方で be_functor の条件は緩すぎる。
+   * 丁度中間になる様なものが存在しても良いのではないだろうか。
+   * (例えば const, volatile, const& を外した上での比較を行う等)
+   *
+   * 課題:
+   *
+   * 可変長引数の関数オブジェクトの実現方法は謎である。
+   * というのも、任意の引数を転送する為にはテンプレートを使わなければならないが、
+   * テンプレートは仮想関数にする事ができないからである。
+   * ただ、関数オブジェクトにしない範囲では対応可能である。
+   *
+   */
+
+#undef mwg_rfwd
 }
   using functor_detail::as_functor;
 }
 #pragma%x begin_check
 
-void func1(int, int) {
-  std::printf("func1 called\n");
+namespace test_function {
+  int test_var = 0;
+
+  void func1(int a, int b) {
+    test_var = 1000 + a + b;
+    //std::printf("func1(%d, %d) called\n", a, b);
+  }
+  void func2(int a) {
+    test_var = 2000 + a;
+    //std::printf("func2(%d) called\n", a);
+  }
+  void func3(int a, ...) {
+    va_list va;
+    va_start(va, a);
+    int b = va_arg(va, int);
+    va_end(va);
+
+    test_var = 3000 + a + b;
+    //std::printf("func3(a=%d, ...=%d) called\n", a, b);
+  }
+  void run() {
+    mwg::as_functor<void(int, int), void (int, int)>::adapter f1(func1);
+    f1(1, 2);
+    mwg_check(test_var == 1003);
+
+    mwg::as_functor<void(*)(int), void (int, int)>::adapter f2(func2);
+    f2(1, 2);
+    mwg_check(test_var == 2001);
+
+    mwg::as_functor<void(int, ...), void (int, int)>::adapter f3(func3);
+    f3(5, 6);
+    mwg_check(test_var == 3011);
+  }
+}
+
+struct Rect {int x, y, w, h;};
+void test_member() {
+  Rect rect1;
+  int Rect::*hoge = &Rect::x;
+  mwg_check((mwg::stdm::is_member_object_pointer<int Rect::*>::value &&
+      mwg::functor_detail::is_variant_function<mwg::stdm::add_lvalue_reference<int>::type (Rect&), int& (Rect&)>::value));
+  mwg::as_functor<int Rect::*, int& (Rect&)>::adapter f1(&Rect::x);
+  f1(rect1) = 12;
+  mwg::as_functor<int Rect::*, int (Rect const&)>::adapter f2(&Rect::x);
+  mwg_check((rect1.x == 12));
+  mwg_check((f2(rect1) == 12));
 }
 
 int main() {
-  mwg::as_functor<void(int, int), void (int, int)>::adapter f1(func1);
+  test_function::run();
+  test_member();
+  //make_adapter<S(*)>();
 
-  f1(1, 2);
-
-  mwg_printd();
   return 0;
 }
 

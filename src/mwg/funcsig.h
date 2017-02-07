@@ -30,7 +30,7 @@ namespace funcsig {
     struct _arity_front_manipulation {};
     template<typename R, typename A1, typename... A>
     struct _arity_front_manipulation<R (A1, A...)> {
-      typedef R shifted(A...);
+      typedef R unshifted(A...);
       typedef R rotated(A..., A1);
     };
 
@@ -42,10 +42,10 @@ namespace funcsig {
     struct arity_rotate<S, 0u>: mwg::identity<S> {};
 
     template<typename S>
-    struct arity_shift: mwg::identity<typename _arity_front_manipulation<S>::shifted> {};
+    struct arity_unshift: mwg::identity<typename _arity_front_manipulation<S>::unshifted> {};
   }
   template<typename S>
-  struct arity_pop: detail::arity_shift<
+  struct arity_pop: detail::arity_unshift<
     typename detail::arity_rotate<S, arity<S>::value - 1>::type> {};
 #else
   template<typename S> struct arity_pop {};

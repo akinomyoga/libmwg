@@ -108,8 +108,8 @@ namespace functor_detail{
    *  `T` として受け取った引数を `F` の引数に変換でき (引数の反変性)、
    *  かつ、`F` の戻り値を `T` の戻り値に変換できる (戻り値の共変性) 必要があります。
    */
-  template<typename FSgn,typename TSgn>
-  struct is_variant_function;
+  template<typename FSgn, typename TSgn, typename = void>
+  struct is_variant_function: stdm::false_type {};
 
   namespace detail{
     template<
@@ -130,9 +130,10 @@ namespace functor_detail{
     struct has_contravariant_parameters<FromSignature,ToSignature,K,void,void,true>:stdm::true_type{};
   }
 
-  template<typename FSgn,typename TSgn>
-  struct is_variant_function:stdm::integral_constant<bool,
-    (is_covariant<typename sig::returns<FSgn>::type,typename sig::returns<TSgn>::type>::value&&
+  template<typename FSgn, typename TSgn>
+  struct is_variant_function<FSgn, TSgn, typename stdm::enable_if<stdm::is_function<FSgn>::value && stdm::is_function<TSgn>::value>::type>:
+    stdm::integral_constant<bool,
+    (is_covariant<typename sig::returns<FSgn>::type, typename sig::returns<TSgn>::type>::value &&
       detail::has_contravariant_parameters<FSgn,TSgn>::value)>{};
 
   //---------------------------------------------------------------------------
