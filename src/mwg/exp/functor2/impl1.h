@@ -360,22 +360,31 @@ namespace functor_detail {
   };
   template<typename F, typename S = void, typename = void>
   struct functor_traits_member: stdm::false_type {};
+
   template<
     typename T, typename C, typename S,
-    int = (!stdm::is_member_object_pointer<T C::*>::value? 0:
-      is_variant_function<typename stdm::add_lvalue_reference<T>::type (C&), S>::value? 1:
-      is_variant_function<typename stdx::add_const_reference<T>::type (C const&), S>::value || stdm::is_void<S>::value? 2:
-      is_variant_function<typename stdm::add_lvalue_reference<T>::type (C*), S>::value? 3:
-      is_variant_function<typename stdx::add_const_reference<T>::type (C const*), S>::value? 4: 0)>
-  struct functor_traits_member_object_switch: stdm::false_type {};
-  template<typename T, typename C, typename S>
-  struct functor_traits_member_object_switch<T, C, S, 1>: functor_traits_member_object<T C::*, typename stdx::add_lvalue_reference<T>::type (C&)> {};
-  template<typename T, typename C, typename S>
-  struct functor_traits_member_object_switch<T, C, S, 2>: functor_traits_member_object<T C::*, typename stdx::add_const_reference<T>::type (C const&)> {};
-  template<typename T, typename C, typename S>
-  struct functor_traits_member_object_switch<T, C, S, 3>: functor_traits_member_object<T C::*, typename stdx::add_lvalue_reference<T>::type (C*)> {};
-  template<typename T, typename C, typename S>
-  struct functor_traits_member_object_switch<T, C, S, 4>: functor_traits_member_object<T C::*, typename stdx::add_const_reference<T>::type (C const*)> {};
+
+    const int ACCEPTS_REF = 0x01,
+    const int ACCEPTS_PTR = 0x02,
+    const int IS_CONST    = 0x10,
+
+    typename mem_lref_t = typename stdm::add_lvalue_reference<T>::type,
+    typename mem_cref_t = typename stdx::add_const_reference<T>::type,
+
+    int flags = (!stdm::is_member_object_pointer<T C::*>::value? 0:
+      stdm::is_void<S>::value                             ? ACCEPTS_REF | IS_CONST:
+      is_variant_function<mem_lref_t (C      &), S>::value? ACCEPTS_REF           :
+      is_variant_function<mem_cref_t (C const&), S>::value? ACCEPTS_REF | IS_CONST:
+      is_variant_function<mem_lref_t (C      *), S>::value? ACCEPTS_PTR           :
+      is_variant_function<mem_cref_t (C const*), S>::value? ACCEPTS_PTR | IS_CONST: 0),
+
+    typename return_t        = typename stdm::conditional<flags & IS_CONST, mem_cref_t, mem_lref_t>::type,
+    typename qualified_obj_t = typename stdm::conditional<flags & IS_CONST, C const, C>::type,
+    typename param_t         = typename stdm::conditional<flags & ACCEPTS_PTR, qualified_obj_t*, qualified_obj_t&>::type,
+
+    typename base = functor_traits_member_object<
+      T C::*, typename stdm::conditional<flags, return_t (param_t), void>::type> >
+  struct functor_traits_member_object_switch: base {};
   template<typename T, typename C, typename S>
   struct functor_traits_member<T C::*, S, typename stdm::enable_if<functor_traits_member_object_switch<T, C, S>::value>::type>:
     functor_traits_member_object_switch<T, C, S> {};
