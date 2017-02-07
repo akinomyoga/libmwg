@@ -269,6 +269,12 @@ namespace functor_detail {
   template<typename F, typename S = void>
   struct functor_traits;
 
+  enum traits_priority {
+    traits_priority_function = 5,
+    traits_priority_member   = 4,
+    traits_priority_max = 5,
+  };
+
   template<int Priority, typename F, typename S = void>
   struct functor_traits_rule: stdm::false_type {};
 
@@ -281,6 +287,8 @@ namespace functor_detail {
   struct functor_traits_check<0, F, S>:
     functor_traits_rule<0, F, S> {};
 
+  template<typename F, typename S>
+  struct functor_traits: functor_traits_check<traits_priority_max, F, S> {};
 
   template<typename F>
   struct functor_traits_function_base: stdm::true_type {
@@ -308,7 +316,8 @@ namespace functor_detail {
     functor_traits_function_base<F> {};
 
   template<typename F, typename S>
-  struct functor_traits_rule<5, F, S>: functor_traits_function<F, S> {};
+  struct functor_traits_rule<traits_priority_function, F, S>:
+    functor_traits_function<F, S> {};
 
   template<typename MemberPtr, typename S>
   struct functor_traits_member_object: stdm::false_type {};
@@ -351,10 +360,8 @@ namespace functor_detail {
     functor_traits_member_object<T C::*, typename stdx::add_const_reference<T>::type (C const&)> {};
   // @@ToDo is_member_function_pointer
   template<typename F, typename S>
-  struct functor_traits_rule<4, F, S>: functor_traits_member<F, S> {};
-
-  template<typename F, typename S>
-  struct functor_traits: functor_traits_check<5, F, S> {};
+  struct functor_traits_rule<traits_priority_member, F, S>:
+    functor_traits_member<F, S> {};
 
   template<typename F, typename S, typename = void>
   struct _as_functor: stdm::false_type {};
