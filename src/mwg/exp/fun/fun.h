@@ -9,35 +9,21 @@
 #pragma%x end_check
 #include <mwg/std/type_traits>
 #include <mwg/std/utility>
-#include <mwg/funcsig.h>
+#include <mwg/exp/fun/funsig.h>
 #pragma%include "../../bits/functor.type_traits.pp"
-namespace mwg {
-namespace funcsig {
+namespace mwg{
 
-  namespace detail {
-    template<typename S, std::size_t N, template<typename A> class Filter>
-    struct filtered_rotate: filtered_rotate<typename filtered_rotate<S, 1, Filter>::type, N - 1, Filter> {};
-    template<template<typename A> class Filter, typename S>
-    struct filtered_rotate<S, 0, Filter>: mwg::identity<S> {};
-#pragma%m 1
-    template<template<class A> class Filter, class R, class Head, class... A>
-    struct filtered_rotate<R (Head, A...), 1, Filter>: mwg::identity<R(A..., typename Filter<Head>::type)> {};
-#pragma%end
-#pragma%x variadic_expand_0toArNm1
-  }
+// transient work around to work with functor.type_traits.pp
+namespace funcsig {using namespace funsig;}
+namespace functor_detail {namespace sig = mwg::funcsig;}
+// namespace functor_detail {namespace sig = mwg::funsig;}
 
-  template<typename S, std::size_t N = 1>
-  struct rotate: detail::filtered_rotate<S, N % arity<S>::value, mwg::identity> {};
-  template<typename S, template<typename A> class Filter>
-  struct filter: detail::filtered_rotate<S, arity<S>::value, Filter> {};
-
-}
 namespace functor_detail {
 
   enum invokation_type {
     invokation_function_call,
     invokation_member_object,
-    invokation_member_function
+    invokation_member_function,
   };
 
 #if defined(MWGCONF_STD_RVALUE_REFERENCES)
@@ -79,8 +65,6 @@ namespace functor_detail {
   fwdp(typename result_of_fwdp<S, Index>::type value) {return value;}
 #endif
 #define mwg_rfwd mwg_forward_rvalue
-
-  namespace sig = mwg::funcsig;
 
 /*?lwiki
  * 最終的に呼び出す関数のシグニチャは決まっている (既知である)。
