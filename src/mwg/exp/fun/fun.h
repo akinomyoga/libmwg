@@ -247,6 +247,12 @@ namespace functor_detail {
  *
  */
 
+  //
+  //
+  // struct functor_interface<S, CRTP>;
+  //
+  //
+
   template<typename S, typename CRTP>
   struct functor_interface {};
 #pragma%m 1
@@ -439,7 +445,7 @@ namespace functor_detail {
 
   /*?lwiki
    *
-   * 次に as_functor の実装について考える。
+   * 次に as_fun の実装について考える。
    * 取り敢えず関数の呼び出しは既にできるという事が分かった。
    * variant_functor についても実は呼び出しができるという事がわかった。
    * 今後の実装で何が必要になるだろうか。
@@ -468,6 +474,12 @@ namespace functor_detail {
    *
    * これらをまとめた型として functor_traits を定義すれば良い。
    */
+
+  //
+  //
+  // struct functor_traits<F, S = void>;
+  //
+  //
 
   template<typename F, typename S = void>
   struct functor_traits;
@@ -699,10 +711,16 @@ namespace functor_detail {
   struct functor_traits_rule<traits_priority_member, F, S>:
     functor_traits_member<F, S> {};
 
+  //
+  //
+  // struct as_fun<F, S = void>;
+  //
+  //
+
   template<typename F, typename S, typename = void>
-  struct _as_functor: stdm::false_type {};
+  struct as_fun: stdm::false_type {};
   template<typename F>
-  struct _as_functor<F, void, typename stdm::enable_if<functor_traits<F>::value>::type>: stdm::true_type {
+  struct as_fun<F, void, typename stdm::enable_if<functor_traits<F>::value>::type>: stdm::true_type {
     typedef functor_traits<F> traits_type;
 
   private:
@@ -717,7 +735,7 @@ namespace functor_detail {
         typename traits_type::byref_holder>::type> adapter;
   };
   template<typename F, typename S>
-  struct _as_functor<F, S, typename stdm::enable_if<functor_traits<F, S>::value>::type>: stdm::true_type {
+  struct as_fun<F, S, typename stdm::enable_if<functor_traits<F, S>::value>::type>: stdm::true_type {
     typedef functor_traits<F, S> traits_type;
 
   private:
@@ -730,12 +748,6 @@ namespace functor_detail {
         typename traits_type::byref_holder>::type> adapter;
   };
 
-
-  template<typename F, typename S = void>
-  struct as_functor;
-  template<typename F, typename S>
-  struct as_functor: _as_functor<F, S> {};
-
   /*?lwiki
    *
    * 課題:
@@ -744,7 +756,7 @@ namespace functor_detail {
    * adapter は自分自身の型への参照にすれば良いのでは。
    * そちらの方が多重定義を失う事もないし良い。
    *
-   * と思ったがその為には現在の様に as_functor の内部で adapter を定義するという方法は使えない。
+   * と思ったがその為には現在の様に as_fun の内部で adapter を定義するという方法は使えない。
    * 自分で特別な adapter を生成する場合には functor_traits に `intrinsic_adapter` という名前で、
    * 型メンバーを提供する様にすれば良い。
    *
@@ -781,7 +793,12 @@ namespace functor_detail {
 
 #undef mwg_rfwd
 }
-  using functor_detail::as_functor;
+
+  template<typename F, typename S = void>
+  struct as_fun;
+
+  template<typename F, typename S>
+  struct as_fun: functor_detail::as_fun<F, S> {};
 }
 #pragma%x begin_check
 
@@ -818,15 +835,15 @@ namespace test_function {
     //std::printf("func3(a=%d, ...=%d) called\n", a, b);
   }
   void run() {
-    mwg::as_functor<void(int, int), void (int, int)>::adapter f1(func1);
+    mwg::as_fun<void(int, int), void (int, int)>::adapter f1(func1);
     f1(1, 2);
     mwg_check(test_var == 1003);
 
-    mwg::as_functor<void(*)(int), void (int, int)>::adapter f2(func2);
+    mwg::as_fun<void(*)(int), void (int, int)>::adapter f2(func2);
     f2(1, 2);
     mwg_check(test_var == 2001);
 
-    mwg::as_functor<void(int, ...), void (int, int)>::adapter f3(func3);
+    mwg::as_fun<void(int, ...), void (int, int)>::adapter f3(func3);
     f3(5, 6);
     mwg_check(test_var == 3011);
   }
@@ -852,10 +869,10 @@ namespace test_member {
     mwg_check((mwg::stdm::is_member_object_pointer<int Rect::*>::value &&
         mwg::functor_detail::type_traits::is_variant_function<mwg::stdm::add_lvalue_reference<int>::type (Rect&), int& (Rect&)>::value));
 
-    mwg::as_functor<int Rect::*, int& (Rect&)>::adapter f1(&Rect::x);
-    mwg::as_functor<int Rect::*, int (Rect const&)>::adapter f2(&Rect::x);
-    mwg::as_functor<int Rect::*, int& (Rect*)>::adapter f3(&Rect::x);
-    mwg::as_functor<int Rect::*, int (Rect const*)>::adapter f4(&Rect::x);
+    mwg::as_fun<int Rect::*, int& (Rect&)>::adapter f1(&Rect::x);
+    mwg::as_fun<int Rect::*, int (Rect const&)>::adapter f2(&Rect::x);
+    mwg::as_fun<int Rect::*, int& (Rect*)>::adapter f3(&Rect::x);
+    mwg::as_fun<int Rect::*, int (Rect const*)>::adapter f4(&Rect::x);
 
     Rect rect1;
     rect1.x = 1;
@@ -874,15 +891,15 @@ namespace test_member {
     mwg_check((mwg::stdm::is_same<mwg::functor_detail::is_memfun_pointer<int (Rect::*)() const>::object_type, Rect const>::value));
     mwg_check((mwg::stdm::is_same<mwg::funsig::shift<int(), Rect const&>::type, int (Rect const&)>::value));
     mwg_check((mwg::functor_detail::type_traits::is_variant_function<int (Rect const&), int (Rect const&)>::value));
-    mwg::as_functor<int (Rect::*)() const, int (Rect const&)>::adapter g1(&Rect::right);
+    mwg::as_fun<int (Rect::*)() const, int (Rect const&)>::adapter g1(&Rect::right);
     mwg_check((g1(rect1) == rect1.x + rect1.w));
-    mwg::as_functor<int (Rect::*)() const, int (Rect const*)>::adapter g2(&Rect::right);
+    mwg::as_fun<int (Rect::*)() const, int (Rect const*)>::adapter g2(&Rect::right);
     mwg_check((g2(&rect1) == rect1.x + rect1.w));
 
     mwg_check((mwg::stdm::is_same<mwg::functor_detail::is_memfun_pointer<void (Rect::*)(int, int)>::member_type, void(int, int)>::value));
     mwg_check((mwg::stdm::is_same<mwg::functor_detail::is_memfun_pointer<void (Rect::*)(int, int)>::object_type, Rect>::value));
     mwg_check((mwg::stdm::is_same<mwg::funsig::shift<void (int, int), Rect const&>::type, void (Rect const&, int, int)>::value));
-    mwg::as_functor<void (Rect::*)(int, int), void (Rect&, int, int)>::adapter g3(&Rect::translate);
+    mwg::as_fun<void (Rect::*)(int, int), void (Rect&, int const&, int const&)>::adapter g3(&Rect::translate);
     rect1.x = 123;
     rect1.y = 321;
     g3(rect1, 4, 1);
