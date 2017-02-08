@@ -138,7 +138,7 @@ T clamp(T const& value, mwg::range<T> r) {
 struct counter {
   int count;
   counter(): count(0) {}
-  void operator()(const char* const& p) {count++;}
+  void operator()(const char* const& p) {count++; (void) p;}
 };
 
 struct counter_until_w {
