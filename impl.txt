@@ -24,6 +24,11 @@
 
 * mwg/fun: というかメンバオブジェクトでも volatile は考えなければならない。
 
+* mwg/fun: メンバ関数の呼び出し関係で C++11 のコンパイルが通らないと思ったが直っていた。
+  と思ったら clang C++11 でエラーが出ている。後で直す。
+
+* mwg/fun: functor_interface/functor_invoker のコンストラクタで is_constructible で
+    SFINAE 選択しておかないと、誤った引数で初期化しようとした時に深い所でエラーが出て分かりにくい。
 
 2017-02-06
 

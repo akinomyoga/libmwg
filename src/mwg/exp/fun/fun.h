@@ -187,28 +187,10 @@ namespace functor_detail {
   T&& fwd(typename stdm::remove_reference<T>::type&& value){
     return static_cast<T&&>(value);
   }
-
-  template<typename S, int Index>
-  typename sig::param<S, Index>::type&&
-  fwdp(typename stdm::remove_reference<typename sig::param<S, Index>::type>::type& value){
-    return static_cast<typename sig::param<S, Index>::type&&>(value);
-  }
-  template<typename S, int Index>
-  typename sig::param<S, Index>::type&&
-  fwdp(typename stdm::remove_reference<typename sig::param<S, Index>::type>::type&& value){
-    return static_cast<typename sig::param<S, Index>::type&&>(value);
-  }
 #else
   template<typename T>
   typename stdx::add_const_reference<T>::type
   fwd(typename stdx::add_const_reference<T>::type value) {return value;}
-
-  template<typename S, int Index>
-  struct result_of_fwdp:
-    stdx::add_const_reference<typename sig::param<S, Index>::type> {};
-  template<typename S, int Index>
-  typename result_of_fwdp<S, Index>::type
-  fwdp(typename result_of_fwdp<S, Index>::type value) {return value;}
 #endif
 #define mwg_rfwd mwg_forward_rvalue
 
@@ -350,6 +332,17 @@ namespace functor_detail {
     };
 #else
     template<typename XS, int Index> struct p: sig::param<XS, Index> {};
+#if defined(MWGCONF_STD_RVALUE_REFERENCES)
+    template<typename S, int Index, typename X>
+    typename stdm::add_rvalue_reference<typename sig::param<S, Index>::type>::type f(X&& value) {
+      return fwd<typename sig::param<S, Index>::type>(value);
+    }
+#else
+    template<typename S, int Index>
+    typename stdx::add_const_reference<typename sig::param<S, Index>::type>::type
+    f(typename stdx::add_const_reference<typename sig::param<S, Index>::type>::type value) {return value;}
+#endif
+
     template<class S, class CRTP>
     struct invoker: CRTP {
       template<class F> invoker(F const& func): CRTP(func) {}
@@ -357,7 +350,7 @@ namespace functor_detail {
       template<class XS>
       typename enable_forward<S, XS, __arity__>::type
       forward(typename p<XS,>::type... a, ...) const {
-        return (CRTP::get())(fwdp<XS,>(a)...);
+        return (CRTP::get())(f<XS,>(a)...);
       }
 #pragma%end
 #pragma%x variadic_expand::with_arity.f/__arity__/0/ArN+1/
@@ -412,6 +405,18 @@ namespace functor_detail {
 #else
     template<typename XS> struct p0: sig::param<XS, 0> {};
     template<typename XS, std::size_t I> struct pr: sig::param<XS, 1 + I> {};
+
+#ifdef MWGCONF_STD_RVALUE_REFERENCES
+    template<typename S, int Index, typename X>
+    typename stdm::add_rvalue_reference<typename sig::param<S, 1 + Index>::type>::type f(X&& value) {
+      return fwd<typename sig::param<S, 1 + Index>::type>(value);
+    }
+#else
+    template<typename S, int Index>
+    typename stdx::add_const_reference<typename sig::param<S, 1 + Index>::type>::type
+    f(typename stdx::add_const_reference<typename sig::param<S, 1 + Index>::type>::type value) {return value;}
+#endif
+
     template<class S, class CRTP>
     struct invoker: CRTP {
       template<class F> invoker(F const& func): CRTP(func) {}
@@ -419,7 +424,7 @@ namespace functor_detail {
       template<class XS>
       typename enable_forward<S, XS, 1+__arity__>::type
       forward(typename p0<XS>::type obj, typename pr<XS,>::type... a, ...) const {
-        return (CRTP::getobj(obj).*CRTP::get())(fwdp<XS,>(a)...);
+        return (CRTP::getobj(obj).*CRTP::get())(f<XS,>(a)...);
       }
 #pragma%end
 #pragma%x variadic_expand::with_arity.f/__arity__/0/ArN/
@@ -571,9 +576,8 @@ namespace functor_detail {
   struct functor_traits_member<T C::*, S, typename stdm::enable_if<functor_traits_member_object_switch<T, C, S>::value>::type>:
     functor_traits_member_object_switch<T, C, S> {};
 
-  // todo: memobj; rvalue references
+  // ToDo: memobj; rvalue references
 
-  //■ToDo: add check codes
   namespace member_function_pointer_traits {
 
     template<typename MemFun, typename S>
@@ -678,7 +682,7 @@ namespace functor_detail {
           typename stdm::conditional<
             test3, sig3_t, void>::type>::type>::type,
 
-      typename base = functor_traits_member_function<MemFun, void> >
+      typename base = functor_traits_member_function<MemFun, sig_t> >
     struct _switch: base {};
   }
 
@@ -824,7 +828,21 @@ namespace test_function {
 }
 
 namespace test_member {
-  struct Rect {int x, y, w, h;};
+  struct Rect {
+    int x, y, w, h;
+
+    int right() const {
+      return x + w;
+    }
+    int bottom() const {
+      return y + h;
+    }
+    void translate(int dx, int dy) {
+      x += dx;
+      y += dy;
+    }
+  };
+
   void run() {
     mwg_check((mwg::stdm::is_member_object_pointer<int Rect::*>::value &&
         mwg::functor_detail::type_traits::is_variant_function<mwg::stdm::add_lvalue_reference<int>::type (Rect&), int& (Rect&)>::value));
@@ -835,6 +853,10 @@ namespace test_member {
     mwg::as_functor<int Rect::*, int (Rect const*)>::adapter f4(&Rect::x);
 
     Rect rect1;
+    rect1.x = 1;
+    rect1.y = 2;
+    rect1.w = 3;
+    rect1.h = 4;
     f1(rect1) = 12;
     mwg_check((rect1.x == 12));
     mwg_check((f2(rect1) == 12));
@@ -842,6 +864,24 @@ namespace test_member {
     f3(&rect1) = 321;
     mwg_check((rect1.x == 321));
     mwg_check((f4(&rect1) == 321));
+
+    mwg_check((mwg::stdm::is_same<mwg::functor_detail::is_memfun_pointer<int (Rect::*)() const>::member_type, int()>::value));
+    mwg_check((mwg::stdm::is_same<mwg::functor_detail::is_memfun_pointer<int (Rect::*)() const>::object_type, Rect const>::value));
+    mwg_check((mwg::stdm::is_same<mwg::funsig::shift<int(), Rect const&>::type, int (Rect const&)>::value));
+    mwg_check((mwg::functor_detail::type_traits::is_variant_function<int (Rect const&), int (Rect const&)>::value));
+    mwg::as_functor<int (Rect::*)() const, int (Rect const&)>::adapter g1(&Rect::right);
+    mwg_check((g1(rect1) == rect1.x + rect1.w));
+    mwg::as_functor<int (Rect::*)() const, int (Rect const*)>::adapter g2(&Rect::right);
+    mwg_check((g2(&rect1) == rect1.x + rect1.w));
+
+    mwg_check((mwg::stdm::is_same<mwg::functor_detail::is_memfun_pointer<void (Rect::*)(int, int)>::member_type, void(int, int)>::value));
+    mwg_check((mwg::stdm::is_same<mwg::functor_detail::is_memfun_pointer<void (Rect::*)(int, int)>::object_type, Rect>::value));
+    mwg_check((mwg::stdm::is_same<mwg::funsig::shift<void (int, int), Rect const&>::type, void (Rect const&, int, int)>::value));
+    mwg::as_functor<void (Rect::*)(int, int), void (Rect&, int, int)>::adapter g3(&Rect::translate);
+    rect1.x = 123;
+    rect1.y = 321;
+    g3(rect1, 4, 1);
+    mwg_check((rect1.x == 127 && rect1.y == 322));
 
 #ifdef MWGCONF_STD_AUTO_TYPE
     //auto hoge = mwg::fun<void(int)>(&Rect::x);

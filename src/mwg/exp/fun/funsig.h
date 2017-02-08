@@ -52,7 +52,7 @@ namespace funsig {
     template<typename Push, typename Shift, typename SetResult>
     struct transform_def {
       typedef Push push_t;
-      typedef Push shift_t;
+      typedef Shift shift_t;
       typedef SetResult set_result_t;
     };
     template<typename S, typename T>
