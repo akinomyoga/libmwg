@@ -10,15 +10,9 @@
 #include <mwg/std/type_traits>
 #include <mwg/std/utility>
 #include <mwg/exp/fun/funsig.h>
-#pragma%include "../../bits/functor.type_traits.pp"
 namespace mwg{
-
-// transient work around to work with functor.type_traits.pp
-namespace funcsig {using namespace funsig;}
-namespace functor_detail {namespace sig = mwg::funcsig;}
-// namespace functor_detail {namespace sig = mwg::funsig;}
-
 namespace functor_detail {
+  namespace sig = mwg::funsig;
 
   namespace type_traits {
     /*?lwiki
@@ -170,6 +164,50 @@ namespace functor_detail {
     }
 #pragma%x end_test
 
+    /*?lwiki
+     * :@class class mwg::functor_detail::==is_member_pointer==<Mfp>;
+     *  :@var static const bool ==value==;
+     *   `Mfp` がメンバ関数へのポインタかどうかを判定します。
+     *  :@typedef typedef '''member-pointer-type''' ==member_type==;
+     *   `Mfp` がメンバ関数へのポインタの時、関数型を取得します。
+     *  :@typedef typedef '''class-type''' ==object_type==;
+     *   `Mfp` がメンバ関数へのポインタの時、メンバが定義されるクラスを取得します。
+     *   第一引数に `object_type` を受け取り、第二引数以降に本来の引数を受け取ります。
+     *
+     * ToDo: 実はこれは <mwg/std/type_traits> の is_member_function_pointer と統合できるのではないか。
+     *   funsig.h か bits/is_member_pointer か何処かに分離して詳しくして include する。
+     *
+     */
+    namespace detail {
+      template<typename Mfp>
+      struct is_member_pointer: stdm::false_type {
+        typedef void member_type;
+        typedef void object_type;
+      };
+      template<typename C, typename S>
+      struct is_member_pointer_def: stdm::true_type {
+        typedef C object_type;
+        typedef S member_type;
+      };
+#pragma%m 1
+      template<typename R, typename C, typename... A>
+      struct is_member_pointer<R (C::*)(A...) QUALIFIER>:
+        is_member_pointer_def<C QUALIFIER, R (A...)> {};
+      template<typename R, typename C, typename... A>
+      struct is_member_pointer<R (C::*)(A..., ...) QUALIFIER>:
+        is_member_pointer_def<C QUALIFIER, R (A..., ...)> {};
+#pragma%end
+#pragma%m 1
+#pragma%x 1.r/QUALIFIER//
+#pragma%x 1.r/QUALIFIER/const/
+#pragma%x 1.r/QUALIFIER/volatile/
+#pragma%x 1.r/QUALIFIER/const volatile/
+#pragma%end
+#pragma%x variadic_expand_0toArN
+    }
+    template<typename MemPtr>
+    struct is_member_pointer: detail::is_member_pointer<MemPtr> {};
+
   }
 
   enum invokation_type {
@@ -309,8 +347,8 @@ namespace functor_detail {
 
   template<typename S, typename XS, int Arity>
   struct enable_forward: stdm::enable_if<
-    (Arity == (is_vararg_function<S>::value? sig::arity<XS>::value: sig::arity<S>::value)),
-    typename sig::returns<XS>::type> {};
+    (Arity == (sig::has_va_args<S>::value? sig::arity<XS>::value: sig::arity<S>::value)),
+    typename sig::result<XS>::type> {};
 
   namespace function_invoker {
 #ifdef MWGCONF_STD_VARIADIC_TEMPLATES
@@ -322,7 +360,7 @@ namespace functor_detail {
     struct invoker<R (A...), CRTP>: CRTP {
       template<class F> invoker(F const& func): CRTP(func) {}
       template<class XS>
-      typename sig::returns<XS>::type
+      typename sig::result<XS>::type
       forward(typename p<A>::type... a, ...) const {
         return (CRTP::get())(fwd<typename p<A>::type>(a)...);
       }
@@ -331,7 +369,7 @@ namespace functor_detail {
     struct invoker<R (A..., ...), CRTP>: CRTP {
       template<class F> invoker(F const& func): CRTP(func) {}
       template<class XS, class... B>
-      typename sig::returns<XS>::type
+      typename sig::result<XS>::type
       forward(typename p<A>::type... a, B mwg_rfwd... b) const {
         return (CRTP::get())(fwd<typename p<A>::type>(a)..., fwd<B>(b)...);
       }
@@ -375,7 +413,7 @@ namespace functor_detail {
     struct invoker<R(A0), CRTP>: CRTP {
       template<typename F> invoker(F const& func): CRTP(func) {}
       template<typename XS>
-      typename sig::returns<XS>::type
+      typename sig::result<XS>::type
       forward(A0 a0, ...) const {return CRTP::getobj(a0).*CRTP::get();}
     };
   }
@@ -394,7 +432,7 @@ namespace functor_detail {
     struct invoker<R (C, A...), CRTP>: CRTP {
       template<class F> invoker(F const& func): CRTP(func) {}
       template<class XS>
-      typename sig::returns<XS>::type
+      typename sig::result<XS>::type
       forward(typename p<C>::type obj, typename p<A>::type... a, ...) const {
         return (CRTP::getobj(obj).*CRTP::get())(fwd<typename p<A>::type>(a)...);
       }
@@ -403,7 +441,7 @@ namespace functor_detail {
     struct invoker<R (C, A..., ...), CRTP>: CRTP {
       template<class F> invoker(F const& func): CRTP(func) {}
       template<class XS, class... B>
-      typename sig::returns<XS>::type
+      typename sig::result<XS>::type
       forward(typename p<C>::type obj, typename p<A>::type... a, B mwg_rfwd... b) const {
         return (CRTP::getobj(obj).*CRTP::get())(fwd<typename p<A>::type>(a)..., fwd<B>(b)...);
       }
@@ -634,8 +672,8 @@ namespace functor_detail {
     template<
       typename MemFun, typename S, int Flags,
 
-      typename mem_t = typename is_memfun_pointer<MemFun>::member_type,
-      typename obj_t = typename is_memfun_pointer<MemFun>::object_type,
+      typename mem_t = typename type_traits::is_member_pointer<MemFun>::member_type,
+      typename obj_t = typename type_traits::is_member_pointer<MemFun>::object_type,
 
       typename obj_qualified_t = typename stdm::conditional<Flags & IS_CONST,
         typename stdm::add_const<obj_t>::type, obj_t>::type,
@@ -650,8 +688,8 @@ namespace functor_detail {
     template<
       typename MemFun, typename S,
 
-      typename mem_t = typename is_memfun_pointer<MemFun>::member_type,
-      typename obj_t = typename is_memfun_pointer<MemFun>::object_type,
+      typename mem_t = typename type_traits::is_member_pointer<MemFun>::member_type,
+      typename obj_t = typename type_traits::is_member_pointer<MemFun>::object_type,
 
       // obj_cref_t: obj parameter type for intrinsic signature
       //
@@ -688,9 +726,9 @@ namespace functor_detail {
         void>::type,
 
       bool test0 = stdm::is_void<S>::value,
-      bool test1 = is_variant_function<sig1_t, S>::value,
-      bool test2 = is_variant_function<sig2_t, S>::value,
-      bool test3 = is_variant_function<sig3_t, S>::value,
+      bool test1 = type_traits::is_variant_function<sig1_t, S>::value,
+      bool test2 = type_traits::is_variant_function<sig2_t, S>::value,
+      bool test3 = type_traits::is_variant_function<sig3_t, S>::value,
 
       typename sig_t = typename stdm::conditional<
         test1, sig1_t,
@@ -804,7 +842,7 @@ namespace functor_detail {
 
 namespace test_funcsig {
   void run() {
-    using namespace mwg::funcsig;
+    using namespace mwg::funsig;
     mwg_check((mwg::stdm::is_same<
         filter<int (int, char, short&), mwg::functor_detail::type_traits::reference_parameter>::type,
         int (int const&, char const&, short&)>::value));
@@ -887,17 +925,18 @@ namespace test_member {
     mwg_check((rect1.x == 321));
     mwg_check((f4(&rect1) == 321));
 
-    mwg_check((mwg::stdm::is_same<mwg::functor_detail::is_memfun_pointer<int (Rect::*)() const>::member_type, int()>::value));
-    mwg_check((mwg::stdm::is_same<mwg::functor_detail::is_memfun_pointer<int (Rect::*)() const>::object_type, Rect const>::value));
+    namespace type_traits = mwg::functor_detail::type_traits;
+    mwg_check((mwg::stdm::is_same<type_traits::is_member_pointer<int (Rect::*)() const>::member_type, int()>::value));
+    mwg_check((mwg::stdm::is_same<type_traits::is_member_pointer<int (Rect::*)() const>::object_type, Rect const>::value));
     mwg_check((mwg::stdm::is_same<mwg::funsig::shift<int(), Rect const&>::type, int (Rect const&)>::value));
-    mwg_check((mwg::functor_detail::type_traits::is_variant_function<int (Rect const&), int (Rect const&)>::value));
+    mwg_check((type_traits::is_variant_function<int (Rect const&), int (Rect const&)>::value));
     mwg::as_fun<int (Rect::*)() const, int (Rect const&)>::adapter g1(&Rect::right);
     mwg_check((g1(rect1) == rect1.x + rect1.w));
     mwg::as_fun<int (Rect::*)() const, int (Rect const*)>::adapter g2(&Rect::right);
     mwg_check((g2(&rect1) == rect1.x + rect1.w));
 
-    mwg_check((mwg::stdm::is_same<mwg::functor_detail::is_memfun_pointer<void (Rect::*)(int, int)>::member_type, void(int, int)>::value));
-    mwg_check((mwg::stdm::is_same<mwg::functor_detail::is_memfun_pointer<void (Rect::*)(int, int)>::object_type, Rect>::value));
+    mwg_check((mwg::stdm::is_same<type_traits::is_member_pointer<void (Rect::*)(int, int)>::member_type, void(int, int)>::value));
+    mwg_check((mwg::stdm::is_same<type_traits::is_member_pointer<void (Rect::*)(int, int)>::object_type, Rect>::value));
     mwg_check((mwg::stdm::is_same<mwg::funsig::shift<void (int, int), Rect const&>::type, void (Rect const&, int, int)>::value));
     mwg::as_fun<void (Rect::*)(int, int), void (Rect&, int const&, int const&)>::adapter g3(&Rect::translate);
     rect1.x = 123;
