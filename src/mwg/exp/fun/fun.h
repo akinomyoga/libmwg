@@ -493,95 +493,100 @@ namespace functor_detail {
   template<typename F, typename S>
   struct functor_traits: functor_traits_check<traits_priority_max, F, S> {};
 
-  template<typename F>
-  struct functor_traits_function_base: stdm::true_type {
-    static const int invokation = invokation_function_call;
-    typedef F intrinsic_signature;
-    typedef struct holder {
-      F* m_fun;
-      template<typename T> holder(T const& fun): m_fun(fun) {}
-      F* get() const {return m_fun;}
-    } byref_holder, byval_holder;
-  };
-  template<typename F, typename S = void, typename = void>
-  struct functor_traits_function: stdm::false_type {};
-  template<typename F>
-  struct functor_traits_function<F , void, typename stdm::enable_if<stdm::is_function<F>::value>::type>:
-    functor_traits_function_base<F> {};
-  template<typename F>
-  struct functor_traits_function<F*, void, typename stdm::enable_if<stdm::is_function<F>::value>::type>:
-    functor_traits_function_base<F> {};
-  template<typename F, typename S>
-  struct functor_traits_function<F , S, typename stdm::enable_if<type_traits::is_variant_function<F, S>::value>::type>:
-    functor_traits_function_base<F> {};
-  template<typename F, typename S>
-  struct functor_traits_function<F*, S, typename stdm::enable_if<type_traits::is_variant_function<F, S>::value>::type>:
-    functor_traits_function_base<F> {};
+  namespace function_traits {
+    template<typename F>
+    struct functor_traits_impl: stdm::true_type {
+      static const int invokation = invokation_function_call;
+      typedef F intrinsic_signature;
+      typedef struct holder {
+        F* m_fun;
+        template<typename T> holder(T const& fun): m_fun(fun) {}
+        F* get() const {return m_fun;}
+      } byref_holder, byval_holder;
+    };
+    template<typename F, typename S = void, typename = void>
+    struct _switch: stdm::false_type {};
+    template<typename F>
+    struct _switch<F , void, typename stdm::enable_if<stdm::is_function<F>::value>::type>:
+      functor_traits_impl<F> {};
+    template<typename F>
+    struct _switch<F*, void, typename stdm::enable_if<stdm::is_function<F>::value>::type>:
+      functor_traits_impl<F> {};
+    template<typename F, typename S>
+    struct _switch<F , S, typename stdm::enable_if<type_traits::is_variant_function<F, S>::value>::type>:
+      functor_traits_impl<F> {};
+    template<typename F, typename S>
+    struct _switch<F*, S, typename stdm::enable_if<type_traits::is_variant_function<F, S>::value>::type>:
+      functor_traits_impl<F> {};
+  }
 
   template<typename F, typename S>
   struct functor_traits_rule<traits_priority_function, F, S>:
-    functor_traits_function<F, S> {};
+    function_traits::_switch<F, S> {};
 
-  template<typename MemberPtr, typename S>
-  struct functor_traits_member_object: stdm::false_type {};
-  template<typename MemberPtr, typename R, typename A>
-  struct functor_traits_member_object<MemberPtr, R(A)>: stdm::true_type {
-    static const int invokation = invokation_member_object;
-    typedef R intrinsic_signature(A);
-    typedef struct holder {
-      MemberPtr m_memptr;
-      template<typename T> holder(T const& fun): m_memptr(fun) {}
-
-    public:
-      MemberPtr get() const {return m_memptr;}
-
-      template<typename C> static C& getobj(C* ptr) {return *ptr;}
-      template<typename C> static C const& getobj(C const* ptr) {return *ptr;}
-      template<typename C> static C& getobj(C& obj) {return obj;}
-      template<typename C> static C const& getobj(C const& obj) {return obj;}
-    } byref_holder, byval_holder;
-  };
   template<typename F, typename S = void, typename = void>
   struct functor_traits_member: stdm::false_type {};
 
-  template<
-    typename T, typename C, typename S,
+  // ToDo: memobj; rvalue references
 
-    const int ACCEPTS_REF = 0x01,
-    const int ACCEPTS_PTR = 0x02,
-    const int IS_CONST    = 0x10,
+  namespace member_object_pointer_traits {
+    template<typename MemberPtr, typename S>
+    struct functor_traits_impl: stdm::false_type {};
+    template<typename MemberPtr, typename R, typename A>
+    struct functor_traits_impl<MemberPtr, R(A)>: stdm::true_type {
+      static const int invokation = invokation_member_object;
+      typedef R intrinsic_signature(A);
+      typedef struct holder {
+        MemberPtr m_memptr;
+        template<typename T> holder(T const& fun): m_memptr(fun) {}
 
-    // ToDo @intrinsic_overload
-    typename mem_lref_t = typename stdm::add_lvalue_reference<T>::type,
-    typename mem_cref_t = typename stdm::conditional<
-      stdm::is_reference<T>::value, T,
-      typename stdx::add_const_reference<T>::type>::type,
+      public:
+        MemberPtr get() const {return m_memptr;}
 
-    int flags = (!stdm::is_member_object_pointer<T C::*>::value? 0:
-      stdm::is_void<S>::value                             ? ACCEPTS_REF | IS_CONST:
-      type_traits::is_variant_function<mem_lref_t (C      &), S>::value? ACCEPTS_REF           :
-      type_traits::is_variant_function<mem_cref_t (C const&), S>::value? ACCEPTS_REF | IS_CONST:
-      type_traits::is_variant_function<mem_lref_t (C      *), S>::value? ACCEPTS_PTR           :
-      type_traits::is_variant_function<mem_cref_t (C const*), S>::value? ACCEPTS_PTR | IS_CONST: 0),
+        template<typename C> static C& getobj(C* ptr) {return *ptr;}
+        template<typename C> static C const& getobj(C const* ptr) {return *ptr;}
+        template<typename C> static C& getobj(C& obj) {return obj;}
+        template<typename C> static C const& getobj(C const& obj) {return obj;}
+      } byref_holder, byval_holder;
+    };
 
-    typename return_t        = typename stdm::conditional<flags & IS_CONST, mem_cref_t, mem_lref_t>::type,
-    typename qualified_obj_t = typename stdm::conditional<flags & IS_CONST, C const, C>::type,
-    typename param_t         = typename stdm::conditional<flags & ACCEPTS_PTR, qualified_obj_t*, qualified_obj_t&>::type,
+    template<
+      typename T, typename C, typename S,
 
-    typename base = functor_traits_member_object<
-      T C::*, typename stdm::conditional<flags, return_t (param_t), void>::type> >
-  struct functor_traits_member_object_switch: base {};
+      const int ACCEPTS_REF = 0x01,
+      const int ACCEPTS_PTR = 0x02,
+      const int IS_CONST    = 0x10,
+
+      // ToDo @intrinsic_overload
+      typename mem_lref_t = typename stdm::add_lvalue_reference<T>::type,
+      typename mem_cref_t = typename stdm::conditional<
+        stdm::is_reference<T>::value, T,
+        typename stdx::add_const_reference<T>::type>::type,
+
+      int flags = (!stdm::is_member_object_pointer<T C::*>::value? 0:
+        stdm::is_void<S>::value                             ? ACCEPTS_REF | IS_CONST:
+        type_traits::is_variant_function<mem_lref_t (C      &), S>::value? ACCEPTS_REF           :
+        type_traits::is_variant_function<mem_cref_t (C const&), S>::value? ACCEPTS_REF | IS_CONST:
+        type_traits::is_variant_function<mem_lref_t (C      *), S>::value? ACCEPTS_PTR           :
+        type_traits::is_variant_function<mem_cref_t (C const*), S>::value? ACCEPTS_PTR | IS_CONST: 0),
+
+      typename return_t        = typename stdm::conditional<flags & IS_CONST, mem_cref_t, mem_lref_t>::type,
+      typename qualified_obj_t = typename stdm::conditional<flags & IS_CONST, C const, C>::type,
+      typename param_t         = typename stdm::conditional<flags & ACCEPTS_PTR, qualified_obj_t*, qualified_obj_t&>::type,
+
+      typename base = functor_traits_impl<
+        T C::*, typename stdm::conditional<flags, return_t (param_t), void>::type> >
+    struct _switch: base {};
+  }
 
   template<typename T, typename C, typename S>
-  struct functor_traits_member<T C::*, S, typename stdm::enable_if<functor_traits_member_object_switch<T, C, S>::value>::type>:
-    functor_traits_member_object_switch<T, C, S> {};
-
-  // ToDo: memobj; rvalue references
+  struct functor_traits_member<T C::*, S, typename stdm::enable_if<member_object_pointer_traits::_switch<T, C, S>::value>::type>:
+    member_object_pointer_traits::_switch<T, C, S> {};
 
   namespace member_function_pointer_traits {
 
     template<typename MemFun, typename S>
-    struct functor_traits_member_function: stdm::true_type {
+    struct functor_traits_impl: stdm::true_type {
       static const int invokation = invokation_member_function;
       typedef S intrinsic_signature;
       typedef struct holder {
@@ -606,7 +611,7 @@ namespace functor_detail {
       } byref_holder, byval_holder;
     };
     template<typename MemFun>
-    struct functor_traits_member_function<MemFun, void>: stdm::false_type {};
+    struct functor_traits_impl<MemFun, void>: stdm::false_type {};
 
     enum {
       ACCEPTS_REF = 0x01,
@@ -682,7 +687,7 @@ namespace functor_detail {
           typename stdm::conditional<
             test3, sig3_t, void>::type>::type>::type,
 
-      typename base = functor_traits_member_function<MemFun, sig_t> >
+      typename base = functor_traits_impl<MemFun, sig_t> >
     struct _switch: base {};
   }
 
