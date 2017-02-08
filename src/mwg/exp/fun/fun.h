@@ -37,14 +37,14 @@ namespace functor_detail {
   }
 
   template<typename S, int Index>
-  typename sig::parameter<Index, S>::type&&
-  fwdp(typename stdm::remove_reference<typename sig::parameter<Index, S>::type>::type& value){
-    return static_cast<typename sig::parameter<Index, S>::type&&>(value);
+  typename sig::param<S, Index>::type&&
+  fwdp(typename stdm::remove_reference<typename sig::param<S, Index>::type>::type& value){
+    return static_cast<typename sig::parameter<S, Index>::type&&>(value);
   }
   template<typename S, int Index>
-  typename sig::parameter<Index, S>::type&&
-  fwdp(typename stdm::remove_reference<typename sig::parameter<Index, S>::type>::type&& value){
-    return static_cast<typename sig::parameter<Index, S>::type&&>(value);
+  typename sig::param<S, Index>::type&&
+  fwdp(typename stdm::remove_reference<typename sig::param<S, Index>::type>::type&& value){
+    return static_cast<typename sig::param<S, Index>::type&&>(value);
   }
 #else
   template<typename T>
@@ -59,7 +59,7 @@ namespace functor_detail {
 
   template<typename S, int Index>
   struct result_of_fwdp:
-    result_of_fwd<typename sig::parameter<Index, S>::type> {};
+    result_of_fwd<typename sig::param<S, Index>::type> {};
   template<typename S, int Index>
   typename result_of_fwdp<S, Index>::type
   fwdp(typename result_of_fwdp<S, Index>::type value) {return value;}
@@ -178,64 +178,116 @@ namespace functor_detail {
     (Arity == (is_vararg_function<S>::value? sig::arity<XS>::value: sig::arity<S>::value)),
     typename sig::returns<XS>::type> {};
 
-  template<typename XS, int Index>
-  struct param: sig::parameter<Index, XS> {};
-
-
+  namespace function_invoker {
 #ifdef MWGCONF_STD_VARIADIC_TEMPLATES
-  template<typename S, typename CRTP>
-  struct functor_invoker_function_call {};
-  template<class CRTP, class R, class... A>
-  struct functor_invoker_function_call<R (A...), CRTP>: CRTP {
-    template<class F> functor_invoker_function_call(F const& func): CRTP(func) {}
-    template<class XS>
-    typename sig::returns<XS>::type
-    forward(typename stdx::add_const_reference<A>::type... a, ...) const {
-      return (CRTP::get())(fwd<A>(a)...);
-    }
-  };
-  template<class CRTP, class R, class... A>
-  struct functor_invoker_function_call<R (A..., ...), CRTP>: CRTP {
-    template<class F> functor_invoker_function_call(F const& func): CRTP(func) {}
-    template<class XS, class... B>
-    typename sig::returns<XS>::type
-    forward(typename stdx::add_const_referece<A>::type... a, B mwg_rfwd... b) const {
-      return (CRTP::get())(fwd<A>(a)..., fwd<B>(b)...);
-    }
-  };
+    template<typename S, typename CRTP>
+    struct invoker {};
+    template<class CRTP, class R, class... A>
+    struct invoker<R (A...), CRTP>: CRTP {
+      template<class F> invoker(F const& func): CRTP(func) {}
+      template<class XS>
+      typename sig::returns<XS>::type
+      forward(typename stdx::add_const_reference<A>::type... a, ...) const {
+        return (CRTP::get())(fwd<A>(a)...);
+      }
+    };
+    template<class CRTP, class R, class... A>
+    struct invoker<R (A..., ...), CRTP>: CRTP {
+      template<class F> invoker(F const& func): CRTP(func) {}
+      template<class XS, class... B>
+      typename sig::returns<XS>::type
+      forward(typename stdx::add_const_referece<A>::type... a, B mwg_rfwd... b) const {
+        return (CRTP::get())(fwd<A>(a)..., fwd<B>(b)...);
+      }
+    };
 #else
-  template<class S, class CRTP>
-  struct functor_invoker_function_call: CRTP {
-    template<class F> functor_invoker_function_call(F const& func): CRTP(func) {}
+    template<typename XS, int Index> struct p: sig::param<XS, Index> {};
+    template<class S, class CRTP>
+    struct invoker: CRTP {
+      template<class F> invoker(F const& func): CRTP(func) {}
 #pragma%m 1
-    template<class XS>
-    typename enable_forward<S, XS, __arity__>::type
-    forward(typename param<XS,>::type... a, ...) const {
-      return (CRTP::get())(fwdp<XS,>(a)...);
-    }
+      template<class XS>
+      typename enable_forward<S, XS, __arity__>::type
+      forward(typename p<XS,>::type... a, ...) const {
+        return (CRTP::get())(fwdp<XS,>(a)...);
+      }
 #pragma%end
 #pragma%x variadic_expand::with_arity.f/__arity__/0/ArN+1/
-  };
+    };
 #endif
+  }
 
   template<typename S, typename CRTP>
   struct functor_invoker_selector<invokation_function_call, S, CRTP>:
-    mwg::identity<functor_invoker_function_call<S, CRTP> > {};
+    mwg::identity<function_invoker::invoker<S, CRTP> > {};
 
-
-  template<typename S, typename CRTP>
-  struct functor_invoker_member_object {};
-  template<typename R, typename A0, typename CRTP>
-  struct functor_invoker_member_object<R(A0), CRTP>: CRTP {
-    template<typename F> functor_invoker_member_object(F const& func): CRTP(func) {}
-    template<typename XS>
-    typename sig::returns<XS>::type
-    forward(A0 a0, ...) const {return CRTP::getobj(a0).*CRTP::get();}
-  };
+  namespace member_object_invoker {
+    template<typename S, typename CRTP>
+    struct invoker {};
+    template<typename R, typename A0, typename CRTP>
+    struct invoker<R(A0), CRTP>: CRTP {
+      template<typename F> invoker(F const& func): CRTP(func) {}
+      template<typename XS>
+      typename sig::returns<XS>::type
+      forward(A0 a0, ...) const {return CRTP::getobj(a0).*CRTP::get();}
+    };
+  }
 
   template<typename S, typename CRTP>
   struct functor_invoker_selector<invokation_member_object, S, CRTP>:
-    mwg::identity<functor_invoker_member_object<S, CRTP> > {};
+    mwg::identity<member_object_invoker::invoker<S, CRTP> > {};
+
+  namespace member_function_invoker {
+#ifdef MWGCONF_STD_VARIADIC_TEMPLATES
+    template<typename S, typename CRTP>
+    struct invoker {};
+    template<class CRTP, class R, class C, class... A>
+    struct invoker<R (C, A...), CRTP>: CRTP {
+      template<class F> invoker(F const& func): CRTP(func) {}
+
+    private:
+      typedef typename stdx::add_const_reference<C>::type obj_t;
+    public:
+      template<class XS>
+      typename sig::returns<XS>::type
+      forward(obj_t obj, typename stdx::add_const_reference<A>::type... a, ...) const {
+        return (CRTP::getobj(obj).*CRTP::get())(fwd<A>(a)...);
+      }
+    };
+    template<class CRTP, class R, class C, class... A>
+    struct invoker<R (C, A..., ...), CRTP>: CRTP {
+      template<class F> invoker(F const& func): CRTP(func) {}
+
+    private:
+      typedef typename stdx::add_const_reference<C>::type obj_t;
+    public:
+      template<class XS, class... B>
+      typename sig::returns<XS>::type
+      forward(obj_t obj, typename stdx::add_const_referece<A>::type... a, B mwg_rfwd... b) const {
+        return (CRTP::getobj(obj).*CRTP::get())(fwd<A>(a)..., fwd<B>(b)...);
+      }
+    };
+#else
+    template<typename XS> struct p0: sig::param<XS, 0> {};
+    template<typename XS, std::size_t I> struct pr: sig::param<XS, 1 + I> {};
+    template<class S, class CRTP>
+    struct invoker: CRTP {
+      template<class F> invoker(F const& func): CRTP(func) {}
+#pragma%m 1
+      template<class XS>
+      typename enable_forward<S, XS, 1+__arity__>::type
+      forward(typename p0<XS>::type obj, typename pr<XS,>::type... a, ...) const {
+        return (CRTP::getobj(obj).*CRTP::get())(fwdp<XS,>(a)...);
+      }
+#pragma%end
+#pragma%x variadic_expand::with_arity.f/__arity__/0/ArN/
+    };
+#endif
+  }
+
+  template<typename S, typename CRTP>
+  struct functor_invoker_selector<invokation_member_function, S, CRTP>:
+    mwg::identity<member_function_invoker::invoker<S, CRTP> > {};
 
 
   /*?lwiki
@@ -336,10 +388,10 @@ namespace functor_detail {
     public:
       MemberPtr get() const {return m_memptr;}
 
-      template<typename C> static C const& getobj(C const& obj) {return obj;}
-      template<typename C> static C& getobj(C& obj) {return obj;}
-      template<typename C> static C const& getobj(C const* ptr) {return *ptr;}
       template<typename C> static C& getobj(C* ptr) {return *ptr;}
+      template<typename C> static C const& getobj(C const* ptr) {return *ptr;}
+      template<typename C> static C& getobj(C& obj) {return obj;}
+      template<typename C> static C const& getobj(C const& obj) {return obj;}
     } byref_holder, byval_holder;
   };
   template<typename F, typename S = void, typename = void>
@@ -369,11 +421,90 @@ namespace functor_detail {
     typename base = functor_traits_member_object<
       T C::*, typename stdm::conditional<flags, return_t (param_t), void>::type> >
   struct functor_traits_member_object_switch: base {};
+
   template<typename T, typename C, typename S>
   struct functor_traits_member<T C::*, S, typename stdm::enable_if<functor_traits_member_object_switch<T, C, S>::value>::type>:
     functor_traits_member_object_switch<T, C, S> {};
 
-  // @@ToDo is_member_function_pointer
+  // todo: memobj; rvalue references
+
+  //■ToDo: add check codes
+  //@@typename is_memfun_pointer<MemFun>::member_type
+  namespace member_function_pointer_traits {
+
+    // todo: memptr; rvalue references
+
+    template<typename MemFun, typename S>
+    struct functor_traits_member_function: stdm::true_type {
+      static const int invokation = invokation_member_function;
+      typedef S intrinsic_signature;
+      typedef struct holder {
+        MemFun m_memptr;
+        template<typename T> holder(T const& fun): m_memptr(fun) {}
+
+      public:
+        MemFun get() const {return m_memptr;}
+
+        template<typename C> static C& getobj(C* ptr) {return *ptr;}
+        template<typename C> static C const& getobj(C const* ptr) {return *ptr;}
+#ifdef MWGCONF_STD_RVALUE_REFERENCES
+        template<typename C> static C&& getobj(C&& obj) {return stdm::forward<C>(obj);}
+#else
+        template<typename C> static C& getobj(C& obj) {return obj;}
+        template<typename C> static C const& getobj(C const& obj) {return obj;}
+#endif
+      } byref_holder, byval_holder;
+    };
+    template<typename MemFun>
+    struct functor_traits_member_function<MemFun, void>: stdm::false_type {};
+
+    enum {
+      ACCEPTS_REF = 0x01,
+      ACCEPTS_PTR = 0x02,
+      IS_CONST    = 0x10,
+    };
+
+    template<
+      typename MemFun, typename S, int Flags,
+
+      typename mem_t = typename is_memfun_pointer<MemFun>::member_type,
+      typename obj_t = typename is_memfun_pointer<MemFun>::object_type,
+
+      typename obj_qualified_t = typename stdm::conditional<Flags & IS_CONST,
+        typename stdm::add_const<obj_t>::type, obj_t>::type,
+      typename param_t = typename stdm::conditional<Flags & ACCEPTS_PTR,
+        typename stdm::add_pointer<obj_qualified_t>::type,
+        typename stdm::add_lvalue_reference<obj_qualified_t>::type>::type,
+
+      typename type = typename sig::shift<mem_t, param_t>::type,
+      bool value = is_variant_function<type, S>::value>
+    struct test_signature: mwg::identity<type>, stdm::integral_constant<bool, value> {};
+
+    template<
+      typename MemFun, typename S,
+
+      typename mem_t = typename is_memfun_pointer<MemFun>::member_type,
+      typename obj_t = typename is_memfun_pointer<MemFun>::object_type,
+      typename obj_const_t = typename stdm::add_const<obj_t>::type,
+
+      // ■ToDo: obj_t に ref-qualifiers がついている場合は微妙。
+
+      int flags = (stdm::is_void<S>::value                      ? ACCEPTS_REF:
+        test_signature<MemFun, S, ACCEPTS_REF           >::value? ACCEPTS_REF           :
+        test_signature<MemFun, S, ACCEPTS_REF | IS_CONST>::value? ACCEPTS_REF | IS_CONST:
+        test_signature<MemFun, S, ACCEPTS_PTR           >::value? ACCEPTS_PTR           :
+        test_signature<MemFun, S, ACCEPTS_PTR | IS_CONST>::value? ACCEPTS_PTR | IS_CONST: 0),
+
+      typename signature_t = typename test_signature<MemFun, S, flags>::type,
+      typename base = functor_traits_member_function<
+        MemFun, typename stdm::conditional<flags, signature_t, void>::type> >
+    struct _switch: base {};
+  }
+
+  template<typename MemFun, typename S>
+  struct functor_traits_member<MemFun, S, typename stdm::enable_if<stdm::is_member_function_pointer<MemFun>::value>::type>:
+    member_function_pointer_traits::_switch<MemFun, S> {};
+
   template<typename F, typename S>
   struct functor_traits_rule<traits_priority_member, F, S>:
     functor_traits_member<F, S> {};

@@ -92,9 +92,9 @@ namespace funsig {
     struct set_parameter: mwg::identity<S4>::type {};
   }
   template<typename S, std::ptrdiff_t I, typename A = mwg::invalid_type>
-  struct parameter: detail::set_parameter<S, I, A> {};
+  struct param: detail::set_parameter<S, I, A> {};
   template<typename S, std::ptrdiff_t I>
-  struct parameter<S, I>: mwg::identity<typename detail::extract<typename rotate<S, I>::type>::first_parameter_t> {};
+  struct param<S, I>: mwg::identity<typename detail::extract<typename rotate<S, I>::type>::first_parameter_t> {};
 }
 }
 #endif

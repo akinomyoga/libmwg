@@ -96,6 +96,7 @@ namespace functor_detail{
   /*?lwiki
    * :@var mwg::functor_detail::detail::==is_covariant==<typename F,typename T>::value;
    *  `F` の実引数を `T` の仮引数に渡す事ができるかどうかを判定します。
+   *  `F` は `std::forward` される前提です。
    *  `T=void` の場合は仮引数がないことを意味し、呼び出しに実引数を必要としないので常に `true` になります。
    */
   template<typename F,typename T>
