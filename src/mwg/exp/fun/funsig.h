@@ -21,23 +21,31 @@ namespace funsig {
 #pragma%m 1
     template<template<class A> class Filter, class R, class Head, class... A>
     struct filtered_rotate<R (Head, A...), 1, Filter>: mwg::identity<R(A..., typename Filter<Head>::type)> {};
+    template<template<class A> class Filter, class R, class Head, class... A>
+    struct filtered_rotate<R (Head, A..., ...), 1, Filter>: mwg::identity<R(A..., typename Filter<Head>::type, ...)> {};
 #pragma%end
 #pragma%x variadic_expand_0toArNm1
 
-    template<std::size_t Arity, typename R, typename A0, typename Unshift>
+    template<std::size_t Arity, bool VA, typename R, typename A0, typename Unshift, typename ToggleVA>
     struct extract_def {
       static mwg_constexpr_const std::size_t arity = Arity;
+      static mwg_constexpr_const bool has_va_args = VA;
       typedef R result_t;
       typedef A0 first_parameter_t;
       typedef Unshift unshift_t;
+      typedef ToggleVA toggle_va_args_t;
     };
     template<typename S>
     struct extract {};
     template<typename R>
-    struct extract<R()>: extract_def<0, R, void, R()> {};
+    struct extract<R()>: extract_def<0, false, R, void, R(), R(...)> {};
+    template<typename R>
+    struct extract<R(...)>: extract_def<0, true, R, void, R(...), R()> {};
 #pragma%m 1
     template<typename R, typename T, typename... A>
-    struct extract<R(T, A...)>: extract_def<1 + sizeof...(A), R, T, R(A...)> {};
+    struct extract<R(T, A...)>: extract_def<1 + sizeof...(A), false, R, T, R(A...), R(T, A..., ...)> {};
+    template<typename R, typename T, typename... A>
+    struct extract<R(T, A..., ...)>: extract_def<1 + sizeof...(A), true, R, T, R(A..., ...), R(T, A...)> {};
 #pragma%end
 #pragma%x variadic_expand_0toArNm1
 
@@ -52,17 +60,27 @@ namespace funsig {
 #pragma%m 1
     template<typename T, typename R, typename... A>
     struct transform<R(A...), T>: transform_def<R(A..., T), R(T, A...), T(A...)> {};
+    template<typename T, typename R, typename... A>
+    struct transform<R(A..., ...), T>: transform_def<R(A..., T, ...), R(T, A..., ...), T(A..., ...)> {};
 #pragma%end
 #pragma%x variadic_expand_0toArN
   }
 
   template<typename S>
   struct arity: stdm::integral_constant<std::size_t, detail::extract<S>::arity> {};
+  template<typename S>
+  struct has_va_args: stdm::integral_constant<std::size_t, detail::extract<S>::has_va_args> {};
+  template<typename S>
+  struct add_va_args: stdm::conditional<!has_va_args<S>::value, typename detail::extract<S>::toggle_va_args_t, S> {};
+  template<typename S>
+  struct remove_va_args: stdm::conditional<has_va_args<S>::value, typename detail::extract<S>::toggle_va_args_t, S> {};
 
   template<typename S, std::ptrdiff_t N = 1>
   struct rotate: detail::filtered_rotate<S, (N % arity<S>::value + N) % arity<S>::value, mwg::identity> {};
-  template<typename R>
-  struct rotate<R()>: mwg::identity<R()> {};
+  template<typename R, std::ptrdiff_t N>
+  struct rotate<R(), N>: mwg::identity<R()> {};
+  template<typename R, std::ptrdiff_t N>
+  struct rotate<R(...), N>: mwg::identity<R(...)> {};
   template<typename S, template<typename A> class Filter>
   struct filter: detail::filtered_rotate<S, arity<S>::value, Filter> {};
 
