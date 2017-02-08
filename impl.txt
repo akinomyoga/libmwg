@@ -20,44 +20,87 @@
   ToDo
 ------------------------------------------------------------------------------
 
-2017-02-07
+2017-02-08
 
-* mwg/funcsig: bug arity_pop が variadic templates で動かない。
+* mwg/fun: member_function_pointer_traits::_switch の多重定義について
 
-  http://melpon.org/wandbox/permlink/M1ikUAaqJe55Lg8j
+  疑問
 
-  | #include <type_traits>
-  | #include <assert.h>
-  | 
-  | template<typename S, typename Add>
-  | struct push_back: std::false_type {};
-  | template<typename R, typename Add, typename... A>
-  | struct push_back<R (A...), Add>: std::true_type {using type = R(A..., Add);};
-  | 
-  | template<typename S>
-  | struct pop_back: std::false_type {};
-  | template<typename R, typename Tail, typename... A>
-  | struct pop_back<R (A..., Tail)>: std::true_type {using type = R(A...);};
-  |
-  | template<typename S>
-  | struct pop_front: std::false_type {};
-  | template<typename R, typename Head, typename... A>
-  | struct pop_front<R (Head, A...)>: std::true_type {using type = R(A...);};
-  | 
-  | int main() {
-  |     assert((push_back<void (int, int), int>::value)); // ok
-  |     assert((std::is_same<push_back<void(int,int),int>::type, void(int,int,int)>::value)); // ok
-  |     assert((pop_front<void (int, int)>::value)); // ok
-  |     assert((pop_back<void (int, int)>::value)); // fails
-  |     
-  |     return 0;
-  | }
+  どの種類の signature を試すべきだろうか。
+  メンバオブジェクトポインタの場合は `T& (C&)` と `T const& (C const&)` の多重定義があると見做した。
+  加えてポインタにした多重定義も考えた。
+  では既に ref-qualifiers の確定したメンバ関数の場合はどうだろうか。一つ試すだけで良いのだろうか。
+  それとも幾つか試さなければならなかったりするのだろうか。
 
-  型パラメータを使ってもこういう一致の仕方はしない様だ。
-  先頭を取り出すことはできる。末端を取り出すことはできない。
+  目的
 
-  さて arity_pop を variadic templates で一体どの様に実装すれば良いのだろうか。
-  例えば arity_rotate する事はできる。
+  ここでは `T (C::*)(...) qualifer` のメンバポインタが、
+  interface S を持つと言えるのかどうかについて判定する。
+  interface S を通じて呼び出されるあらゆる引数の組について、
+  `T (C::*)(...) qualifer` が呼び出せるのであれば、
+  interface S を持つということができる。
+
+  以下はメンバ関数 T (C::*)(...) qualifier が
+  或る value category の C に対して呼び出せるかどうかを表す。
+  
+    表1. this に対する qualifier (実際に試してみた)
+    +---------------+------+-------+----+--------+----+---------+
+    | arg\qualifier | none | const | &  | const& | && | const&& |
+    +---------------+------+-------+----+--------+----+---------+
+    | const prvalue | x    | ok    | x  | ok     | x  | ok      |
+    | prvalue       | ok   | ok    | x  | ok     | ok | ok      |
+    | const xvalue  | x    | ok    | x  | ok     | x  | ok      |
+    | xvalue        | ok   | ok    | x  | ok     | ok | ok      |
+    | const lvalue  | x    | ok    | x  | ok     | x  | x       |
+    | lvalue        | ok   | ok    | ok | ok     | x  | x       |
+    +---------------+------+-------+----+--------+----+---------+
+
+  一方で以下は関数 void (C qualifier ref?) が
+  それぞれの value category の C に対して呼び出せるかどうかを表す。
+  これはつまり interface S の第一引数の修飾と、呼び出し可能性を表す。
+  上の表と異なるところに ! をつけている。
+  
+    表2. 関数の引数に対する qualifier
+    +---------------+------+-------+----+--------+----+---------+
+    | arg\qualifier | none | const | &  | const& | && | const&& |
+    +---------------+------+-------+----+--------+----+---------+
+    | const prvalue | ok!  | ok    | x  | ok     | x  | ok      |
+    | prvalue       | ok   | ok    | x  | ok     | ok | ok      |
+    | const xvalue  | ok!  | ok    | x  | ok     | x  | ok      |
+    | xvalue        | ok   | ok    | x  | ok     | ok | ok      |
+    | const lvalue  | ok!  | ok    | x  | ok     | x  | x       |
+    | lvalue        | ok   | ok    | ok | ok     | x  | x       |
+    +---------------+------+-------+----+--------+----+---------+
+  
+  違いは qualifier を何も指定しなかった時の動作のみである。
+  ref-qualifier がついている時の動作は関数の引数と同じである。
+  従って受け取れるか受け取れないかは is_variant_function で直接判定できる (べきである)。
+  
+    % 例えばメンバ関数が const& の場合には、
+    % callable(const&) ⊃ callable(&), callable(const&), callable(&&),
+    %                     callable(const&&), callable(none), callable(const)
+    % であるので、S はどれでも良い。これは is_variant_function で判定できるはずである。
+    % →is_varient_function は is_covariant を使い、更にそれは is_convertible を使う。
+    %   実際に is_convertible を試してみた所、期待通りの動作になっている様だ。
+    % 
+    % 或いはメンバ関数が & の場合には callable(&) ⊃ callable(&) なので、
+    % S 引数修飾子は & だけしか駄目である。
+    % 
+    % メンバ関数が && の場合には S 引数修飾子は && しか駄目である。
+    % と思ったら、これは is_convertible で直接比較するといけない。
+    % S 引数修飾子が none だと何でも受け取れるのでこれは許可してはならない。
+    % なのに is_convertble だと許可してしまう事になるのだ。
+    % (確かに内部で forward すれば呼び出せるがこれは interface として可笑しい。)
+    % 
+    % →引数の contravariance は再設計する必要がある。
+    % →[Done / 2017-02-08 / "mwg/fun: is_contravariant/is_covariant 再設計"] を参照の事。
+  
+  ref-qualifier がない場合には const のない場合には呼び出せない様にしたい。
+
+
+
+  * 戻り値の covariance は R から const R& に変換できてはならないのではないか。
+    →[Done / 2017-02-08 / "mwg/fun: is_contravariant/is_covariant 再設計"] を参照の事。
 
 
 2017-02-06
@@ -1129,6 +1172,92 @@
 ------------------------------------------------------------------------------
   Done
 ------------------------------------------------------------------------------
+
+2017-02-08
+
+* mwg/fun: is_contravariant/is_covariant 再設計
+
+  概要:
+
+  is_contravariant<From, To>::value は、
+  仮引数 From を仮引数 To に置き換えたインターフェイスにできる場合に true となる。
+  つまり、To 型引数で受け取れる引数が常に From 型引数でも受け取れる場合に、true となる。
+  その為には先ず To -> From への変換が可能であるか From が void である必要がある。
+  更に To が参照でない場合には何でも受け取れてしまってこれは To const& に同じなので、
+  To -> From への変換が可能であるかどうかだけの判定では緩すぎである。
+  To const& -> From への変換が可能であるかどうかを見なければならない。
+
+  追加: 戻り値の covariance
+
+  更に戻り値の covariance にも問題がある様に思われる。
+  元の関数が R を返している時にインターフェイスが const R& を返す様には変更できない筈だ。
+  これはインターフェイスとして正しい正しくない以前に、
+  実際に存在しないオブジェクトを指す様になり危険だ。
+  この理由で以下は全て禁止されるべきである。
+
+    R → R&
+    R → R const&
+    R → R&&
+    R → R const&&
+    const R → R&
+    const R → R const&
+    const R → R&&
+    const R → R const&&
+
+  或いは To が reference ならば From も reference でなければならないと言い換えられる。
+
+    !is_reference<To>::value || is_reference<From>::value
+
+  From が参照型の場合に To が非参照型になるのは許容できるのかというのは、
+  安全であるが概念として許せるのかという話がある。
+  しかし例えば int& operator[](int) から int を取り出すという需要がある事を考えれば普通である。
+  或いは参照型は何れ値を取り出すか書き込むかされるのに使われるのだから、
+  できる操作を取り出すのに限定する (もしくは取り出す) というのは普通である。
+
+  From も To も非参照型の場合には単に From から To に型変換できれば良いだろう。
+
+  という訳で追加の条件は要らない気がする。
+
+
+2017-02-07
+
+* mwg/funcsig: bug arity_pop が variadic templates で動かない。
+
+  http://melpon.org/wandbox/permlink/M1ikUAaqJe55Lg8j
+
+  | #include <type_traits>
+  | #include <assert.h>
+  | 
+  | template<typename S, typename Add>
+  | struct push_back: std::false_type {};
+  | template<typename R, typename Add, typename... A>
+  | struct push_back<R (A...), Add>: std::true_type {using type = R(A..., Add);};
+  | 
+  | template<typename S>
+  | struct pop_back: std::false_type {};
+  | template<typename R, typename Tail, typename... A>
+  | struct pop_back<R (A..., Tail)>: std::true_type {using type = R(A...);};
+  |
+  | template<typename S>
+  | struct pop_front: std::false_type {};
+  | template<typename R, typename Head, typename... A>
+  | struct pop_front<R (Head, A...)>: std::true_type {using type = R(A...);};
+  | 
+  | int main() {
+  |     assert((push_back<void (int, int), int>::value)); // ok
+  |     assert((std::is_same<push_back<void(int,int),int>::type, void(int,int,int)>::value)); // ok
+  |     assert((pop_front<void (int, int)>::value)); // ok
+  |     assert((pop_back<void (int, int)>::value)); // fails
+  |     
+  |     return 0;
+  | }
+
+  型パラメータを使ってもこういう一致の仕方はしない様だ。
+  先頭を取り出すことはできる。末端を取り出すことはできない。
+
+  さて arity_pop を variadic templates で一体どの様に実装すれば良いのだろうか。
+  例えば arity_rotate する事はできる。
+
 
 2017-02-06
 

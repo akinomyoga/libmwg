@@ -2,6 +2,7 @@
 #ifndef MWG_FUN_H
 #define MWG_FUN_H
 #pragma%include "../../impl/VariadicMacros.pp"
+#pragma%include "../../impl/ManagedTest.pp"
 #pragma%[ArN=10]
 #pragma%x begin_check
 #include <mwg/exp/fun/fun.h>
@@ -19,6 +20,132 @@ namespace functor_detail {namespace sig = mwg::funcsig;}
 // namespace functor_detail {namespace sig = mwg::funsig;}
 
 namespace functor_detail {
+
+  namespace type_traits {
+    /*?lwiki
+     * @var bool ==is_contravariant==<typename From, typename To>::value;
+     *
+     * `From` 型仮引数を `To` 型仮引数に置き換えたインターフェイスを持てるかどうかを判定する。
+     * `To` で受け取れる実引数が全て元々 `From` で受け取れる場合に `true` となる。
+     * `To const&` で受け取った実引数を `From` に変換できることが条件になる。
+     *
+     * ※`To` が非参照型である場合、コンストラクタが対応する限り
+     *   あらゆる value category の値を受け取れてしまう事に注意する。
+     *   `const&` を付加するのはこれによる誤判定を除くためである。
+     *
+     * @var bool ==is_variant==<typename From, typename To>::value;
+     *
+     * 戻り値型 `From` を戻り値型 `To` に置き換えたインターフェイスを持てるかどうかを判定する。
+     *
+     */
+    namespace detail {
+      template<
+        typename From, typename To,
+        bool const value = (stdm::is_void<From>::value ||
+          stdm::is_convertible<typename stdx::add_const_reference<To>::type, From>::value)>
+      struct is_contravariant: stdm::integral_constant<bool, value> {};
+
+      template<
+        typename From, typename To,
+        bool const value = (stdm::is_void<To>::value ||
+          (stdm::is_convertible<From, To>::value &&
+            (!stdm::is_reference<To>::value || stdm::is_reference<From>::value)))>
+      struct is_covariant: stdm::integral_constant<bool, value> {};
+    }
+
+    template<typename From, typename To>
+    struct is_contravariant: detail::is_contravariant<From, To> {};
+    template<typename From, typename To>
+    struct is_covariant: detail::is_covariant<From, To> {};
+
+    namespace detail {
+      template<
+        typename FromSignature, typename ToSignature,
+        bool cond = sig::arity<FromSignature>::value || sig::arity<ToSignature>::value>
+      struct has_contravariant_parameters: stdm::integral_constant<bool,
+        is_contravariant<
+          typename sig::param<FromSignature, 0>::type,
+          typename sig::param<ToSignature  , 0>::type>::value &&
+        has_contravariant_parameters<
+          typename sig::unshift<FromSignature>::type,
+          typename sig::unshift<ToSignature>::type >::value> {};
+
+      template<typename FromSignature, typename ToSignature>
+      struct has_contravariant_parameters<FromSignature, ToSignature, false>: stdm::true_type {};
+
+      template<
+        typename FromSignature, typename ToSignature,
+        bool = stdm::is_function<FromSignature>::value && stdm::is_function<ToSignature>::value>
+      struct is_variant_function: stdm::integral_constant<bool,
+        (is_covariant<
+          typename sig::result<FromSignature>::type,
+          typename sig::result<ToSignature>::type>::value &&
+          has_contravariant_parameters<FromSignature,ToSignature>::value)>{};
+      template<typename FromSignature, typename ToSignature>
+      struct is_variant_function<FromSignature, ToSignature, false>: stdm::false_type {};
+    }
+    template<typename From, typename To>
+    struct is_variant_function: detail::is_variant_function<From, To> {};
+
+#pragma%x begin_test
+    struct Class {};
+    void test() {
+      using namespace mwg::functor_detail::type_traits;
+
+      mwg_check((is_contravariant<Class, Class        >::value));
+      mwg_check((is_contravariant<Class, Class const  >::value));
+      mwg_check((is_contravariant<Class, Class      & >::value));
+      mwg_check((is_contravariant<Class, Class const& >::value));
+#ifdef MWGCONF_STD_RVALUE_REFERENCES
+      mwg_check((is_contravariant<Class, Class      &&>::value));
+      mwg_check((is_contravariant<Class, Class const&&>::value));
+#endif
+
+      mwg_check((is_contravariant<const Class, Class        >::value));
+      mwg_check((is_contravariant<const Class, Class const  >::value));
+      mwg_check((is_contravariant<const Class, Class      & >::value));
+      mwg_check((is_contravariant<const Class, Class const& >::value));
+#ifdef MWGCONF_STD_RVALUE_REFERENCES
+      mwg_check((is_contravariant<const Class, Class      &&>::value));
+      mwg_check((is_contravariant<const Class, Class const&&>::value));
+#endif
+
+      mwg_check((!is_contravariant<Class&, Class        >::value));
+      mwg_check((!is_contravariant<Class&, Class const  >::value));
+      mwg_check(( is_contravariant<Class&, Class      & >::value));
+      mwg_check((!is_contravariant<Class&, Class const& >::value));
+#ifdef MWGCONF_STD_RVALUE_REFERENCES
+      mwg_check((!is_contravariant<Class&, Class      &&>::value));
+      mwg_check((!is_contravariant<Class&, Class const&&>::value));
+#endif
+
+      mwg_check((is_contravariant<const Class&, Class        >::value));
+      mwg_check((is_contravariant<const Class&, Class const  >::value));
+      mwg_check((is_contravariant<const Class&, Class      & >::value));
+      mwg_check((is_contravariant<const Class&, Class const& >::value));
+#ifdef MWGCONF_STD_RVALUE_REFERENCES
+      mwg_check((is_contravariant<const Class&, Class      &&>::value));
+      mwg_check((is_contravariant<const Class&, Class const&&>::value));
+#endif
+
+#ifdef MWGCONF_STD_RVALUE_REFERENCES
+      mwg_check((!is_contravariant<Class&&, Class        >::value));
+      mwg_check((!is_contravariant<Class&&, Class const  >::value));
+      mwg_check((!is_contravariant<Class&&, Class      & >::value));
+      mwg_check((!is_contravariant<Class&&, Class const& >::value));
+      mwg_check(( is_contravariant<Class&&, Class      &&>::value));
+      mwg_check((!is_contravariant<Class&&, Class const&&>::value));
+
+      mwg_check((!is_contravariant<const Class&&, Class        >::value));
+      mwg_check((!is_contravariant<const Class&&, Class const  >::value));
+      mwg_check((!is_contravariant<const Class&&, Class      & >::value));
+      mwg_check((!is_contravariant<const Class&&, Class const& >::value));
+      mwg_check(( is_contravariant<const Class&&, Class      &&>::value));
+      mwg_check(( is_contravariant<const Class&&, Class const&&>::value));
+#endif
+    }
+#pragma%x end_test
+  }
 
   enum invokation_type {
     invokation_function_call,
@@ -365,10 +492,10 @@ namespace functor_detail {
   struct functor_traits_function<F*, void, typename stdm::enable_if<stdm::is_function<F>::value>::type>:
     functor_traits_function_base<F> {};
   template<typename F, typename S>
-  struct functor_traits_function<F , S, typename stdm::enable_if<is_variant_function<F, S>::value>::type>:
+  struct functor_traits_function<F , S, typename stdm::enable_if<type_traits::is_variant_function<F, S>::value>::type>:
     functor_traits_function_base<F> {};
   template<typename F, typename S>
-  struct functor_traits_function<F*, S, typename stdm::enable_if<is_variant_function<F, S>::value>::type>:
+  struct functor_traits_function<F*, S, typename stdm::enable_if<type_traits::is_variant_function<F, S>::value>::type>:
     functor_traits_function_base<F> {};
 
   template<typename F, typename S>
@@ -409,10 +536,10 @@ namespace functor_detail {
 
     int flags = (!stdm::is_member_object_pointer<T C::*>::value? 0:
       stdm::is_void<S>::value                             ? ACCEPTS_REF | IS_CONST:
-      is_variant_function<mem_lref_t (C      &), S>::value? ACCEPTS_REF           :
-      is_variant_function<mem_cref_t (C const&), S>::value? ACCEPTS_REF | IS_CONST:
-      is_variant_function<mem_lref_t (C      *), S>::value? ACCEPTS_PTR           :
-      is_variant_function<mem_cref_t (C const*), S>::value? ACCEPTS_PTR | IS_CONST: 0),
+      type_traits::is_variant_function<mem_lref_t (C      &), S>::value? ACCEPTS_REF           :
+      type_traits::is_variant_function<mem_cref_t (C const&), S>::value? ACCEPTS_REF | IS_CONST:
+      type_traits::is_variant_function<mem_lref_t (C      *), S>::value? ACCEPTS_PTR           :
+      type_traits::is_variant_function<mem_cref_t (C const*), S>::value? ACCEPTS_PTR | IS_CONST: 0),
 
     typename return_t        = typename stdm::conditional<flags & IS_CONST, mem_cref_t, mem_lref_t>::type,
     typename qualified_obj_t = typename stdm::conditional<flags & IS_CONST, C const, C>::type,
@@ -429,7 +556,6 @@ namespace functor_detail {
   // todo: memobj; rvalue references
 
   //■ToDo: add check codes
-  //@@typename is_memfun_pointer<MemFun>::member_type
   namespace member_function_pointer_traits {
 
     // todo: memptr; rvalue references
@@ -477,7 +603,7 @@ namespace functor_detail {
         typename stdm::add_lvalue_reference<obj_qualified_t>::type>::type,
 
       typename type = typename sig::shift<mem_t, param_t>::type,
-      bool value = is_variant_function<type, S>::value>
+      bool value = type_traits::is_variant_function<type, S>::value>
     struct test_signature: mwg::identity<type>, stdm::integral_constant<bool, value> {};
 
     template<
@@ -646,7 +772,7 @@ namespace test_member {
   struct Rect {int x, y, w, h;};
   void run() {
     mwg_check((mwg::stdm::is_member_object_pointer<int Rect::*>::value &&
-        mwg::functor_detail::is_variant_function<mwg::stdm::add_lvalue_reference<int>::type (Rect&), int& (Rect&)>::value));
+        mwg::functor_detail::type_traits::is_variant_function<mwg::stdm::add_lvalue_reference<int>::type (Rect&), int& (Rect&)>::value));
 
     mwg::as_functor<int Rect::*, int& (Rect&)>::adapter f1(&Rect::x);
     mwg::as_functor<int Rect::*, int (Rect const&)>::adapter f2(&Rect::x);
@@ -673,6 +799,7 @@ int main() {
   test_function::run();
   test_member::run();
 
+  managed_test::run_tests();
   return 0;
 }
 
