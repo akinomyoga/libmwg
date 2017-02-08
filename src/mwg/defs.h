@@ -121,11 +121,20 @@ namespace stdm {
 //  constexpr
 //------------------------------------------------------------------------------
 #ifdef MWGCONF_STD_CONSTEXPR
+//
+// Note: constexpr の振る舞いは度々変わっている。
+//
+// - C++11 では constexpr 関数の中身に強い制限があったが、C++14 では可也自由になった。
+// - C++11 では constexpr のついている非静的メンバ関数は自動的に const qualified になったが、
+//   C++14 以降では constexpr がついていても勝手に const になったりはしない。
+//
 # define mwg_constexpr constexpr
 # define mwg_constexpr_const constexpr
+# define mwg_constexpr14
 #else
 # define mwg_constexpr
 # define mwg_constexpr_const const
+# define mwg_constexpr14
 #endif
 //------------------------------------------------------------------------------
 //  static_assert

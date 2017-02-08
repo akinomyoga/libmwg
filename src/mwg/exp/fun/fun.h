@@ -3,7 +3,6 @@
 #define MWG_FUN_H
 #pragma%include "../../impl/VariadicMacros.pp"
 #pragma%include "../../impl/ManagedTest.pp"
-#pragma%[ArN=10]
 #pragma%x begin_check
 #include <mwg/exp/fun/fun.h>
 #include <mwg/except.h>
@@ -23,6 +22,30 @@ namespace functor_detail {
 
   namespace type_traits {
     /*?lwiki
+     * @typedef typename ==reference_parameter==<T>::type;
+     *
+     * 非参照型に `const&` を付加します。
+     * 参照はそのまま返します。
+     * それ以外の場合に `T const&` を返します。
+     */
+    template<typename T> struct reference_parameter: stdm::conditional<
+      stdm::is_reference<T>::value, T,
+      typename stdx::add_const_reference<T>::type> {};
+
+    /*?lwiki
+     * @typedef typename ==canonical_parameter==<T>::type;
+     */
+    template<typename T> struct canonical_parameter: stdm::conditional<
+      (stdm::is_lvalue_reference<T>::type &&
+        stdm::is_const<typename stdm::remove_reference<T>::type>::type &&
+        !stdm::is_volatile<typename stdm::remove_reference<T>::type>::type &&
+        stdm::is_scalar<typename stdm::remove_reference<T>::type>::type),
+      typename stdm::remove_const<typename stdm::remove_reference<T>::type>::type,
+      typename stdm::conditional<
+        stdm::is_object<T>::value && !stdm::is_scalar<T>::type, typename stdx::add_const_reference<T>::type,
+        T>::type> {};
+
+    /*?lwiki
      * @var bool ==is_contravariant==<typename From, typename To>::value;
      *
      * `From` 型仮引数を `To` 型仮引数に置き換えたインターフェイスを持てるかどうかを判定する。
@@ -31,7 +54,7 @@ namespace functor_detail {
      *
      * ※`To` が非参照型である場合、コンストラクタが対応する限り
      *   あらゆる value category の値を受け取れてしまう事に注意する。
-     *   `const&` を付加するのはこれによる誤判定を除くためである。
+     *   `reference_parameter` で `const&` を付加するのはこれによる誤判定を除くためである。
      *
      * @var bool ==is_variant==<typename From, typename To>::value;
      *
@@ -41,8 +64,9 @@ namespace functor_detail {
     namespace detail {
       template<
         typename From, typename To,
+
         bool const value = (stdm::is_void<From>::value ||
-          stdm::is_convertible<typename stdx::add_const_reference<To>::type, From>::value)>
+          stdm::is_convertible<typename reference_parameter<To>::type, From>::value)>
       struct is_contravariant: stdm::integral_constant<bool, value> {};
 
       template<
@@ -145,6 +169,7 @@ namespace functor_detail {
 #endif
     }
 #pragma%x end_test
+
   }
 
   enum invokation_type {
@@ -166,7 +191,7 @@ namespace functor_detail {
   template<typename S, int Index>
   typename sig::param<S, Index>::type&&
   fwdp(typename stdm::remove_reference<typename sig::param<S, Index>::type>::type& value){
-    return static_cast<typename sig::parameter<S, Index>::type&&>(value);
+    return static_cast<typename sig::param<S, Index>::type&&>(value);
   }
   template<typename S, int Index>
   typename sig::param<S, Index>::type&&
@@ -175,18 +200,12 @@ namespace functor_detail {
   }
 #else
   template<typename T>
-  struct result_of_fwd: stdm::conditional<
-    stdm::is_reference<T>::value,
-    typename stdm::add_lvalue_reference<T>::type,
-    typename stdx::add_const_reference<T>::type
-    > {};
-  template<typename T>
-  typename result_of_fwd<T>::type
-  fwd(typename result_of_fwd<T>::type value) {return value;}
+  typename stdx::add_const_reference<T>::type
+  fwd(typename stdx::add_const_reference<T>::type value) {return value;}
 
   template<typename S, int Index>
   struct result_of_fwdp:
-    result_of_fwd<typename sig::param<S, Index>::type> {};
+    stdx::add_const_reference<typename sig::param<S, Index>::type> {};
   template<typename S, int Index>
   typename result_of_fwdp<S, Index>::type
   fwdp(typename result_of_fwdp<S, Index>::type value) {return value;}
@@ -307,6 +326,8 @@ namespace functor_detail {
 
   namespace function_invoker {
 #ifdef MWGCONF_STD_VARIADIC_TEMPLATES
+    template<typename T> struct p: type_traits::reference_parameter<T> {};
+
     template<typename S, typename CRTP>
     struct invoker {};
     template<class CRTP, class R, class... A>
@@ -314,8 +335,8 @@ namespace functor_detail {
       template<class F> invoker(F const& func): CRTP(func) {}
       template<class XS>
       typename sig::returns<XS>::type
-      forward(typename stdx::add_const_reference<A>::type... a, ...) const {
-        return (CRTP::get())(fwd<A>(a)...);
+      forward(typename p<A>::type... a, ...) const {
+        return (CRTP::get())(fwd<typename p<A>::type>(a)...);
       }
     };
     template<class CRTP, class R, class... A>
@@ -323,8 +344,8 @@ namespace functor_detail {
       template<class F> invoker(F const& func): CRTP(func) {}
       template<class XS, class... B>
       typename sig::returns<XS>::type
-      forward(typename stdx::add_const_referece<A>::type... a, B mwg_rfwd... b) const {
-        return (CRTP::get())(fwd<A>(a)..., fwd<B>(b)...);
+      forward(typename p<A>::type... a, B mwg_rfwd... b) const {
+        return (CRTP::get())(fwd<typename p<A>::type>(a)..., fwd<B>(b)...);
       }
     };
 #else
@@ -366,32 +387,26 @@ namespace functor_detail {
 
   namespace member_function_invoker {
 #ifdef MWGCONF_STD_VARIADIC_TEMPLATES
+    template<typename T> struct p: type_traits::reference_parameter<T> {};
+
     template<typename S, typename CRTP>
     struct invoker {};
     template<class CRTP, class R, class C, class... A>
     struct invoker<R (C, A...), CRTP>: CRTP {
       template<class F> invoker(F const& func): CRTP(func) {}
-
-    private:
-      typedef typename stdx::add_const_reference<C>::type obj_t;
-    public:
       template<class XS>
       typename sig::returns<XS>::type
-      forward(obj_t obj, typename stdx::add_const_reference<A>::type... a, ...) const {
-        return (CRTP::getobj(obj).*CRTP::get())(fwd<A>(a)...);
+      forward(typename p<C>::type obj, typename p<A>::type... a, ...) const {
+        return (CRTP::getobj(obj).*CRTP::get())(fwd<typename p<A>::type>(a)...);
       }
     };
     template<class CRTP, class R, class C, class... A>
     struct invoker<R (C, A..., ...), CRTP>: CRTP {
       template<class F> invoker(F const& func): CRTP(func) {}
-
-    private:
-      typedef typename stdx::add_const_reference<C>::type obj_t;
-    public:
       template<class XS, class... B>
       typename sig::returns<XS>::type
-      forward(obj_t obj, typename stdx::add_const_referece<A>::type... a, B mwg_rfwd... b) const {
-        return (CRTP::getobj(obj).*CRTP::get())(fwd<A>(a)..., fwd<B>(b)...);
+      forward(typename p<C>::type obj, typename p<A>::type... a, B mwg_rfwd... b) const {
+        return (CRTP::getobj(obj).*CRTP::get())(fwd<typename p<A>::type>(a)..., fwd<B>(b)...);
       }
     };
 #else
@@ -531,8 +546,11 @@ namespace functor_detail {
     const int ACCEPTS_PTR = 0x02,
     const int IS_CONST    = 0x10,
 
+    // ToDo @intrinsic_overload
     typename mem_lref_t = typename stdm::add_lvalue_reference<T>::type,
-    typename mem_cref_t = typename stdx::add_const_reference<T>::type,
+    typename mem_cref_t = typename stdm::conditional<
+      stdm::is_reference<T>::value, T,
+      typename stdx::add_const_reference<T>::type>::type,
 
     int flags = (!stdm::is_member_object_pointer<T C::*>::value? 0:
       stdm::is_void<S>::value                             ? ACCEPTS_REF | IS_CONST:
@@ -558,8 +576,6 @@ namespace functor_detail {
   //■ToDo: add check codes
   namespace member_function_pointer_traits {
 
-    // todo: memptr; rvalue references
-
     template<typename MemFun, typename S>
     struct functor_traits_member_function: stdm::true_type {
       static const int invokation = invokation_member_function;
@@ -571,13 +587,17 @@ namespace functor_detail {
       public:
         MemFun get() const {return m_memptr;}
 
-        template<typename C> static C& getobj(C* ptr) {return *ptr;}
-        template<typename C> static C const& getobj(C const* ptr) {return *ptr;}
+        template<typename C> static C               & getobj(C               * ptr) {return *ptr;}
+        template<typename C> static C const         & getobj(C const         * ptr) {return *ptr;}
+        template<typename C> static C       volatile& getobj(C       volatile* ptr) {return *ptr;}
+        template<typename C> static C const volatile& getobj(C const volatile* ptr) {return *ptr;}
 #ifdef MWGCONF_STD_RVALUE_REFERENCES
         template<typename C> static C&& getobj(C&& obj) {return stdm::forward<C>(obj);}
 #else
-        template<typename C> static C& getobj(C& obj) {return obj;}
-        template<typename C> static C const& getobj(C const& obj) {return obj;}
+        template<typename C> static C               & getobj(C               & obj) {return obj;}
+        template<typename C> static C const         & getobj(C const         & obj) {return obj;}
+        template<typename C> static C       volatile& getobj(C       volatile& obj) {return obj;}
+        template<typename C> static C const volatile& getobj(C const volatile& obj) {return obj;}
 #endif
       } byref_holder, byval_holder;
     };
@@ -611,19 +631,54 @@ namespace functor_detail {
 
       typename mem_t = typename is_memfun_pointer<MemFun>::member_type,
       typename obj_t = typename is_memfun_pointer<MemFun>::object_type,
-      typename obj_const_t = typename stdm::add_const<obj_t>::type,
 
-      // ■ToDo: obj_t に ref-qualifiers がついている場合は微妙。
+      // obj_cref_t: obj parameter type for intrinsic signature
+      //
+      // + ref-qualifier がついている場合にはそのまま obj_t が自然な引数の型である。
+      // + ref-qualifier がない場合は lvalue/rvalue のどちらからでも呼び出せることを表す。
+      //   つまり、同じ cv またはより少ない cv を持つ lvalue/rvalue から呼び出せる。
+      //   + 右辺値参照のない環境では関数の引数では値の cv に応じた引数受取の選択はできないので実現方法はない。
+      //     この場合には permissive に C const& で値を受け取る様にして内部で const_cast をするしかない。
+      //   + 右辺値参照のある環境では obj_t& 及び obj_t&& の多重定義を作ることに対応するが、
+      //     現状では未だ intrinsic_signature として多重定義を許す様になっていないので、
+      //     取り敢えずのところは const& で修飾して内部で const_cast する様にして置く。
+      //     ToDo @intrinsic_overload
+      //
+      typename obj_cref_t = typename type_traits::reference_parameter<obj_t>::type,
 
-      int flags = (stdm::is_void<S>::value                      ? ACCEPTS_REF:
-        test_signature<MemFun, S, ACCEPTS_REF           >::value? ACCEPTS_REF           :
-        test_signature<MemFun, S, ACCEPTS_REF | IS_CONST>::value? ACCEPTS_REF | IS_CONST:
-        test_signature<MemFun, S, ACCEPTS_PTR           >::value? ACCEPTS_PTR           :
-        test_signature<MemFun, S, ACCEPTS_PTR | IS_CONST>::value? ACCEPTS_PTR | IS_CONST: 0),
+#ifdef MWGCONF_STD_RVALUE_REFERENCES
+      typename obj_lref_t = typename stdm::conditional<
+        stdm::is_reference<obj_t>::value, obj_t,
+        typename stdm::add_lvalue_reference<obj_t>::type>::type,
+      typename obj_rref_t = typename stdm::conditional<
+        stdm::is_reference<obj_t>::value, obj_t,
+        typename stdm::add_rvalue_reference<obj_t>::type>::type,
+#else
+      typename obj_lref_t = typename type_traits::reference_parameter<obj_t>::type,
+      typename obj_rref_t = obj_lref_t,
+#endif
 
-      typename signature_t = typename test_signature<MemFun, S, flags>::type,
-      typename base = functor_traits_member_function<
-        MemFun, typename stdm::conditional<flags, signature_t, void>::type> >
+      typename sig0_t = typename sig::shift<mem_t, obj_cref_t>::type,
+      typename sig1_t = typename sig::shift<mem_t, obj_lref_t>::type,
+      typename sig2_t = typename sig::shift<mem_t, obj_rref_t>::type,
+      typename sig3_t = typename stdm::conditional<
+        !stdm::is_rvalue_reference<obj_t>::value,
+        typename sig::shift<mem_t, typename stdm::remove_reference<obj_t>::type*>::type,
+        void>::type,
+
+      bool test0 = stdm::is_void<S>::value,
+      bool test1 = is_variant_function<sig1_t, S>::value,
+      bool test2 = is_variant_function<sig2_t, S>::value,
+      bool test3 = is_variant_function<sig3_t, S>::value,
+
+      typename sig_t = typename stdm::conditional<
+        test1, sig1_t,
+        typename stdm::conditional<
+          test2, sig2_t,
+          typename stdm::conditional<
+            test3, sig3_t, void>::type>::type>::type,
+
+      typename base = functor_traits_member_function<MemFun, void> >
     struct _switch: base {};
   }
 
@@ -644,7 +699,7 @@ namespace functor_detail {
   private:
     typedef typename sig::filter<
       typename traits_type::intrinsic_signature,
-      stdx::add_const_reference>::type interface_signature;
+      type_traits::reference_parameter>::type interface_signature;
   public:
     typedef functor_interface<interface_signature,
       typename functor_invoker_selector<
@@ -657,7 +712,7 @@ namespace functor_detail {
     typedef functor_traits<F, S> traits_type;
 
   private:
-    typedef typename sig::filter<S, stdx::add_const_reference>::type interface_signature;
+    typedef typename sig::filter<S, type_traits::reference_parameter>::type interface_signature;
   public:
     typedef functor_interface<interface_signature,
       typename functor_invoker_selector<
@@ -725,10 +780,10 @@ namespace test_funcsig {
   void run() {
     using namespace mwg::funcsig;
     mwg_check((mwg::stdm::is_same<
-        filter<int (int, char, short&), mwg::stdx::add_const_reference>::type,
+        filter<int (int, char, short&), mwg::functor_detail::type_traits::reference_parameter>::type,
         int (int const&, char const&, short&)>::value));
     mwg_check((mwg::stdm::is_same<
-        filter<int (int&, char, short), mwg::stdx::add_const_reference>::type,
+        filter<int (int&, char, short), mwg::functor_detail::type_traits::reference_parameter>::type,
         int (int&, char const&, short const&)>::value));
   }
 }

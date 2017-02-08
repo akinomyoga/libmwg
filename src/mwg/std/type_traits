@@ -236,14 +236,14 @@ namespace stdm{
   template<typename T,int N> struct is_volatile<volatile T[N]>:true_type{};
 
   namespace detail{
-    template<typename T,bool IsReference=is_reference<T>::value>
-    struct add_const_impl:mwg::identity<const T>{};
-    template<typename T,bool IsReference=is_reference<T>::value>
-    struct add_volatile_impl:mwg::identity<volatile T>{};
+    template<typename T, bool = !is_reference<T>::value>
+    struct add_const_impl: mwg::identity<const T>{};
+    template<typename T, bool = !is_reference<T>::value>
+    struct add_volatile_impl: mwg::identity<volatile T>{};
 
     // T: reference の場合に T const/volatile と書くと vc9 が警告を発するので。
-    template<typename T> struct add_const_impl<T,true>:mwg::identity<T>{};
-    template<typename T> struct add_volatile_impl<T,true>:mwg::identity<T>{};
+    template<typename T> struct add_const_impl<T, false>: mwg::identity<T>{};
+    template<typename T> struct add_volatile_impl<T, false>: mwg::identity<T>{};
   }
   template<typename T> struct add_const:detail::add_const_impl<T>{};
   template<typename T> struct add_volatile:detail::add_volatile_impl<T>{};
@@ -1370,8 +1370,19 @@ namespace stdx{
   template<typename To,typename From> struct copy_cv
     :copy_const<typename copy_volatile<To,From>::type,From>{};
 
-  // add_const_reference<T>
-  template<typename T> struct add_const_reference:add_lvalue_reference<typename add_const<T>::type>{};
+  /*?lwiki
+   * @typedef typename mwg::stdx::==add_const_reference==<T>::type;
+   *
+   * `const&` を付加します。
+   * 右辺値参照を左辺値参照に変えます。
+   * 左辺値参照はそのまま返します。
+   * それ以外の場合に `const&` を付加します。
+   *
+   * 例えば、`Class const&` で受け取ったオブジェクトが、`T` 型で宣言されたメンバを持つ場合、
+   * メンバアクセスは (戻り値の宣言型として) 型 `mwg::stdx::add_const_reference<T>::type` を持ちます。
+   *
+   */
+  template<typename T> struct add_const_reference: add_lvalue_reference<typename add_const<T>::type>{};
 
   // parameter_pack<Ts...>
 #if defined(MWGCONF_STD_VARIADIC_TEMPLATES)

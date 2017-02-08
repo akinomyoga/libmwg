@@ -47,14 +47,11 @@ namespace stdm{
     return static_cast<typename stdm::remove_reference<T>::type&&>(value);
   }
 #else
+  // Note: stdx::add_const_reference は、左辺値参照に対しては何もしない。
+  //   右辺値参照は左辺値参照に変更する。それ以外に対して const& を付加する。
   template<typename T>
-  typename enable_if<!is_reference<T>::value,
-    typename stdx::add_const_reference<T>::type>::type
+  typename stdx::add_const_reference<T>::type
   forward(typename stdx::add_const_reference<T>::type value){return value;}
-  template<typename T>
-  typename enable_if<is_reference<T>::value,
-    typename add_lvalue_reference<T>::type>::type
-  forward(typename add_lvalue_reference<T>::type value){return value;}
 
   template<typename T>
   T& move(const T& value){return const_cast<T&>(value);}
@@ -65,24 +62,12 @@ namespace stdm{
 //HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 
 //-----------------------------------------------------------------------------
+#include <mwg/std/type_traits>
 namespace mwg{
 namespace stdx{
-#if defined(MWGCONF_STD_RVALUE_REFERENCES)
-#  define mwg_forward_lvalue &
-#  define mwg_forward_rvalue &&
-#else
-#  define mwg_forward_lvalue const&
-#  define mwg_forward_rvalue const&
-/*  Implementation note:
- *
- *  template class cannot be used here for switching those references.
- *  That is because the type parameters with the complex parameter types, such as
- *    void func(typename mwg::forward_rvalue<Args>::type...),
- *  cannot be resolved to match the arguments.
- */
-
 /*?lwiki
- * *独自拡張
+ * * 独自拡張
+ *
  * @def mwg_forward_rvalue
  * パラメータ型に対する後置修飾。
  * C++11 では && に展開され C++03 では const& に展開される。
@@ -106,30 +91,48 @@ namespace stdx{
  * パラメータ型に対する後置修飾。
  * C++11 では & に展開され C++03 では const& に展開される。
  * forward 擬きの実装時にその引数として使用する。
- * tepmlate<typename T>
+ * &pre(!cpp){
+ * template<typename T>
  * T mwg_forward_rvalue my_forward(T mwg_forward_lvalue value){
  *   return reinterpret_cast<T mwg_forward_rvalue>(value);
+ * }
+ * }
+ *
+ * ** 実装Note: マクロを用いる理由
+ *
+ * クラステンプレートではなくマクロで提供するのは、クラステンプレートを用いて
+ * `void func(typename mwg::forward_rvalue<Args>::type...)` の様に記述すると、
+ * テンプレート実引数の推論ができなくなる為である。`Args` を推論してもらう為には、
+ * `void func(Args const&...)` などの様な形式でなければならない。
+ *
+ * ** 使用例
+ *
+ * &pre(!cpp){
+ * template<typename T> void hoge(T mwg_forward_rvalue t){hoge_impl(mwg::stdm::forward<T>(t));}
+ *
+ * template<typename T> void hoge(T const& t){hoge_impl(t);}
+ * // NG: 参照が定数参照になる
+ * //  ok: int -> const int&
+ * //  ng: int& -> const int&
+ * //  ok: const int& -> const int&
+ *
+ * template<typename T> void hoge(T& t){hoge_impl(t);}
+ * // NG: 定数値を渡せない
+ * //  ng: int
+ * //  ok: int& -> int&
+ * //  ok: const int& -> const int&
  * }
  *
  */
 
-/*
- *  // usage:
- *  template<typename T> void hoge(T mwg_forward_rvalue t){hoge_impl(mwg::stdm::forward<T>(t));}
- *
- *  template<typename T> void hoge(T const& t){hoge_impl(t);}
- *  // NG: 参照が定数参照になる
- *  //  ok: int -> const int&
- *  //  ng: int& -> const int&
- *  //  ok: const int& -> const int&
- *
- *  template<typename T> void hoge(T& t){hoge_impl(t);}
- *  // NG: 定数値を渡せない
- *  //  ng: int
- *  //  ok: int& -> int&
- *  //  ok: const int& -> const int&
- */
+#if defined(MWGCONF_STD_RVALUE_REFERENCES)
+#  define mwg_forward_lvalue &
+#  define mwg_forward_rvalue &&
+#else
+#  define mwg_forward_lvalue const&
+#  define mwg_forward_rvalue const&
 #endif
+
 }
 }
 //HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH

@@ -20,87 +20,9 @@
   ToDo
 ------------------------------------------------------------------------------
 
-2017-02-08
+2017-02-09
 
-* mwg/fun: member_function_pointer_traits::_switch の多重定義について
-
-  疑問
-
-  どの種類の signature を試すべきだろうか。
-  メンバオブジェクトポインタの場合は `T& (C&)` と `T const& (C const&)` の多重定義があると見做した。
-  加えてポインタにした多重定義も考えた。
-  では既に ref-qualifiers の確定したメンバ関数の場合はどうだろうか。一つ試すだけで良いのだろうか。
-  それとも幾つか試さなければならなかったりするのだろうか。
-
-  目的
-
-  ここでは `T (C::*)(...) qualifer` のメンバポインタが、
-  interface S を持つと言えるのかどうかについて判定する。
-  interface S を通じて呼び出されるあらゆる引数の組について、
-  `T (C::*)(...) qualifer` が呼び出せるのであれば、
-  interface S を持つということができる。
-
-  以下はメンバ関数 T (C::*)(...) qualifier が
-  或る value category の C に対して呼び出せるかどうかを表す。
-  
-    表1. this に対する qualifier (実際に試してみた)
-    +---------------+------+-------+----+--------+----+---------+
-    | arg\qualifier | none | const | &  | const& | && | const&& |
-    +---------------+------+-------+----+--------+----+---------+
-    | const prvalue | x    | ok    | x  | ok     | x  | ok      |
-    | prvalue       | ok   | ok    | x  | ok     | ok | ok      |
-    | const xvalue  | x    | ok    | x  | ok     | x  | ok      |
-    | xvalue        | ok   | ok    | x  | ok     | ok | ok      |
-    | const lvalue  | x    | ok    | x  | ok     | x  | x       |
-    | lvalue        | ok   | ok    | ok | ok     | x  | x       |
-    +---------------+------+-------+----+--------+----+---------+
-
-  一方で以下は関数 void (C qualifier ref?) が
-  それぞれの value category の C に対して呼び出せるかどうかを表す。
-  これはつまり interface S の第一引数の修飾と、呼び出し可能性を表す。
-  上の表と異なるところに ! をつけている。
-  
-    表2. 関数の引数に対する qualifier
-    +---------------+------+-------+----+--------+----+---------+
-    | arg\qualifier | none | const | &  | const& | && | const&& |
-    +---------------+------+-------+----+--------+----+---------+
-    | const prvalue | ok!  | ok    | x  | ok     | x  | ok      |
-    | prvalue       | ok   | ok    | x  | ok     | ok | ok      |
-    | const xvalue  | ok!  | ok    | x  | ok     | x  | ok      |
-    | xvalue        | ok   | ok    | x  | ok     | ok | ok      |
-    | const lvalue  | ok!  | ok    | x  | ok     | x  | x       |
-    | lvalue        | ok   | ok    | ok | ok     | x  | x       |
-    +---------------+------+-------+----+--------+----+---------+
-  
-  違いは qualifier を何も指定しなかった時の動作のみである。
-  ref-qualifier がついている時の動作は関数の引数と同じである。
-  従って受け取れるか受け取れないかは is_variant_function で直接判定できる (べきである)。
-  
-    % 例えばメンバ関数が const& の場合には、
-    % callable(const&) ⊃ callable(&), callable(const&), callable(&&),
-    %                     callable(const&&), callable(none), callable(const)
-    % であるので、S はどれでも良い。これは is_variant_function で判定できるはずである。
-    % →is_varient_function は is_covariant を使い、更にそれは is_convertible を使う。
-    %   実際に is_convertible を試してみた所、期待通りの動作になっている様だ。
-    % 
-    % 或いはメンバ関数が & の場合には callable(&) ⊃ callable(&) なので、
-    % S 引数修飾子は & だけしか駄目である。
-    % 
-    % メンバ関数が && の場合には S 引数修飾子は && しか駄目である。
-    % と思ったら、これは is_convertible で直接比較するといけない。
-    % S 引数修飾子が none だと何でも受け取れるのでこれは許可してはならない。
-    % なのに is_convertble だと許可してしまう事になるのだ。
-    % (確かに内部で forward すれば呼び出せるがこれは interface として可笑しい。)
-    % 
-    % →引数の contravariance は再設計する必要がある。
-    % →[Done / 2017-02-08 / "mwg/fun: is_contravariant/is_covariant 再設計"] を参照の事。
-  
-  ref-qualifier がない場合には const のない場合には呼び出せない様にしたい。
-
-
-
-  * 戻り値の covariance は R から const R& に変換できてはならないのではないか。
-    →[Done / 2017-02-08 / "mwg/fun: is_contravariant/is_covariant 再設計"] を参照の事。
+* mwg/fun: というかメンバオブジェクトでも volatile は考えなければならない。
 
 
 2017-02-06
@@ -1172,6 +1094,503 @@
 ------------------------------------------------------------------------------
   Done
 ------------------------------------------------------------------------------
+
+2017-02-09
+
+2017-02-08
+
+* mwg/fun: member_function_pointer_traits::_switch の多重定義について
+
+  疑問
+
+  どの種類の signature を試すべきだろうか。
+  メンバオブジェクトポインタの場合は `T& (C&)` と `T const& (C const&)` の多重定義があると見做した。
+  加えてポインタにした多重定義も考えた。
+  では既に ref-qualifiers の確定したメンバ関数の場合はどうだろうか。一つ試すだけで良いのだろうか。
+  それとも幾つか試さなければならなかったりするのだろうか。
+
+  目的
+
+  ここでは `T (C::*)(...) qualifer` のメンバポインタが、
+  interface S を持つと言えるのかどうかについて判定する。
+  interface S を通じて呼び出されるあらゆる引数の組について、
+  `T (C::*)(...) qualifer` が呼び出せるのであれば、
+  interface S を持つということができる。
+
+  考察
+
+  以下はメンバ関数 T (C::*)(...) qualifier が
+  或る value category の C に対して呼び出せるかどうかを表す。
+  
+    表1. this に対する qualifier (実際に試してみた)
+    +---------------+------+-------+----+--------+----+---------+
+    | arg\qualifier | none | const | &  | const& | && | const&& |
+    +---------------+------+-------+----+--------+----+---------+
+    | const prvalue | x    | ok    | x  | ok     | x  | ok      |
+    | prvalue       | ok   | ok    | x  | ok     | ok | ok      |
+    | const xvalue  | x    | ok    | x  | ok     | x  | ok      |
+    | xvalue        | ok   | ok    | x  | ok     | ok | ok      |
+    | const lvalue  | x    | ok    | x  | ok     | x  | x       |
+    | lvalue        | ok   | ok    | ok | ok     | x  | x       |
+    +---------------+------+-------+----+--------+----+---------+
+  
+  一方で以下は関数 void (C qualifier ref?) が
+  それぞれの value category の C に対して呼び出せるかどうかを表す。
+  これはつまり interface S の第一引数の修飾と、呼び出し可能性を表す。
+  上の表と異なるところに ! をつけている。
+  
+    表2. 関数の引数に対する qualifier
+    +---------------+------+-------+----+--------+----+---------+
+    | arg\qualifier | none | const | &  | const& | && | const&& |
+    +---------------+------+-------+----+--------+----+---------+
+    | const prvalue | ok!  | ok    | x  | ok     | x  | ok      |
+    | prvalue       | ok   | ok    | x  | ok     | ok | ok      |
+    | const xvalue  | ok!  | ok    | x  | ok     | x  | ok      |
+    | xvalue        | ok   | ok    | x  | ok     | ok | ok      |
+    | const lvalue  | ok!  | ok    | x  | ok     | x  | x       |
+    | lvalue        | ok   | ok    | ok | ok     | x  | x       |
+    +---------------+------+-------+----+--------+----+---------+
+  
+  | 違いは qualifier を何も指定しなかった時の動作のみである。
+  | ref-qualifier がついている時の動作は関数の引数と同じである。
+  | 従って受け取れるか受け取れないかは is_variant_function で直接判定できる (べきである)。
+  | 
+  |   % 例えばメンバ関数が const& の場合には、
+  |   % callable(const&) ⊃ callable(&), callable(const&), callable(&&),
+  |   %                     callable(const&&), callable(none), callable(const)
+  |   % であるので、S はどれでも良い。これは is_variant_function で判定できるはずである。
+  |   % →is_varient_function は is_covariant を使い、更にそれは is_convertible を使う。
+  |   %   実際に is_convertible を試してみた所、期待通りの動作になっている様だ。
+  |   % 
+  |   % 或いはメンバ関数が & の場合には callable(&) ⊃ callable(&) なので、
+  |   % S 引数修飾子は & だけしか駄目である。
+  |   % 
+  |   % メンバ関数が && の場合には S 引数修飾子は && しか駄目である。
+  |   % と思ったら、これは is_convertible で直接比較するといけない。
+  |   % S 引数修飾子が none だと何でも受け取れるのでこれは許可してはならない。
+  |   % なのに is_convertble だと許可してしまう事になるのだ。
+  |   % (確かに内部で forward すれば呼び出せるがこれは interface として可笑しい。)
+  |   % 
+  |   % →引数の contravariance は再設計する必要がある。
+  |   % →[Done / 2017-02-08 / "mwg/fun: is_contravariant/is_covariant 再設計"] を参照の事。
+  | 
+  |   is_variant_function がおかしいのは取り敢えず修正した。
+  |   再度考えてみる。
+  | 
+  |   結局 ref-qualifier がついている場合には、
+  |   引数に同じ ref がついている場合と同じ呼び出し可能性である。
+  |   つまり、S を選択する際にはそのまま `R (C qualifier, A...)` の振りをして比較すれば良い。
+  | 
+  | ref-qualifier がない場合には通常の引数と異なる振る舞いをする。
+  | 
+  |   qualifier が全くない場合には const のない value からメンバ関数を呼び出す事はできない。
+  |   C& と C&& に対して多重定義がある場合に等しい。
+  |   qualifier として const がついている場合には、
+  |   C const& と C const&& に対して多重定義があると見て良い。
+  |   この辺りは統一的に取り扱える。
+  | 
+  |   所が rvalue reference がない C++03 ではこの振る舞いを再現する方法が謎である。
+  |   取り敢えず const& で受け取って const_cast する事にしておけばいつでもコンパイルはできる。
+  |   const& で本当に参照である変数の値を書き換えてしまう危険性もあるが、
+  |   そういったコードは C++11 に対してテストしていれば除外される。
+  |   しかしもっとましな方法はないのだろうか。
+  |   問題は `R const f();` の様な戻り値に対して unqualified member function は呼び出せないという事である。
+  |   一方で、これを `g(f())` として別の関数の引数に指定する場合には、
+  |   `R f();` か `R const f();` かで受け取れる・受け取れないを区別する方法はない。
+  |   `g(R)` でどちらも受け取れるし、`g(R const)` でもどちらも受け取れる。
+  |   勿論 `g(R const&)` でもどちらも受け取れる。`g(R&)` はどちらも受け取れない。
+  |   `template<typename T> void g(T&)` は、というとどちらも受け取れない。
+  |   というかテンプレートで頑張って区別がつけられたとしても、
+  |   最終的な関数オブジェクトのインターフェイスは単純な関数型で表されるのだから、
+  |   それ (或いはその多重定義) で表現できない様な区別はしても仕方がない。
+  |   →結局 C++03 では permissive に行くしか無い。
+  | 
+  | まとめる。結局テストするべきは何であろうか。
+  | 
+  |   ref-qualifier がついている場合は
+  |     is_variant_function<R(C qualifiers,A...), S> の時に interface S を持つとして良い。
+  |   ref-qualifier がついていない場合は、
+  |     C++03 (rvalue reference がない) では is_variant_function<R (C const&, A...), S> の時に interface S を持つとして良い。
+  |     C++11 (rvalue reference がある) では
+  |       is_variant_function<R (C cv&&, A...), S> の時に interface S を持つとし、さもなくば、
+  |       is_variant_function<R (C cv&, A...), S> の時に interface S を持つとすれば良い。
+  | 
+  | % add_const, add_reference の類は参照に対して実行しても何も起こらないので上記はまとめる事ができる。
+  | % つまり、ref-qualifiers がついていない場合の判定法が、実はついている場合もカバーしている。
+  | % →これは勘違い。add_lvalue_reference すると reference を上書きしてしまう。
+  | 
+  | 更にポインタとしてオブジェクトを受け取る場合について考えなければならない。
+  | 同様に is_variant_function で比較するとすればどの様にすれば良いだろうか。
+  | 
+  |   ref-qualifiers として && がついている場合には、
+  |   ポインタを単に dereference しても rvalue は得られないので、呼び出しは不可能である。
+  |   ref-qualifiers として & がついている場合には、const& かそうでないかで違う気がする。
+  |     qualifier が単に & の場合には non-const lvalue が要求される。
+  |     つまり、ポインタとしては C* でなければならない。C const* はいけない。
+  |     これは is_variant_function<R (C*), S> で判定すれば良い。
+  |     qualifier が const& の場合には実は何でも受け取れる。
+  |     つまり、ポインタとして C* もしくは C const* が受け取れる。
+  | 
+  |     % そればかりか C volatile const* でも受け取れる気がする
+  |     %   (但しその場合には一時オブジェクトが内部で導入される)。
+  |     % これは is_variant_function<R (C const volatile*, A...), S> で判定すれば良い。
+  |     % 
+  |     % →あれ、本当に const& ならば volatile でも呼び出せるの?
+  |     % → 呼び出せなかった。
+  | 
+  |     という事はやはり is_variant_function<R (C const*, A...), S> で判定すれば良い。
+  | 
+  |   ref-qualifiers が何もない時、これは & または && と見てよいが、
+  |   既に見たように今回の場合は && は呼び出せない。従って & と同じ扱いだ。
+  | 
+  |     % 但し const& の様に C const volatile* でも受け取れる、という事はない。
+  |     % volatile な変数の場合は volatile なメンバ関数しか呼び出せないのだ (本当?→確かめた)。
+  |     %
+  |     % const& 側でも実は C const volatile& は受け取れないという事が分かったので、
+  |     % 実は気にしなくてもよいのである。
+  | 
+  | % もう一度整理する。
+  | %
+  | % - ポインタを受け取る場合には volatile は気にしなくても良い。
+  | %   ポインタを受け取るのと同じ要求がなされるからである。
+  | %
+  | % - % 参照で受け取る場合の volatile はちゃんと処理しなければならない。
+  | %   % というのも、引数の反変性では const& で volatile const& も受け取れるが、
+  | %   % memfun qualifiers では const& で volatile const& は受け取れないからである。
+  | % 
+  | %   今試してみたら volatile な変数は const& でも受け取る事はできない様だ。
+  | %   更に is_convertible もちゃんと受け取れないと言っている。
+  | %   なので volatile と const& の兼ね合いの事は気にしなくても良さそうだ。
+  | %
+  | % →結局 volatile は何も気にしなくて良さそうだ。或いはあと付けの考察で充分そうだ。
+
+  結論:
+
+  以下の様な判定を行えば良い。
+
+    auto functor_traits_switch() -> (bool ok, typename intrinsic_signature) {
+      cv := メンバ関数に指定された cv-qualifiers;
+      ref := メンバ関数に指定された ref-qualifiers;
+  
+      if (ref == 空) {
+    #if (rvalue reference がある時)
+        if (is_variant_function<R (C cv &&, A...), S>)
+          return (interface S を持つ, R (C cv &&, A...));
+        if (is_variant_function<R (C cv &, A...), S>)
+          return (interface S を持つ, R (C cv &, A...));
+    #elif (rvalue reference がない時)
+        if (is_variant_function<R (C cv const &, A...), S>)
+          return (interface S を持つ, R(C cv-qualifiers));
+    #endif
+      } else {
+        if (is_variant_function<R (C cv ref, A...), S>)
+          return (interface S を持つ, R (C cv ref, A...));
+      }
+
+      if (ref != rvalue_reference && is_variant_function<R (C cv*, A...), S>)
+        return (interface S を持つ, R (C cv*, A...));
+
+      return (interface S は持たない, void);
+    }
+
+  * 戻り値の covariance は R から const R& に変換できてはならないのではないか。
+    →[Done / 2017-02-08 / "mwg/fun: is_contravariant/is_covariant 再設計"] を参照の事。
+
+* mwg/std/type_traits: stdx::add_const_reference は && を上書きするべきかそうでないか。
+
+  今までは type_traits の慣習に倣って上書きするようにしていた。
+  然し、今回の実装では上書きしてほしくない動作が多数存在する。
+  そこで "add_const_reference は && を上書きしない" という動作に変更する事を考えた。
+
+  しかし、この変更により既存のコードは影響を受けるだろうか。確かめる必要がある。
+
+  1. 先ず使っている箇所として tuple の実装がある。
+    `get<0>(const TT&& tup)` (0 番目の tuple の要素) の自然な型は何だろうか。
+    0番目のメンバが参照でないならば、単に const& を付けた物になる。
+    0番目のメンバが左辺値参照ならば、特に何も変化はない。
+    0番目のメンバが右辺値参照の場合には、実は左辺値参照に置き換えた物になるのではないだろうか。
+    というのもメンバには既に名前がついていて、左辺値だからである。
+    特に、メンバの型というのは初期化の時にしか意味がなく、その後は左辺値参照も右辺値参照も関係ない。
+    従って、参照で受け取ったオブジェクトのメンバの型を導出する際には add_const_reference は、
+    従来の振る舞いのように右辺値参照を上書きするのが正しいのである。
+
+  これにより add_const_reference の振る舞いは破壊しない事になった。
+  今の所は、新しく add_const_reference_checked (仮名) を追加する予定である。
+  さて、他の箇所でもこの振る舞いを想定した実装になっているのかは一つずつ確認していく必要がある。
+
+  2. functor でも使われているがこれは廃止予定なので余り詳しくは見ない。
+    (1) limited_storage<case_data, S> の case_data に対して const_reference を適用している。
+      case_data が参照 (まして右辺値参照) という事はないのでこれは問題にならない。
+    (2) T C::* について const T& を受け取った時にどの型になるのかの計算で使っている。
+      これは従来の add_const_reference の振る舞いでなければならない。OK
+
+  3. <mwg/std/utility> の forward (for C++03) で add_const_reference を使っていた。
+    わざわざ add_const_reference に渡す型が参照の時に場合分けをしていたが、
+    実はこの場合分けは必要なくて単に従来の add_const_reference を使っていれば良いだけだった。修正した。
+    これについても従来の add_const_reference の振る舞いを支持する。
+
+  4. tuple の他の箇所
+
+    実は未だ tuple で使っている場所があった。
+    一つは実装仕掛けのコードで今は使われていない場所。
+    (std/tuple.nonvariadic_tuple.hpp:346)
+
+    std/tuple.nonvariadic_tuple.hpp:452
+    std/tuple.nonvariadic_tuple.hpp:454
+    ここで使われているのも別の問題があってコメントアウトされている。
+
+    std/tuple.nonvariadic_tuple.hpp:889
+    これは tuple_cat を実装する為に、tuple の要素を毎回コピーするのではなくて、
+    参照をコピーしてから初期化をするという作戦で行くために add_const_reference をしている。
+    そもそも C++03 向けのコードなので余り気にしても仕方がないのかもしれないが、
+    これについても右辺値参照が絡んできた時に注意深く考える必要がある。
+    →ここでは移動元の tuple を const& で受け取っているから、
+      その要素への参照を add_const_reference するのは自然である。
+      つまり、右辺値参照は左辺値参照に置き換えなければならず、
+      従来の add_const_reference の仕様でなければならない。
+
+  5. str.h でも使っている。
+    これは as_str<>::adapter に対して add_const_reference して、
+    引数でコピーなしに受け取る事ができる様にしている。
+    adapter が右辺値参照だということは考えにくい、
+    というより右辺値参照だったとしても、
+    引数で受け取るだけで破壊するというのは危険なのでこれで問題ない。
+
+  6. 残っているのは今回書いていたコードの fun.h だけである。
+
+    というか今までの背景を考えると add_const_reference は
+    やはり右辺値参照を左辺値参照に書き換えるべきなのではないかという気がしてきた。
+    今回の使用方法についてもそれが成立する可能性も含めて調べる必要がある。
+
+  6a. 先ず is_contravariant に関して。
+
+    これはテストで全パターン検査しているから振る舞いとしては問題はない。
+    ただ、この書き方が正しいのかについては再度考える必要がありそうだ。
+    →全パターン検査していると思ったがよく考えたら C++03 でしかテストしていない。
+    再度 C++11 で確かめようとした所、今まで溜まっていた沢山のバグが顕になった。
+    それらを修正してみると、is_contravariant が予想通り変な振る舞いをしていた。
+    これは、その場で参照の時は add_const_reference しない様に判定する。
+
+  6b. 次は forward の所で使っている。これは問題になりそうな気がする。
+
+    改めてどの様に処理するのが良いのかについて考えなければならない。
+    ここで本来したいのは完全転送である。
+    しかし右辺値参照に対応していない時に完全転送をどのようにするのかという事である。
+    右辺値参照が存在しない時には一般には完全転送は不可能である。
+    但し、行き先の型を知っている場合に限って完全転送のような事ができるのではないか、
+    と考えて書かれたのがここにおける add_const_reference なのである。
+
+    さて、再度一から考え直してみる。
+    本当に右辺値参照がない場合に考えられる引数の型は、
+
+      T, T const, T&, T const&
+
+    の何れかである。 T, T const に関しては、取り敢えず T const& で受け取って、
+    それを渡せば良いと考える (本当は初期化が余分に増えるから完全転送にして
+    避けたい気がするが、そもそも巨大な型で引数を参照にしないというの自体が駄目である。
+    小さな型の場合には初期化が何回重なっても気にならないので問題ない。)。
+    また T& 及び T const& に関してはそのまま受け渡しを行えば問題ない。
+
+    右辺値参照が存在している場合には、
+
+      T, T const, T&, T const&, T&&, T const&&
+
+    と様々な場合がある。T, T const に渡す為のパラメータについては、
+    % 勝手に move して T&& や T const&& で渡す訳には行かないから、
+    % やはり T const& で受け取るしかない様に思う。
+    問題は其処ではない。T, T const は普通は右辺値参照からでも
+    const 左辺値参照からでも初期化できる。
+    右辺値参照も左辺値参照も両方受け取れるのは T const& しかないという事である。
+    但し、勿論、右辺値参照の rvalue 性は失われるが、まあ、そもそも引数が
+    T, T const となっている関数の時点で何かおかしい気がするので余り気にしない
+    (ひょっとすると move で受け取る前提でわざと T, T const にする可能性もある
+    のかもしれないが、余りそのような使い方で便利なものが思い浮かばないので今は良い)。
+    一方で、最終的な行き先が T& T const& T&& T const&& である場合には、
+    そのままの引数で単に受け取って forward すれば良い。
+
+
+    6b.1 <mwg/std/utility> mwg_forward_rvalue との違いは?
+
+      一時これは mwg_forward_rvalue と同じ働きをする物なのかと考えた。
+      しかし mwg_forward_rvalue に置き換えられるかというとそうとも限らない。
+      というのは既に参照型や void である場合に mwg_forward_rvalue を付加するとエラーになるからだ。
+    
+      # (とは言っても void を引数の型として使用することはないし、
+      # 実はテンプレート引数が参照の時には Ref const& や Ref&& としてもちゃんと処理されるべきで、
+      # 一部のコンパイラ(vc9)で警告が出るかもしれないという事以外には実は問題はないのかもしれない。)
+    
+      従って同じ機能を持つ物をテンプレートで実装してみる事にした。
+      そしてそれを使って記述してみる事にした。しかし何か違う気がする。
+      右辺値参照がない処理系ではこれで良いが、
+      右辺値参照がある処理系では本当にこれで良いのだろうか。
+      これは universal reference で型推論をした結果として、
+      `T` ならば右辺値参照で `T&` なら左辺値参照だという物である。
+      今回の外部から指定する型というのは T または T& で右辺値参照・左辺値参照を区別する物ではない。
+      外部から `T` を指定するというのは受け取り側が T で受け取るという事で、
+      それはつまり右辺値参照でも左辺値参照でも何でも受け取るという意味である。
+      また `T&` を指定するというのは左辺値参照しか受け取らないという意味である。
+      そして `T&&` を指定するというのは右辺値参照しか受け取らないという意味である。
+      意味合いが全然違う。
+    
+      結局、新しく作った `add_forward_rvalue`/`add_forward_lvalue` は廃止する事にする。
+      現在使っているマクロをそのまま使うだけで良いからである。
+      (将来問題が出る可能性もあるが現在のところ問題は出ていないし、
+      また現在誰も使っていないのでテストの穴にもなるので後で管理が面倒になる。)
+      一応以下に <mwg/std/utility> に試験的に追加したテンプレートの実装を置いておく。
+    
+      ```
+      #if defined(MWGCONF_STD_RVALUE_REFERENCES)
+        template<typename T> struct add_forward_lvalue: add_lvalue_reference<T> {};
+        template<typename T> struct add_forward_rvalue: add_rvalue_reference<T> {};
+      #else
+        template<typename T> struct add_forward_lvalue: conditional<
+          is_reference<T>::value, T,
+          typename add_const_reference<T>::type> {};
+        template<typename T> struct add_forward_rvalue: conditional<
+          is_reference<T>::value, T,
+          typename add_const_reference<T>::type> {};
+      #endif
+      ```
+
+
+    何れにしても外部から `T` を指定することが何でも受け取れる事を表し、
+    `T&`, `T&&` がそれぞれ右辺値参照・左辺値参照しか受け取れない事を表したい。
+    これは矢張り転送に関係している気がするので <mwg/std/utility> に実装する方向で考えたい。
+
+    6b.2 名称をどうするか
+
+      振る舞いに関しては問題ない。特にいま問題になっているのは名称である。
+      そして名称を決める際に重要なのはどの様な場合にこの機能を使う事ができるのかという事である。
+
+      std::forward による完全転送の場合は転送元の式の value category に依存していた。
+      一方で、今回考えているのは転送先の引数の許容する value category に応じて、
+      対応した値を参照で受けられる様にする為の引数の型を算出することにあった。
+
+      メールなんかの場合だと forward というのは転送元が決定権を有する。
+      では転送先が決定権を有するような取り寄せはなんというのだろうか。
+      取り寄せると言っても中身を見ずにそのまま転送してくれる様に手配することである。
+      郵便の場合だと転居届で転送設定をするというのが対応する。
+      うーん。order from (取り寄せ), accept (需要), transfer (移転・引っ越し)。
+      全部違う気がする。forward_from というのが正しいのだろうか。
+
+        例: void func(typename stdx::forward_from<Args>::type...);
+
+      否、逆だ。目的語が異なる。from ではなくて to だ。結局そういう事になるのか。
+
+        例: void func(typename stdx::forward_to_parameter<Args>::type...);
+        例: void func(typename stdx::forward_to_argument<Args>::type...);
+
+      うーん。forward_to_parameter の辺りが適切な気がする。
+      しかし動詞というのは何か変だ。add_forward_to_parameter はどうだろう。
+      でも add という訳でもないような気がする。
+      厳密には type for forward to parameter もしくは forwarded type to parameter か、
+      うーん。でも、std::decay 等の用例があることだし、動詞でも良い気がする。
+
+    6b.3 実は boost::call_traits<T>::param_type で良いのでは。
+
+      所で引数に使うといえば boost だか何処かに似たような物があったような気がする。
+      これである: boost::call_traits<T>::param_type
+      - [c++ - template pass by const reference - Stack Overflow](http://stackoverflow.com/questions/4875989/template-pass-by-const-reference)
+      - [letsboost::call_traits](http://www.kmonos.net/alang/boost/classes/call_traits.html)
+      - [boost::call_traitsを使った最適化 - ボレロ村上 - ENiyGmaA Code](http://boleros.hateblo.jp/entry/20100108/1282356478)
+      記憶だともう少し違ったインターフェイスだったような気もしないでもないが、
+      広く知れ渡っている様だし記憶と違うのは param_type が type で call_traits が param hoge 的な物だったのではないかという、
+      名前が違うという程度の物でしか無いから、多分記憶にあるのは本当はこれだったという事で正しいだろう。
+
+      さて、これは名前つけの参考にはならない。もしくは typename stdx::param_type<T>::type 的にすれば良いという事を示唆しているのかもしれない。
+      今回の場合に当てはめて考えるのであれば typename stdx::param_forwarding_to_param<T>::type とかいう事になるのだろうか。
+      結構面倒なことだ。或いは typename stdx::param<T>::type が普通の const& であって、
+      typename stdx::param<T>::forward_to_parameter ん? 何か変だ。 <T> の位置を最後に持って来たいからこれは意味がない。
+
+      ところで、よく考えてみたら boost::call_traits<T>::param_type との動作の違いは何なのだろうか。
+      実は参照でない物に対して const& をつけるという意味では全く同じなのではないだろうか。
+      違いがあるとすれば int などのスカラーに const& を付加するかしないかであるが、
+      今回の場合には実は関係ない。スカラーに const& はつけなくても問題ないのだ。
+      ただ、最適化の際の振る舞いが変わるかもしれないが。。
+
+      この事を考えれば名前は単に typename stdx::parameter<T>::type もしくは、
+      スカラー型も const& にするという事を考えれば、
+      typename stdx::reference_parameter<T>::type とすれば良いのでは。
+
+    6b.4 どの名前空間に配置するのか。どのヘッダに配置するのか。実際の名前は。
+
+      さて、名前空間をどうするのかという問題は残っている。
+      mwg::parameter はない気がする。唯の traits に parameter を使わせるのは勿体ない。
+      mwg::reference_parameter も同様に勿体ない。
+      mwg::stdx::parameter, mwg::stdx::reference_parameter も勿体ない。
+      というか、将来衝突が起こった場合に問題になるだろう。
+
+      従って特別の名前空間に入れたほうが良い気がする。
+      そうすると mwg/std/utility に配置するのは正しいことなのだろうか。
+      特に、mwg::stdx 名前空間に配置する意味はあるのだろうか。
+      (実のところ mwg 名前空間に直接配置しても良いのかもしれない。)
+      特にどの名前空間に配置するのが良いのかというのは微妙である。
+
+      そもそも現段階では使うのは fun.h しかない。
+      だとすれば functor_detail 名前空間の内部に utility として用意するだけで良いのではないのか。
+      特に functor_detail::type_traits で良い気がしてきた。
+
+      さて、配置場所が決まったので名前も適当に決める。
+
+      完全に説明するには add_const_reference_to_parameter になるが、
+      これだと意図がよく分からない。短くすると reference_paramter になる。
+      或いは parameter でも良いかもしれない。しかし、やはり変だ。
+      或いは、as_reference_parameter というのも手かもしれない。
+      既に std::as_const という関数がある事を考えれば as は良くないので、
+      make_signed/make_unsigned に倣って make_reference_paramter でも良いかもしれない。
+      或いは make_parameter_reference でも良いかもしれない。
+
+      実は typename call_traits::parameter<T>::type でも良いのかもしれない。
+      もしくは forward_parameter<T>::type はどうだろうか。
+      或いは call_traits<T>::param_type に対応する traits も一緒に導入して、
+      セットで名前を決めるというのが良いような気もする。
+      だとすると先にこちらの名前を決めたい。
+      type_traits::parameter<T>::type もしくは type_traits::as_parameter<T>::type が良いか。
+      否 type_traits::standard_parameter<T>::type もしくは canonical_parameter<T> が良い。
+      (どうせこれも後で使うような気がする。)
+
+      とすれば今回の場合も 修飾語 + parameter が良さそうな気がする。
+      うーん。forwarding_paramter なんかだと矢張り perfect forward の印象が強いので良くない。
+      const_reference_parameter や reference_parameter だとそのまま過ぎて意図が見えない。
+      特に const_reference_parameter は右辺値参照や左辺値参照はそのまま通すという事が分からない。
+      実際には、場合に応じて const& になったり & や && をそのまま通過させたりする。
+      という事を考えれば実は reference_parameter で良いのではないか。。
+
+    → type_traits::canonical_parameter/reference_parameter を実装した。
+      それを使う様に修正した。
+
+  6c. 次は fun.h (functor_traits_member_object_switch) で、
+    オブジェクトを const& もしくは & で受け取った時に
+    add_const_reference または add_lvalue_reference している。この使い方は正しい。
+
+  6d. 次は fun.h (member_function_pointer_traits::_switch) である。
+    これは、メンバ関数型の自然な関数型を導出するのに使われている。
+
+    メンバ関数型が qualifier を全く持たない場合は、
+    non-const rvalue 及び non-const lvalue のオブジェクトから呼び出せる。
+    右辺値参照がない環境ではこれに対応する引数は存在しないので、
+    仕方がなく全てを受け入れる C const& で受け取る事にする。中で const 外しをする必要がある。
+    右辺値参照が存在する環境ではこれに対応するのは C&& と C& の多重定義である。
+    現在は多重定義のある intrinsic_signature に対応していない。
+    仕方がないので permissive に C const& を受け取る様にしておくしかないか。
+
+    結局この場合には add_const_reference ではなくて
+    新しく作った reference_parameter を使用する必要がある。
+
+    更に、右辺値参照がない環境での signature の候補にも使われている。
+    これは全く同じである。これも reference_parameter を使う様にすれば良い。
+
+  6e. 最後に使われているのは要求されたシグニチャから、
+    参照化したシグニチャを生成する場所である。
+    これに関しては reference_parameter にすれば良い。
+
+
+  新しく追加した reference_parameter について、
+  実は volatile も追加するのが正しいのではないかという気もするが、
+  下手に volatile を追加すると最適化を阻害するかもしれないので良くない。
+  というかよく考えたらコピーコンストラクタを呼び出せなく成るので全然駄目である。
+  というわけで reference_parameter で const volatile& を付加するという案は却下である。
+  (同様に restrict 乃至は __restrict を付加するという案も却下である。)
 
 2017-02-08
 

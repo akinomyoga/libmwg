@@ -1825,8 +1825,8 @@ namespace str_detail {
 
       this_type& operator++() {++this->m_index; return *this;}
       this_type& operator--() {--this->m_index; return *this;}
-      mwg_constexpr this_type  operator++(int) {return this_type(this->value, this->m_index++);}
-      mwg_constexpr this_type  operator--(int) {return this_type(this->value, this->m_index--);}
+      this_type  operator++(int) {return this_type(this->value, this->m_index++);}
+      this_type  operator--(int) {return this_type(this->value, this->m_index--);}
 
       mwg_constexpr difference_type operator- (this_type const& rhs) const {return this->m_index -  rhs.m_index;}
       mwg_constexpr bool            operator==(this_type const& rhs) const {return this->m_index == rhs.m_index;}
