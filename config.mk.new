@@ -11,13 +11,17 @@ export MMAKE_SOURCE_FILTER
 MMAKE_SOURCE_FILTER:=
 
 #
-# CXXCFG =~ /cxx(03|0x|11|1y|14|1z|17)(-release)?|release|default/
+# CXXCFG
+#   = /cxx(03|0x|11|1y|14|1z|17)(-(release|debug))?/
+#   | /release|debug/
+#   | /debug/
+#   | $name (where there is a file "config-$name.mk")
 #
 
 config_found_flag:=
 config_cplusplus := $(CXXCFG)
-config_release_mode := default
-ifneq ($(filter default release,$(CXXCFG)),)
+config_release_mode := debug
+ifneq ($(filter debug release default,$(CXXCFG)),)
   config_cplusplus := cxx03
   ifeq ($(CXXCFG),default)
     config_release_mode := debug
@@ -29,15 +33,15 @@ else
     config_cplusplus := $(CXXCFG:%-release=%)
     config_release_mode := release
   else
-    config_cplusplus := $(CXXCFG)
-    config_release_mode := default
+    config_cplusplus := $(CXXCFG:%-debug=%)
+    config_release_mode := debug
   endif
 endif
 
 # process $(config_cplusplus)
 ifneq ($(config_cplusplus:cxx%=%),$(config_cplusplus))
   config_cxx_version := $(config_cplusplus:cxx%=%)
-  ifneq ($(filter 03 0x 11 1y 14 1z 17,$(config_cxx_version)),)
+  ifneq ($(filter 98 03 0x 11 1y 14 1z 17,$(config_cxx_version)),)
     config_found_flag:=1
     CXXFLAGS += -std=c++$(config_cxx_version)
   endif
@@ -51,7 +55,10 @@ else
 endif
 
 # read config-$CXXCFG.mk if any
-ifeq ($(config_found_flag),)
+ifneq ($(config_found_flag),)
+  # set a canonical name of CXXCFG
+  CXXCFG := $(config_cplusplus)-$(config_release_mode)
+else
   config_special_makefile := $(wildcard config-$(CXXCFG).mk)
   ifneq ($(config_special_makefile),)
     config_found_flag := 1
