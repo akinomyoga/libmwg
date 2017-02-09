@@ -10,26 +10,57 @@ endif
 export MMAKE_SOURCE_FILTER
 MMAKE_SOURCE_FILTER:=
 
-CXXCFG_FOUND:=
-ifeq ($(CXXCFG),default)
-  CXXCFG_FOUND:=1
-  CXXFLAGS += -g
-endif
-ifeq ($(CXXCFG),release)
-  CXXCFG_FOUND:=1
-  CXXFLAGS += -O3
-endif
-ifeq ($(CXXCFG),cxx11)
-  CXXCFG_FOUND:=1
-  CXXFLAGS += -g
-  CXXFLAGS += -std=c++0x
-endif
-ifeq ($(CXXCFG),cxx11-release)
-  CXXCFG_FOUND:=1
-  CXXFLAGS += -O3
-  CXXFLAGS += -std=c++0x
+#
+# CXXCFG =~ /cxx(03|0x|11|1y|14|1z|17)(-release)?|release|default/
+#
+
+config_found_flag:=
+config_cplusplus := $(CXXCFG)
+config_release_mode := default
+ifneq ($(filter default release,$(CXXCFG)),)
+  config_cplusplus := cxx03
+  ifeq ($(CXXCFG),default)
+    config_release_mode := debug
+  else
+    config_release_mode := $(CXXCFG)
+  endif
+else
+  ifneq ($(CXXCFG:%-release=%),$(CXXCFG))
+    config_cplusplus := $(CXXCFG:%-release=%)
+    config_release_mode := release
+  else
+    config_cplusplus := $(CXXCFG)
+    config_release_mode := default
+  endif
 endif
 
-ifeq ($(CXXCFG_FOUND),)
-  -include config-$(CXXCFG).mk
+# process $(config_cplusplus)
+ifneq ($(config_cplusplus:cxx%=%),$(config_cplusplus))
+  config_cxx_version := $(config_cplusplus:cxx%=%)
+  ifneq ($(filter 03 0x 11 1y 14 1z 17,$(config_cxx_version)),)
+    config_found_flag:=1
+    CXXFLAGS += -std=c++$(config_cxx_version)
+  endif
 endif
+
+# process $(config_release_mode)
+ifeq ($(config_release_mode),release)
+  CXXFLAGS += -O3
+else
+  CXXFLAGS += -g
+endif
+
+# read config-$CXXCFG.mk if any
+ifeq ($(config_found_flag),)
+  config_special_makefile := $(wildcard config-$(CXXCFG).mk)
+  ifneq ($(config_special_makefile),)
+    config_found_flag := 1
+    -include $(config_special_makefile)
+  else
+    $(error config: could not find settings for CXXCFG=$(CXXCFG) -> cplusplus = $(config_cplusplus), mode = $(config_release_mode))
+  endif
+endif
+
+config_cplusplus :=
+config_release_mode :=
+config_found_flag :=
