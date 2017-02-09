@@ -620,12 +620,12 @@ namespace functor_detail {
         type_traits::is_variant_function<mem_lref_t (C      *), S>::value? ACCEPTS_PTR           :
         type_traits::is_variant_function<mem_cref_t (C const*), S>::value? ACCEPTS_PTR | IS_CONST: 0),
 
-      typename return_t        = typename stdm::conditional<flags & IS_CONST, mem_cref_t, mem_lref_t>::type,
-      typename qualified_obj_t = typename stdm::conditional<flags & IS_CONST, C const, C>::type,
-      typename param_t         = typename stdm::conditional<flags & ACCEPTS_PTR, qualified_obj_t*, qualified_obj_t&>::type,
+      typename return_t        = typename stdm::conditional<(flags & IS_CONST)    != 0, mem_cref_t, mem_lref_t>::type,
+      typename qualified_obj_t = typename stdm::conditional<(flags & IS_CONST)    != 0, C const, C>::type,
+      typename param_t         = typename stdm::conditional<(flags & ACCEPTS_PTR) != 0, qualified_obj_t*, qualified_obj_t&>::type,
 
       typename base = functor_traits_impl<
-        T C::*, typename stdm::conditional<flags, return_t (param_t), void>::type> >
+        T C::*, typename stdm::conditional<flags != 0, return_t (param_t), void>::type> >
     struct _switch: base {};
   }
 
@@ -675,9 +675,9 @@ namespace functor_detail {
       typename mem_t = typename type_traits::is_member_pointer<MemFun>::member_type,
       typename obj_t = typename type_traits::is_member_pointer<MemFun>::object_type,
 
-      typename obj_qualified_t = typename stdm::conditional<Flags & IS_CONST,
+      typename obj_qualified_t = typename stdm::conditional<(Flags & IS_CONST) != 0,
         typename stdm::add_const<obj_t>::type, obj_t>::type,
-      typename param_t = typename stdm::conditional<Flags & ACCEPTS_PTR,
+      typename param_t = typename stdm::conditional<(Flags & ACCEPTS_PTR) != 0,
         typename stdm::add_pointer<obj_qualified_t>::type,
         typename stdm::add_lvalue_reference<obj_qualified_t>::type>::type,
 
@@ -904,8 +904,18 @@ namespace test_member {
   };
 
   void run() {
-    mwg_check((mwg::stdm::is_member_object_pointer<int Rect::*>::value &&
-        mwg::functor_detail::type_traits::is_variant_function<mwg::stdm::add_lvalue_reference<int>::type (Rect&), int& (Rect&)>::value));
+    namespace type_traits = mwg::functor_detail::type_traits;
+    mwg_check((mwg::stdm::is_member_object_pointer<int Rect::*>::value));
+    mwg_check((type_traits::is_variant_function<mwg::stdm::add_lvalue_reference<int>::type (Rect&), int& (Rect&)>::value));
+
+    /* for 2017-02-10 -Wc++11-narrowing bug */ {
+      // clang++ -std=c++11 conditional 第一引数に int を渡すと SFINAE で候補から外れる。
+      // しかしこれは SFINAE 的に正しい動作なのだろうか。
+      mwg_check((mwg::functor_detail::member_object_pointer_traits::functor_traits_impl<int Rect::*, int const& (Rect const&)>::value));
+      mwg_check((mwg::functor_detail::member_object_pointer_traits::_switch<int, Rect, int (Rect const&)>::value));
+      mwg_check((mwg::functor_detail::functor_traits_member<int Rect::*, int (Rect const&)>::value));
+      mwg_check((mwg::as_fun<int Rect::*, int (Rect const&)>::value));
+    }
 
     mwg::as_fun<int Rect::*, int& (Rect&)>::adapter f1(&Rect::x);
     mwg::as_fun<int Rect::*, int (Rect const&)>::adapter f2(&Rect::x);
@@ -925,7 +935,6 @@ namespace test_member {
     mwg_check((rect1.x == 321));
     mwg_check((f4(&rect1) == 321));
 
-    namespace type_traits = mwg::functor_detail::type_traits;
     mwg_check((mwg::stdm::is_same<type_traits::is_member_pointer<int (Rect::*)() const>::member_type, int()>::value));
     mwg_check((mwg::stdm::is_same<type_traits::is_member_pointer<int (Rect::*)() const>::object_type, Rect const>::value));
     mwg_check((mwg::stdm::is_same<mwg::funsig::shift<int(), Rect const&>::type, int (Rect const&)>::value));

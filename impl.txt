@@ -20,10 +20,35 @@
   ToDo
 ------------------------------------------------------------------------------
 
+2017-02-10
+
+* mwg/fun: clang++ -std=c++11 bug?
+
+  mwg/fun (check) において、
+
+  mwg::functor_detail::member_object_pointer_traits::_switch のデフォルトのテンプレート引数において、
+  int flags = ..., typename return_t = typename stdm::conditional<flags, ...>::type の様に指定すると、
+  mwg_check((mwg::functor_detail::member_object_pointer_traits::_switch<int, Rect, int (Rect const&)>::value)); // これはエラーになるのに、
+  mwg_check((mwg::functor_detail::functor_traits_member<int Rect::*, int (Rect const&)>::value)); // これは静かに false (誤った値) になる。
+  この振る舞いは規格的にはどうなのだろうか。未定義動作か何かだろうか。
+
+  ※これは 2017-02-10 の clang c++11 における bugfix で判明したものである。
+
 2017-02-09
 
-* mwg/fun: メンバオブジェクトの呼び出し関係で C++11 のコンパイルが通らないと思ったが直っていた。
-  と思ったら clang C++11 でエラーが出ている。後で直す。
+* 以下の様な感じに記述できるライブラリがあると面白いかもしれない。
+
+  | typename sig_t = typename mwg::mpl::eval<
+  | progn_(
+  |   start_template_<functor_traits_impl>,
+  |   MemFun,
+  |   cond_(
+  |     type_traits::is_variant_function<sig1_t, S> (sig1_t),
+  |     type_traits::is_variant_function<sig2_t, S> (sig2_t),
+  |     type_traits::is_variant_function<sig3_t, S> (sig3_t),
+  |     void),
+  |   end_template_,
+  | )>::type,
 
 * mwg/fun: というかメンバオブジェクトでも volatile は考えなければならない。
 
@@ -1108,6 +1133,11 @@
 ------------------------------------------------------------------------------
   Done
 ------------------------------------------------------------------------------
+
+2017-02-10
+
+* mwg/fun: メンバオブジェクトの呼び出し関係で C++11 のコンパイルが通らないと思ったが直っていた。
+  と思ったら clang C++11 でエラーが出ている。後で直す。
 
 2017-02-09
 
