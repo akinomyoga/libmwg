@@ -416,10 +416,10 @@ namespace except_detail {
       d << ':' << func << '\n';
 
     // std::fprintf(stderr, "%s:", pos);
-    // if(func)
+    // if (func)
     //   d << sgr(32) << '"' << func << '"' << sgr(0) << ':';
     // d << " mwg_assertion_failure! ";
-    // if(fmt && *fmt) {
+    // if (fmt && *fmt) {
     //   d << sgr(35);
     //   std::vfprintf(stderr, fmt, arg);
     //   d << sgr(0);
@@ -563,17 +563,17 @@ namespace except_detail {
  *
  *   という警告を出してきてうるさい。特に mwg_assert を使った回数だけ表示される。
  *
- *   a #define mwg_check(condition, message) do {if(!condition)print(message)}while(0)
+ *   a #define mwg_check(condition, message) do {if (!condition) print(message);} while(0)
  *     などとすれば警告は出ないがこれだと式の中に組み込めない。
  *
- *   b #define mwg_check(condition, message) ((condition)?true:(print(message)))
+ *   b #define mwg_check(condition, message) ((condition)? true: (print(message)))
  *     → 同じ警告が出る。
  *
  *   c いきなり true ではなくて dummy の関数呼び出しをしたらどうだろう。
- *     #define mwg_check(condition, message) ((condition)?nop():(throw1(message), false));
+ *     #define mwg_check(condition, message) ((condition)? nop(): (throw1(message), false));
  *     → warning: right operand of comma operator has no effect
  *
- *   d #define mwg_check(condition, message) ((condition)?nop():throw1(message));
+ *   d #define mwg_check(condition, message) ((condition)? nop(): throw1(message));
  *     → 警告なし!
  *
  */
@@ -617,10 +617,10 @@ namespace except_detail {
       expression(expression), position(position), funcname(funcname) {}
 
     bool operator()(bool condition) const {
-      if(!condition) {
-        if(Throw) {
+      if (!condition) {
+        if (Throw) {
           throw_fail(expression, position, funcname, "");
-        }else {
+        } else {
           print_fail(expression, position, funcname, "");
         }
       }
@@ -628,8 +628,8 @@ namespace except_detail {
     }
 
     bool operator()(bool condition, const char* fmt, ...) const {
-      if(!condition) {
-        if(Throw) {
+      if (!condition) {
+        if (Throw) {
           va_list arg1;
           va_list arg2;
           va_start(arg1, fmt);
@@ -637,7 +637,7 @@ namespace except_detail {
           vthrow_fail(expression, position, funcname, fmt, arg1, arg2);
           va_end(arg1);
           va_end(arg2);
-        }else {
+        } else {
           va_list arg;
           va_start(arg, fmt);
           vprint_fail(expression, position, funcname, fmt, arg);

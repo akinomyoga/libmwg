@@ -82,7 +82,7 @@ public:
   typename stdm::enable_if<range_detail::foreach_switch<F, T>::value == 1, void>::type
   foreach(const F& _f mwg_gcc3_concept_overload(1)) const {
     typename mwg::as_functor<F, bool(T const&)>::adapter func(_f);
-    for (value_type i = m_begin; i < m_end; i++) if(!func(i)) break;
+    for (value_type i = m_begin; i < m_end; i++) if (!func(i)) break;
   }
 };
 
