@@ -94,6 +94,8 @@ $(CPPDIR)/${filex}.lwiki: $(CPPDIR)/${file}
 config_files+=$(CFGDIR)/config/${name}.h
 $(CFGDIR)/config/${name}.h: $(CPPDIR)/${filex}.mconf | $(CFGDIR)/config
 	@echo 'CFG ${file}'; $(MMAKECMD) config ${file} $(FLAGS) $(CXXFLAGS) $(LDFLAGS)
+check@${file}: $(CFGDIR)/check/${name}.stamp
+.PHONY: check@{file}
 check_files+=$(CFGDIR)/check/${name}.stamp
 $(CPPDIR)/check/${name}$(CXXEXT): $(CPPDIR)/${file}
 -include $(CFGDIR)/check/${name}.dep
