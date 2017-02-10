@@ -577,7 +577,6 @@ namespace functor_detail {
   template<typename F, typename S = void, typename = void>
   struct functor_traits_member: stdm::false_type {};
 
-  // ToDo: memobj; rvalue references
 
   namespace member_object_pointer_traits {
     template<typename MemberPtr, typename S>
@@ -593,19 +592,84 @@ namespace functor_detail {
       public:
         MemberPtr get() const {return m_memptr;}
 
-        template<typename C> static C& getobj(C* ptr) {return *ptr;}
-        template<typename C> static C const& getobj(C const* ptr) {return *ptr;}
-        template<typename C> static C& getobj(C& obj) {return obj;}
-        template<typename C> static C const& getobj(C const& obj) {return obj;}
+        template<typename C> static C               & getobj(C               * ptr) {return *ptr;}
+        template<typename C> static C const         & getobj(C const         * ptr) {return *ptr;}
+        template<typename C> static C       volatile& getobj(C       volatile* ptr) {return *ptr;}
+        template<typename C> static C const volatile& getobj(C const volatile* ptr) {return *ptr;}
+#ifdef MWGCONF_STD_RVALUE_REFERENCES
+        template<typename C> static C&& getobj(C&& obj) {return obj;}
+#else
+        template<typename C> static C               & getobj(C               & obj) {return obj;}
+        template<typename C> static C const         & getobj(C const         & obj) {return obj;}
+        template<typename C> static C       volatile& getobj(C       volatile& obj) {return obj;}
+        template<typename C> static C const volatile& getobj(C const volatile& obj) {return obj;}
+#endif
       } byref_holder, byval_holder;
     };
 
+    enum {
+      ACCEPTS_LREF = 0x01,
+      ACCEPTS_RREF = 0x02,
+      ACCEPTS_PTR  = 0x03,
+      IS_CONST     = 0x10,
+      IS_VOLATILE  = 0x20,
+    };
+
+
+    template<
+      typename S,
+      std::size_t arity = sig::arity<S>::value,
+      typename param_t = typename sig::param<S, 0>::type>
+    struct find_first: stdm::conditional<
+      param_t::value, mwg::identity<param_t>,
+      find_first<typename sig::unshift<S>::type> >::type {};
+    template<typename S> struct find_first<S, 0>: mwg::identity<void> {};
+    template<typename S> struct find_first<S, 1>: sig::param<S, 0> {};
+
+    template<
+      typename T, typename C, typename S, int Flags,
+
+      typename obj_const_t = typename stdm::conditional<
+        (Flags & IS_CONST) != 0, typename stdm::add_const<C>::type, C>::type,
+      typename obj_cv_t = typename stdm::conditional<
+        (Flags & IS_VOLATILE) != 0, typename stdm::add_volatile<obj_const_t>::type, obj_const_t>::type,
+      typename obj_ref_t = typename stdm::conditional<(Flags & ACCEPTS_LREF) != 0,
+        typename stdm::add_lvalue_reference<obj_cv_t>::type,
+#ifdef MWGCONF_STD_RVALUE_REFERENCES
+        typename stdm::conditional<(Flags & ACCEPTS_RREF) != 0,
+          typename stdm::add_rvalue_reference<obj_cv_t>::type,
+          typename stdm::add_pointer<obj_cv_t>::type>::type
+#else
+        typename stdm::add_pointer<obj_cv_t>::type
+#endif
+        >::type,
+
+      typename mem_const_t = typename stdm::conditional<
+        (Flags & IS_CONST) != 0, typename stdm::add_const<T>::type, T>::type,
+      typename mem_cv_t = typename stdm::conditional<
+        (Flags & IS_VOLATILE) != 0, typename stdm::add_volatile<mem_const_t>::type, mem_const_t>::type,
+#ifdef MWGCONF_STD_RVALUE_REFERENCES
+      typename mem_ref_t = typename stdm::conditional<(Flags & ACCEPTS_RREF) != 0,
+        typename stdm::add_rvalue_reference<mem_cv_t>::type,
+        typename stdm::add_lvalue_reference<mem_cv_t>::type>::type,
+#else
+      typename mem_ref_t = typename stdm::add_lvalue_reference<mem_cv_t>::type,
+#endif
+
+      typename sig_t = mem_ref_t (obj_ref_t),
+      bool _value = type_traits::is_variant_function<sig_t, S>::value>
+    struct check_signature {typedef sig_t type;static const bool value = _value;}; // : stdm::integral_constant<bool, value>
+
+    template<typename T, typename C, typename S, int Flags>
+    struct check_signature_cv: find_first<void(
+      check_signature<T, C, S, Flags>,
+      check_signature<T, C, S, Flags | IS_CONST>,
+      check_signature<T, C, S, Flags | IS_VOLATILE>,
+      check_signature<T, C, S, Flags | IS_VOLATILE | IS_CONST>
+    )>::type {};
+
     template<
       typename T, typename C, typename S,
-
-      const int ACCEPTS_REF = 0x01,
-      const int ACCEPTS_PTR = 0x02,
-      const int IS_CONST    = 0x10,
 
       // ToDo @intrinsic_overload
       typename mem_lref_t = typename stdm::add_lvalue_reference<T>::type,
@@ -613,19 +677,17 @@ namespace functor_detail {
         stdm::is_reference<T>::value, T,
         typename stdx::add_const_reference<T>::type>::type,
 
-      int flags = (!stdm::is_member_object_pointer<T C::*>::value? 0:
-        stdm::is_void<S>::value                             ? ACCEPTS_REF | IS_CONST:
-        type_traits::is_variant_function<mem_lref_t (C      &), S>::value? ACCEPTS_REF           :
-        type_traits::is_variant_function<mem_cref_t (C const&), S>::value? ACCEPTS_REF | IS_CONST:
-        type_traits::is_variant_function<mem_lref_t (C      *), S>::value? ACCEPTS_PTR           :
-        type_traits::is_variant_function<mem_cref_t (C const*), S>::value? ACCEPTS_PTR | IS_CONST: 0),
+      typename sig_t = typename stdm::conditional<
+        stdm::is_void<S>::value,
+        check_signature<T, C, S, ACCEPTS_RREF | IS_CONST>,
+        typename find_first<
+          void(
+            check_signature_cv<T, C, S, ACCEPTS_RREF>,
+            check_signature_cv<T, C, S, ACCEPTS_LREF>,
+            check_signature_cv<T, C, S, ACCEPTS_PTR >,
+            mwg::identity<void>)>::type>::type::type,
 
-      typename return_t        = typename stdm::conditional<(flags & IS_CONST)    != 0, mem_cref_t, mem_lref_t>::type,
-      typename qualified_obj_t = typename stdm::conditional<(flags & IS_CONST)    != 0, C const, C>::type,
-      typename param_t         = typename stdm::conditional<(flags & ACCEPTS_PTR) != 0, qualified_obj_t*, qualified_obj_t&>::type,
-
-      typename base = functor_traits_impl<
-        T C::*, typename stdm::conditional<flags != 0, return_t (param_t), void>::type> >
+      typename base = functor_traits_impl<T C::*, sig_t> >
     struct _switch: base {};
   }
 
@@ -662,28 +724,6 @@ namespace functor_detail {
     };
     template<typename MemFun>
     struct functor_traits_impl<MemFun, void>: stdm::false_type {};
-
-    enum {
-      ACCEPTS_REF = 0x01,
-      ACCEPTS_PTR = 0x02,
-      IS_CONST    = 0x10,
-    };
-
-    template<
-      typename MemFun, typename S, int Flags,
-
-      typename mem_t = typename type_traits::is_member_pointer<MemFun>::member_type,
-      typename obj_t = typename type_traits::is_member_pointer<MemFun>::object_type,
-
-      typename obj_qualified_t = typename stdm::conditional<(Flags & IS_CONST) != 0,
-        typename stdm::add_const<obj_t>::type, obj_t>::type,
-      typename param_t = typename stdm::conditional<(Flags & ACCEPTS_PTR) != 0,
-        typename stdm::add_pointer<obj_qualified_t>::type,
-        typename stdm::add_lvalue_reference<obj_qualified_t>::type>::type,
-
-      typename type = typename sig::shift<mem_t, param_t>::type,
-      bool value = type_traits::is_variant_function<type, S>::value>
-    struct test_signature: mwg::identity<type>, stdm::integral_constant<bool, value> {};
 
     template<
       typename MemFun, typename S,
@@ -908,11 +948,23 @@ namespace test_member {
     mwg_check((mwg::stdm::is_member_object_pointer<int Rect::*>::value));
     mwg_check((type_traits::is_variant_function<mwg::stdm::add_lvalue_reference<int>::type (Rect&), int& (Rect&)>::value));
 
-    /* for 2017-02-10 -Wc++11-narrowing bug */ {
-      // clang++ -std=c++11 conditional 第一引数に int を渡すと SFINAE で候補から外れる。
-      // しかしこれは SFINAE 的に正しい動作なのだろうか。
-      mwg_check((mwg::functor_detail::member_object_pointer_traits::functor_traits_impl<int Rect::*, int const& (Rect const&)>::value));
-      mwg_check((mwg::functor_detail::member_object_pointer_traits::_switch<int, Rect, int (Rect const&)>::value));
+    Rect rect1;
+    rect1.x = 1;
+    rect1.y = 2;
+    rect1.w = 3;
+    rect1.h = 4;
+
+     {
+      namespace ns = mwg::functor_detail::member_object_pointer_traits;
+      mwg_check((mwg::stdm::is_same<ns::check_signature<int, Rect, int& (Rect&), ns::ACCEPTS_LREF>::type, int& (Rect&)>::value));
+      mwg_check((ns::check_signature<int, Rect, int& (Rect&), ns::ACCEPTS_LREF>::value));
+      mwg_check((ns::check_signature_cv<int, Rect, int& (Rect&), ns::ACCEPTS_LREF>::value));
+
+      // For 2017-02-10 -Wc++11-narrowing bug
+      //   clang++ -std=c++11 conditional 第一引数に int を渡すと SFINAE で候補から外れる。
+      //   しかしこれは SFINAE 的に正しい動作なのだろうか。
+      mwg_check((ns::functor_traits_impl<int Rect::*, int const& (Rect const&)>::value));
+      mwg_check((ns::_switch<int, Rect, int (Rect const&)>::value));
       mwg_check((mwg::functor_detail::functor_traits_member<int Rect::*, int (Rect const&)>::value));
       mwg_check((mwg::as_fun<int Rect::*, int (Rect const&)>::value));
     }
@@ -921,16 +973,9 @@ namespace test_member {
     mwg::as_fun<int Rect::*, int (Rect const&)>::adapter f2(&Rect::x);
     mwg::as_fun<int Rect::*, int& (Rect*)>::adapter f3(&Rect::x);
     mwg::as_fun<int Rect::*, int (Rect const*)>::adapter f4(&Rect::x);
-
-    Rect rect1;
-    rect1.x = 1;
-    rect1.y = 2;
-    rect1.w = 3;
-    rect1.h = 4;
     f1(rect1) = 12;
     mwg_check((rect1.x == 12));
     mwg_check((f2(rect1) == 12));
-
     f3(&rect1) = 321;
     mwg_check((rect1.x == 321));
     mwg_check((f4(&rect1) == 321));
