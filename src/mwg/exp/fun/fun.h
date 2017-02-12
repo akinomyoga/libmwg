@@ -184,11 +184,13 @@ namespace functor_detail {
         typedef void member_type;
         typedef void object_type;
       };
-      template<typename C, typename S>
+      template<typename C, typename T>
       struct is_member_pointer_def: stdm::true_type {
         typedef C object_type;
-        typedef S member_type;
+        typedef T member_type;
       };
+      template<typename T, typename C>
+      struct is_member_pointer<T C::*>: is_member_pointer_def<C, T> {};
 #pragma%m 1
       template<typename R, typename C, typename... A>
       struct is_member_pointer<R (C::*)(A...) QUALIFIER>:
@@ -555,19 +557,22 @@ namespace functor_detail {
       } byref_holder, byval_holder;
     };
     template<typename F, typename S = void, typename = void>
-    struct _switch: stdm::false_type {};
+    struct _switch_nocv: stdm::false_type {};
     template<typename F>
-    struct _switch<F , void, typename stdm::enable_if<stdm::is_function<F>::value>::type>:
+    struct _switch_nocv<F , void, typename stdm::enable_if<stdm::is_function<F>::value>::type>:
       functor_traits_impl<F> {};
     template<typename F>
-    struct _switch<F*, void, typename stdm::enable_if<stdm::is_function<F>::value>::type>:
+    struct _switch_nocv<F*, void, typename stdm::enable_if<stdm::is_function<F>::value>::type>:
       functor_traits_impl<F> {};
     template<typename F, typename S>
-    struct _switch<F , S, typename stdm::enable_if<type_traits::is_variant_function<F, S>::value>::type>:
+    struct _switch_nocv<F , S, typename stdm::enable_if<type_traits::is_variant_function<F, S>::value>::type>:
       functor_traits_impl<F> {};
     template<typename F, typename S>
-    struct _switch<F*, S, typename stdm::enable_if<type_traits::is_variant_function<F, S>::value>::type>:
+    struct _switch_nocv<F*, S, typename stdm::enable_if<type_traits::is_variant_function<F, S>::value>::type>:
       functor_traits_impl<F> {};
+
+    template<typename F, typename S>
+    struct _switch: _switch_nocv<typename stdm::remove_cv<typename stdm::remove_reference<F>::type>::type, S> {};
   }
 
   template<typename F, typename S>
@@ -669,31 +674,43 @@ namespace functor_detail {
     )>::type {};
 
     template<
-      typename T, typename C, typename S,
+      typename MemObj, typename S,
+
+      typename mem_t = typename type_traits::is_member_pointer<MemObj>::member_type,
+      typename obj_t = typename type_traits::is_member_pointer<MemObj>::object_type,
 
       // ToDo @intrinsic_overload
-      typename mem_lref_t = typename stdm::add_lvalue_reference<T>::type,
+      typename mem_lref_t = typename stdm::add_lvalue_reference<mem_t>::type,
       typename mem_cref_t = typename stdm::conditional<
-        stdm::is_reference<T>::value, T,
-        typename stdx::add_const_reference<T>::type>::type,
+        stdm::is_reference<mem_t>::value, mem_t,
+        typename stdx::add_const_reference<mem_t>::type>::type,
 
       typename sig_t = typename stdm::conditional<
         stdm::is_void<S>::value,
-        check_signature<T, C, S, ACCEPTS_RREF | IS_CONST>,
+        check_signature<mem_t, obj_t, S, ACCEPTS_RREF | IS_CONST>,
         typename find_first<
           void(
-            check_signature_cv<T, C, S, ACCEPTS_RREF>,
-            check_signature_cv<T, C, S, ACCEPTS_LREF>,
-            check_signature_cv<T, C, S, ACCEPTS_PTR >,
+            check_signature_cv<mem_t, obj_t, S, ACCEPTS_RREF>,
+            check_signature_cv<mem_t, obj_t, S, ACCEPTS_LREF>,
+            check_signature_cv<mem_t, obj_t, S, ACCEPTS_PTR >,
             mwg::identity<void>)>::type>::type::type,
 
-      typename base = functor_traits_impl<T C::*, sig_t> >
-    struct _switch: base {};
+      typename base = functor_traits_impl<MemObj, sig_t> >
+    struct _switch_nocv: base {};
+
+    template<
+      typename MemObj, typename S,
+
+      typename memobj_ptr = typename stdm::remove_cv<typename stdm::remove_reference<MemObj>::type>::type,
+      bool = stdm::is_member_object_pointer<MemObj>::value>
+    struct _switch: _switch_nocv<MemObj, S> {};
+    template<typename MemObj, typename S, typename memobj_ptr>
+    struct _switch<MemObj, S, memobj_ptr, false>: stdm::false_type {};
   }
 
-  template<typename T, typename C, typename S>
-  struct functor_traits_member<T C::*, S, typename stdm::enable_if<stdm::is_member_object_pointer<T C::*>::value>::type>:
-    member_object_pointer_traits::_switch<T, C, S> {};
+  template<typename MemObj, typename S>
+  struct functor_traits_member<MemObj, S, typename stdm::enable_if<member_object_pointer_traits::_switch<MemObj, S>::value>::type>:
+    member_object_pointer_traits::_switch<MemObj, S> {};
 
   namespace member_function_pointer_traits {
 
@@ -778,11 +795,20 @@ namespace functor_detail {
             test3, sig3_t, void>::type>::type>::type,
 
       typename base = functor_traits_impl<MemFun, sig_t> >
-    struct _switch: base {};
+    struct _switch_nocv: base {};
+
+    template<
+      typename MemFun, typename S,
+
+      typename memfun_ptr = typename stdm::remove_cv<typename stdm::remove_reference<MemFun>::type>::type,
+      bool = stdm::is_member_function_pointer<memfun_ptr>::value>
+    struct _switch: _switch_nocv<memfun_ptr, S> {};
+    template<typename MemFun, typename S, typename memfun_ptr>
+    struct _switch<MemFun, S, memfun_ptr, false>: std::false_type {};
   }
 
   template<typename MemFun, typename S>
-  struct functor_traits_member<MemFun, S, typename stdm::enable_if<stdm::is_member_function_pointer<MemFun>::value>::type>:
+  struct functor_traits_member<MemFun, S, typename stdm::enable_if<member_function_pointer_traits::_switch<MemFun, S>::value>::type>:
     member_function_pointer_traits::_switch<MemFun, S> {};
 
   template<typename F, typename S>
@@ -877,6 +903,20 @@ namespace functor_detail {
 
   template<typename F, typename S>
   struct as_fun: functor_detail::as_fun<F, S> {};
+
+#ifdef MWGCONF_STD_RVALUE_REFERENCES
+  template<typename S, typename F>
+  typename as_fun<F, S>::adapter
+  fun(F&& value) {return typename as_fun<F, S>::adapter(stdm::forward<F>(value));}
+#else
+  template<typename S, typename F>
+  typename as_fun<F, S>::adapter
+  fun(F& value) {return typename as_fun<F, S>::adapter(value);}
+  template<typename S, typename F>
+  typename as_fun<F const, S>::adapter
+  fun(F const& value) {return typename as_fun<F, S>::adapter(value);}
+#endif
+
 }
 #pragma%x begin_check
 
@@ -964,7 +1004,7 @@ namespace test_member {
       //   clang++ -std=c++11 conditional 第一引数に int を渡すと SFINAE で候補から外れる。
       //   しかしこれは SFINAE 的に正しい動作なのだろうか。
       mwg_check((ns::functor_traits_impl<int Rect::*, int const& (Rect const&)>::value));
-      mwg_check((ns::_switch<int, Rect, int (Rect const&)>::value));
+      mwg_check((ns::_switch<int Rect::*, int (Rect const&)>::value));
       mwg_check((mwg::functor_detail::functor_traits_member<int Rect::*, int (Rect const&)>::value));
       mwg_check((mwg::as_fun<int Rect::*, int (Rect const&)>::value));
 
@@ -974,7 +1014,7 @@ namespace test_member {
       mwg_check((mwg::stdm::is_same<ns::check_signature<int, Rect, int& (Rect*), ns::ACCEPTS_PTR>::type, int& (Rect*)>::value));
       mwg_check((ns::check_signature<int, Rect, int& (Rect*), ns::ACCEPTS_PTR>::value));
       mwg_check((ns::check_signature_cv<int, Rect, int& (Rect*), ns::ACCEPTS_PTR>::value));
-      mwg_check((ns::_switch<int, Rect, int& (Rect*)>::value));
+      mwg_check((ns::_switch<int Rect::*, int& (Rect*)>::value));
     }
 
     mwg::as_fun<int Rect::*, int& (Rect&)>::adapter f1(&Rect::x);
@@ -988,10 +1028,15 @@ namespace test_member {
     mwg_check((rect1.x == 321));
     mwg_check((f4(&rect1) == 321));
 
-    mwg_check((mwg::stdm::is_same<type_traits::is_member_pointer<int (Rect::*)() const>::member_type, int()>::value));
-    mwg_check((mwg::stdm::is_same<type_traits::is_member_pointer<int (Rect::*)() const>::object_type, Rect const>::value));
-    mwg_check((mwg::stdm::is_same<mwg::funsig::shift<int(), Rect const&>::type, int (Rect const&)>::value));
-    mwg_check((type_traits::is_variant_function<int (Rect const&), int (Rect const&)>::value));
+    {
+      namespace ns = mwg::functor_detail::member_function_pointer_traits;
+      mwg_check((mwg::stdm::is_same<type_traits::is_member_pointer<int (Rect::*)() const>::member_type, int()>::value));
+      mwg_check((mwg::stdm::is_same<type_traits::is_member_pointer<int (Rect::*)() const>::object_type, Rect const>::value));
+      mwg_check((mwg::stdm::is_same<mwg::funsig::shift<int(), Rect const&>::type, int (Rect const&)>::value));
+      mwg_check((type_traits::is_variant_function<int (Rect const&), int (Rect const&)>::value));
+
+      mwg_check((ns::_switch<int (Rect::*)() const, int (Rect const&)>::value));
+    }
     mwg::as_fun<int (Rect::*)() const, int (Rect const&)>::adapter g1(&Rect::right);
     mwg_check((g1(rect1) == rect1.x + rect1.w));
     mwg::as_fun<int (Rect::*)() const, int (Rect const*)>::adapter g2(&Rect::right);
