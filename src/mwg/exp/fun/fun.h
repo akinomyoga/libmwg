@@ -702,8 +702,8 @@ namespace functor_detail {
       typename MemObj, typename S,
 
       typename memobj_ptr = typename stdm::remove_cv<typename stdm::remove_reference<MemObj>::type>::type,
-      bool = stdm::is_member_object_pointer<MemObj>::value>
-    struct _switch: _switch_nocv<MemObj, S> {};
+      bool = stdm::is_member_object_pointer<memobj_ptr>::value>
+    struct _switch: _switch_nocv<memobj_ptr, S> {};
     template<typename MemObj, typename S, typename memobj_ptr>
     struct _switch<MemObj, S, memobj_ptr, false>: stdm::false_type {};
   }
@@ -906,12 +906,12 @@ namespace functor_detail {
 
 #ifdef MWGCONF_STD_RVALUE_REFERENCES
   template<typename S, typename F>
-  typename as_fun<F, S>::adapter
-  fun(F&& value) {return typename as_fun<F, S>::adapter(stdm::forward<F>(value));}
+  typename as_fun<F&&, S>::adapter
+  fun(F&& value) {return typename as_fun<F&&, S>::adapter(stdm::forward<F>(value));}
 #else
   template<typename S, typename F>
-  typename as_fun<F, S>::adapter
-  fun(F& value) {return typename as_fun<F, S>::adapter(value);}
+  typename as_fun<F&, S>::adapter
+  fun(F& value) {return typename as_fun<F&, S>::adapter(value);}
   template<typename S, typename F>
   typename as_fun<F const, S>::adapter
   fun(F const& value) {return typename as_fun<F, S>::adapter(value);}
@@ -1016,11 +1016,17 @@ namespace test_member {
       mwg_check((ns::check_signature_cv<int, Rect, int& (Rect*), ns::ACCEPTS_PTR>::value));
       mwg_check((ns::_switch<int Rect::*, int& (Rect*)>::value));
     }
-
+#ifdef MWGCONF_STD_AUTO_TYPE
+    auto f1 = mwg::fun<int& (Rect&)>(&Rect::x);
+    auto f2 = mwg::fun<int (Rect const&)>(&Rect::x);
+    auto f3 = mwg::fun<int& (Rect*)>(&Rect::x);
+    auto f4 = mwg::fun<int (Rect const*)>(&Rect::x);
+#else
     mwg::as_fun<int Rect::*, int& (Rect&)>::adapter f1(&Rect::x);
     mwg::as_fun<int Rect::*, int (Rect const&)>::adapter f2(&Rect::x);
     mwg::as_fun<int Rect::*, int& (Rect*)>::adapter f3(&Rect::x);
     mwg::as_fun<int Rect::*, int (Rect const*)>::adapter f4(&Rect::x);
+#endif
     f1(rect1) = 12;
     mwg_check((rect1.x == 12));
     mwg_check((f2(rect1) == 12));
@@ -1035,25 +1041,28 @@ namespace test_member {
       mwg_check((mwg::stdm::is_same<mwg::funsig::shift<int(), Rect const&>::type, int (Rect const&)>::value));
       mwg_check((type_traits::is_variant_function<int (Rect const&), int (Rect const&)>::value));
 
+      mwg_check((mwg::stdm::is_same<type_traits::is_member_pointer<void (Rect::*)(int, int)>::member_type, void(int, int)>::value));
+      mwg_check((mwg::stdm::is_same<type_traits::is_member_pointer<void (Rect::*)(int, int)>::object_type, Rect>::value));
+      mwg_check((mwg::stdm::is_same<mwg::funsig::shift<void (int, int), Rect const&>::type, void (Rect const&, int, int)>::value));
+
       mwg_check((ns::_switch<int (Rect::*)() const, int (Rect const&)>::value));
     }
+#ifdef MWGCONF_STD_AUTO_TYPE
+    auto g1 = mwg::fun<int (Rect const&)>(&Rect::right);
+    auto g2 = mwg::fun<int (Rect const*)>(&Rect::right);
+    auto g3 = mwg::fun<void (Rect&, int const&, int const&)>(&Rect::translate);
+#else
     mwg::as_fun<int (Rect::*)() const, int (Rect const&)>::adapter g1(&Rect::right);
-    mwg_check((g1(rect1) == rect1.x + rect1.w));
     mwg::as_fun<int (Rect::*)() const, int (Rect const*)>::adapter g2(&Rect::right);
+    mwg::as_fun<void (Rect::*)(int, int), void (Rect&, int const&, int const&)>::adapter g3(&Rect::translate);
+#endif
+    mwg_check((g1(rect1) == rect1.x + rect1.w));
     mwg_check((g2(&rect1) == rect1.x + rect1.w));
 
-    mwg_check((mwg::stdm::is_same<type_traits::is_member_pointer<void (Rect::*)(int, int)>::member_type, void(int, int)>::value));
-    mwg_check((mwg::stdm::is_same<type_traits::is_member_pointer<void (Rect::*)(int, int)>::object_type, Rect>::value));
-    mwg_check((mwg::stdm::is_same<mwg::funsig::shift<void (int, int), Rect const&>::type, void (Rect const&, int, int)>::value));
-    mwg::as_fun<void (Rect::*)(int, int), void (Rect&, int const&, int const&)>::adapter g3(&Rect::translate);
     rect1.x = 123;
     rect1.y = 321;
     g3(rect1, 4, 1);
     mwg_check((rect1.x == 127 && rect1.y == 322));
-
-#ifdef MWGCONF_STD_AUTO_TYPE
-    //auto hoge = mwg::fun<void(int)>(&Rect::x);
-#endif
   }
 }
 
