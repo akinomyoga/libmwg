@@ -610,7 +610,7 @@ namespace functor_detail {
     enum {
       ACCEPTS_LREF = 0x01,
       ACCEPTS_RREF = 0x02,
-      ACCEPTS_PTR  = 0x03,
+      ACCEPTS_PTR  = 0x04,
       IS_CONST     = 0x10,
       IS_VOLATILE  = 0x20,
     };
@@ -621,8 +621,8 @@ namespace functor_detail {
       std::size_t arity = sig::arity<S>::value,
       typename param_t = typename sig::param<S, 0>::type>
     struct find_first: stdm::conditional<
-      param_t::value, mwg::identity<param_t>,
-      find_first<typename sig::unshift<S>::type> >::type {};
+      param_t::value, param_t,
+      typename find_first<typename sig::unshift<S>::type>::type> {};
     template<typename S> struct find_first<S, 0>: mwg::identity<void> {};
     template<typename S> struct find_first<S, 1>: sig::param<S, 0> {};
 
@@ -658,7 +658,7 @@ namespace functor_detail {
 
       typename sig_t = mem_ref_t (obj_ref_t),
       bool _value = type_traits::is_variant_function<sig_t, S>::value>
-    struct check_signature {typedef sig_t type;static const bool value = _value;}; // : stdm::integral_constant<bool, value>
+    struct check_signature: stdm::integral_constant<bool, _value> {typedef sig_t type;};
 
     template<typename T, typename C, typename S, int Flags>
     struct check_signature_cv: find_first<void(
@@ -692,7 +692,7 @@ namespace functor_detail {
   }
 
   template<typename T, typename C, typename S>
-  struct functor_traits_member<T C::*, S, typename stdm::enable_if<member_object_pointer_traits::_switch<T, C, S>::value>::type>:
+  struct functor_traits_member<T C::*, S, typename stdm::enable_if<stdm::is_member_object_pointer<T C::*>::value>::type>:
     member_object_pointer_traits::_switch<T, C, S> {};
 
   namespace member_function_pointer_traits {
@@ -954,7 +954,7 @@ namespace test_member {
     rect1.w = 3;
     rect1.h = 4;
 
-     {
+    {
       namespace ns = mwg::functor_detail::member_object_pointer_traits;
       mwg_check((mwg::stdm::is_same<ns::check_signature<int, Rect, int& (Rect&), ns::ACCEPTS_LREF>::type, int& (Rect&)>::value));
       mwg_check((ns::check_signature<int, Rect, int& (Rect&), ns::ACCEPTS_LREF>::value));
@@ -967,6 +967,14 @@ namespace test_member {
       mwg_check((ns::_switch<int, Rect, int (Rect const&)>::value));
       mwg_check((mwg::functor_detail::functor_traits_member<int Rect::*, int (Rect const&)>::value));
       mwg_check((mwg::as_fun<int Rect::*, int (Rect const&)>::value));
+
+      // 2017-02-12 fix value of ACCEPTS_PTR flag
+      mwg_check((ns::functor_traits_impl<int Rect::*, int& (Rect&)>::value));
+      mwg_check((ns::functor_traits_impl<int Rect::*, int& (Rect*)>::value));
+      mwg_check((mwg::stdm::is_same<ns::check_signature<int, Rect, int& (Rect*), ns::ACCEPTS_PTR>::type, int& (Rect*)>::value));
+      mwg_check((ns::check_signature<int, Rect, int& (Rect*), ns::ACCEPTS_PTR>::value));
+      mwg_check((ns::check_signature_cv<int, Rect, int& (Rect*), ns::ACCEPTS_PTR>::value));
+      mwg_check((ns::_switch<int, Rect, int& (Rect*)>::value));
     }
 
     mwg::as_fun<int Rect::*, int& (Rect&)>::adapter f1(&Rect::x);

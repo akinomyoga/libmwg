@@ -20,6 +20,16 @@
   ToDo
 ------------------------------------------------------------------------------
 
+2017-02-11
+
+* mwg/fun: そろそろ関数オブジェクトへの対応を考える。
+
+* mwg/fun: member_object_pointer/member_function_pointer について、
+  多重定義に対応した adapter を提供する。
+
+* mwg/fun: 何と C++ には参照メンバに対するメンバポインタはない様だ
+
+
 2017-02-10
 
 * mwg/fun: clang++ -std=c++11 bug?
@@ -1385,10 +1395,10 @@
   * 戻り値の covariance は R から const R& に変換できてはならないのではないか。
     →[Done / 2017-02-08 / "mwg/fun: is_contravariant/is_covariant 再設計"] を参照の事。
 
-* mwg/std/type_traits: stdx::add_const_reference は && を上書きするべきかそうでないか。
+* mwg/fun: stdx::add_const_reference <mwg/std/type_traits> は && を上書きするべきかそうでないか。
 
   今までは type_traits の慣習に倣って上書きするようにしていた。
-  然し、今回の実装では上書きしてほしくない動作が多数存在する。
+  然し、今回の mwg/fun の実装では上書きしてほしくない動作が多数存在する。
   そこで "add_const_reference は && を上書きしない" という動作に変更する事を考えた。
 
   しかし、この変更により既存のコードは影響を受けるだろうか。確かめる必要がある。
