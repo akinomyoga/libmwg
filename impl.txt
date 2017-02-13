@@ -350,7 +350,6 @@
   因みに functor_ref/functor の実装についても見てみる。
   →2017-02-06 "mwg/functor: functor_ref/functor の実装の再確認" を参照のこと。
 
-
   取り敢えず functor_adapter の様な物を作ろうか。
 
 

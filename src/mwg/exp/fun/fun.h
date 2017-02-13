@@ -12,7 +12,7 @@
 #include <mwg/exp/fun/funsig.h>
 #include <mwg/bits/type_traits.member_pointer.hpp>
 namespace mwg{
-namespace functor_detail {
+namespace fun_detail {
   namespace sig = mwg::funsig;
 
   namespace type_traits {
@@ -112,7 +112,7 @@ namespace functor_detail {
 #pragma%x begin_test
     struct Class {};
     void test() {
-      using namespace mwg::functor_detail::type_traits;
+      using namespace mwg::fun_detail::type_traits;
 
       mwg_check((is_contravariant<Class, Class        >::value));
       mwg_check((is_contravariant<Class, Class const  >::value));
@@ -170,7 +170,7 @@ namespace functor_detail {
 
     //---------------------------------------------------------------------------
     /*?lwiki
-     * :@var mwg::functor_detail::type_traits::==has_single_operator_functor==<typename F>::value;
+     * :@var mwg::fun_detail::type_traits::==has_single_operator_functor==<typename F>::value;
      *  `mwg::declval<F>.operator()` が有効な型かどうかを判定します。
      */
 #ifdef mwg_concept_is_valid_expression
@@ -185,7 +185,7 @@ namespace functor_detail {
 #endif
 
     /*?lwiki
-     * :@class class mwg::functor_detail::can_be_called_as<typename F,typename S>;
+     * :@class class mwg::fun_detail::can_be_called_as<typename F,typename S>;
      *  :@var static const bool value;
      *   `declval<F>.operator()(...)` を指定した引数で呼出可能かどうかを判定します。
      *  :@typedef typedef '''function-type''' signature_type;
@@ -899,7 +899,7 @@ namespace functor_detail {
     }
   };
   void test() {
-    mwg_check((mwg::functor_detail::function_call_operator_traits::_impl<Add, int (int, int)>::value));
+    mwg_check((mwg::fun_detail::function_call_operator_traits::_impl<Add, int (int, int)>::value));
     mwg_check((mwg::as_fun<Add, int (int, int)>::value));
 
     Add hello;
@@ -953,7 +953,7 @@ namespace functor_detail {
   struct as_fun;
 
   template<typename F, typename S>
-  struct as_fun: functor_detail::as_fun<F, S> {};
+  struct as_fun: fun_detail::as_fun<F, S> {};
 
 #ifdef MWGCONF_STD_RVALUE_REFERENCES
   template<typename S, typename F>
@@ -975,10 +975,10 @@ namespace test_funcsig {
   void run() {
     using namespace mwg::funsig;
     mwg_check((mwg::stdm::is_same<
-        filter<int (int, char, short&), mwg::functor_detail::type_traits::reference_parameter>::type,
+        filter<int (int, char, short&), mwg::fun_detail::type_traits::reference_parameter>::type,
         int (int const&, char const&, short&)>::value));
     mwg_check((mwg::stdm::is_same<
-        filter<int (int&, char, short), mwg::functor_detail::type_traits::reference_parameter>::type,
+        filter<int (int&, char, short), mwg::fun_detail::type_traits::reference_parameter>::type,
         int (int&, char const&, short const&)>::value));
   }
 }
@@ -1035,7 +1035,7 @@ namespace test_member {
   };
 
   void run() {
-    namespace type_traits = mwg::functor_detail::type_traits;
+    namespace type_traits = mwg::fun_detail::type_traits;
     mwg_check((type_traits::is_variant_function<mwg::stdm::add_lvalue_reference<int>::type (Rect&), int& (Rect&)>::value));
 
     Rect rect1;
@@ -1045,7 +1045,7 @@ namespace test_member {
     rect1.h = 4;
 
     {
-      namespace ns = mwg::functor_detail::member_object_pointer_traits;
+      namespace ns = mwg::fun_detail::member_object_pointer_traits;
       mwg_check((mwg::stdm::is_member_object_pointer<int Rect::*>::value));
 
       mwg_check((mwg::stdm::is_same<ns::check_signature<int, Rect, int& (Rect&), ns::ACCEPTS_LREF>::type, int& (Rect&)>::value));
@@ -1057,7 +1057,7 @@ namespace test_member {
       //   しかしこれは SFINAE 的に正しい動作なのだろうか。
       mwg_check((ns::functor_traits_impl<int Rect::*, int const& (Rect const&)>::value));
       mwg_check((ns::_switch<int Rect::*, int (Rect const&)>::value));
-      mwg_check((mwg::functor_detail::functor_traits_member<int Rect::*, int (Rect const&)>::value));
+      mwg_check((mwg::fun_detail::functor_traits_member<int Rect::*, int (Rect const&)>::value));
       mwg_check((mwg::as_fun<int Rect::*, int (Rect const&)>::value));
 
       // 2017-02-12 fix value of ACCEPTS_PTR flag
@@ -1087,7 +1087,7 @@ namespace test_member {
     mwg_check((f4(&rect1) == 321));
 
     {
-      namespace ns = mwg::functor_detail::member_function_pointer_traits;
+      namespace ns = mwg::fun_detail::member_function_pointer_traits;
       mwg_check((mwg::stdm::is_same<type_traits::is_member_pointer<int (Rect::*)() const>::member_type, int()>::value));
       mwg_check((mwg::stdm::is_same<type_traits::is_member_pointer<int (Rect::*)() const>::object_type, Rect const>::value));
       mwg_check((mwg::stdm::is_same<mwg::funsig::shift<int(), Rect const&>::type, int (Rect const&)>::value));
