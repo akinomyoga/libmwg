@@ -2,12 +2,14 @@
 /dist
 /out
 /src/Makefile
-/note/a.out
-/note/a.exe
-/note/a.obj
 
 /src/mwg/string3/*.o
 /src/mwg/string3/*.exe
+
+*.gen
+a.out
+a.exe
+a.obj
 
 # user configurations
 /config.mk
@@ -23,3 +25,4 @@
 # old codes not yet merged
 /src/mwgold
 /src/chkold
+

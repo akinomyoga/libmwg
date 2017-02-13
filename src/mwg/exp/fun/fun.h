@@ -664,17 +664,25 @@ namespace fun_detail {
     template<typename S> struct find_first<S, 0>: mwg::identity<void> {};
     template<typename S> struct find_first<S, 1>: sig::param<S, 0> {};
 
+    // Note: work around for gcc 3.4.6
+    //   g++ 3.4.6 では (Flags & FLAG) != 0 を bool テンプレート引数に指定すると
+    //   int を bool にキャストするのは定数ではないと言ってコンパイルできない。
+    template<int Flags, int FLAG, int value = Flags & FLAG>
+    struct has_flag: stdm::true_type {};
+    template<int Flags, int FLAG>
+    struct has_flag<Flags, FLAG, 0>: stdm::false_type {};
+
     template<
       typename T, typename C, typename S, int Flags,
 
       typename obj_const_t = typename stdm::conditional<
-        (Flags & IS_CONST) != 0, typename stdm::add_const<C>::type, C>::type,
+        has_flag<Flags, IS_CONST>::value, typename stdm::add_const<C>::type, C>::type,
       typename obj_cv_t = typename stdm::conditional<
-        (Flags & IS_VOLATILE) != 0, typename stdm::add_volatile<obj_const_t>::type, obj_const_t>::type,
-      typename obj_ref_t = typename stdm::conditional<(Flags & ACCEPTS_LREF) != 0,
+        has_flag<Flags, IS_VOLATILE>::value, typename stdm::add_volatile<obj_const_t>::type, obj_const_t>::type,
+      typename obj_ref_t = typename stdm::conditional<has_flag<Flags, ACCEPTS_LREF>::value,
         typename stdm::add_lvalue_reference<obj_cv_t>::type,
 #ifdef MWGCONF_STD_RVALUE_REFERENCES
-        typename stdm::conditional<(Flags & ACCEPTS_RREF) != 0,
+        typename stdm::conditional<has_flag<Flags, ACCEPTS_RREF>::value,
           typename stdm::add_rvalue_reference<obj_cv_t>::type,
           typename stdm::add_pointer<obj_cv_t>::type>::type
 #else
@@ -683,11 +691,11 @@ namespace fun_detail {
         >::type,
 
       typename mem_const_t = typename stdm::conditional<
-        (Flags & IS_CONST) != 0, typename stdm::add_const<T>::type, T>::type,
+        has_flag<Flags, IS_CONST>::value, typename stdm::add_const<T>::type, T>::type,
       typename mem_cv_t = typename stdm::conditional<
-        (Flags & IS_VOLATILE) != 0, typename stdm::add_volatile<mem_const_t>::type, mem_const_t>::type,
+        has_flag<Flags, IS_VOLATILE>::value, typename stdm::add_volatile<mem_const_t>::type, mem_const_t>::type,
 #ifdef MWGCONF_STD_RVALUE_REFERENCES
-      typename mem_ref_t = typename stdm::conditional<(Flags & ACCEPTS_RREF) != 0,
+      typename mem_ref_t = typename stdm::conditional<has_flag<Flags, ACCEPTS_RREF>::value,
         typename stdm::add_rvalue_reference<mem_cv_t>::type,
         typename stdm::add_lvalue_reference<mem_cv_t>::type>::type,
 #else
