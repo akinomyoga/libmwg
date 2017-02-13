@@ -43,7 +43,15 @@ ifneq ($(config_cplusplus:cxx%=%),$(config_cplusplus))
   config_cxx_version := $(config_cplusplus:cxx%=%)
   ifneq ($(filter 98 03 0x 11 1y 14 1z 17,$(config_cxx_version)),)
     config_found_flag:=1
-    CXXFLAGS += -std=c++$(config_cxx_version)
+    ifneq ($(subst -gcc-,-,$(CXXPREFIX)),$(CXXPREFIX))
+      # Note: Cygwin GCC で -std=c++11 などとすると __unix__ であっても、
+      #   fileno (<stdio.h>) 等の関数が定義されなくなる様だ。
+      #   -std=gnu++11 などと指定するとコンパイルできる。
+      #   一方で clang は -std=gnu++11 を受け入れない。
+      CXXFLAGS += -std=gnu++$(config_cxx_version)
+    else
+      CXXFLAGS += -std=c++$(config_cxx_version)
+    endif
   endif
 endif
 

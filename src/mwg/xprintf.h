@@ -763,7 +763,7 @@ namespace xprintf_detail {
     std::string str() const {
       std::string buff;
       vxprintf_impl(create_xprintf_writer(buff, false, adl_helper()), m_fmt, m_args);
-      return mwg::stdm::move(buff);
+      return buff;
     }
 
     operator std::string() const {
@@ -814,7 +814,7 @@ namespace xprintf_detail {
     std::string str() const {
       std::string buff;
       vxprintf_impl(create_xprintf_writer(buff, false, adl_helper()), m_fmt, this->get_args());
-      return mwg::stdm::move(buff);
+      return buff;
     }
 
     operator std::string() const {

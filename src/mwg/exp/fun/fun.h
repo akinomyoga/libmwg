@@ -904,7 +904,7 @@ namespace fun_detail {
 
     Add hello;
     mwg::as_fun<Add, int (int, int)>::adapter f1 = hello;
-    mwg_check((hello(3, 4) == 7));
+    mwg_check((f1(3, 4) == 7));
   }
 #pragma%x end_test
 
