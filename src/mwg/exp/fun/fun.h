@@ -344,6 +344,7 @@ namespace functor_detail {
     invokation_member_function,
   };
 
+#define mwg_rfwd mwg_forward_rvalue
 #if defined(MWGCONF_STD_RVALUE_REFERENCES)
   template<typename T>
   T&& fwd(typename stdm::remove_reference<T>::type& value){
@@ -358,7 +359,22 @@ namespace functor_detail {
   typename stdx::add_const_reference<T>::type
   fwd(typename stdx::add_const_reference<T>::type value) {return value;}
 #endif
-#define mwg_rfwd mwg_forward_rvalue
+
+#ifdef mwg_stdm_is_constructible_incomplete
+  template<typename Class, typename Base>
+  struct enable_fwd_ctor: mwg::identity<stdm::nullptr_t>{};
+#else
+  template<typename Class, typename Base>
+  struct enable_fwd_ctor: stdm::enable_if<stdm::is_constructible<Class, Base>::value, stdm::nullptr_t> {};
+#endif
+#ifdef MWGCONF_STD_RVALUE_REFERENCES
+# define MWG_FUN_H_define_forward_constructor(Class, Type, Member) \
+  template<typename X1> Class(X1&& func, typename enable_fwd_ctor<Type, X1&&>::type = nullptr): Member(stdm::forward<X1>(func)) {}
+#else
+# define MWG_FUN_H_define_forward_constructor(Class, Type, Member) \
+  template<typename X1> Class(X1 const& func, typename enable_fwd_ctor<Type, X1 const&>::type = nullptr): Member(func) {} \
+  template<typename X1> Class(X1& func, typename enable_fwd_ctor<Type, X1&>::type = nullptr): Member(func) {}
+#endif
 
 /*?lwiki
  * 最終的に呼び出す関数のシグニチャは決まっている (既知である)。
@@ -424,10 +440,7 @@ namespace functor_detail {
 #pragma%m 1
   template<class CRTP, class R, class... A>
   struct functor_interface<R (A...), CRTP>: CRTP {
-    template<class F> functor_interface(F mwg_rfwd func): CRTP(stdm::forward<F>(func)) {}
-#ifndef MWGCONF_STD_RVALUE_REFERENCES
-    template<class F> functor_interface(F& func): CRTP(func) {}
-#endif
+    MWG_FUN_H_define_forward_constructor(functor_interface, CRTP, CRTP);
     R operator()(A... a) const {
       return CRTP::template forward<R(A...)>(fwd<A>(a)...);
     }
@@ -439,10 +452,7 @@ namespace functor_detail {
   template<class CRTP, class R, class... A>
   struct functor_interface<R (A..., ...), CRTP>: functor_interface<R (A...), CRTP> {
     typedef functor_interface<R (A...), CRTP> base;
-    template<class F> functor_interface(F mwg_rfwd func): base(stdm::forward<F>(func)) {}
-#ifndef MWGCONF_STD_RVALUE_REFERENCES
-    template<class F> functor_interface(F& func): base(func) {}
-#endif
+    MWG_FUN_H_define_forward_constructor(functor_interface, base, base);
     template<class... B>
     R operator()(A... a, B mwg_rfwd... b) const {
       return CRTP::template forward<R(A..., B mwg_rfwd...)>(fwd<A>(a)..., fwd<B>(b)...);
@@ -454,10 +464,7 @@ namespace functor_detail {
   template<class CRTP, class R, class... A>
   struct functor_interface<R (A..., ...), CRTP>: functor_interface<R (A...), CRTP> {
     typedef functor_interface<R (A...), CRTP> base;
-    template<class F> functor_interface(F mwg_rfwd func): base(stdm::forward<F>(func)) {}
-#ifndef MWGCONF_STD_RVALUE_REFERENCES
-    template<class F> functor_interface(F& func): base(func) {}
-#endif
+    MWG_FUN_H_define_forward_constructor(functor_interface, base, base);
     using base::operator();
 #pragma%%x
     template<$"PROTECT"".for/%K/__arity__/__arity2__/class B%K/,">
@@ -495,11 +502,7 @@ namespace functor_detail {
     struct invoker {};
     template<class CRTP, class R, class... A>
     struct invoker<R (A...), CRTP>: CRTP {
-
-      template<class F> invoker(F mwg_rfwd func): CRTP(stdm::forward<F>(func)) {}
-#ifndef MWGCONF_STD_RVALUE_REFERENCES
-      template<class F> invoker(F& func): CRTP(func) {}
-#endif
+      MWG_FUN_H_define_forward_constructor(invoker, CRTP, CRTP);
 
       template<class XS>
       typename sig::result<XS>::type
@@ -509,10 +512,7 @@ namespace functor_detail {
     };
     template<class CRTP, class R, class... A>
     struct invoker<R (A..., ...), CRTP>: CRTP {
-      template<class F> invoker(F mwg_rfwd func): CRTP(stdm::forward<F>(func)) {}
-#ifndef MWGCONF_STD_RVALUE_REFERENCES
-      template<class F> invoker(F& func): CRTP(func) {}
-#endif
+      MWG_FUN_H_define_forward_constructor(invoker, CRTP, CRTP);
 
       template<class XS, class... B>
       typename sig::result<XS>::type
@@ -535,10 +535,7 @@ namespace functor_detail {
 
     template<class S, class CRTP>
     struct invoker: CRTP {
-      template<class F> invoker(F mwg_rfwd func): CRTP(stdm::forward<F>(func)) {}
-#ifndef MWGCONF_STD_RVALUE_REFERENCES
-      template<class F> invoker(F& func): CRTP(func) {}
-#endif
+      MWG_FUN_H_define_forward_constructor(invoker, CRTP, CRTP);
 
 #pragma%m 1
       template<class XS>
@@ -561,10 +558,7 @@ namespace functor_detail {
     struct invoker {};
     template<typename R, typename A0, typename CRTP>
     struct invoker<R(A0), CRTP>: CRTP {
-      template<class F> invoker(F mwg_rfwd func): CRTP(stdm::forward<F>(func)) {}
-#ifndef MWGCONF_STD_RVALUE_REFERENCES
-      template<class F> invoker(F& func): CRTP(func) {}
-#endif
+      MWG_FUN_H_define_forward_constructor(invoker, CRTP, CRTP);
 
       template<typename XS>
       typename sig::result<XS>::type
@@ -584,10 +578,7 @@ namespace functor_detail {
     struct invoker {};
     template<class CRTP, class R, class C, class... A>
     struct invoker<R (C, A...), CRTP>: CRTP {
-      template<class F> invoker(F mwg_rfwd func): CRTP(stdm::forward<F>(func)) {}
-# ifndef MWGCONF_STD_RVALUE_REFERENCES
-      template<class F> invoker(F& func): CRTP(func) {}
-# endif
+      MWG_FUN_H_define_forward_constructor(invoker, CRTP, CRTP);
 
       template<class XS>
       typename sig::result<XS>::type
@@ -597,10 +588,7 @@ namespace functor_detail {
     };
     template<class CRTP, class R, class C, class... A>
     struct invoker<R (C, A..., ...), CRTP>: CRTP {
-      template<class F> invoker(F mwg_rfwd func): CRTP(stdm::forward<F>(func)) {}
-# ifndef MWGCONF_STD_RVALUE_REFERENCES
-      template<class F> invoker(F& func): CRTP(func) {}
-# endif
+      MWG_FUN_H_define_forward_constructor(invoker, CRTP, CRTP);
 
       template<class XS, class... B>
       typename sig::result<XS>::type
@@ -625,10 +613,7 @@ namespace functor_detail {
 
     template<class S, class CRTP>
     struct invoker: CRTP {
-      template<class F> invoker(F mwg_rfwd func): CRTP(stdm::forward<F>(func)) {}
-# ifndef MWGCONF_STD_RVALUE_REFERENCES
-      template<class F> invoker(F& func): CRTP(func) {}
-# endif
+      MWG_FUN_H_define_forward_constructor(invoker, CRTP, CRTP);
 
 #pragma%m 1
       template<class XS>
@@ -994,9 +979,11 @@ namespace functor_detail {
       struct byref_holder {
         func_t* m_fun;
 
-        template<typename T> byref_holder(T mwg_rfwd fun): m_fun(&stdm::forward<T>(fun)) {}
-#ifndef MWGCONF_STD_RVALUE_REFERENCES
-        template<typename T> byref_holder(T& fun): m_fun(&fun) {}
+#ifdef MWGCONF_STD_RVALUE_REFERENCES
+        template<typename X1> byref_holder(X1&& fun, typename enable_fwd_ctor<func_t*, typename stdm::remove_reference<X1>::type*>::type = nullptr): m_fun(&stdm::forward<X1>(fun)) {}
+#else
+        template<typename X1> byref_holder(X1 const& fun, typename enable_fwd_ctor<func_t*, X1 const*>::type = nullptr): m_fun(&fun) {}
+        template<typename X1> byref_holder(X1& fun, typename enable_fwd_ctor<func_t*, X1 const*>::type = nullptr): m_fun(&fun) {}
 #endif
 
         func_t& get() const {return *m_fun;}
@@ -1004,12 +991,7 @@ namespace functor_detail {
 
       struct byval_holder {
         func_nocv_t m_fun;
-
-        template<typename T> byval_holder(T mwg_rfwd fun): m_fun(stdm::forward<T>(fun)) {}
-#ifndef MWGCONF_STD_RVALUE_REFERENCES
-        template<typename T> byval_holder(T& fun): m_fun(&fun) {}
-#endif
-
+        MWG_FUN_H_define_forward_constructor(byval_holder, func_nocv_t, m_fun);
         func_nocv_t& get() {return *m_fun;}
       };
     };

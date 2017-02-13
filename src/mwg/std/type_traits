@@ -1363,7 +1363,7 @@ namespace stdm{
 # elif (MWGCONF_GCC_VER>=40300&&!defined(__GCCXML__))
       (__is_pod(T))
 # else
-#  define mwg_stdm_is_pod__incomplete
+#  define mwg_stdm_is_pod_incomplete
       false
 # endif
       >{};

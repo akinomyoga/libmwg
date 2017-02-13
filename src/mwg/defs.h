@@ -88,7 +88,7 @@ namespace stdm {
 #   undef MWG_TEMP_OP
 }
 }
-#   define nullptr mwg::stdm::nullptr_instance
+#   define nullptr ::mwg::stdm::nullptr_instance
 #elif !defined(MWGCONF_STD_NULLPTR_T) && defined(MWGCONF_STD_DECLTYPE)
 namespace mwg {
 namespace stdm {
