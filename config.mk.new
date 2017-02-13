@@ -2,26 +2,45 @@
 # config.mk - compiler settings
 
 #
-# インストール先は環境変数 INSDIR で設定する。
-# もしくは make 時に make INSDIR=... install とする。
+# @export INSDIR
+#   インストール先 (いわゆる --prefix) を指定する環境変数。
+#   もしくは make 時に make INSDIR=... install とする。
 #
 #export INSDIR=$(HOME)/local
 
-# msc の場合は -Wall, -Wextra を指定しない
-ifeq ($(CXXPREFIX:i686-win-vc-%=hit),$(CXXPREFIX))
+#
+# @var libmwg_cxxkey_scanlist
+#   ソースディレクトリで make scan-* をした時に
+#   操作の対象とするコンパイラの一覧を指定する。
+#
+#libmwg_cxxkey_scanlist = CXXKEY+CXXCFG...
+
+#
+# @export MMAKE_SOURCE_FILTER
+#   文字コード変換や BOM 追加など。
+#
+export MMAKE_SOURCE_FILTER
+MMAKE_SOURCE_FILTER :=
+
+#
+# 警告オプション (-Wall -Wextra) の付加
+#
+#   Note: msvc の場合は -Wall, -Wextra を指定しない
+#   指定すると重要でない大量の警告が出力されるので。
+#
+ifeq ($(subst -vc-,-,$(CXXPREFIX)),$(CXXPREFIX))
   CXXFLAGS += -Wall
   CXXFLAGS += -Wextra
 endif
 
-export MMAKE_SOURCE_FILTER
-MMAKE_SOURCE_FILTER:=
-
 #
-# CXXCFG
+# @var[in] CXXCFG
 #   = /cxx(03|0x|11|1y|14|1z|17)(-(release|debug))?/
 #   | /release|debug/
 #   | /debug/
 #   | $name (where there is a file "config-$name.mk")
+#
+# @var[out] CXXFLAGS
 #
 
 config_found_flag:=

@@ -24,7 +24,6 @@
 
 #%m prologue
 # mmake/src.mk/Prologue
-SHELL:=/bin/bash
 #
 # initialize
 FLAGS:=

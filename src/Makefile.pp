@@ -132,10 +132,31 @@ show-install-message:
 
 #%x DefineRuleDoc.r/%LANG\y/cpp/
 
-_libmwg_scan_target:=for key in $$($(BASE)/mmake/mcxx/cxx +prefix list|awk '{print $$2}'); do printf '\e[48;5;189;1m%-79s\e[m\n' "$$ CXXKEY=$$key make TARGET"; CXXKEY="$$key" make TARGET; done
+ifneq ($(libmwg_cxxkey_scanlist),)
+  define _libmwg_scan_target :=
+    for key in $(libmwg_cxxkey_scanlist); do \
+      if [[ $$key == *+* ]]; then \
+        cxxkey="$${key%%+*}"; \
+        cxxcfg="$${key#*+}"; \
+        printf '\e[48;5;189;1m%-79s\e[m\n' "$$ CXXKEY=$$cxxkey CXXCFG=$$cxxcfg make TARGET"; \
+        CXXKEY="$$cxxkey" CXXCFG="$$cxxcfg" make TARGET; \
+      else \
+        printf '\e[48;5;189;1m%-79s\e[m\n' "$$ CXXKEY=$$key make TARGET"; \
+        CXXKEY="$$key" make TARGET; \
+      fi \
+    done
+  endef
+else
+  define _libmwg_scan_target :=
+    for key in $$($(BASE)/mmake/mcxx/cxx +prefix list|awk '{print $$2}'); do \
+      printf '\e[48;5;189;1m%-79s\e[m\n' "$$ CXXKEY=$$key make TARGET"; \
+      CXXKEY="$$key" make TARGET; \
+    done
+  endef
+endif
 .PHONY: scan-check scan-install scan-all scan-clean scan-clean-all
 scan-check:
-	@for key in $$($(BASE)/mmake/mcxx/cxx +prefix list|awk '{print $$2}'); do printf '\e[48;5;189;1m%-79s\e[m\n' "$$ CXXKEY=$$key make check"; CXXKEY="$$key" make check; done
+	@$(subst TARGET,check,$(_libmwg_scan_target))
 scan-install:
 	@$(subst TARGET,install,$(_libmwg_scan_target))
 scan-all:
