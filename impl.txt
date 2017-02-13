@@ -25,6 +25,28 @@
 
 2017-02-13
 
+* mwg/fun: canonical_parameter を用いた operator()() 探索。
+
+* mwg/fun: functor を提供する箇所は何処にする?
+
+  実際に調べてみると functor を使っているのは xprintf.h しかない。
+  (それでも確かに functor を使っている箇所はあるということに注意する)。
+  なので、functor は mwg/fun.h で直接対応するのではなくて、
+  別のヘッダで提供しても良いのではないだろうか。
+
+  但し、functor を実現するために functor_traits に大幅な変更を加えなければならないかもしれない。
+  もし functor_traits に対する大幅な変更が大半を占めるのだとしたらば、
+  やはり mwg/fun.h の中におまけとして functor を入れてしまった方が自然な気がする。
+
+  byref_functor と byval_functor をどの様に名付けるか?
+  面倒なので functor<void (int)> と functor<void (&)(int)> で区別するとか。
+  既定では byval_functor という事で良い。
+
+* mwg/fun: auto hoge = mwg::delegate<int (A, B)>(obj, &Class::do_action);
+
+  の様な関数を提供しても良いのではないだろうか。
+  mwg::delegate ではなくて mwg::fun という名前を使い回す方が良さそう。
+
 * mwg/fun: 既定の関数オブジェクト及び多重定義
 
   実は既に関数型だったり関数オブジェクトだったりする物については、
