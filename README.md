@@ -1,16 +1,16 @@
 # libmwg
 C++03 Utilities
-- mwg/except.h ... exception class and assertions
-- mwg/str.h ... a range-based string
-- mwg/xprintf.h ... generalized printf with variadic templates
-- mwg/std ... C++03/11/14 standard library abstraction
-- mwg/functor.h ... functional objects [obsoleted; it will be replaced by exp/fun/fun.h]
-- mwg/bio ... binary I/O support
-- mwg/stat ... utils for statistics including binning, histograms, and errored values
+- `<mwg/except.h>` ... exception class and assertions
+- `<mwg/str.h>` ... a range-based string
+- `<mwg/xprintf.h>` ... generalized printf with variadic templates
+- `<mwg/std/*>` ... C++03/11/14 standard library abstraction
+- `<mwg/functor.h>` ... functional objects [obsoleted; it will be replaced by exp/fun/fun.h]
+- `<mwg/bio/*>` ... binary I/O support
+- `<mwg/stat/*>` ... utils for statistics including binning, histograms, and errored values
 
 
 ## Usage
-### Example of compiling the library
+### Compile&Install
 
 ```bash
 $ git clone --recursive git@github.com:akinomyoga/libmwg.git
@@ -19,7 +19,7 @@ $ make
 $ make INSDIR=/path/to/install/prefix install
 ```
 
-### Example of using the library
+### Include&Link
 ```
 $ g++ \
   -I /path/to/install/prefix/include \
@@ -32,6 +32,12 @@ $ g++ \
 ## Support
 Currently it's only tested with the following C++ implementations:
 
-- icpc (ICC) 14.0.3 20140422
-- g++ (GCC) 6.3.1 20161221 (Red Hat 6.3.1-1)
-- clang version 3.8.1 (tags/RELEASE_381/final)
+- GNU/Linux (Fedora 25) 
+  - icpc (ICC) 14.0.3 20140422 (`-std=c++98`)
+  - g++ (GCC) 4.5.4 (`-std=c++98`)
+  - g++ (GCC) 4.6.3 (`-std=c++98`)
+  - g++ (GCC) 6.3.1 20161221 (Red Hat 6.3.1-1) (`-std=c++98, c++11, c++14`)
+  - clang version 3.8.1 (tags/RELEASE_381/final) (Target: i686-pc-linux-gnu) (`-std=c++98, c++11, c++14`)
+- Cygwin (Windows 10)
+  - g++ (GCC) 5.4.0 (`-std=c++98, c++11, c++14`)
+  - clang version 3.8.1 (tags/RELEASE_381/final) (Target: i686-pc-windows-cygnus) (`-std=c++98, c++11, c++14`)
