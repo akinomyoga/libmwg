@@ -113,7 +113,7 @@ source_files+=$(CFGDIR)/include/mwg_config.stamp $(CPPDIR)/mwg/config.h
 install_files+=$(INS_INCCFG)/mwg_config.h $(INS_INCCFG)/mwg/config.h
 $(INS_INCCFG)/mwg_config.h: $(CFGDIR)/include/mwg_config.stamp
 	@echo 'INS header $(CFGDIR)/include/mwg_config.h'; $(MMAKECMD) install-header $(CFGDIR)/include/mwg_config.h $@
-$(INS_INCCFG)/mwg/config.h: $(CPPDIR)/mwg/config.h
+$(INS_INCDIR)/mwg/config.h: $(CPPDIR)/mwg/config.h
 	@echo 'INS header $<'; $(MMAKECMD) install-header $< $@
 
 $(CFGDIR)/libmwg.a: $(object_files)
