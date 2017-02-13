@@ -28,15 +28,9 @@ config_found_flag:=
 config_cplusplus := $(CXXCFG)
 config_release_mode := debug
 ifneq ($(filter debug release default,$(CXXCFG)),)
-  ifneq ($(subst -icc-,-,$(CXXPREFIX)),$(CXXPREFIX))
-    # Note: icc には -std=c++03 というオプションはない。
-    config_cplusplus := cxx98
-  else
-    config_cplusplus := cxx03
-  endif
-  ifeq ($(CXXCFG),default)
-    config_release_mode := debug
-  else
+  # Note: icc, gcc 4.6 未満 には -std=c++03 というオプションはない。
+  config_cplusplus := cxx98
+  ifneq ($(CXXCFG),default)
     config_release_mode := $(CXXCFG)
   endif
 else
@@ -44,8 +38,10 @@ else
     config_cplusplus := $(CXXCFG:%-release=%)
     config_release_mode := release
   else
-    config_cplusplus := $(CXXCFG:%-debug=%)
-    config_release_mode := debug
+    ifneq ($(CXXCFG:%-debug=%),$(CXXCFG))
+      config_cplusplus := $(CXXCFG:%-debug=%)
+      config_release_mode := debug
+    endif
   endif
 endif
 
