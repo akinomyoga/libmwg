@@ -34,6 +34,7 @@ Currently it's only tested with the following C++ implementations:
 
 - GNU/Linux (Fedora 25) 
   - icpc (ICC) 14.0.3 20140422 (`-std=c++98`)
+  - g++ (GCC) 3.4.6 (`-std=c++98`)
   - g++ (GCC) 4.5.4 (`-std=c++98`)
   - g++ (GCC) 4.6.3 (`-std=c++98`)
   - g++ (GCC) 6.3.1 20161221 (Red Hat 6.3.1-1) (`-std=c++98, c++11, c++14`)
