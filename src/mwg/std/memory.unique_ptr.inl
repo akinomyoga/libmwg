@@ -1,5 +1,4 @@
-// -*- mode:C++;coding:utf-8 -*-
-#pragma once
+// -*- mode: c++; coding: utf-8 -*-
 #include <memory>
 #include <algorithm>
 #include <utility>
@@ -40,16 +39,16 @@ namespace detail{
 //-----------------------------------------------------------------------------
   template<typename T>
   struct has_pointer_type{
-    typedef char true_t [1];
-    typedef char false_t[2];
+    typedef char yes_type[1];
+    typedef char no_type [2];
 
     struct checker{
       template<typename X>
-      static true_t & eval(X* a,typename X::pointer* dummy=0);
-      static false_t& eval(...);
+      static yes_type& eval(X* a,typename X::pointer* dummy=0);
+      static no_type & eval(...);
     };
 
-    static const bool value=sizeof(true_t)==sizeof(checker::eval((T*)0));
+    static const bool value=sizeof(yes_type)==sizeof(checker::eval((T*)0));
   };
 
   template<typename P>

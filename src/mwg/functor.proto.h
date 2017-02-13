@@ -1,9 +1,8 @@
-// -*- mode:C++;coding:utf-8 -*-
-#pragma once
+// -*- mode: c++; coding: utf-8 -*-
 #ifndef MWG_FUNCTOR_PROTO_H
 #define MWG_FUNCTOR_PROTO_H
-namespace mwg{
-namespace functor_detail{
+namespace mwg {
+namespace functor_detail {
   template<typename F>
   struct functor_case_traits;
     // Tr::fct_t
@@ -11,20 +10,16 @@ namespace functor_detail{
     // Tr::case_data
     // Tr::endata
     // Tr::dedata
-  template<typename F,typename S=void>
+  template<typename F, typename S=void>
   struct functor_traits;
 
   struct functor_traits_empty;
   template<typename S>
   struct functor_traits_signature;
-  template<typename F,typename S,int L>
-  struct functor_traits_switch;
 
   template<typename S>
   struct functor_case;
-  template<typename S,typename T,bool INTERIOR>
-  class functor_case_data;
-  template<typename S,typename Tr>
+  template<typename S, typename Tr>
   class functor_case_impl;
 
   template<typename S>
@@ -34,8 +29,8 @@ namespace functor_detail{
   template<typename S> class vfunctor;
   template<typename S> class vfunctor_ref;
 
-  template<typename F,typename S> struct is_functor;
-  template<typename F,typename S> struct be_functor;
+  template<typename F, typename S> struct is_functor;
+  template<typename F, typename S> struct be_functor;
 }
 
   using functor_detail::functor_traits;
@@ -49,4 +44,3 @@ namespace functor_detail{
   using functor_detail::be_functor;
 }
 #endif
-

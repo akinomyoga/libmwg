@@ -29,7 +29,9 @@ Makefile: Makefile.pp
 #%x AddCxxHeader.r|%file%|mwg/impl/DeclareVariadicFunction.inl|
 #%x AddCxxHeader.r|%file%|mwg/std/utility|
 #%x AddCxxHeader.r|%file%|mwg/std/chrono|
+#%x AddCxxHeader.r|%file%|mwg/std/cfenv|
 #%x AddCxxHeader.r|%file%|mwg/std/cmath|
+#%x AddCxxSource.r|%file%|mwg/std/cmath.impl.cpp|
 #%x AddCxxHeader.r|%file%|mwg/std/cstdint|
 #%x AddCxxHeader.r|%file%|mwg/std/cctype|
 #%x AddCxxHeader.r|%file%|mwg/std/cwctype|
@@ -49,6 +51,9 @@ Makefile: Makefile.pp
 #%x AddCxxHeader.r|%file%|mwg/funcsig.h|
 #%x AddCxxHeader.r|%file%|mwg/functor.h|
 #%x AddCxxHeader.r|%file%|mwg/functor.proto.h|
+#%x AddCxxHeader.r|%file%|mwg/bits/type_traits.member_pointer.hpp|
+#%x AddCxxHeader.r|%file%|mwg/exp/fun/fun.h|
+#%x AddCxxHeader.r|%file%|mwg/exp/fun/funsig.h|
 
 #%x AddCxxHeader.r|%file%|mwg/xprintf.h|
 #%x AddCxxSource.r|%file%|mwg/xprintf.cpp|

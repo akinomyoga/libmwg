@@ -1,4 +1,4 @@
-// -*- mode:C++;coding:utf-8 -*-
+// -*- mode: c++; coding: utf-8 -*-
 #ifndef MWG_STDM_TYPE_TRAITS
 #define MWG_STDM_TYPE_TRAITS
 #include <mwg/defs.h>
@@ -62,7 +62,7 @@
  *   X is_trivially_copy_constructible    "$StandardHeaders" "int a=std::is_trivially_copy_constructible<int>::value;"
  *   X is_nothrow_copy_constructible      "$StandardHeaders" "int a=std::is_nothrow_copy_constructible<int>::value;"
  *
- *   X is_assignable                      "$StandardHeaders" "int a=std::is_assignable<int,int>::value;"
+ *   X is_assignable                      "$StandardHeaders" "int a=std::is_assignable<int&,int>::value;"
  *   X is_trivially_assignable            "$StandardHeaders" "int a=std::is_trivially_assignable<int,int>::value;"
  *   X is_nothrow_assignable              "$StandardHeaders" "int a=std::is_nothrow_assignable<int,int>::value;"
  *   X is_copy_assignable                 "$StandardHeaders" "int a=std::is_copy_assignable<int>::value;"
@@ -78,7 +78,7 @@
 # include <type_traits>
 #else
 //HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
-#pragma%[ArN=10]
+#pragma%include ../impl/VariadicMacros.pp
 #pragma%x begin_check
 #include <mwg/except.h>
 #include <mwg/std/cstdint>
@@ -236,14 +236,14 @@ namespace stdm{
   template<typename T,int N> struct is_volatile<volatile T[N]>:true_type{};
 
   namespace detail{
-    template<typename T,bool IsReference=is_reference<T>::value>
-    struct add_const_impl:mwg::identity<const T>{};
-    template<typename T,bool IsReference=is_reference<T>::value>
-    struct add_volatile_impl:mwg::identity<volatile T>{};
+    template<typename T, bool = !is_reference<T>::value>
+    struct add_const_impl: mwg::identity<const T>{};
+    template<typename T, bool = !is_reference<T>::value>
+    struct add_volatile_impl: mwg::identity<volatile T>{};
 
     // T: reference の場合に T const/volatile と書くと vc9 が警告を発するので。
-    template<typename T> struct add_const_impl<T,true>:mwg::identity<T>{};
-    template<typename T> struct add_volatile_impl<T,true>:mwg::identity<T>{};
+    template<typename T> struct add_const_impl<T, false>: mwg::identity<T>{};
+    template<typename T> struct add_volatile_impl<T, false>: mwg::identity<T>{};
   }
   template<typename T> struct add_const:detail::add_const_impl<T>{};
   template<typename T> struct add_volatile:detail::add_volatile_impl<T>{};
@@ -293,11 +293,88 @@ namespace stdm{
 #endif
 
   //
+  // is_function
+  //
+  namespace detail{
+    template<typename T>
+    struct is_function_impl: false_type{
+      static mwg_constexpr_const bool is_qualified = false;
+      static mwg_constexpr_const bool is_cv_qualified = false;
+      static mwg_constexpr_const bool is_const_qualified = false;
+      static mwg_constexpr_const bool is_volatile_qualified = false;
+      static mwg_constexpr_const bool is_ref_qualified = false;
+      static mwg_constexpr_const bool is_lvalue_reference_qualified = false;
+      static mwg_constexpr_const bool is_rvalue_reference_qualified = false;
+    };
+
+    enum {
+      lref_qualified = 1,
+      rref_qualified = 2,
+    };
+    template<bool Const = false, bool Volatile = false, int Ref = 0>
+    struct is_function_def: true_type {
+      static mwg_constexpr_const bool is_qualified = Const || Volatile || Ref != 0;
+      static mwg_constexpr_const bool is_cv_qualified = Const || Volatile;
+      static mwg_constexpr_const bool is_const_qualified = Const;
+      static mwg_constexpr_const bool is_volatile_qualified = Volatile;
+      static mwg_constexpr_const bool is_ref_qualified = Ref != 0;
+      static mwg_constexpr_const bool is_lvalue_reference_qualified = Ref == lref_qualified;
+      static mwg_constexpr_const bool is_rvalue_reference_qualified = Ref == rref_qualified;
+    };
+
+#pragma%m 1
+    template<class R,class... A>
+    struct is_function_impl<R(A...)>: is_function_def<false, false>{};
+    template<class R,class... A>
+    struct is_function_impl<R(A...,...)>: is_function_def<false, false>{};
+# ifdef MWG_STD_QUALIFIED_FUNCTION_TYPES
+    // ※上の宣言と重複 ?
+    // CHECK: const メンバ関数でも正しく判定されるかどうかを確認
+    template<class R,class... A>
+    struct is_function_impl<R(A...) const>: is_function_def<true, false>{};
+    template<class R,class... A>
+    struct is_function_impl<R(A...,...) const>: is_function_def<true, false>{};
+    template<class R,class... A>
+    struct is_function_impl<R(A...) volatile>: is_function_def<false, true>{};
+    template<class R,class... A>
+    struct is_function_impl<R(A...,...) volatile>: is_function_def<false, true>{};
+    template<class R,class... A>
+    struct is_function_impl<R(A...) const volatile>: is_function_def<true, true>{};
+    template<class R,class... A>
+    struct is_function_impl<R(A...,...) const volatile>: is_function_def<true, true>{};
+# endif
+#pragma%end
+#pragma%x variadic_expand_0toArN
+#if defined(MWGCONF_STD_VARIADIC_TEMPLATES) && defined(MWGCONF_STD_REF_QUALIFIERS) && defined(MWG_STD_QUALIFIED_FUNCTION_TYPES)
+    template<class R,class... A>
+    struct is_function_impl<R(A...) &>: is_function_def<false, false, lref_qualified>{};
+    template<class R,class... A>
+    struct is_function_impl<R(A...,...) &&>: is_function_def<false, false, rref_qualified>{};
+    template<class R,class... A>
+    struct is_function_impl<R(A...) const&>: is_function_def<true, false, lref_qualified>{};
+    template<class R,class... A>
+    struct is_function_impl<R(A...,...) const&&>: is_function_def<true, false, rref_qualified>{};
+    template<class R,class... A>
+    struct is_function_impl<R(A...) volatile&>: is_function_def<false, true, lref_qualified>{};
+    template<class R,class... A>
+    struct is_function_impl<R(A...,...) volatile&&>: is_function_def<false, true, rref_qualified>{};
+    template<class R,class... A>
+    struct is_function_impl<R(A...) const volatile&>: is_function_def<true, true, lref_qualified>{};
+    template<class R,class... A>
+    struct is_function_impl<R(A...,...) const volatile&&>: is_function_def<true, true, rref_qualified>{};
+#endif
+
+    template<typename T> struct is_function
+      :is_function_impl<typename remove_cv<T>::type>{};
+  }
+  using detail::is_function;
+
+  //
   // remove_reference
   // add_lvalue_reference
   // add_rvalue_reference
   //
-  //   requires: is_reference, is_void
+  //   requires: is_reference, is_void, is_function
   //
 #ifdef MWG_STDM_TYPE_TRAITS_WithTr1Header
   using ::std::tr1::remove_reference;
@@ -327,14 +404,16 @@ namespace stdm{
   // type category           lvalue rvalue
   // ----------------------- ------ ------
   // is_void                 void   void
+  // is_function             T&     T&&
+  // is_function (qualified) T      T
   // is_reference            U&     T
-  // is_function, is_object  T&     T&&
+  // is_object               T&     T&&
   template<typename T> struct add_lvalue_reference
-    :detail::add_lvalue_reference__impl<typename remove_reference<T>::type,!is_void<T>::value>{};
+    :detail::add_lvalue_reference__impl<typename remove_reference<T>::type,(!is_void<T>::value&&!detail::is_function_impl<T>::is_qualified)>{};
 
 # ifdef MWGCONF_STD_RVALUE_REFERENCES
   template<typename T> struct add_rvalue_reference
-    :detail::add_rvalue_reference__impl<T,!is_reference<T>::value&&!is_void<T>::value>{};
+    :detail::add_rvalue_reference__impl<T,!is_reference<T>::value&&!is_void<T>::value&&!detail::is_function_impl<T>::is_qualified>{};
 # endif
 #endif
 #pragma%x begin_check
@@ -354,50 +433,6 @@ namespace stdm{
   }
 
 #pragma%x end_check
-
-  //
-  // is_function
-  //
-#ifdef MWG_STDM_TYPE_TRAITS_WithTr1Header
-  using ::std::tr1::is_function;
-#else
-  namespace detail{
-    template<typename T> struct is_function_impl:false_type{};
-
-    // TODO:
-    //    variadic template を使用した実装?
-    //    C++11 の variadic template に対応しているのであれば、
-    //    <type_traits> も既に用意されているべき?
-
-//%x
-    template<typename R $".for/_/0/_AR_/,typename A_/">
-    struct is_function_impl<R( $".for/_/0/_AR_/A_/," )>:true_type{};
-    template<typename R $".for/_/0/_AR_/,typename A_/">
-    struct is_function_impl<R( $".for/_/0/_AR_/A_,/" ...)>:true_type{};
-//%end.f/_AR_/0/ArN+1/.i
-#ifdef MWG_STD_GccCvQualifiedFunctionType
-    // ※上の宣言と重複 ?
-    // CHECK: const メンバ関数でも正しく判定されるかどうかを確認
-//%x
-    template<typename R $".for/_/0/_AR_/,typename A_/">
-    struct is_function_impl<R( $".for/_/0/_AR_/A_/," ) const>:true_type{};
-    template<typename R $".for/_/0/_AR_/,typename A_/">
-    struct is_function_impl<R( $".for/_/0/_AR_/A_,/" ...) const>:true_type{};
-    template<typename R $".for/_/0/_AR_/,typename A_/">
-    struct is_function_impl<R( $".for/_/0/_AR_/A_/," ) volatile>:true_type{};
-    template<typename R $".for/_/0/_AR_/,typename A_/">
-    struct is_function_impl<R( $".for/_/0/_AR_/A_,/" ...) volatile>:true_type{};
-    template<typename R $".for/_/0/_AR_/,typename A_/">
-    struct is_function_impl<R( $".for/_/0/_AR_/A_/," ) const volatile>:true_type{};
-    template<typename R $".for/_/0/_AR_/,typename A_/">
-    struct is_function_impl<R( $".for/_/0/_AR_/A_,/" ...) const volatile>:true_type{};
-//%end.f/_AR_/0/ArN+1/.i
-#endif
-    template<typename T> struct is_function
-      :is_function_impl<typename remove_cv<T>::type>{};
-  }
-  using detail::is_function;
-#endif
 
   //
   // is_null_pointer
@@ -676,6 +711,8 @@ namespace stdm{
   template<> struct make_signed<unsigned __int64>:mwg::identity<  signed __int64>{};
   template<> struct make_unsigned<signed __int64>:mwg::identity<unsigned __int64>{};
 # endif
+}
+}
 
   //
   // is_pointer
@@ -686,59 +723,31 @@ namespace stdm{
   //   is_member_object_pointer
   //
 #ifdef MWG_STDM_TYPE_TRAITS_WithTr1Header
+namespace mwg{
+namespace stdm{
   using ::std::tr1::is_pointer;
   using ::std::tr1::is_member_function_pointer;
   using ::std::tr1::is_member_object_pointer;
   using ::std::tr1::is_member_pointer;
   using ::std::tr1::add_pointer;
   using ::std::tr1::remove_pointer;
+}
+}
 #else
-  namespace detail{
-    // is_member_function_pointer
-    template<typename T> struct is_member_function_pointer_impl:false_type{};
-#ifdef MWG_STD_GccCvQualifiedFunctionType
-    template<typename C,typename S>
-    struct is_member_function_pointer_impl<S C::*>:is_function<S>{};
-#else
-# if (MWGCONF_GCC_VER>=40200)
-    /* 条件についてちゃんと調べる */
-    template<typename C,typename S>
-    struct is_member_function_pointer_impl<S C::*>:is_function<S>{};
-# else
-//%expand (
-    template<typename C,typename R$".sep_for/_/0/_AR_/typename A_/,">
-    struct is_member_function_pointer_impl<R(C::*)($".for/_/0/_AR_/A_/," )>:true_type{};
-    template<typename C,typename R$".sep_for/_/0/_AR_/typename A_/,">
-    struct is_member_function_pointer_impl<R(C::*)($".for_sep/_/0/_AR_/A_/,"...)>:true_type{};
-//%).f/_AR_/0/ArN+1/.i
-# endif
-//%expand (
-    template<typename C,typename R$".sep_for/_/0/_AR_/typename A_/,">
-    struct is_member_function_pointer_impl<R(C::*)($".for/_/0/_AR_/A_/,") const>:true_type{};
-    template<typename C,typename R$".sep_for/_/0/_AR_/typename A_/,">
-    struct is_member_function_pointer_impl<R(C::*)($".for_sep/_/0/_AR_/A_/,"...) const>:true_type{};
-    template<typename C,typename R$".sep_for/_/0/_AR_/typename A_/,">
-    struct is_member_function_pointer_impl<R(C::*)($".for/_/0/_AR_/A_/,") volatile>:true_type{};
-    template<typename C,typename R$".sep_for/_/0/_AR_/typename A_/,">
-    struct is_member_function_pointer_impl<R(C::*)($".for_sep/_/0/_AR_/A_/,"...) volatile>:true_type{};
-    template<typename C,typename R$".sep_for/_/0/_AR_/typename A_/,">
-    struct is_member_function_pointer_impl<R(C::*)($".for/_/0/_AR_/A_/,") const volatile>:true_type{};
-    template<typename C,typename R$".sep_for/_/0/_AR_/typename A_/,">
-    struct is_member_function_pointer_impl<R(C::*)($".for_sep/_/0/_AR_/A_/,"...) const volatile>:true_type{};
-//%).f/_AR_/0/ArN+1/.i
-#endif
-    template<typename T> struct is_member_function_pointer
-      :is_member_function_pointer_impl<typename remove_cv<T>::type>{};
+#include <mwg/bits/type_traits.member_pointer.hpp>
+namespace mwg{
+namespace stdm{
+  namespace detail {
+    template<typename T> struct is_member_pointer:
+      mwg::type_traits::is_member_pointer<typename remove_cv<T>::type> {};
 
-    // is_member_pointer
-    template<typename T> struct is_member_pointer_impl:false_type{};
-    template<typename C,typename T> struct is_member_pointer_impl<T C::*>:true_type{};
-    template<typename T> struct is_member_pointer
-      :integral_constant<bool,(is_member_pointer_impl<typename remove_cv<T>::type>::value||is_member_function_pointer<T>::value)>{};
+    template<typename T> struct is_member_function_pointer: stdm::integral_constant<
+      bool, (is_member_pointer<T>::value &&
+        stdm::is_function<typename is_member_pointer<T>::member_type>::value)> {};
 
-    // is_member_object_pointer
-    template<typename T> struct is_member_object_pointer
-      :integral_constant<bool,(is_member_pointer<T>::value&&!is_member_function_pointer<T>::value)>{};
+    template<typename T> struct is_member_object_pointer: stdm::integral_constant<
+      bool, (is_member_pointer<T>::value &&
+        !stdm::is_function<typename is_member_pointer<T>::member_type>::value)> {};
 
     // is_pointer
     template<typename T> struct is_pointer_impl:false_type{};
@@ -762,7 +771,7 @@ namespace stdm{
   using detail::is_pointer;
   using detail::add_pointer;
   using detail::remove_pointer;
-#endif
+
 #pragma%x begin_check
   void check_is_member_pointer(){
     mwg_check(( mwg::stdm::is_member_function_pointer<int (S::*)(int)>::value));
@@ -775,7 +784,12 @@ namespace stdm{
     mwg_check(( mwg::stdm::is_member_pointer<int (S::*)(int) const volatile>::value));
   }
 #pragma%x end_check
+}
+}
+#endif
 
+namespace mwg{
+namespace stdm{
   //
   // is_array
   //   remove_extent
@@ -887,12 +901,12 @@ namespace stdm{
     struct is_base_and_derived{
       mwg_concept_sfinae_param{
 #  if defined(_MSC_VER)&&_MSC_VER==1310
-        static mwg::concept_detail::true_t  eval(D const volatile*       ,long);
-        static mwg::concept_detail::false_t eval(B const volatile* const&,int);
+        static mwg::concept_detail::yes_type eval(D const volatile*       ,long);
+        static mwg::concept_detail::no_type  eval(B const volatile* const&,int);
 #  else
         template<typename T>
-        static mwg::concept_detail::true_t  eval(D const volatile*,T);
-        static mwg::concept_detail::false_t eval(B const volatile*,int);
+        static mwg::concept_detail::yes_type eval(D const volatile*,T);
+        static mwg::concept_detail::no_type  eval(B const volatile*,int);
 #  endif
       };
       struct Host{
@@ -1206,17 +1220,16 @@ namespace stdm{
   //
   //   requirements: conditional, enable_if, is_arithmetic, is_floating_point, is_void
   //
-//%[ArN=10]
 # define MWG_STD_COMMON_TYPE__EMULATED
 # if defined(MWGCONF_STD_VARIADIC_TEMPLATES)
   template<typename... Ts>
   struct common_type{};
 # else
-//%x
+#pragma%x
   template<$".for/K/0/ArN/typename TK=void/,">
   struct common_type
     :common_type<typename common_type<T0,T1>::type,$".for/K/2/ArN/TK/,">{};
-//%end.i
+#pragma%end.i
 # endif
   //---------------------------------------------------------------------------
   //  common_type<>
@@ -1244,11 +1257,11 @@ namespace stdm{
     template<typename T0,typename T1,typename=void>
     struct common_type_impl3{};
     template<typename T0,typename T1>
-    struct common_type_impl3<T0,T1,typename enable_if<is_floating_point<T0>::value&&is_integral<T1>::value>::type>:mwg::identity<T0>{};
+    struct common_type_impl3<T0,T1,typename enable_if<(is_floating_point<T0>::value&&is_integral<T1>::value)>::type>:mwg::identity<T0>{};
     template<typename T0,typename T1>
-    struct common_type_impl3<T0,T1,typename enable_if<is_floating_point<T1>::value&&is_integral<T0>::value>::type>:mwg::identity<T1>{};
+    struct common_type_impl3<T0,T1,typename enable_if<(is_floating_point<T1>::value&&is_integral<T0>::value)>::type>:mwg::identity<T1>{};
     template<typename T0,typename T1>
-    struct common_type_impl3<T0,T1,typename enable_if<is_integral<T0>::value&&is_integral<T1>::value>::type>:
+    struct common_type_impl3<T0,T1,typename enable_if<(is_integral<T0>::value&&is_integral<T1>::value)>::type>:
       conditional<(sizeof(T1)<sizeof(int))&&(sizeof(T1)<sizeof(int)),mwg::identity<int>,
         typename conditional<(sizeof(T0)>sizeof(T1)),mwg::identity<T0>,
           typename conditional<(sizeof(T1)>sizeof(T0)),mwg::identity<T1>,
@@ -1273,7 +1286,7 @@ namespace stdm{
     template<typename T0>
     struct common_type_impl1<T0,T0>:mwg::identity<T0>{};
     template<typename T0,typename T1>
-    struct common_type_impl1<T0,T1,typename enable_if<is_void<T0>::value!=is_void<T1>::value>::type>{}; /* when T0 or T1 = throw-expression */
+    struct common_type_impl1<T0,T1,typename enable_if<(is_void<T0>::value!=is_void<T1>::value)>::type>{}; /* when T0 or T1 = throw-expression */
   }
 
   template<typename T0,typename T1>
@@ -1287,11 +1300,11 @@ namespace stdm{
   struct common_type<T0,T1,T2,Ts...>
     :common_type<typename common_type<T0,T1>::type,T2,Ts...>{};
 # else
-//%x
+#pragma%x
   template<$".for/K/0/_AR_/typename TK/,">
   struct common_type<$".for/K/0/_AR_/TK/,">
     :common_type<typename common_type<T0,T1>::type,$".for/K/2/_AR_/TK/,">{};
-//%end.f/_AR_/3/ArN/.i
+#pragma%end.f/_AR_/3/ArN/.i
 # endif
 
   //===========================================================================
@@ -1327,7 +1340,7 @@ namespace stdm{
 # elif (MWGCONF_GCC_VER>=40300&&!defined(__GCCXML__))
       (__is_pod(T))
 # else
-#  define mwg_stdm_is_pod__incomplete
+#  define mwg_stdm_is_pod_incomplete
       false
 # endif
       >{};
@@ -1373,22 +1386,33 @@ namespace stdx{
   template<typename To,typename From> struct copy_cv
     :copy_const<typename copy_volatile<To,From>::type,From>{};
 
-  // add_const_reference<T>
-  template<typename T> struct add_const_reference:add_lvalue_reference<typename add_const<T>::type>{};
+  /*?lwiki
+   * @typedef typename mwg::stdx::==add_const_reference==<T>::type;
+   *
+   * `const&` を付加します。
+   * 右辺値参照を左辺値参照に変えます。
+   * 左辺値参照はそのまま返します。
+   * それ以外の場合に `const&` を付加します。
+   *
+   * 例えば、`Class const&` で受け取ったオブジェクトが、`T` 型で宣言されたメンバを持つ場合、
+   * メンバアクセスは (戻り値の宣言型として) 型 `mwg::stdx::add_const_reference<T>::type` を持ちます。
+   *
+   */
+  template<typename T> struct add_const_reference: add_lvalue_reference<typename add_const<T>::type>{};
 
   // parameter_pack<Ts...>
 #if defined(MWGCONF_STD_VARIADIC_TEMPLATES)
   template<typename... Ts>
   struct parameter_pack{static const std::size_t size=sizeof...(Ts);};
 #else
-//%expand (
+#pragma%x
   template<$".for/K/0/ArN/typename AK=void/,">
   struct parameter_pack{static const std::size_t size=$".eval:ArN";};
-//%expand (
+#pragma%x
   template<$".for/K/0/_AR_/typename AK/,">
   struct parameter_pack<$".for/K/0/_AR_/AK/,">{static const std::size_t size=_AR_;};
-//%).f/_AR_/0/ArN/
-//%).i
+#pragma%end.f/_AR_/0/ArN/
+#pragma%end.i
 #endif
 
   //
@@ -1427,12 +1451,12 @@ namespace stdx{
   template<bool... Bs> struct ice_or<false,Bs...>:ice_or<Bs...>{};
   template<> struct ice_or<>:stdm::false_type{};
 #else
-//%expand
+#pragma%x
   template<$".for/K/0/ArN/bool CK=true/,"> struct ice_and:false_type{};
   template<> struct ice_and<>:true_type{};
   template<$".for/K/0/ArN/bool CK=false/,"> struct ice_or:true_type{};
   template<> struct ice_or<>:false_type{};
-//%end.i
+#pragma%end.i
 #endif
 
   // is_convertible_pack<Ts...>
@@ -1451,7 +1475,7 @@ namespace stdx{
   struct is_convertible_pack<parameter_pack<As...>,parameter_pack<Bs...>>
     :detail::is_convertible_pack_impl<parameter_pack<As...>,parameter_pack<Bs...>,sizeof...(As)==sizeof...(Bs)>{};
 #else
-//%expand
+#pragma%x
   namespace detail{
     template<typename TT1,typename TT2,bool S> struct is_convertible_pack_impl:false_type{};
     template<> struct is_convertible_pack_impl<parameter_pack<>,parameter_pack<>,true>:true_type{};
@@ -1465,7 +1489,7 @@ namespace stdx{
   template<typename TT1,typename TT2>
   struct is_convertible_pack
     :detail::is_convertible_pack_impl<TT1,TT2,(TT1::size==TT2::size)>{};
-//%end.i
+#pragma%end.i
 #endif
 }
 }

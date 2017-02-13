@@ -1,5 +1,4 @@
-// -*- mode:C++;coding:utf-8 -*-
-#pragma once
+// -*- mode: c++; coding: utf-8 -*-
 #ifndef MWG_STAT_ERRORED_VALUE_H
 #define MWG_STAT_ERRORED_VALUE_H
 #include <cstdio>

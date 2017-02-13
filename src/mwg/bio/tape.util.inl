@@ -1,5 +1,4 @@
-// -*- mode:C++;coding:utf-8 -*-
-#pragma once
+// -*- mode: c++; coding: utf-8 -*-
 #ifndef MWG_BIO_TAPE_UTIL_H
 #define MWG_BIO_TAPE_UTIL_H
 #include <climits>
@@ -451,6 +450,8 @@ operator|(const F& filter,const T& wtape){
 //
 //-----------------------------------------------------------------------------
 
+typedef int filter_function_type(const byte*&, const byte*, byte*&, byte*, void*&);
+
 #ifdef _MSC_VER
 # pragma warning(push)
 # pragma warning(disable:4180) /* `const' modifier to function reference */
@@ -458,18 +459,17 @@ operator|(const F& filter,const T& wtape){
 template<typename F>
 class filter_function_filter:public tag_filter_type{
   const F& filter_function;
-  typedef int(sgn_t)(const byte*&,const byte*,byte*&,byte*,void*&);
 public:
   filter_function_filter(const F& func):filter_function(func){}
   int operator()(const byte*& s,const byte* sN,byte*& d,byte* dN,void*& state) const{
-    return mwg::functor_traits<F,sgn_t>::invoke(filter_function,s,sN,d,dN,state);
+    typename mwg::as_functor<F, filter_function_type>::adapter filter(filter_function);
+    return filter(s, sN, d, dN, state);
   }
 };
 #ifdef _MSC_VER
 # pragma warning(pop)
 #endif
 
-typedef int filter_function_type(const byte*&,const byte*,byte*&,byte*,void*&);
 
 template<typename F>
 typename mwg::stdm::enable_if<mwg::be_functor<F,filter_function_type>::value,filter_function_filter<F> >::type

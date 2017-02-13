@@ -1,5 +1,8 @@
 # -*- mode:makefile-gmake -*-
 
+export CXXKEY
+export CXXCFG
+
 # external tools
 MWGCXX:=$(BASE)/mmake/mcxx/cxx
 MWGCXXAR:=$(BASE)/mmake/mcxx/cxxar

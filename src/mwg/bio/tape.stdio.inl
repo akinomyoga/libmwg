@@ -1,5 +1,4 @@
-// -*- mode:C++;coding:utf-8 -*-
-#pragma once
+// -*- mode: c++; coding: utf-8 -*-
 #ifndef MWG_BIO_TAPE_H_stdio
 #define MWG_BIO_TAPE_H_stdio
 #include <cstdio>

@@ -1,5 +1,4 @@
-// -*- mode:C++;coding:utf-8 -*-
-#pragma once
+// -*- mode: c++; coding: utf-8 -*-
 #ifndef MWG_BITS_STR_SUPPORT_XPRINTF_H
 #define MWG_BITS_STR_SUPPORT_XPRINTF_H
 #include <cstddef>

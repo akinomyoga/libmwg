@@ -1,5 +1,4 @@
-// -*- mode:C++;coding:utf-8 -*-
-#pragma once
+// -*- mode: c++; coding: utf-8 -*-
 #ifndef MWG_BIO_MWB_HEADER_H
 #define MWG_BIO_MWB_HEADER_H
 #include <cstdlib>
@@ -178,10 +177,12 @@ namespace mwb1{
     :MwbFormatWriter_WriteTypeImplC<FMTC::I4>{};
   template<> struct MwbFormatWriter_WriteType<u4t>
     :MwbFormatWriter_WriteTypeImplC<FMTC::U4>{};
+#ifdef MWGCONF_HAS_64BIT_INTEGER
   template<> struct MwbFormatWriter_WriteType<i8t>
     :MwbFormatWriter_WriteTypeImplC<FMTC::I8>{};
   template<> struct MwbFormatWriter_WriteType<u8t>
     :MwbFormatWriter_WriteTypeImplC<FMTC::U8>{};
+#endif
   template<> struct MwbFormatWriter_WriteType<float>
     :MwbFormatWriter_WriteTypeImplC<FMTC::FLT1>{};
   template<> struct MwbFormatWriter_WriteType<double>

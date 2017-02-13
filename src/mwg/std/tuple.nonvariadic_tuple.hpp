@@ -1,5 +1,4 @@
-// -*- mode:C++;coding:utf-8 -*-
-#pragma once
+// -*- mode: c++; coding: utf-8 -*-
 #ifndef MWG_STDM_TUPLE__NONVARIADIC_TUPLE_INL
 #define MWG_STDM_TUPLE__NONVARIADIC_TUPLE_INL
 #include <cstddef>

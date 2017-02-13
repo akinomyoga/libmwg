@@ -1,5 +1,4 @@
-// -*- mode:C++;coding:utf-8 -*-
-#pragma once
+// -*- mode: c++; coding: utf-8 -*-
 #ifndef MWG_STDM_CWCTYPE
 #define MWG_STDM_CWCTYPE
 #include <cwctype>
@@ -30,15 +29,15 @@
 :@fn std::wint_t mwg::stdm::towupper(std::wint_t);
 */
 
-namespace mwg{
-namespace stdm{
+namespace mwg {
+namespace stdm {
 
   // C99 Features
   //?mconf X -t'std::iswblank(x)' -oMWGCONF_HAS_STD_ISWBLANK cctype "std::iswblank('\t')"
 
 #if !defined(MWGCONF_HAS_STD_ISWBLANK)
-  inline mwg_constexpr int iswblank(std::wint_t value){
-    return value=='\t'||value==' '?1:0;
+  static inline mwg_constexpr int iswblank(std::wint_t value) {
+    return value == '\t' || value == ' '? 1: 0;
   }
 #endif
 
@@ -49,7 +48,7 @@ namespace stdm{
 #pragma%x begin_check
 #include <mwg/std/cwctype>
 #include <mwg/except.h>
-int main(){
+int main() {
   mwg_check( mwg::stdm::iswblank(L' '));
   mwg_check( mwg::stdm::iswblank(L'\t'));
   mwg_check(!mwg::stdm::iswblank(L'\n'));

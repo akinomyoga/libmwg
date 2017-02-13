@@ -1,5 +1,4 @@
-// -*- mode:C++;coding:utf-8 -*-
-#pragma once
+// -*- mode: c++; coding: utf-8 -*-
 #ifndef MWG_BITS_STR_STRBUFF_H
 #define MWG_BITS_STR_STRBUFF_H
 #include <mwg/defs.h>

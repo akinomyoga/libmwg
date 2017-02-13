@@ -1,5 +1,4 @@
-// -*- mode:C++;coding:utf-8 -*-
-#pragma once
+// -*- mode: c++; coding: utf-8 -*-
 #ifndef MWG_BIO_FILTER_INL
 #define MWG_BIO_FILTER_INL
 #include <mwg/defs.h>

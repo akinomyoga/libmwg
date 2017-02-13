@@ -1,4 +1,4 @@
-// -*- mode:C++;coding:utf-8 -*-
+// -*- mode: c++; coding: utf-8 -*-
 #ifndef MWG_STDM_TYPE_TRAITS__IS_CONSTRUCTIBLE
 #define MWG_STDM_TYPE_TRAITS__IS_CONSTRUCTIBLE
 #if MWGCONF_HEADER_STD>=2011
@@ -94,24 +94,24 @@ namespace stdm{
 
     // TODO:
 
-    // is_constructible
-    // is_trivially_constructible
-    // is_nothrow_constructible
+#define mwg_stdm_is_constructible_incomplete
+#define mwg_stdm_is_trivially_constructible_incomplete
+#define mwg_stdm_is_nothrow_constructible_incomplete
 
-    // is_assignable
-    // is_trivially_assignable
-    // is_nothrow_assignable
+#define mwg_stdm_is_assignable_incomplete
+#define mwg_stdm_is_trivially_assignable_incomplete
+#define mwg_stdm_is_nothrow_assignable_incomplete
 
-    // is_move_constructible
-    // is_trivially_move_constructible
-    // is_nothrow_move_constructible
+#define mwg_stdm_is_move_constructible_incomplete
+#define mwg_stdm_is_trivially_move_constructible_incomplete
+#define mwg_stdm_is_nothrow_move_constructible_incomplete
 
-    // is_move_assignable
-    // is_trivially_move_assignable
-    // is_nothrow_move_assignable
+#define mwg_stdm_is_move_assignable_incomplete
+#define mwg_stdm_is_trivially_move_assignable_incomplete
+#define mwg_stdm_is_nothrow_move_assignable_incomplete
 
-    // is_destructible
-    // is_nothrow_destructible
+#define mwg_stdm_is_destructible_incomplete
+#define mwg_stdm_is_nothrow_destructible_incomplete
   }
 
 //-----------------------------------------------------------------------------
@@ -132,7 +132,7 @@ namespace stdm{
 # elif defined(MWGCONF_CLANG_VER)
     template<typename T> struct is_trivially_default_constructible:integral_constant<bool,is_pod<T>::value||__has_trivial_constructor(T)>{};
 # else
-#  define mwg_stdm_is_trivially_default_constructible__incomplete
+#  define mwg_stdm_is_trivially_default_constructible_incomplete
     /* INCOMPLETE */
     template<typename T> struct is_trivially_default_constructible:is_pod<T>{};
 # endif
@@ -158,7 +158,7 @@ namespace stdm{
 # elif defined(MWGCONF_CLANG_VER)
     template<typename T> struct is_nothrow_default_constructible:integral_constant<bool,is_pod<T>::value||__has_nothrow_constructor(T)>{};
 # else
-#  define mwg_stdm_is_nothrow_default_constructible__incomplete
+#  define mwg_stdm_is_nothrow_default_constructible_incomplete
     /* INCOMPLETE */
     template<typename T> struct is_nothrow_default_constructible:is_pod<T>{};
 # endif
@@ -188,7 +188,7 @@ namespace stdm{
     struct is_default_constructible:integral_constant<
       bool,!is_reference<T>::value&&is_default_constructible_impl<typename remove_reference<T>::type>::value>{};
 # else
-#  define mwg_stdm_is_default_constructible__incomplete
+#  define mwg_stdm_is_default_constructible_incomplete
     template<typename T>
     struct is_default_constructible:integral_constant<
       bool,(is_trivially_default_constructible<T>::value||is_nothrow_default_constructible<T>::value)>{};
@@ -215,7 +215,7 @@ namespace stdm{
 # elif defined(MWGCONF_CLANG_VER)
     template<typename T> struct is_trivially_copy_constructible:integral_constant<bool,is_pod<T>::value||(__has_trivial_copy(T)&&!is_reference<T>::value&&!is_volatile<T>::value)>{};
 # else
-#  define mwg_stdm_is_trivially_copy_constructible__incomplete
+#  define mwg_stdm_is_trivially_copy_constructible_incomplete
     template<typename T> struct is_trivially_copy_constructible:is_pod<T>{};
 # endif
   }
@@ -240,7 +240,7 @@ namespace stdm{
 # elif defined(MWGCONF_CLANG_VER)
     template<typename T> struct is_nothrow_copy_constructible:integral_constant<bool,is_pod<T>::value||(__has_nothrow_copy(T)&&!is_reference<T>::value&&!is_volatile<T>::value)>{};
 # else
-#  define mwg_stdm_is_nothrow_copy_constructible__incomplete
+#  define mwg_stdm_is_nothrow_copy_constructible_incomplete
     template<typename T> struct is_nothrow_copy_constructible:is_pod<T>{};
 # endif
   }
@@ -261,7 +261,7 @@ namespace stdm{
     template<typename T>
     mwg_concept_is_valid_expression(is_copy_constructible,Holder<T>,X,(X(mwg::declval<const X&>())));
 # else
-#  define mwg_stdm_is_copy_constructible__incomplete
+#  define mwg_stdm_is_copy_constructible_incomplete
     template<typename T>
     struct is_copy_constructible:integral_constant<
       bool,(is_trivially_copy_constructible<T>::value||is_nothrow_copy_constructible<T>::value)>{};
@@ -290,7 +290,7 @@ namespace stdm{
 # elif defined(MWGCONF_CLANG_VER)
     template<typename T> struct is_trivially_copy_assignable:integral_constant<bool,is_pod<T>::value||(__has_trivial_assign(T)&&!is_volatile<T>::value)>{};
 # else
-#  define mwg_stdm_is_trivially_copy_assignable__incomplete
+#  define mwg_stdm_is_trivially_copy_assignable_incomplete
     template<typename T> struct is_trivially_copy_assignable:is_pod<T>{};
 # endif
   }
@@ -317,7 +317,7 @@ namespace stdm{
 # elif defined(MWGCONF_CLANG_VER)
     template<typename T> struct is_nothrow_copy_assignable:integral_constant<bool,is_pod<T>::value||(__has_nothrow_assign(T)&&!is_volatile<T>::value)>{};
 # else
-#  define mwg_stdm_is_nothrow_copy_assignable__incomplete
+#  define mwg_stdm_is_nothrow_copy_assignable_incomplete
     template<typename T> struct is_nothrow_copy_assignable:is_pod<T>{};
 # endif
   }
@@ -340,7 +340,7 @@ namespace stdm{
     template<typename T>
     mwg_concept_is_valid_expression(is_copy_assignable,Holder<T>,X,(mwg::declval<X&>()=mwg::declval<const X&>()));
 # else
-#  define mwg_stdm_is_copy_assignable__incomplete
+#  define mwg_stdm_is_copy_assignable_incomplete
     template<typename T>
     struct is_copy_assignable:integral_constant<
       bool,(is_trivially_copy_assignable<T>::value||is_nothrow_copy_assignable<T>::value)>{};
@@ -364,7 +364,7 @@ namespace stdm{
 # elif defined(MWGCONF_CLANG_VER)
     template<typename T> struct is_trivially_destructible:integral_constant<bool,is_pod<T>::value||__has_trivial_destructor(T)>{};
 # else
-#  define mwg_stdm_is_trivially_destructible__incomplete
+#  define mwg_stdm_is_trivially_destructible_incomplete
     template<typename T> struct is_trivially_destructible:is_pod<T>{};
 # endif
   }
@@ -386,7 +386,7 @@ namespace stdm{
 # elif defined(MWGCONF_CLANG_VER)
     template<typename T> struct has_virtual_destructor:integral_constant<bool,__has_virtual_destructor(T)>{};
 # else
-#  define mwg_stdm_has_virtual_destructor__incomplete
+#  define mwg_stdm_has_virtual_destructor_incomplete
     template<typename T> struct has_virtual_destructor:false_type{};
 # endif
   }
