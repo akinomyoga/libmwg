@@ -25,6 +25,53 @@
 
 2017-02-13
 
+* mwg/fun: 既定の関数オブジェクト及び多重定義
+
+  実は既に関数型だったり関数オブジェクトだったりする物については、
+  adapter は自分自身の型への参照にすれば良いのでは。
+  そちらの方が多重定義を失う事もないし良い。
+
+  と思ったがその為には現在の様に as_fun の内部で adapter を定義するという方法は使えない。
+  自分で特別な adapter を生成する場合には functor_traits に `intrinsic_adapter` という名前で、
+  型メンバーを提供する様にすれば良い。
+
+  % メンバポインタに関連して。受け取るオブジェクトに応じて戻り値の型が変わる。
+  % つまり、`T C::*` は `T& (C&)` と `T& (C&)` の多重定義を持つ関数オブジェクトと考えられる。
+  % より一般化して多重定義を持つ関数オブジェクトをどの様に実現するのかという事である。
+  %
+  % 例えば、多重定義を持つ関数オブジェクトの場合には `intrinsic_signature` として関数型ではなくて、
+  % `std::pair<S1, std::pair<S2, S3> >` の様な物を指定することにするのはどうだろう。
+  % そして `functor_interface` は `std::pair` に対する特殊化を用意して、
+  % 何とか `operator` を複数用意する事にするのである。
+  %
+  % 取り敢えず現状では `T& (C&)` を使用する事にする。
+
+  オブジェクトの本来の多重定義を提供するというのであれば、普通に個別に実装した方が良い。
+
+  - というのも関数型及び関数オブジェクトに関してはそのまま自身への参照を返す様にすれば済む話だからである。
+  - 残るのはメンバ関数型とメンバオブジェクト型である。
+    メンバオブジェクト型については有限個の多重定義が明らかなのでそのまま実装すれば良い。
+  - メンバ関数型については対応するシグニチャでそのまま operator() を定義すれば良い。
+    但し、ref-qualifier のついていないメンバ関数については && 版と & 版の両方を用意する必要がある。
+
+* mwg/fun: 可変長引数関数オブジェクトの型消去方法
+
+  可変長引数の関数オブジェクトの実現方法は謎である。
+  というのも、任意の引数を転送する為にはテンプレートを使わなければならないが、
+  テンプレートは仮想関数にする事ができないからである。
+  ただ、関数オブジェクトにしない範囲では対応可能である。
+
+  更に良く考えてみたら多重定義が色々になっている関数オブジェクトに関しても、
+  なかなか実現方法は面倒である。だとするのであれば、
+  関数オブジェクトにする時には常に固定の引数になる様にするのが良いだろうか。
+  そもそも可変長テンプレート引数の関数ですら仮想関数にするのは難しい。
+
+  型情報などを使って無理矢理に実現する方法はあるかもしれないが、
+  そういった無理矢理で効率の悪い方法は今回の対象ではない。
+  (mwg/fun (もしくは前身の mwg/functor) は、
+  できるだけ効率的に実装したいが毎回自分で実装するのは面倒な仕組み、
+  というのの共通部分を括りだしてまとめた物を作ることである。)
+
 * そろそろ experimental のコンパイラに対するサポートは捨てて良いのではないか。
 
   ソースコードが汚くなっている原因である。
@@ -90,6 +137,15 @@
   |   この方法の良い所は、更に他のレベルの呼び出し可能性 (例えば厳密一致) を提供するのが簡単であるという事である。
   |   新しいメンバ変数を追加するだけで良いという事である。
 
+  参考: 初期の実装において以下のような議論もあった。
+
+  | is_functor/be_functor に対応する物は何か。
+  | mwg/functor では is_functor は厳密に一致するシグニチャを持つ物であった。
+  | 一方で be_functor は (引数の個数が異なる物も含めて) 適合するシグニチャを持つ物であった。
+  | is_functor の条件は厳しすぎる一方で be_functor の条件は緩すぎる。
+  | 丁度中間になる様なものが存在しても良いのではないだろうか。
+  | (例えば const, volatile, const& を外した上での比較を行う等)
+
   [結論]
 
   "そのオブジェクト本来のシグニチャ" は functor_traits<F, S> の判定で、
@@ -117,7 +173,6 @@
 
 * mwg/fun: member_object_pointer/member_function_pointer について、
   多重定義に対応した adapter を提供する。
-
 
 2017-02-10
 
@@ -175,7 +230,7 @@
   | struct mwg::functor_traits          <typename F, typename S = void>;
   |   struct mwg::functor_traits_empty                ;
   |   struct mwg::functor_traits_signature<typename S>;
-  | 
+  |
   | class  mwg::functor_detail::functor     <typename S>;
   | class  mwg::functor_detail::functor_ref <typename S>;
   | class  mwg::functor_detail::vfunctor    <typename S>;
@@ -184,7 +239,7 @@
   |   struct mwg::functor_case_traits<typename F>;
   |   struct mwg::functor_case       <typename S>;
   |   class  mwg::functor_case_impl  <typename S, typename Tr>;
-  | 
+  |
   | struct mwg::functor_detail::is_functor<typename F, typename S>;
   | struct mwg::functor_detail::be_functor<typename F, typename S>;
 
@@ -1233,6 +1288,93 @@
 
 2017-02-13
 
+* mwg/fun: 初期の実装メモ
+
+  これらは元々 fun.h 内部に直接書いていたが、実装もだいたい固まってきたのでこちらに移動する。
+
+  以下は functor_interface/functor_invoker の設計に関する考察である。
+
+  | 最終的に呼び出す関数のシグニチャは決まっている (既知である)。
+  | 複数のパターンが存在する。
+  | 
+  | 1. 最終的に呼び出すのは `R(A...)` だが、余分な引数 `R(A..., B...)` のインターフェイスを持つ。
+  | 
+  |    この場合は最初に受取る時は `(A... a, B... b)` で受け取って `b` は無視することになる。
+  |    %%実際には最初に受け取る時点で `(A... a, ...)` で宣言しておけば良いのである?%%
+  |    最初から `...` を使ってしまうと変な引数を与えても OK になってしまうので駄目だ。
+  |    という訳で最初に受け取る時は矢張り `(A... a, B... b)` でなければならない。
+  | 
+  |    最初に受け取る時に引数の数を減少させる作戦だと、
+  |    何個引数を減少させるかで沢山の可能性があるから多重定義が沢山になって現実的でない。
+  |    従って、最終的に呼び出される側で適宜引数を削って受け取るのが良い。
+  | 
+  | 2. 最終的に呼び出すのは `R(A...)` で可変長の引数 `R(A..., B..., ...)` を持つ。
+  | 3. 最終的に呼び出すのは `R(A..., ...)` で固定の引数 `R(A..., B...)` を持つ。
+  | 4. 最終的に呼び出すのは `R(A..., ...)` で可変長の引数 `R(A..., B..., ...)` を持つ。
+  | 
+  | どうも、受け取る時点と実行する時点で問題を分割するべきな気がする。
+  | 受け取る側 (インターフェイスを公開) は二種類の可能性がある。
+  | 
+  | A1. 固定長の引数: これは既知の引数の型で呼び出して既知の戻り値の型で返すだけ
+  | 
+  | A2. 可変長の引数:
+  | 
+  |     次の関数に引数をそのまま転送しなければならないので、
+  |     可変長部分に関してはテンプレートで可変長長さに応じた多重定義を用意する必要がある。
+  |     これが今記述していた部分である。この階層では受け取った引数を全て次の階層へ渡す。
+  | 
+  | 実行する側では矢張り二種類の可能性がある。
+  | 
+  | B1. 固定長の引数
+  | 
+  |     これに関しては、余分の引数は `...` で受け取って無視してしまえば良い。
+  |     というか無視する必要がある。
+  | 
+  | B2. 可変長の引数
+  | 
+  |     これは更に実際に実行する処理の場所へ転送しなければならない。
+  |     既知の型の部分に関しては既知の型で受け取って、
+  |     余分の部分に関しては `const&` または `&&` による転送を行う。
+  | 
+  |     実は受取に用いた型は A1/A2 が知っているので、
+  |     其処から貰った情報を使えば `const&` や `&&` による転送の自動判定は不要である。
+  |     従って処理を簡略化出来る筈である。
+  | 
+  | この様に考えてみると受け取り側と実行側で処理を統一するのは得策ではない。
+  | 受け取り側は `functor_interface` として、
+  | 実行側は `functor_invoker` などとする。
+
+  以下は as_fun を実現する為に必要な functor_traits のメンバについての議論である。
+
+  | 次に as_fun の実装について考える。
+  | 取り敢えず関数の呼び出しは既にできるという事が分かった。
+  | variant_functor についても実は呼び出しができるという事がわかった。
+  | 今後の実装で何が必要になるだろうか。
+  |
+  | - 一つがその関数オブジェクトの自然な関数型である。
+  |
+  |   実際に関数呼出しを実行することができるかどうかは、
+  |   この関数型を経由することによって判定できる。
+  |
+  |   但し、多重定義のメンバ関数などの場合には、
+  |   この自然な関数型という物を取得できないが、
+  |   要求する関数型を指定されればそれに適合するかどうか判定できるという種類の物もある。
+  |   そう言った物に関しては別に指定を行う必要がある。
+  |
+  | - また functor に入れる為・adapter を生成する為には、
+  |
+  |   byref_holder と byval_holder を提供する必要がある。
+  |   これは mwg/functor1 の ref_tr と ins_tr に対応する。
+  |   但し、そんなに複雑な機能が必要になるかどうかは疑問である。
+  |   結局の所、operator()() さえ提供できれば何も問題ない気がする。
+  |
+  |   `typedef functor_interface<Sfwd, functor_invoker<Ffwd, holder> adapter;` を定義するのは、
+  |   外部で自動的にやった方が良い。`Sfwd` 及び `Ffwd` の決定は関数オブジェクトの種類とは独立である。
+  |   一方で `functor_invoker` の種類は関数オブジェクトに依存する。
+  |   どの種類の関数呼び出しを行うかについては整数か何かで指定できる様にしておくと便利である。
+  |
+  | これらをまとめた型として functor_traits を定義すれば良い。
+
 * mwg/fun: is_constructible による SFINAE チェック [2017-02-09]
 
   functor_interface/functor_invoker のコンストラクタで is_constructible で
@@ -1345,7 +1487,7 @@
 
   以下はメンバ関数 T (C::*)(...) qualifier が
   或る value category の C に対して呼び出せるかどうかを表す。
-  
+
     表1. this に対する qualifier (実際に試してみた)
     +---------------+------+-------+----+--------+----+---------+
     | arg\qualifier | none | const | &  | const& | && | const&& |
@@ -1357,12 +1499,12 @@
     | const lvalue  | x    | ok    | x  | ok     | x  | x       |
     | lvalue        | ok   | ok    | ok | ok     | x  | x       |
     +---------------+------+-------+----+--------+----+---------+
-  
+
   一方で以下は関数 void (C qualifier ref?) が
   それぞれの value category の C に対して呼び出せるかどうかを表す。
   これはつまり interface S の第一引数の修飾と、呼び出し可能性を表す。
   上の表と異なるところに ! をつけている。
-  
+
     表2. 関数の引数に対する qualifier
     +---------------+------+-------+----+--------+----+---------+
     | arg\qualifier | none | const | &  | const& | && | const&& |
@@ -1374,45 +1516,45 @@
     | const lvalue  | ok!  | ok    | x  | ok     | x  | x       |
     | lvalue        | ok   | ok    | ok | ok     | x  | x       |
     +---------------+------+-------+----+--------+----+---------+
-  
+
   | 違いは qualifier を何も指定しなかった時の動作のみである。
   | ref-qualifier がついている時の動作は関数の引数と同じである。
   | 従って受け取れるか受け取れないかは is_variant_function で直接判定できる (べきである)。
-  | 
+  |
   |   % 例えばメンバ関数が const& の場合には、
   |   % callable(const&) ⊃ callable(&), callable(const&), callable(&&),
   |   %                     callable(const&&), callable(none), callable(const)
   |   % であるので、S はどれでも良い。これは is_variant_function で判定できるはずである。
   |   % →is_varient_function は is_covariant を使い、更にそれは is_convertible を使う。
   |   %   実際に is_convertible を試してみた所、期待通りの動作になっている様だ。
-  |   % 
+  |   %
   |   % 或いはメンバ関数が & の場合には callable(&) ⊃ callable(&) なので、
   |   % S 引数修飾子は & だけしか駄目である。
-  |   % 
+  |   %
   |   % メンバ関数が && の場合には S 引数修飾子は && しか駄目である。
   |   % と思ったら、これは is_convertible で直接比較するといけない。
   |   % S 引数修飾子が none だと何でも受け取れるのでこれは許可してはならない。
   |   % なのに is_convertble だと許可してしまう事になるのだ。
   |   % (確かに内部で forward すれば呼び出せるがこれは interface として可笑しい。)
-  |   % 
+  |   %
   |   % →引数の contravariance は再設計する必要がある。
   |   % →[Done / 2017-02-08 / "mwg/fun: is_contravariant/is_covariant 再設計"] を参照の事。
-  | 
+  |
   |   is_variant_function がおかしいのは取り敢えず修正した。
   |   再度考えてみる。
-  | 
+  |
   |   結局 ref-qualifier がついている場合には、
   |   引数に同じ ref がついている場合と同じ呼び出し可能性である。
   |   つまり、S を選択する際にはそのまま `R (C qualifier, A...)` の振りをして比較すれば良い。
-  | 
+  |
   | ref-qualifier がない場合には通常の引数と異なる振る舞いをする。
-  | 
+  |
   |   qualifier が全くない場合には const のない value からメンバ関数を呼び出す事はできない。
   |   C& と C&& に対して多重定義がある場合に等しい。
   |   qualifier として const がついている場合には、
   |   C const& と C const&& に対して多重定義があると見て良い。
   |   この辺りは統一的に取り扱える。
-  | 
+  |
   |   所が rvalue reference がない C++03 ではこの振る舞いを再現する方法が謎である。
   |   取り敢えず const& で受け取って const_cast する事にしておけばいつでもコンパイルはできる。
   |   const& で本当に参照である変数の値を書き換えてしまう危険性もあるが、
@@ -1428,9 +1570,9 @@
   |   最終的な関数オブジェクトのインターフェイスは単純な関数型で表されるのだから、
   |   それ (或いはその多重定義) で表現できない様な区別はしても仕方がない。
   |   →結局 C++03 では permissive に行くしか無い。
-  | 
+  |
   | まとめる。結局テストするべきは何であろうか。
-  | 
+  |
   |   ref-qualifier がついている場合は
   |     is_variant_function<R(C qualifiers,A...), S> の時に interface S を持つとして良い。
   |   ref-qualifier がついていない場合は、
@@ -1438,14 +1580,14 @@
   |     C++11 (rvalue reference がある) では
   |       is_variant_function<R (C cv&&, A...), S> の時に interface S を持つとし、さもなくば、
   |       is_variant_function<R (C cv&, A...), S> の時に interface S を持つとすれば良い。
-  | 
+  |
   | % add_const, add_reference の類は参照に対して実行しても何も起こらないので上記はまとめる事ができる。
   | % つまり、ref-qualifiers がついていない場合の判定法が、実はついている場合もカバーしている。
   | % →これは勘違い。add_lvalue_reference すると reference を上書きしてしまう。
-  | 
+  |
   | 更にポインタとしてオブジェクトを受け取る場合について考えなければならない。
   | 同様に is_variant_function で比較するとすればどの様にすれば良いだろうか。
-  | 
+  |
   |   ref-qualifiers として && がついている場合には、
   |   ポインタを単に dereference しても rvalue は得られないので、呼び出しは不可能である。
   |   ref-qualifiers として & がついている場合には、const& かそうでないかで違う気がする。
@@ -1454,25 +1596,25 @@
   |     これは is_variant_function<R (C*), S> で判定すれば良い。
   |     qualifier が const& の場合には実は何でも受け取れる。
   |     つまり、ポインタとして C* もしくは C const* が受け取れる。
-  | 
+  |
   |     % そればかりか C volatile const* でも受け取れる気がする
   |     %   (但しその場合には一時オブジェクトが内部で導入される)。
   |     % これは is_variant_function<R (C const volatile*, A...), S> で判定すれば良い。
-  |     % 
+  |     %
   |     % →あれ、本当に const& ならば volatile でも呼び出せるの?
   |     % → 呼び出せなかった。
-  | 
+  |
   |     という事はやはり is_variant_function<R (C const*, A...), S> で判定すれば良い。
-  | 
+  |
   |   ref-qualifiers が何もない時、これは & または && と見てよいが、
   |   既に見たように今回の場合は && は呼び出せない。従って & と同じ扱いだ。
-  | 
+  |
   |     % 但し const& の様に C const volatile* でも受け取れる、という事はない。
   |     % volatile な変数の場合は volatile なメンバ関数しか呼び出せないのだ (本当?→確かめた)。
   |     %
   |     % const& 側でも実は C const volatile& は受け取れないという事が分かったので、
   |     % 実は気にしなくてもよいのである。
-  | 
+  |
   | % もう一度整理する。
   | %
   | % - ポインタを受け取る場合には volatile は気にしなくても良い。
@@ -1481,7 +1623,7 @@
   | % - % 参照で受け取る場合の volatile はちゃんと処理しなければならない。
   | %   % というのも、引数の反変性では const& で volatile const& も受け取れるが、
   | %   % memfun qualifiers では const& で volatile const& は受け取れないからである。
-  | % 
+  | %
   | %   今試してみたら volatile な変数は const& でも受け取る事はできない様だ。
   | %   更に is_convertible もちゃんと受け取れないと言っている。
   | %   なので volatile と const& の兼ね合いの事は気にしなくても良さそうだ。
@@ -1495,7 +1637,7 @@
     auto functor_traits_switch() -> (bool ok, typename intrinsic_signature) {
       cv := メンバ関数に指定された cv-qualifiers;
       ref := メンバ関数に指定された ref-qualifiers;
-  
+
       if (ref == 空) {
     #if (rvalue reference がある時)
         if (is_variant_function<R (C cv &&, A...), S>)
@@ -1638,11 +1780,11 @@
       一時これは mwg_forward_rvalue と同じ働きをする物なのかと考えた。
       しかし mwg_forward_rvalue に置き換えられるかというとそうとも限らない。
       というのは既に参照型や void である場合に mwg_forward_rvalue を付加するとエラーになるからだ。
-    
+
       # (とは言っても void を引数の型として使用することはないし、
       # 実はテンプレート引数が参照の時には Ref const& や Ref&& としてもちゃんと処理されるべきで、
       # 一部のコンパイラ(vc9)で警告が出るかもしれないという事以外には実は問題はないのかもしれない。)
-    
+
       従って同じ機能を持つ物をテンプレートで実装してみる事にした。
       そしてそれを使って記述してみる事にした。しかし何か違う気がする。
       右辺値参照がない処理系ではこれで良いが、
@@ -1655,13 +1797,13 @@
       また `T&` を指定するというのは左辺値参照しか受け取らないという意味である。
       そして `T&&` を指定するというのは右辺値参照しか受け取らないという意味である。
       意味合いが全然違う。
-    
+
       結局、新しく作った `add_forward_rvalue`/`add_forward_lvalue` は廃止する事にする。
       現在使っているマクロをそのまま使うだけで良いからである。
       (将来問題が出る可能性もあるが現在のところ問題は出ていないし、
       また現在誰も使っていないのでテストの穴にもなるので後で管理が面倒になる。)
       一応以下に <mwg/std/utility> に試験的に追加したテンプレートの実装を置いておく。
-    
+
       ```
       #if defined(MWGCONF_STD_RVALUE_REFERENCES)
         template<typename T> struct add_forward_lvalue: add_lvalue_reference<T> {};
@@ -1870,12 +2012,12 @@
 
   | #include <type_traits>
   | #include <assert.h>
-  | 
+  |
   | template<typename S, typename Add>
   | struct push_back: std::false_type {};
   | template<typename R, typename Add, typename... A>
   | struct push_back<R (A...), Add>: std::true_type {using type = R(A..., Add);};
-  | 
+  |
   | template<typename S>
   | struct pop_back: std::false_type {};
   | template<typename R, typename Tail, typename... A>
@@ -1885,13 +2027,13 @@
   | struct pop_front: std::false_type {};
   | template<typename R, typename Head, typename... A>
   | struct pop_front<R (Head, A...)>: std::true_type {using type = R(A...);};
-  | 
+  |
   | int main() {
   |     assert((push_back<void (int, int), int>::value)); // ok
   |     assert((std::is_same<push_back<void(int,int),int>::type, void(int,int,int)>::value)); // ok
   |     assert((pop_front<void (int, int)>::value)); // ok
   |     assert((pop_back<void (int, int)>::value)); // fails
-  |     
+  |
   |     return 0;
   | }
 
