@@ -295,41 +295,79 @@ namespace stdm{
   //
   // is_function
   //
-#ifdef MWG_STDM_TYPE_TRAITS_WithTr1Header
-  using ::std::tr1::is_function;
-#else
   namespace detail{
-    template<typename T> struct is_function_impl:false_type{};
+    template<typename T>
+    struct is_function_impl: false_type{
+      static mwg_constexpr_const bool is_qualified = false;
+      static mwg_constexpr_const bool is_cv_qualified = false;
+      static mwg_constexpr_const bool is_const_qualified = false;
+      static mwg_constexpr_const bool is_volatile_qualified = false;
+      static mwg_constexpr_const bool is_ref_qualified = false;
+      static mwg_constexpr_const bool is_lvalue_reference_qualified = false;
+      static mwg_constexpr_const bool is_rvalue_reference_qualified = false;
+    };
+
+    enum {
+      lref_qualified = 1,
+      rref_qualified = 2,
+    };
+    template<bool Const = false, bool Volatile = false, int Ref = 0>
+    struct is_function_def: true_type {
+      static mwg_constexpr_const bool is_qualified = Const || Volatile || Ref != 0;
+      static mwg_constexpr_const bool is_cv_qualified = Const || Volatile;
+      static mwg_constexpr_const bool is_const_qualified = Const;
+      static mwg_constexpr_const bool is_volatile_qualified = Volatile;
+      static mwg_constexpr_const bool is_ref_qualified = Ref != 0;
+      static mwg_constexpr_const bool is_lvalue_reference_qualified = Ref == lref_qualified;
+      static mwg_constexpr_const bool is_rvalue_reference_qualified = Ref == rref_qualified;
+    };
 
 #pragma%m 1
-    template<typename R,typename... A>
-    struct is_function_impl<R(A...)>:true_type{};
-    template<typename R,typename... A>
-    struct is_function_impl<R(A...,...)>:true_type{};
-# ifdef MWG_STD_GccCvQualifiedFunctionType
+    template<class R,class... A>
+    struct is_function_impl<R(A...)>: is_function_def<false, false>{};
+    template<class R,class... A>
+    struct is_function_impl<R(A...,...)>: is_function_def<false, false>{};
+# ifdef MWG_STD_QUALIFIED_FUNCTION_TYPES
     // ※上の宣言と重複 ?
     // CHECK: const メンバ関数でも正しく判定されるかどうかを確認
-    template<typename R,typename... A>
-    struct is_function_impl<R(A...) const>:true_type{};
-    template<typename R,typename... A>
-    struct is_function_impl<R(A...,...) const>:true_type{};
-    template<typename R,typename... A>
-    struct is_function_impl<R(A...) volatile>:true_type{};
-    template<typename R,typename... A>
-    struct is_function_impl<R(A...,...) volatile>:true_type{};
-    template<typename R,typename... A>
-    struct is_function_impl<R(A...) const volatile>:true_type{};
-    template<typename R,typename... A>
-    struct is_function_impl<R(A...,...) const volatile>:true_type{};
+    template<class R,class... A>
+    struct is_function_impl<R(A...) const>: is_function_def<true, false>{};
+    template<class R,class... A>
+    struct is_function_impl<R(A...,...) const>: is_function_def<true, false>{};
+    template<class R,class... A>
+    struct is_function_impl<R(A...) volatile>: is_function_def<false, true>{};
+    template<class R,class... A>
+    struct is_function_impl<R(A...,...) volatile>: is_function_def<false, true>{};
+    template<class R,class... A>
+    struct is_function_impl<R(A...) const volatile>: is_function_def<true, true>{};
+    template<class R,class... A>
+    struct is_function_impl<R(A...,...) const volatile>: is_function_def<true, true>{};
 # endif
 #pragma%end
 #pragma%x variadic_expand_0toArN
+#if defined(MWGCONF_STD_VARIADIC_TEMPLATES) && defined(MWGCONF_STD_REF_QUALIFIERS) && defined(MWG_STD_QUALIFIED_FUNCTION_TYPES)
+    template<class R,class... A>
+    struct is_function_impl<R(A...) &>: is_function_def<false, false, lref_qualified>{};
+    template<class R,class... A>
+    struct is_function_impl<R(A...,...) &&>: is_function_def<false, false, rref_qualified>{};
+    template<class R,class... A>
+    struct is_function_impl<R(A...) const&>: is_function_def<true, false, lref_qualified>{};
+    template<class R,class... A>
+    struct is_function_impl<R(A...,...) const&&>: is_function_def<true, false, rref_qualified>{};
+    template<class R,class... A>
+    struct is_function_impl<R(A...) volatile&>: is_function_def<false, true, lref_qualified>{};
+    template<class R,class... A>
+    struct is_function_impl<R(A...,...) volatile&&>: is_function_def<false, true, rref_qualified>{};
+    template<class R,class... A>
+    struct is_function_impl<R(A...) const volatile&>: is_function_def<true, true, lref_qualified>{};
+    template<class R,class... A>
+    struct is_function_impl<R(A...,...) const volatile&&>: is_function_def<true, true, rref_qualified>{};
+#endif
 
     template<typename T> struct is_function
       :is_function_impl<typename remove_cv<T>::type>{};
   }
   using detail::is_function;
-#endif
 
   //
   // remove_reference
@@ -366,15 +404,16 @@ namespace stdm{
   // type category           lvalue rvalue
   // ----------------------- ------ ------
   // is_void                 void   void
-  // is_function             T      T
+  // is_function             T&     T&&
+  // is_function (qualified) T      T
   // is_reference            U&     T
   // is_object               T&     T&&
   template<typename T> struct add_lvalue_reference
-    :detail::add_lvalue_reference__impl<typename remove_reference<T>::type,(!is_void<T>::value&&!is_function<T>::value)>{};
+    :detail::add_lvalue_reference__impl<typename remove_reference<T>::type,(!is_void<T>::value&&!detail::is_function_impl<T>::is_qualified)>{};
 
 # ifdef MWGCONF_STD_RVALUE_REFERENCES
   template<typename T> struct add_rvalue_reference
-    :detail::add_rvalue_reference__impl<T,!is_reference<T>::value&&!is_void<T>::value&&!is_function<T>::value>{};
+    :detail::add_rvalue_reference__impl<T,!is_reference<T>::value&&!is_void<T>::value&&!detail::is_function_impl<T>::is_qualified>{};
 # endif
 #endif
 #pragma%x begin_check
@@ -692,7 +731,7 @@ namespace stdm{
   namespace detail{
     // is_member_function_pointer
     template<typename T> struct is_member_function_pointer_impl:false_type{};
-#ifdef MWG_STD_GccCvQualifiedFunctionType
+#ifdef MWG_STD_QUALIFIED_FUNCTION_TYPES
     template<typename C,typename S>
     struct is_member_function_pointer_impl<S C::*>:is_function<S>{};
 #else

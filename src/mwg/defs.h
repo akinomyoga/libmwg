@@ -194,8 +194,8 @@ namespace mwg {
 #else
 # define mwg_vc_typename
 #endif
-#if defined(MWGCONF_GCC_VER) && (MWGCONF_GCC_VER >= 40200)
-# define MWG_STD_GccCvQualifiedFunctionType
+#if defined(MWGCONF_GCC_VER) && (MWGCONF_GCC_VER >= 40200) || defined(MWGCONF_CLANG_VER) || defined(MWGCONF_ICC_VER)
+# define MWG_STD_QUALIFIED_FUNCTION_TYPES
 #endif
 #if (MWGCONF_GCC_VER && MWGCONF_GCC_VER < 30400)
 # define mwg_gcc336bug20160326_template template

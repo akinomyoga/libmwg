@@ -49,6 +49,12 @@ namespace stdm{
 #else
   // Note: stdx::add_const_reference は、左辺値参照に対しては何もしない。
   //   右辺値参照は左辺値参照に変更する。それ以外に対して const& を付加する。
+  //
+  // Note: stdm::forward を使う時は mwg_forward_rvalue (const &) を使って
+  //   宣言するのだから必ず const& をつける事ができる気がするが、
+  //   実際には別の目的で参照を T に指定している箇所があったので、
+  //   stdx::add_const_reference を用いる必要があった。
+  //
   template<typename T>
   typename stdx::add_const_reference<T>::type
   forward(typename stdx::add_const_reference<T>::type value){return value;}
