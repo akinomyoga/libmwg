@@ -1,6 +1,12 @@
 # -*- mode:makefile-gmake -*-
 # config.mk - compiler settings
 
+#
+# インストール先は環境変数 INSDIR で設定する。
+# もしくは make 時に make INSDIR=... install とする。
+#
+#export INSDIR=$(HOME)/local
+
 # msc の場合は -Wall, -Wextra を指定しない
 ifeq ($(CXXPREFIX:i686-win-vc-%=hit),$(CXXPREFIX))
   CXXFLAGS += -Wall
@@ -22,7 +28,12 @@ config_found_flag:=
 config_cplusplus := $(CXXCFG)
 config_release_mode := debug
 ifneq ($(filter debug release default,$(CXXCFG)),)
-  config_cplusplus := cxx03
+  ifneq ($(subst -icc-,-,$(CXXPREFIX)),$(CXXPREFIX))
+    # Note: icc には -std=c++03 というオプションはない。
+    config_cplusplus := cxx98
+  else
+    config_cplusplus := cxx03
+  endif
   ifeq ($(CXXCFG),default)
     config_release_mode := debug
   else
