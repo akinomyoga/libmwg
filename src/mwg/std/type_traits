@@ -711,6 +711,8 @@ namespace stdm{
   template<> struct make_signed<unsigned __int64>:mwg::identity<  signed __int64>{};
   template<> struct make_unsigned<signed __int64>:mwg::identity<unsigned __int64>{};
 # endif
+}
+}
 
   //
   // is_pointer
@@ -721,61 +723,31 @@ namespace stdm{
   //   is_member_object_pointer
   //
 #ifdef MWG_STDM_TYPE_TRAITS_WithTr1Header
+namespace mwg{
+namespace stdm{
   using ::std::tr1::is_pointer;
   using ::std::tr1::is_member_function_pointer;
   using ::std::tr1::is_member_object_pointer;
   using ::std::tr1::is_member_pointer;
   using ::std::tr1::add_pointer;
   using ::std::tr1::remove_pointer;
+}
+}
 #else
-  namespace detail{
-    // is_member_function_pointer
-    template<typename T> struct is_member_function_pointer_impl:false_type{};
-#ifdef MWG_STD_QUALIFIED_FUNCTION_TYPES
-    template<typename C,typename S>
-    struct is_member_function_pointer_impl<S C::*>:is_function<S>{};
-#else
-# if (MWGCONF_GCC_VER>=40200)
-    /* 条件についてちゃんと調べる */
-    template<typename C,typename S>
-    struct is_member_function_pointer_impl<S C::*>:is_function<S>{};
-# else
-#pragma%m 1
-    template<typename C,typename R,typename... A>
-    struct is_member_function_pointer_impl<R(C::*)(A...)>:true_type{};
-    template<typename C,typename R,typename... A>
-    struct is_member_function_pointer_impl<R(C::*)(A...,...)>:true_type{};
-#pragma%end
-#pragma%x variadic_expand_0toArN
-# endif
-#pragma%m 1
-    template<typename C,typename R,typename... A>
-    struct is_member_function_pointer_impl<R(C::*)(A...) const>:true_type{};
-    template<typename C,typename R,typename... A>
-    struct is_member_function_pointer_impl<R(C::*)(A...,...) const>:true_type{};
-    template<typename C,typename R,typename... A>
-    struct is_member_function_pointer_impl<R(C::*)(A...) volatile>:true_type{};
-    template<typename C,typename R,typename... A>
-    struct is_member_function_pointer_impl<R(C::*)(A...,...) volatile>:true_type{};
-    template<typename C,typename R,typename... A>
-    struct is_member_function_pointer_impl<R(C::*)(A...) const volatile>:true_type{};
-    template<typename C,typename R,typename... A>
-    struct is_member_function_pointer_impl<R(C::*)(A...,...) const volatile>:true_type{};
-#pragma%end
-#pragma%x variadic_expand_0toArN
-#endif
-    template<typename T> struct is_member_function_pointer
-      :is_member_function_pointer_impl<typename remove_cv<T>::type>{};
+#include <mwg/bits/type_traits.member_pointer.hpp>
+namespace mwg{
+namespace stdm{
+  namespace detail {
+    template<typename T> struct is_member_pointer:
+      mwg::type_traits::is_member_pointer<typename remove_cv<T>::type> {};
 
-    // is_member_pointer
-    template<typename T> struct is_member_pointer_impl:false_type{};
-    template<typename C,typename T> struct is_member_pointer_impl<T C::*>:true_type{};
-    template<typename T> struct is_member_pointer
-      :integral_constant<bool,(is_member_pointer_impl<typename remove_cv<T>::type>::value||is_member_function_pointer<T>::value)>{};
+    template<typename T> struct is_member_function_pointer: stdm::integral_constant<
+      bool, (is_member_pointer<T>::value &&
+        stdm::is_function<typename is_member_pointer<T>::member_type>::value)> {};
 
-    // is_member_object_pointer
-    template<typename T> struct is_member_object_pointer
-      :integral_constant<bool,(is_member_pointer<T>::value&&!is_member_function_pointer<T>::value)>{};
+    template<typename T> struct is_member_object_pointer: stdm::integral_constant<
+      bool, (is_member_pointer<T>::value &&
+        !stdm::is_function<typename is_member_pointer<T>::member_type>::value)> {};
 
     // is_pointer
     template<typename T> struct is_pointer_impl:false_type{};
@@ -799,7 +771,7 @@ namespace stdm{
   using detail::is_pointer;
   using detail::add_pointer;
   using detail::remove_pointer;
-#endif
+
 #pragma%x begin_check
   void check_is_member_pointer(){
     mwg_check(( mwg::stdm::is_member_function_pointer<int (S::*)(int)>::value));
@@ -812,7 +784,12 @@ namespace stdm{
     mwg_check(( mwg::stdm::is_member_pointer<int (S::*)(int) const volatile>::value));
   }
 #pragma%x end_check
+}
+}
+#endif
 
+namespace mwg{
+namespace stdm{
   //
   // is_array
   //   remove_extent

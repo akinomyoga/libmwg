@@ -10,11 +10,15 @@
 #include <mwg/std/type_traits>
 #include <mwg/std/utility>
 #include <mwg/exp/fun/funsig.h>
+#include <mwg/bits/type_traits.member_pointer.hpp>
 namespace mwg{
 namespace functor_detail {
   namespace sig = mwg::funsig;
 
   namespace type_traits {
+    using ::mwg::type_traits::is_member_pointer;
+    using ::mwg::type_traits::create_member_pointer;
+
     /*?lwiki
      * @typedef typename ==reference_parameter==<T>::type;
      *
@@ -164,77 +168,6 @@ namespace functor_detail {
     }
 #pragma%x end_test
 
-    /*?lwiki
-     * :@class class mwg::functor_detail::type_traits::==is_member_pointer==<MP>;
-     *  :@var static const bool ==value==;
-     *   `MP` がメンバポインタかどうかを判定します。
-     *  :@typedef typedef '''member-pointer-type''' ==member_type==;
-     *   `MP` がメンバポインタの時、メンバのオブジェクト型または関数型を取得します。
-     *  :@typedef typedef '''class-type''' ==object_type==;
-     *   `MP` がメンバポインタの時、メンバが定義されるクラスを取得します。
-     *
-     * ToDo: 実はこれは <mwg/std/type_traits> の is_member_function_pointer と統合できるのではないか。
-     *   funsig.h か bits/is_member_pointer か何処かに分離して詳しくして include する。
-     *
-     */
-    namespace detail {
-      template<class MP>
-      struct is_member_pointer: stdm::false_type {
-        typedef void member_type;
-        typedef void object_type;
-      };
-      template<class C, class T>
-      struct is_member_pointer_def: stdm::true_type {
-        typedef C object_type;
-        typedef T member_type;
-      };
-      template<class T, class C>
-      struct is_member_pointer<T C::*>: is_member_pointer_def<C, T> {};
-#pragma%m 1
-      template<class R, class C, class... A>
-      struct is_member_pointer<R (C::*)(A...) QUALIFIER>:
-        is_member_pointer_def<C QUALIFIER, R (A...)> {};
-      template<class R, class C, class... A>
-      struct is_member_pointer<R (C::*)(A..., ...) QUALIFIER>:
-        is_member_pointer_def<C QUALIFIER, R (A..., ...)> {};
-#pragma%end
-#pragma%m 1
-#pragma%x 1.r/QUALIFIER//
-#pragma%x 1.r/QUALIFIER/const/
-#pragma%x 1.r/QUALIFIER/volatile/
-#pragma%x 1.r/QUALIFIER/const volatile/
-#pragma%end
-#pragma%x variadic_expand_0toArNm1
-    }
-    template<typename MemPtr>
-    struct is_member_pointer: detail::is_member_pointer<MemPtr> {};
-
-    template<typename C, typename T>
-    struct create_member_pointer: mwg::identity<T C::*> {}; // ToDo cv/ref-qualifiers
-#pragma%m 2
-    template<class R, class C, class... A>
-    struct create_member_pointer<C QUALIFIER, R (A...)>: mwg::identity<R (C::*)(A...) QUALIFIER> {};
-    template<class R, class C, class... A>
-    struct create_member_pointer<C QUALIFIER, R (A..., ...)>: mwg::identity<R (C::*)(A..., ...) QUALIFIER> {};
-#pragma%end
-#pragma%m 1
-#pragma%x 2.r/QUALIFIER//
-#pragma%x 2.r/QUALIFIER/const/
-#pragma%x 2.r/QUALIFIER/volatile/
-#pragma%x 2.r/QUALIFIER/const volatile/
-#pragma%end
-#pragma%x variadic_expand_0toArNm1
-#ifdef MWGCONF_STD_VARIADIC_TEMPLATES
-#pragma%x 2.r/QUALIFIER/\&/
-#pragma%x 2.r/QUALIFIER/const\&/
-#pragma%x 2.r/QUALIFIER/volatile\&/
-#pragma%x 2.r/QUALIFIER/const volatile\&/
-#pragma%x 2.r/QUALIFIER/\&\&/
-#pragma%x 2.r/QUALIFIER/const\&\&/
-#pragma%x 2.r/QUALIFIER/volatile\&\&/
-#pragma%x 2.r/QUALIFIER/const volatile\&\&/
-#endif
-
     //---------------------------------------------------------------------------
     /*?lwiki
      * :@var mwg::functor_detail::type_traits::==has_single_operator_functor==<typename F>::value;
@@ -264,8 +197,10 @@ namespace functor_detail {
     namespace can_be_called_as_detail {
       template<typename T> T x();
 
-      template<typename F, typename S>
+      template<typename F, typename S, bool = stdm::is_class<F>::value>
       mwg_concept_has_member(has_function_call_operator, F, X, operator(), (typename create_member_pointer<X, S>::type));
+      template<typename F, typename S>
+      struct has_function_call_operator<F, S, false>: stdm::false_type {};
 
       template<typename F, typename S>
       struct check_function_call_operator: stdm::integral_constant<bool, (

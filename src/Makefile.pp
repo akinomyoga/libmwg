@@ -51,6 +51,7 @@ Makefile: Makefile.pp
 #%x AddCxxHeader.r|%file%|mwg/funcsig.h|
 #%x AddCxxHeader.r|%file%|mwg/functor.h|
 #%x AddCxxHeader.r|%file%|mwg/functor.proto.h|
+#%x AddCxxHeader.r|%file%|mwg/bits/type_traits.member_pointer.hpp|
 #%x AddCxxHeader.r|%file%|mwg/exp/fun/fun.h|
 #%x AddCxxHeader.r|%file%|mwg/exp/fun/funsig.h|
 
