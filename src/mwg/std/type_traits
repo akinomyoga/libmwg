@@ -885,12 +885,12 @@ namespace stdm{
     struct is_base_and_derived{
       mwg_concept_sfinae_param{
 #  if defined(_MSC_VER)&&_MSC_VER==1310
-        static mwg::concept_detail::true_t  eval(D const volatile*       ,long);
-        static mwg::concept_detail::false_t eval(B const volatile* const&,int);
+        static mwg::concept_detail::yes_type eval(D const volatile*       ,long);
+        static mwg::concept_detail::no_type  eval(B const volatile* const&,int);
 #  else
         template<typename T>
-        static mwg::concept_detail::true_t  eval(D const volatile*,T);
-        static mwg::concept_detail::false_t eval(B const volatile*,int);
+        static mwg::concept_detail::yes_type eval(D const volatile*,T);
+        static mwg::concept_detail::no_type  eval(B const volatile*,int);
 #  endif
       };
       struct Host{

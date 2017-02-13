@@ -213,20 +213,20 @@ namespace mwg {
 
 #ifdef MWGCONF_STD_RVALUE_REFERENCES
   template<typename T>
-  struct declval_type:mwg::identity<T&&> {typedef T&& reference_type;};
+  struct declval_type: mwg::identity<T&&> {typedef T&& reference_type;};
   template<typename T, unsigned N>
-  struct declval_type<T[N]>:mwg::identity<T (&&)[N]> {typedef T (&&reference_type)[N];};
+  struct declval_type<T[N]>: mwg::identity<T (&&)[N]> {typedef T (&&reference_type)[N];};
   template<typename T>
-  struct declval_type<T[]>:mwg::identity<T (&&)[1]> {typedef T (&&reference_type)[1];};
+  struct declval_type<T[]>: mwg::identity<T (&&)[1]> {typedef T (&&reference_type)[1];};
 #else
   template<typename T>
-  struct declval_type:mwg::identity<T> {typedef T& reference_type;};
+  struct declval_type: mwg::identity<T> {typedef T& reference_type;};
   template<typename T>
-  struct declval_type<T&>:mwg::identity<T&> {typedef T& reference_type;};
+  struct declval_type<T&>: mwg::identity<T&> {typedef T& reference_type;};
   template<typename T, unsigned N>
-  struct declval_type<T[N]>:mwg::identity<T (&)[N]> {typedef T (&reference_type)[N];};
+  struct declval_type<T[N]>: mwg::identity<T (&)[N]> {typedef T (&reference_type)[N];};
   template<typename T>
-  struct declval_type<T[]>:mwg::identity<T (&)[1]> {typedef T (&reference_type)[1];};
+  struct declval_type<T[]>: mwg::identity<T (&)[1]> {typedef T (&reference_type)[1];};
 #endif
 
   template<> struct declval_type<void> {};

@@ -9,17 +9,31 @@ namespace mwg {
 namespace concept_detail {
 //NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN
 
-  template<class T, T mem>
+  template<typename T, T mem>
   struct mustbe_type {};
 
-//-----------------------------------------------------------------------------
-// SFINAE eval 用の型
-  struct true_t {int x[1];};
-  struct false_t {int x[2];};
-#define mwg_concept_bool_eval(expr) (sizeof(expr) == sizeof(mwg::concept_detail::true_t))
+  //
+  // SFINAE eval 用の型
+  //
+  struct yes_type {int x[1];};
+  struct no_type {int x[2];};
+#define mwg_concept_bool_eval(expr) (sizeof(expr) == sizeof(::mwg::concept_detail::yes_type))
 
-//-----------------------------------------------------------------------------
-// void 回避
+  //
+  // 括弧で囲まれている型名から型を抜き出す
+  // ※関数型・配列型・cv-qualified void が使われないと分かっている時にのみ使える
+  //
+  template<typename T> struct extract_type {};
+  template<typename T> struct extract_type<void (T)>: mwg::identity<T> {};
+  template<> struct extract_type<void ()>: mwg::identity<void> {};
+#define mwg_concept_typeexpr(TypeExpr) \
+  typename ::mwg::concept_detail::extract_type<void (TypeExpr)>::type
+#define mwg_concept_define_typeexpr(Name, TypeExpr) \
+  typedef mwg_concept_typeexpr(TypeExpr) Name
+
+  //
+  // void 回避
+  //
   struct void_t {};
   template<typename T>
   struct enable_unless_void {
@@ -32,7 +46,7 @@ namespace concept_detail {
   typename enable_unless_void<T>::type operator,(T& left, const void_t& right);
   template<typename T>
   typename enable_unless_void<T>::const_type operator,(const T& left, const void_t& right);
-#define mwg_concept_void          mwg::concept_detail::void_t
+#define mwg_concept_void          ::mwg::concept_detail::void_t
 #define mwg_concept_void2t(expr)  (expr, mwg_concept_void())
 
 //-----------------------------------------------------------------------------
@@ -40,8 +54,8 @@ namespace concept_detail {
 //-----------------------------------------------------------------------------
   template<typename T>
   struct is_assignable_impl{
-    static mwg::concept_detail::true_t eval(T v);
-    static mwg::concept_detail::false_t eval(...);
+    static mwg::concept_detail::yes_type eval(T v);
+    static mwg::concept_detail::no_type  eval(...);
   };
 #define mwg_concept_is_assignable(T, expr) \
   mwg_concept_bool_eval(mwg::concept_detail::is_assignable_impl<T>::eval(mwg_concept_void2t(expr)))
@@ -58,13 +72,13 @@ namespace concept_detail {
 //  macro: mwg_concept_nest      (name,T,X,boolean_expr,declarations)
 //-----------------------------------------------------------------------------
 #ifdef MWG_STD_VA_ARGS
-# define mwg_concept_condition(...) static const bool value = (__VA_ARGS__)
+# define mwg_concept_condition(...) static mwg_constexpr_const bool value = (__VA_ARGS__)
 # define mwg_concept_nest(name,T,X,cond,...)                                  \
   template<typename X, bool B> struct name##_mwg_1 {static const bool value = B;}; \
   template<typename X>         struct name##_mwg_1<X, true> {__VA_ARGS__};    \
   struct name {mwg_concept_condition(name##_impl_<T, cond>::value);}       /**/
 #else
-# define mwg_concept_condition(EXPR) static const bool value=(EXPR)
+# define mwg_concept_condition(EXPR) static mwg_constexpr_const bool value = (EXPR)
 # define mwg_concept_nest(name, T, X, cond, EXPR)                             \
   template<typename X, bool B> struct name##_mwg_1 {static const bool value = B;}; \
   template<typename X>         struct name##_mwg_1<X, true> {EXPR};           \
@@ -84,9 +98,9 @@ namespace concept_detail {
 //-----------------------------------------------------------------------------
 #define mwg_concept_sfinae_param struct sfinae_checker
 #define mwg_concept_sfinae_param_true(X, PARAMS)                              \
-  template<typename X> static mwg::concept_detail::true_t  eval PARAMS
+  template<typename X> static ::mwg::concept_detail::yes_type eval PARAMS
 #define mwg_concept_sfinae_param_false(X, PARAMS)                             \
-  template<typename X> static mwg::concept_detail::false_t eval PARAMS
+  template<typename X> static ::mwg::concept_detail::no_type eval PARAMS
 #define mwg_concept_sfinae_param_check(T, ARGS)                               \
   mwg_concept_condition(mwg_concept_bool_eval(sfinae_checker::template eval<T> ARGS))
 //-----------------------------------------------------------------------------
@@ -133,11 +147,11 @@ namespace concept_detail {
    *   my_super_function(T const\& lhs){lhs-\>*123;}
    * \endcode
    */
-# define mwg_concept_is_valid_expression_impl(NAME, T, X, EXPR)            \
+# define mwg_concept_is_valid_expression_impl(NAME, T, X, EXPR)               \
   struct NAME {                                                               \
     mwg_concept_sfinae_param {                                                \
       template<class X> static auto eval(int)                                 \
-        -> decltype(EXPR, mwg::concept_detail::true_t());                     \
+        -> decltype(EXPR, ::mwg::concept_detail::yes_type());                   \
       mwg_concept_sfinae_param_false(X, (...));                               \
     };                                                                        \
     mwg_concept_sfinae_param_check(T, (0));                                   \
@@ -201,7 +215,7 @@ namespace concept_detail {
 # define mwg_concept_is_valid_expression_vc2008s(name, T, X, ...)             \
   struct name {                                                               \
     mwg_concept_sfinae_param {                                                \
-      template<std::size_t I, typename TT> struct choker:mwg::identity<TT> {};\
+      template<std::size_t I, typename TT> struct choker: ::mwg::identity<TT> {};\
       template<typename TT>                struct choker<0,TT> {};            \
       mwg_concept_sfinae_param_true(X,                                        \
         (typename choker<sizeof((__VA_ARGS__, 0)), int>::type));              \
@@ -250,10 +264,10 @@ namespace concept_detail {
   struct name {                                                               \
     mwg_concept_sfinae_param {                                                \
       mwg_concept_sfinae_param_true(X,                                        \
-        (X*, typename mwg::identity<typeexpr>* x = 0));                       \
+        (X*, typename ::mwg::identity<typeexpr>* x = 0));                     \
       mwg_concept_sfinae_param_false(X, (...));                               \
     };                                                                        \
-    mwg_concept_sfinae_param_check(T, (mwg::declval<T*>()));                  \
+    mwg_concept_sfinae_param_check(T, (::mwg::declval<T*>()));                \
   }                                                                        /**/
 //-----------------------------------------------------------------------------
 //  mwg_concept_has_member(name, T, X, メンバ名, メンバポインタ型)::value
@@ -262,7 +276,8 @@ namespace concept_detail {
   struct name {                                                               \
     mwg_concept_sfinae_param {                                                \
       mwg_concept_sfinae_param_true(X,                                        \
-        (mwg::concept_detail::mustbe_type<MemberType, &X::MemberName>* d));   \
+        (::mwg::concept_detail::mustbe_type<                                  \
+          mwg_concept_typeexpr(MemberType), &X::MemberName>* d));             \
       mwg_concept_sfinae_param_false(X, (...));                               \
     };                                                                        \
     mwg_concept_sfinae_param_check(T, (0));                                   \
