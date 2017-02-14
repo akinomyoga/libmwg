@@ -745,9 +745,22 @@ namespace xprintf_detail {
 
     _vxputf_temporary_object(const char* fmt, Tuple const& args): m_fmt(fmt), m_args(args) {}
 
-#if defined(MWGCONF_STD_DEFAULTED_FUNCTIONS) && defined(MWGCONF_STD_RVALUE_REFERENCES)
+    /*?mconf
+     * #
+     * # Note: msc18 (Visual Studio 2013) は move constructor を defaulted にできない。
+     * #   参照 note/20170214.msc18.default_move_constructor.cpp
+     * #
+     * S -t 'MSC18BUG: C(C&&) = default;' -o MWGCONF_STD_DEFAULTED_MOVE_CONSTRUCTORS '' 'struct C {C(C&&) = default;};'
+     */
+#if defined(MWGCONF_STD_DEFAULTED_FUNCTIONS)
     _vxputf_temporary_object(_vxputf_temporary_object const& c) = default;
+# ifdef MWGCONF_STD_RVALUE_REFERENCES
+#  ifdef MWGCONF_STD_DEFAULTED_MOVE_CONSTRUCTORS
     _vxputf_temporary_object(_vxputf_temporary_object&& c) = default;
+#  else
+    _vxputf_temporary_object(_vxputf_temporary_object&& c): m_fmt(m_fmt), m_args(m_args) {}
+#  endif
+# endif
 #endif
 
     template<typename Tuple2>
@@ -792,8 +805,17 @@ namespace xprintf_detail {
 #if defined(MWGCONF_STD_DEFAULTED_FUNCTIONS) && defined(MWGCONF_STD_RVALUE_REFERENCES)
   private:
     _xputf_temporary_object(_xputf_temporary_object const& c) = default;
+# ifdef MWGCONF_STD_RVALUE_REFERENCES
+#  ifdef MWGCONF_STD_DEFAULTED_MOVE_CONSTRUCTORS
     _xputf_temporary_object(_xputf_temporary_object&& c) = default;
+#  else
+    _xputf_temporary_object(_xputf_temporary_object&& c): m_fmt(c.m_fmt), pack_type(stdm::move(m_args)) {}
+#  endif
+# endif
+#endif
 
+#if defined(MWGCONF_STD_RVALUE_REFERENCES)
+  private:
 #pragma%m 1
     template<typename... Args>
     friend _xputf_temporary_object<mwg::vararg::packed_forward<Args...> > const

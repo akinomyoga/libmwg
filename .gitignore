@@ -11,6 +11,9 @@ a.out
 a.exe
 a.obj
 
+/note/*.obj
+/note/*.exe
+
 # user configurations
 /config.mk
 
