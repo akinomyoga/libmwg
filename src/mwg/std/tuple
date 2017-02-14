@@ -5,17 +5,28 @@
 //HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 
 /*?mconf
- * # g++-4.4.1: std::tuple_size<const std::tuple<...> > などが実装されていない
- * # # X std_tuple_cv_support tuple "int a=std::tuple_size<const std::tuple<> >::value;"
- * # # X std.tuple_size.cv_qualifiers tuple 'int a=std::tuple_size<const std::tuple<int> >::value;';
+ * #
+ * # Note: g++-4.4.1: std::tuple_size<const std::tuple<...> > などが実装されていない
+ * #   # X std_tuple_cv_support tuple "int a=std::tuple_size<const std::tuple<> >::value;"
+ * #   # X std.tuple_size.cv_qualifiers tuple 'int a=std::tuple_size<const std::tuple<int> >::value;';
+ * #
+ * # Note: msc17 std::tuple は variadic templates なしに実装されている。
+ * #   最大 6 個までしか対応していない。
+ * #
+ * #   template<class Nil, _MAX_CLASS_PATH> class tuple; // <utility>
+ * #   #define _MAX_CLASS_PATH _PAD_LIST0 ... // <xstddef>
+ * #   #define _PAD_LIST0 _PAD_LIST0_5 // <xstddef>
+ * #   #define _PAD_LIST0_5 (5回繰り返し) // <xstddef>
+ * #
  * S -t'std::tuple<T> "sane?"' STD_TUPLE_IS_SANE tuple '
  * void test(){
- *   std::tuple_size<const std::tuple<> >::value;
- *   std::tuple_size<const std::tuple<int> >::value;
- *   std::tuple_element<0,const std::tuple<int> >::type b=1;
+ *   (void) std::tuple_size<const std::tuple<> >::value;
+ *   (void) std::tuple_size<const std::tuple<int> >::value;
+ *   (void) std::tuple_size<const std::tuple<char, short, int, long, float, char, short, int, long, double> >::value;
+ *   std::tuple_element<0,const std::tuple<int> >::type b = 1;
  *   std::tuple_cat();
  *   std::tuple_cat(std::tuple<int>(1));
- *   std::tuple_cat(std::tuple<int>(1),std::tuple<int>(2),std::tuple<int>(3));
+ *   std::tuple_cat(std::tuple<int>(1), std::tuple<int>(2), std::tuple<int>(3));
  * }
  * '
  */
@@ -27,14 +38,20 @@
 // #elif defined(MWGCONF_HEADER_TR1)
 // # include <tr1/tuple>
 
-namespace mwg{
-namespace stdx{
+namespace mwg {
+namespace stdx {
+  namespace detail {
+    template<typename TT>
+    struct is_tuple_nocv: mwg::stdm::false_type{};
+#pragma%include "../impl/VariadicMacros.pp"
+#pragma%m 1
+    template<typename... Args>
+    struct is_tuple_nocv<mwg::stdm::tuple<Args...> >: mwg::stdm::true_type {};
+#pragma%end
+#pragma%x variadic_expand_0toArN
+  }
   template<typename TT>
-  struct is_tuple_nocv:mwg::stdm::false_type{};
-  template<typename... Args>
-  struct is_tuple_nocv<mwg::stdm::tuple<Args...> >:mwg::stdm::true_type{};
-  template<typename TT>
-  struct is_tuple:is_tuple_nocv<typename mwg::stdm::remove_cv<TT>::type>{};
+  struct is_tuple: detail::is_tuple_nocv<typename mwg::stdm::remove_cv<TT>::type> {};
 }
 }
 

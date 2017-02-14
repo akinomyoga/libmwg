@@ -94,12 +94,12 @@ namespace stdm {
     "mwg/stdm/cfenv: feround macros broken");
 
   extern inline fenv_t& _fenv() {
-    static fenv_t data {0, FE_TONEAREST, false};
+    static fenv_t data = {0, FE_TONEAREST, false};
     return data;
   }
 
   extern inline fenv_t const* _fenv_default() {
-    static fenv_t data {0, FE_TONEAREST, false};
+    static fenv_t data = {0, FE_TONEAREST, false};
     return &data;
   }
 # undef FE_DFL_ENV

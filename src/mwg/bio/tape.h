@@ -2,6 +2,7 @@
 #ifndef MWG_BIO_TAPE_H
 #define MWG_BIO_TAPE_H
 #include <cstring>
+#include <algorithm>
 #include <mwg/std/type_traits>
 #include <mwg/exp/utils.h> /* for static_flags */
 #include "defs.h"

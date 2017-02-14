@@ -717,7 +717,7 @@ namespace stdm {
 
 #pragma%m MWG_STDM_CMATH::ImportUnaryMathFunction
 #pragma%%[fname="@fname",FNAME=fname.toupper(),expr="@expr"]
-#pragma%%[ret = ("@ret" != "@" + "ret")? "enable<@ret>::type": "type"]
+#pragma%%[ret = ("@ret" != "@" + "ret")? "template enable<@ret>::type": "type"]
 #pragma%%x
 //?mconf check_cfunc 1 fname FNAME
 #if !defined(MWGCONF_HAS_STD_FNAME)
@@ -995,7 +995,7 @@ namespace stdm {
     typedef typename cmath_detail::overload<T>::type R;
     if ((long double) from == to) return (R) to;
     if (mwg::stdm::isnan(from) || mwg::stdm::isnan(to)) return (R) NAN;
-    return mwg::stdm::nextafter((R) from, (long double) from > to? (R) -INFINITY: (R) INFINITY):
+    return mwg::stdm::nextafter((R) from, (long double) from > to? (R) -INFINITY: (R) INFINITY);
   }
   static inline float nexttowardf(float from, long double to) {return nexttoward(from, to);}
   static inline long double nexttowardl(long double from, long double to) {return nexttoward(from, to);}
@@ -1207,6 +1207,11 @@ namespace stdm {
 # ifdef MWGCONF_HAS_REMQUO
 #pragma%x MWG_STDM_CMATH::ImportMathFunctionFFFI::UseCOverload.r/@fname/remquo/.r/@int/int*/
 # else
+  namespace cmath_detail {
+    float remquo(float lhs, float rhs, int* quo);
+    double remquo(double lhs, double rhs, int* quo);
+    long double remquo(long double lhs, long double rhs, int* quo);
+  }
   template<typename T, typename U>
   typename cmath_detail::overload<T, U>::type remquo(T lhs, U rhs, int* quo) {
     typedef typename cmath_detail::overload<T, U>::type R;
@@ -1219,7 +1224,7 @@ namespace stdm {
   using ::std::remquo;
 #endif
 
-#pragma%x MWG_STDM_CMATH::ImportBinaryMathFunction.r/@fname/remainder/.r|@expr|int d; return mwg::stdm::cmath_detail::remquo((R) lhs, (R) rhs, d)|
+#pragma%x MWG_STDM_CMATH::ImportBinaryMathFunction.r/@fname/remainder/.r|@expr|int d; return mwg::stdm::remquo((R) lhs, (R) rhs, \&d)|
 
 }
 }
@@ -1267,7 +1272,6 @@ namespace stdm {
 
 #pragma%m MWG_STDM_CMATH::ImportComparisonMacros
 #pragma%%[fname="@fname",FNAME=fname.toupper(),expr="@expr"]
-#pragma%%[ret = ("@ret" != "@" + "ret")? "enable<@ret>::type": "type"]
 #pragma%%x
 /*?mconf
  * if ! X -t'std::fname(x, y)' -oMWGCONF_HAS_STD_FNAME cmath 'std::fname(1.0, 2.0)'; then
@@ -1315,7 +1319,7 @@ namespace stdm {
 }
 }
 #endif
-#pragma%%end.r/FNAME/${FNAME}/.r/fname/${fname}/.r/\[expression\]/${expr}/.r/return_type/${ret}/.i
+#pragma%%end.r/FNAME/${FNAME}/.r/fname/${fname}/.r/\[expression\]/${expr}/.i
 #pragma%end
 
 #pragma%x MWG_STDM_CMATH::ImportComparisonMacros.r/@fname/isunordered/   .r#@expr#return mwg::stdm::isnan(lhs) || mwg::stdm::isnan(rhs)#
