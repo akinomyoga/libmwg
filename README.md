@@ -22,9 +22,9 @@ $ make INSDIR=/path/to/install/prefix install
 ### Include&Link
 ```
 $ g++ \
-  -I /path/to/install/prefix/include \
   -I /path/to/install/prefix/include/i686-pc-linux-gnu-gcc-4.9.2+cxx11-release \
-  -L /path/to/install/prefix/lib \
+  -I /path/to/install/prefix/include \
+  -L /path/to/install/prefix/lib/i686-pc-linux-gnu-gcc-4.9.2+cxx11-release \
   your-files... \
   -lmwg
 ```
