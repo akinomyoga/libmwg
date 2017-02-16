@@ -2001,11 +2001,11 @@ struct _strtmp_map_policy {
     const_iterator  operator--(int) {return const_iterator(this->base::operator--(0), *this);}
 
     // RandomAccessIterator
+    using base::operator-;
     const_iterator& operator+=(difference_type offset) {this->base::operator+=(offset); return *this;}
     const_iterator& operator-=(difference_type offset) {this->base::operator-=(offset); return *this;}
     const_iterator  operator+ (difference_type offset) const {return const_iterator(this->base::operator+(offset), *this);}
     const_iterator  operator- (difference_type offset) const {return const_iterator(this->base::operator-(offset), *this);}
-    using base::operator-;
     friend inline const_iterator operator+(difference_type offset, const_iterator const& iter) {return iter + offset;}
   };
 
@@ -2085,11 +2085,11 @@ public:
     const_iterator  operator--(int) {return const_iterator(this->base::operator--(0), *this);}
 
     // RandomAccessIterator
+    using base::operator-;
     const_iterator& operator+=(difference_type offset) {this->base::operator+=(offset); return *this;}
     const_iterator& operator-=(difference_type offset) {this->base::operator-=(offset); return *this;}
     const_iterator  operator+ (difference_type offset) const {return const_iterator(this->base::operator+(offset), *this);}
     const_iterator  operator- (difference_type offset) const {return const_iterator(this->base::operator-(offset), *this);}
-    using base::operator-;
     friend inline const_iterator operator+(difference_type offset, const_iterator const& iter) {return iter + offset;}
   };
 

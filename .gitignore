@@ -11,6 +11,7 @@ a.out
 a.exe
 a.obj
 
+/note/*.o
 /note/*.obj
 /note/*.exe
 
