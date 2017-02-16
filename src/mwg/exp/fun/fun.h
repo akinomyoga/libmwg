@@ -198,7 +198,7 @@ namespace fun_detail {
       template<typename T> T x();
 
       template<typename F, typename S, bool = stdm::is_class<F>::value>
-      mwg_concept_has_member(has_function_call_operator, F, X, operator(), (typename create_member_pointer<X, S>::type));
+      mwg_concept_has_member(has_function_call_operator, F, X, operator(), concept_detail::quote(typename create_member_pointer<X, S>::type));
       template<typename F, typename S>
       struct has_function_call_operator<F, S, false>: stdm::false_type {};
 

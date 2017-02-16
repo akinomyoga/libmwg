@@ -20,16 +20,18 @@ namespace concept_detail {
 #define mwg_concept_bool_eval(expr) (sizeof(expr) == sizeof(::mwg::concept_detail::yes_type))
 
   //
-  // 括弧で囲まれている型名から型を抜き出す
+  // mwg::concept_detail::quote で括られた型を抜き出す。
   // ※関数型・配列型・cv-qualified void が使われないと分かっている時にのみ使える
   //
-  template<typename T> struct extract_type {};
-  template<typename T> struct extract_type<void (T)>: mwg::identity<T> {};
-  template<> struct extract_type<void ()>: mwg::identity<void> {};
+  // Note: 関数型 void ((int)) は msc19 では文法違反になる。
+  //   従ってこれを使って括弧を外す手法は使用できない。
+  //
+  struct quote {};
+  template<typename T> struct unquote: mwg::identity<T> {};
+  template<typename T> struct unquote<quote(T)>: mwg::identity<T> {};
+  template<> struct unquote<quote()>: mwg::identity<void> {};
 #define mwg_concept_typeexpr(TypeExpr) \
-  typename ::mwg::concept_detail::extract_type<void (TypeExpr)>::type
-#define mwg_concept_define_typeexpr(Name, TypeExpr) \
-  typedef mwg_concept_typeexpr(TypeExpr) Name
+  typename ::mwg::concept_detail::unquote<TypeExpr>::type
 
   //
   // void 回避
