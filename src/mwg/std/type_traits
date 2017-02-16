@@ -959,7 +959,7 @@ namespace stdm{
   //
 
   // test is_convertible for the case from values to references
-  //  see also test/chk_cpp/stdlib11-is_convertible-check_def.cpp
+  //  see also note/20131211.stdlib11-is_convertible-check_def.cpp
   //
   // struct is_convertible_toref__test
   //   正しく判定できているかの判定用クラス。
