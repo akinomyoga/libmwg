@@ -118,7 +118,7 @@ namespace concept_detail {
 //-----------------------------------------------------------------------------
 //  mwg_concept_is_valid_expression(name, T, X, 検証対象の式)
 //-----------------------------------------------------------------------------
-#if !defined(_MSC_VER) && defined(MWGCONF_STD_DECLTYPE)&&defined(MWGCONF_STD_AUTO_TYPE)
+#if (!defined(_MSC_VER) || _MSC_VER >= 1900) && defined(MWGCONF_STD_DECLTYPE) && defined(MWGCONF_STD_AUTO_TYPE)
   /**
    * @def mwg_concept_is_valid_expression(name,T,X,...)
    * \a __VA_ARGS__ で指定した式が型的に有効な式かどうかを判定するクラスを定義します。

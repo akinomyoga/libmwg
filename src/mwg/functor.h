@@ -611,6 +611,7 @@ void debug_support_functor_object() {
   mwg_check(!(is_pointer_to_single_operator_functor<F>::value));
   mwg_check(!(mwg::functor_detail::is_pointer_to_single_operator_functor<F>::value));
 
+  mwg_check( (mwg::functor_detail::functor_traits<F>::is_functor));
   mwg_check( (mwg::functor_traits<F>::is_functor));
 #else
   mwg_check(!(mwg::functor_detail::is_pointer_to_single_operator_functor<F>::value));
