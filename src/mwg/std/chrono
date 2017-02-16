@@ -3,9 +3,16 @@
 #define MWG_STDM_CHRONO
 #include <mwg/defs.h>
 //HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
-//#if MWGCONF_HEADER_STD>=2011
 //?mconf H chrono
-#if defined(MWGCONF_HEADER_CHRONO)
+//
+// Note: msc17 は std::duration_cast が壊れている。
+//   以下がコンパイルできない。
+//   std::chrono::duration<double> a;
+//   (void) std::chrono::duration_cast<std::chrono::milliseconds>(a);
+//
+//   cf. note/20170217.msc17bug.duration_cast.cpp
+//
+#if defined(MWGCONF_HEADER_CHRONO) && (!defined(_MSC_VER) || _MSC_VER >= 1800)
 # include <chrono>
 #else
 # define MWG_STDM_CHRONO__EMULATED
