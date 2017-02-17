@@ -324,24 +324,24 @@ namespace functor_detail {
   namespace detail {
     // 参照型の実質サイズを正確に取るため holder に入れてから sizeof する。
     template<typename F>
-    struct limited_storage__holder {F value;};
+    struct limited_storage_holder {F value;};
 
     template<typename F, std::size_t I, bool IsFunction>
-    struct limited_storage__is_interior__impl
-      :stdm::integral_constant<bool, (sizeof(limited_storage__holder<F>) <= I)> {};
+    struct limited_storage_is_interior_impl
+      :stdm::integral_constant<bool, (sizeof(limited_storage_holder<F>) <= I)> {};
     template<typename F, std::size_t I>
-    struct limited_storage__is_interior__impl<F, I, true>
-      :stdm::integral_constant<bool, (sizeof(limited_storage__holder<F*>) <= I)> {};
+    struct limited_storage_is_interior_impl<F, I, true>
+      :stdm::integral_constant<bool, (sizeof(limited_storage_holder<F*>) <= I)> {};
     template<typename F, std::size_t I>
-    struct limited_storage__is_interior
-      :limited_storage__is_interior__impl<F, I, stdm::is_function<F>::value> {};
+    struct limited_storage_is_interior
+      :limited_storage_is_interior_impl<F, I, stdm::is_function<F>::value> {};
   }
 
   // CHK: sizeof(void*) * 2 の値は妥当か?
   template<
     typename T,
     std::size_t I = sizeof(void*) * 2,
-    bool = detail::limited_storage__is_interior<T, I>::value>
+    bool = detail::limited_storage_is_interior<T, I>::value>
   class limited_storage {
     typedef typename stdm::conditional<stdm::is_function<T>::value, T*,T>::type value_type;
     value_type* m_ptr;
@@ -545,7 +545,7 @@ namespace functor_detail {
 //-----------------------------------------------------------------------------
 // for debug
 
-#ifdef MWG_FUNCTOR_H__VariantFunctorEnabled
+#ifdef MWG_FUNCTOR_H_VariantFunctorEnabled
 
 #ifdef mwg_concept_is_valid_expression
 template<typename F>
@@ -605,7 +605,7 @@ void debug_support_member_function_pointer() {
 }
 
 void debug_support_functor_object() {
-#ifdef MWG_FUNCTOR_H__VariantFunctorEnabled
+#ifdef MWG_FUNCTOR_H_VariantFunctorEnabled
   mwg_check(!(is_pointer_to_single_operator_functor<F>::c1_1::value));
   mwg_check(!(is_pointer_to_single_operator_functor<F>::c1::value));
   mwg_check(!(is_pointer_to_single_operator_functor<F>::value));
@@ -691,7 +691,7 @@ void check_variance() {
     mwg_check(std::strcmp(buff, "hello! 4th world!\n") == 0);
   }
 
-#ifdef MWG_FUNCTOR_H__VariantFunctorEnabled
+#ifdef MWG_FUNCTOR_H_VariantFunctorEnabled
   mwg_check( (mwg::functor_detail::can_be_called_as<F, int(int)>::value));
   mwg_check( (mwg::functor_detail::can_be_called_as<F, int(short)>::value));
   mwg_check( (mwg::functor_detail::can_be_called_as<F, int(char)>::value));

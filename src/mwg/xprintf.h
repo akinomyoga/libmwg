@@ -178,19 +178,19 @@ namespace vararg {
   namespace detail {
     // 二分探索
     template<std::size_t L, std::size_t U, typename TT, bool = (L + 1 < U)>
-    struct tuple_element_selector__impl {
+    struct tuple_element_selector_impl {
       static const std::size_t M = (L + U) / 2;
       template<typename F>
       static typename F::return_type eval(F const& obj, int index, TT const& tp) {
         if (std::size_t(index) < M)
-          return tuple_element_selector__impl<L, M, TT>::eval(obj, index, tp);
+          return tuple_element_selector_impl<L, M, TT>::eval(obj, index, tp);
         else
-          return tuple_element_selector__impl<M, U, TT>::eval(obj, index, tp);
+          return tuple_element_selector_impl<M, U, TT>::eval(obj, index, tp);
       }
     };
 
     template<std::size_t L, std::size_t U, typename TT>
-    struct tuple_element_selector__impl<L, U, TT, false> {
+    struct tuple_element_selector_impl<L, U, TT, false> {
       template<typename F>
       static typename F::return_type eval(F const& obj, int index, TT const& tp) {
         mwg_unused(index);
@@ -199,7 +199,7 @@ namespace vararg {
     };
 
     template<std::size_t L, std::size_t U, typename TT>
-    struct tuple_element_selector: tuple_element_selector__impl<L, U, TT> {};
+    struct tuple_element_selector: tuple_element_selector_impl<L, U, TT> {};
   }
 
   template<typename Eval>

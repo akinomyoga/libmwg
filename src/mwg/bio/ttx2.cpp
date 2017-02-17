@@ -1,5 +1,5 @@
 // -*- mode: c++; coding: utf-8 -*-
-#define TTX_CPP__EnableComment
+#define TTX_CPP_EnableComment
 
 #include <mwg/std/utility>
 #include <mwg/bio/ttx2.h>
@@ -173,7 +173,7 @@ private:
     else
       return 0;
   }
-#ifdef TTX_CPP__EnableComment
+#ifdef TTX_CPP_EnableComment
   void skip_comment(){
     //mwg_assert(*p=='#');
     while(p&&*p!='\n'&&*p!='\r')++p;
@@ -183,7 +183,7 @@ private:
   }
 #endif
   void skip_space(){
-#ifdef TTX_CPP__EnableComment
+#ifdef TTX_CPP_EnableComment
     while(p)
       if(isspace(*p)){
         p++;
@@ -195,7 +195,7 @@ private:
 #endif
   }
   void skip_space_or_sep(){
-#ifdef TTX_CPP__EnableComment
+#ifdef TTX_CPP_EnableComment
     while(p)
       if(isspace(*p)||*p==','){
         p++;
@@ -287,7 +287,7 @@ public:
       }else if(*p=='"'||*p=='\''){
         this->read_quoted();
         lenM=w.size();
-#ifdef TTX_CPP__EnableComment
+#ifdef TTX_CPP_EnableComment
       }else if(*p=='#'){
         this->skip_comment();
 #endif
@@ -491,11 +491,11 @@ mwg::exp::enumerator<ttx_node*> ttx_scan_enumerate_node(mwg::bio::itape& ttx){
 }
 
 //*****************************************************************************
-//  ttx_scan__getnode: 要素を一つだけ読み取り
+//  ttx_scan_getnode: 要素を一つだけ読み取り
 //-----------------------------------------------------------------------------
 
 template<typename S>
-bool ttx_scan__getnode(S& source,ttx_node& node,bool untilIsolatedClosingBrace=false){
+bool ttx_scan_getnode(S& source,ttx_node& node,bool untilIsolatedClosingBrace=false){
   ttx_scanner<S> s(source);
 
   ttx_node* elem=nullptr;
@@ -561,16 +561,16 @@ bool ttx_scan__getnode(S& source,ttx_node& node,bool untilIsolatedClosingBrace=f
 }
 
 bool getnode(const char* ttx,ttx_node& node,bool untilIsolatedClosingBrace){
-  return ttx_scan__getnode<const char*>(ttx,node,untilIsolatedClosingBrace);
+  return ttx_scan_getnode<const char*>(ttx,node,untilIsolatedClosingBrace);
 }
 bool getnode(std::istream& ttx,ttx_node& node,bool untilIsolatedClosingBrace){
-  return ttx_scan__getnode<std::istream>(ttx,node,untilIsolatedClosingBrace);
+  return ttx_scan_getnode<std::istream>(ttx,node,untilIsolatedClosingBrace);
 }
 bool getnode(FILE* ttx,ttx_node& node,bool untilIsolatedClosingBrace){
-  return ttx_scan__getnode<FILE*>(ttx,node,untilIsolatedClosingBrace);
+  return ttx_scan_getnode<FILE*>(ttx,node,untilIsolatedClosingBrace);
 }
 bool getnode(mwg::bio::itape& ttx,ttx_node& node,bool untilIsolatedClosingBrace){
-  return ttx_scan__getnode<mwg::bio::itape>(ttx,node,untilIsolatedClosingBrace);
+  return ttx_scan_getnode<mwg::bio::itape>(ttx,node,untilIsolatedClosingBrace);
 }
 
 //FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
@@ -793,7 +793,7 @@ void ttx_node::print(std::ostream& ostr,mwg::exp::sfmt::ttx_t* tag) const{
   ostr<<"},\n";
 }
 
-static void ttx_node__print__quoted(std::ostream& ostr,std::string const& value){
+static void ttx_node_print_quoted(std::ostream& ostr,std::string const& value){
   ostr<<"\"";
   const char* p =value.c_str();
   const char* pN=p+value.size();
@@ -814,7 +814,7 @@ static void ttx_node__print__quoted(std::ostream& ostr,std::string const& value)
 
 void ttx_node::print(std::ostream& ostr,mwg::exp::sfmt::json_t* tag) const{
   bool hasChild=this->m_nodes.size()>0;
-  ttx_node__print__quoted(ostr,this->m_name);
+  ttx_node_print_quoted(ostr,this->m_name);
   ostr<<(hasChild?":{\n":":{");
 
   // m_attrs
@@ -823,9 +823,9 @@ void ttx_node::print(std::ostream& ostr,mwg::exp::sfmt::json_t* tag) const{
     for(attr_it i=m_attrs.begin(),iN=m_attrs.end();i!=iN;++i){
       if(i!=m_attrs.begin())ostr<<",";
 
-      ttx_node__print__quoted(ostr,i->name);
+      ttx_node_print_quoted(ostr,i->name);
       ostr<<":";
-      ttx_node__print__quoted(ostr,i->value);
+      ttx_node_print_quoted(ostr,i->value);
     }
     if(hasChild)ostr<<",\n";
   }

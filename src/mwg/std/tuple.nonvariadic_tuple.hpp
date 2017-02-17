@@ -146,7 +146,7 @@ namespace tuple_detail{
   };
 
 #if defined(_MSC_VER)
-# define MWG_STD_TUPLE_NONVARIADIC_TUPLE_HPP__NonTrivialElementTraits
+# define MWG_STD_TUPLE_NONVARIADIC_TUPLE_HPP_NonTrivialElementTraits
   //
   // REQUIRE: T* stored_type::operator&() const;
   //
@@ -245,7 +245,7 @@ namespace detail{
   template<typename R,typename TT>
   struct tuple_get_impl<0,R,TT>{
     static R _get(TT t){
-#ifdef MWG_STD_TUPLE_NONVARIADIC_TUPLE_HPP__NonTrivialElementTraits
+#ifdef MWG_STD_TUPLE_NONVARIADIC_TUPLE_HPP_NonTrivialElementTraits
       // 2015-09-22 (tuple_get_impl<K,R,TT>::_get): vcbug workaround
       //
       //   Visual Studio 2010 では cv qualifiers の変更などが伴うと、

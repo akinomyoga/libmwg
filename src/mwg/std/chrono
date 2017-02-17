@@ -8,7 +8,7 @@
 #if defined(MWGCONF_HEADER_CHRONO)
 # include <chrono>
 #else
-# define MWG_STDM_CHRONO__EMULATED
+# define MWG_STDM_CHRONO_EMULATED
 # include <limits>
 # include "ratio"
 # include "type_traits"
@@ -29,7 +29,7 @@ namespace chrono{
 //-----------------------------------------------------------------------------
 // specializations
 
-#ifdef MWG_STD_COMMON_TYPE__EMULATED
+#ifdef MWG_STD_COMMON_TYPE_EMULATED
 namespace mwg{
 namespace stdm{
 #else
@@ -49,7 +49,7 @@ namespace std{
   struct common_type<chrono::time_point<C,D1>,chrono::time_point<C,D2> >:
     mwg::identity<chrono::time_point<C,typename common_type<D1,D2>::type> >{};
 
-#ifdef MWG_STD_COMMON_TYPE__EMULATED
+#ifdef MWG_STD_COMMON_TYPE_EMULATED
 }
 }
 #else
@@ -533,7 +533,7 @@ namespace chrono_detail{
 void debug_duration(){
   namespace ns=mwg::stdm;
 
-#ifdef MWG_STDM_CHRONO__EMULATED
+#ifdef MWG_STDM_CHRONO_EMULATED
   // chrono_detail::is_duration_castable
   mwg_assert((ns::chrono::chrono_detail::is_duration_castable<ns::chrono::milliseconds,int>::value));
   mwg_assert((ns::chrono::chrono_detail::is_duration_explicit<ns::chrono::milliseconds,int>::value));

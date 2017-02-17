@@ -654,7 +654,7 @@ public:
 #ifdef MWGCONF_STD_INITIALIZER_LISTS
 // C++11 では auto tmp = tmpobj; が可能になるのでコピーコンストラクタを封じる。
 // 同時にインスタンスの作成には list-initialization を利用してコピーコンストラクタ呼び出しを回避する。
-# define MWG_STR_H__hidden_copy_constructors_of_temporaries
+# define MWG_STR_H_hidden_copy_constructors_of_temporaries
 #endif
 
 template<>
@@ -690,7 +690,7 @@ public:
 #pragma%).f/An/1/AN+1/.i
 #endif
 
-#ifdef MWG_STR_H__hidden_copy_constructors_of_temporaries
+#ifdef MWG_STR_H_hidden_copy_constructors_of_temporaries
 protected:
   template<typename P2>
   friend class strbase;
@@ -1471,7 +1471,7 @@ private:
   }
 
 public:
-#define MWG_STRING3_STRING_H__define_find_overloads(FIND, hC, hP, hS) \
+#define MWG_STRING3_STRING_H_define_find_overloads(FIND, hC, hP, hS) \
   template<typename T> \
   typename enable_find<T, hC, hP, hS>::type \
   FIND(T const& pred) const { \
@@ -1489,13 +1489,13 @@ public:
     return this->FIND(pred, r.begin(), r.end()); \
   }
 
-  MWG_STRING3_STRING_H__define_find_overloads(find     , true , true , true);
-  MWG_STRING3_STRING_H__define_find_overloads(rfind    , true , true , true);
-  MWG_STRING3_STRING_H__define_find_overloads(find_any , false, false, true);
-  MWG_STRING3_STRING_H__define_find_overloads(rfind_any, false, false, true);
-  MWG_STRING3_STRING_H__define_find_overloads(find_not , false, false, true);
-  MWG_STRING3_STRING_H__define_find_overloads(rfind_not, false, false, true);
-#undef MWG_STRING3_STRING_H__define_find_overloads
+  MWG_STRING3_STRING_H_define_find_overloads(find     , true , true , true);
+  MWG_STRING3_STRING_H_define_find_overloads(rfind    , true , true , true);
+  MWG_STRING3_STRING_H_define_find_overloads(find_any , false, false, true);
+  MWG_STRING3_STRING_H_define_find_overloads(rfind_any, false, false, true);
+  MWG_STRING3_STRING_H_define_find_overloads(find_not , false, false, true);
+  MWG_STRING3_STRING_H_define_find_overloads(rfind_not, false, false, true);
+#undef MWG_STRING3_STRING_H_define_find_overloads
 
 #pragma%x begin_test
   void test() {
@@ -2383,7 +2383,7 @@ struct enable_concat<X, Y, true>: mwg::identity<
 template<typename X, typename Y>
 typename enable_concat<X, Y>::type
 operator+(X const& lhs, Y const& rhs) {
-#ifdef MWG_STR_H__hidden_copy_constructors_of_temporaries
+#ifdef MWG_STR_H_hidden_copy_constructors_of_temporaries
   return {lhs, rhs};
 #else
   typedef typename enable_concat<X, Y>::type return_type;

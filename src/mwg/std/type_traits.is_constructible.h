@@ -1,15 +1,15 @@
 // -*- mode: c++; coding: utf-8 -*-
-#ifndef MWG_STDM_TYPE_TRAITS__IS_CONSTRUCTIBLE
-#define MWG_STDM_TYPE_TRAITS__IS_CONSTRUCTIBLE
+#ifndef MWG_STDM_TYPE_TRAITS_IS_CONSTRUCTIBLE_H
+#define MWG_STDM_TYPE_TRAITS_IS_CONSTRUCTIBLE_H
 #if MWGCONF_HEADER_STD>=2011
 # include <type_traits>
 #else
 # if MWGCONF_HEADER_STD>=2005
 #  include <type_traits>
-#  define MWG_STDM_TYPE_TRAITS__IS_CONSTRUCTIBLE__tr1_available
+#  define MWG_STDM_TYPE_TRAITS_IS_CONSTRUCTIBLE_H_tr1_available
 # elif defined(MWGCONF_HEADER_TR1)
 #  include <tr1/type_traits>
-#  define MWG_STDM_TYPE_TRAITS__IS_CONSTRUCTIBLE__tr1_available
+#  define MWG_STDM_TYPE_TRAITS_IS_CONSTRUCTIBLE_H_tr1_available
 # endif
 #endif
 #include <mwg/defs.h>
@@ -23,7 +23,7 @@ namespace stdm{
 //-----------------------------------------------------------------------------
 
   namespace is_constructible_detail{
-#ifdef MWG_STDM_TYPE_TRAITS__IS_CONSTRUCTIBLE__tr1_available
+#ifdef MWG_STDM_TYPE_TRAITS_IS_CONSTRUCTIBLE_H_tr1_available
     // TR1 has_*<T>::value による実装。
     // + is_trivially_default_constructible
     // + is_nothrow_default_constructible
@@ -123,7 +123,7 @@ namespace stdm{
   namespace is_constructible_detail{
 # ifdef MWGCONF_HAS_IS_TRIVIALLY_CONSTRUCTIBLE
     template<typename T> struct is_trivially_default_constructible:is_trivially_constructible<T>{};
-# elif defined(MWG_STDM_TYPE_TRAITS__IS_CONSTRUCTIBLE__tr1_available)
+# elif defined(MWG_STDM_TYPE_TRAITS_IS_CONSTRUCTIBLE_H_tr1_available)
     template<typename T> struct is_trivially_default_constructible:tr1::has_trivial_constructor<T>{};
 # elif MWGCONF_MSC_VER>=140050215
     template<typename T> struct is_trivially_default_constructible:integral_constant<bool,is_pod<T>::value||__has_trivial_constructor(T)>{};
@@ -149,7 +149,7 @@ namespace stdm{
   namespace is_constructible_detail{
 # ifdef MWGCONF_HAS_IS_NOTHROW_CONSTRUCTIBLE
     template<typename T> struct is_nothrow_default_constructible:is_nothrow_constructible<T>{};
-# elif defined(MWG_STDM_TYPE_TRAITS__IS_CONSTRUCTIBLE__tr1_available)
+# elif defined(MWG_STDM_TYPE_TRAITS_IS_CONSTRUCTIBLE_H_tr1_available)
     template<typename T> struct is_nothrow_default_constructible:tr1::has_nothrow_constructor<T>{};
 # elif MWGCONF_MSC_VER>=140050215
     template<typename T> struct is_nothrow_default_constructible:integral_constant<bool,is_pod<T>::value||__has_nothrow_constructor(T)>{};
@@ -206,7 +206,7 @@ namespace stdm{
   namespace is_constructible_detail{
 # ifdef MWGCONF_HAS_IS_TRIVIALLY_CONSTRUCTIBLE
     template<typename T> struct is_trivially_copy_constructible:is_trivially_constructible<T,typename add_lvalue_reference<const T>::type>{};
-# elif defined(MWG_STDM_TYPE_TRAITS__IS_CONSTRUCTIBLE__tr1_available)
+# elif defined(MWG_STDM_TYPE_TRAITS_IS_CONSTRUCTIBLE_H_tr1_available)
     template<typename T> struct is_trivially_copy_constructible:tr1::has_trivial_copy<T>{};
 # elif MWGCONF_MSC_VER>=140050215
     template<typename T> struct is_trivially_copy_constructible:integral_constant<bool,is_pod<T>::value||__has_trivial_copy(T)>{};
@@ -231,7 +231,7 @@ namespace stdm{
   namespace is_constructible_detail{
 # ifdef MWGCONF_HAS_IS_NOTHROW_CONSTRUCTIBLE
     template<typename T> struct is_nothrow_copy_constructible:is_nothrow_constructible<T,typename add_lvalue_reference<const T>::type>{};
-# elif defined(MWG_STDM_TYPE_TRAITS__IS_CONSTRUCTIBLE__tr1_available)
+# elif defined(MWG_STDM_TYPE_TRAITS_IS_CONSTRUCTIBLE_H_tr1_available)
     template<typename T> struct is_nothrow_copy_constructible:tr1::has_nothrow_copy<T>{};
 # elif MWGCONF_MSC_VER>=140050215
     template<typename T> struct is_nothrow_copy_constructible:integral_constant<bool,is_pod<T>::value||__has_nothrow_copy(T)||__has_trivial_copy(T)>{};
@@ -281,7 +281,7 @@ namespace stdm{
     template<typename T> struct is_trivially_copy_assignable:is_trivially_assignable<
       typename add_lvalue_reference<T>::type,
       typename add_lvalue_reference<const T>::type>{};
-# elif defined(MWG_STDM_TYPE_TRAITS__IS_CONSTRUCTIBLE__tr1_available)
+# elif defined(MWG_STDM_TYPE_TRAITS_IS_CONSTRUCTIBLE_H_tr1_available)
     template<typename T> struct is_trivially_copy_assignable:tr1::has_trivial_assign<T>{};
 # elif MWGCONF_MSC_VER>=140050215
     template<typename T> struct is_trivially_copy_assignable:integral_constant<bool,is_pod<T>::value||__has_trivial_assign(T)>{};
@@ -308,7 +308,7 @@ namespace stdm{
     template<typename T> struct is_nothrow_copy_assignable:is_nothrow_assignable<
       typename add_lvalue_reference<T>::type,
       typename add_lvalue_reference<const T>::type>{};
-# elif defined(MWG_STDM_TYPE_TRAITS__IS_CONSTRUCTIBLE__tr1_available)
+# elif defined(MWG_STDM_TYPE_TRAITS_IS_CONSTRUCTIBLE_H_tr1_available)
     template<typename T> struct is_nothrow_copy_assignable:tr1::has_nothrow_assign<T>{};
 # elif MWGCONF_MSC_VER>=140050215
     template<typename T> struct is_nothrow_copy_assignable:integral_constant<bool,is_pod<T>::value||__has_nothrow_assign(T)||__has_trivial_assign(T)>{};
@@ -355,7 +355,7 @@ namespace stdm{
 
 #ifndef MWGCONF_HAS_IS_TRIVIALLY_DESTRUCTIBLE
   namespace is_constructible_detail{
-# if defined(MWG_STDM_TYPE_TRAITS__IS_CONSTRUCTIBLE__tr1_available)
+# if defined(MWG_STDM_TYPE_TRAITS_IS_CONSTRUCTIBLE_H_tr1_available)
     template<typename T> struct is_trivially_destructible:tr1::has_trivial_assign<T>{};
 # elif MWGCONF_MSC_VER>=140050215
     template<typename T> struct is_trivially_destructible:integral_constant<bool,is_pod<T>::value||__has_trivial_destructor(T)>{};
@@ -377,7 +377,7 @@ namespace stdm{
 
 #ifndef MWGCONF_HAS_HAS_VIRTUAL_DESTRUCTOR
   namespace is_constructible_detail{
-# if defined(MWG_STDM_TYPE_TRAITS__IS_CONSTRUCTIBLE__tr1_available)
+# if defined(MWG_STDM_TYPE_TRAITS_IS_CONSTRUCTIBLE_H_tr1_available)
     // template<typename T> struct has_virtual_destructor:has_virtual_destructor<T>{}; // same as that of the tr1
 # elif MWGCONF_MSC_VER>=140050215
     template<typename T> struct has_virtual_destructor:integral_constant<bool,__has_virtual_destructor(T)>{};

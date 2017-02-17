@@ -139,14 +139,14 @@ namespace functor_detail{
 
   //---------------------------------------------------------------------------
   /*?lwiki
-   * :@def #define ==MWG_FUNCTOR_H__VariantFunctorEnabled==
+   * :@def #define ==MWG_FUNCTOR_H_VariantFunctorEnabled==
    *  関数の共変性・反変性を有効にするかどうかを決定します。
    */
 #if (\
     defined(mwg_concept_is_valid_expression)\
     || defined(_MSC_VER) && defined(mwg_concept_is_valid_expression_vc2010A)\
   )
-#   define MWG_FUNCTOR_H__VariantFunctorEnabled
+#   define MWG_FUNCTOR_H_VariantFunctorEnabled
 #endif
 
   //---------------------------------------------------------------------------
@@ -239,13 +239,13 @@ namespace functor_detail{
     template<typename F, typename S>
     struct can_be_called_as_impl1: stdm::false_type {
 #ifdef mwg_concept_is_valid_expression
-# define MWG_FUNCTOR_H__can_be_called_as__declare_c1(Parameters, Arguments) \
+# define MWG_FUNCTOR_H_can_be_called_as_declare_c1(Parameters, Arguments) \
       mwg_concept_is_valid_expression(c1, F, F_, expr<F_>().operator() Arguments);
 #elif defined(_MSC_VER) && defined(mwg_concept_is_valid_expression_vc2010A)
-# define MWG_FUNCTOR_H__can_be_called_as__declare_c1(Parameters, Arguments) \
+# define MWG_FUNCTOR_H_can_be_called_as_declare_c1(Parameters, Arguments) \
       mwg_concept_is_valid_expression_vc2010A(c1, F, F_, expr<F_>().operator() Arguments);
 #else
-# define MWG_FUNCTOR_H__can_be_called_as__declare_c1(Parameters, Arguments) \
+# define MWG_FUNCTOR_H_can_be_called_as_declare_c1(Parameters, Arguments) \
       mwg_concept_has_member(c1_1, F, X, operator(), R(X::*) Parameters);   \
       mwg_concept_has_member(c1_2, F, X, operator(), R(X::*) Parameters const); \
       struct c1: stdm::integral_constant<bool, (c1_1::value || c1_2::value)> {};
@@ -254,34 +254,34 @@ namespace functor_detail{
 #endif
 
 #if defined(MWGCONF_STD_DECLTYPE)
-# define MWG_FUNCTOR_H__can_be_called_as__declare_OpR(Parameters,Arguments) \
+# define MWG_FUNCTOR_H_can_be_called_as_declare_OpR(Parameters,Arguments) \
       template<typename F_, bool B> struct s1 {typedef void type;};     \
       template<typename F_> struct s1<F_, true> {                       \
         typedef decltype(expr<F_>().operator() Arguments) type;         \
       };                                                                \
       typedef typename s1<F, c1::value>::type OpR;
 #else
-# define MWG_FUNCTOR_H__can_be_called_as__declare_OpR(Parameters, Arguments) \
+# define MWG_FUNCTOR_H_can_be_called_as_declare_OpR(Parameters, Arguments) \
       typedef R OpR;
 #endif
 
-#define MWG_FUNCTOR_H__can_be_called_as__content(Parameters, Arguments)  \
-      MWG_FUNCTOR_H__can_be_called_as__declare_c1(Parameters, Arguments) \
-      MWG_FUNCTOR_H__can_be_called_as__declare_OpR(Parameters, Arguments) \
+#define MWG_FUNCTOR_H_can_be_called_as_content(Parameters, Arguments)  \
+      MWG_FUNCTOR_H_can_be_called_as_declare_c1(Parameters, Arguments) \
+      MWG_FUNCTOR_H_can_be_called_as_declare_OpR(Parameters, Arguments) \
       mwg_concept_condition((c1::value && is_covariant<OpR, R>::value));
     };
 
 #pragma%m 1
     template<typename F,typename R,typename... A>
     struct can_be_called_as_impl1<F,R(A...)>{
-      MWG_FUNCTOR_H__can_be_called_as__content((A...),(expr<A>()...));
+      MWG_FUNCTOR_H_can_be_called_as_content((A...),(expr<A>()...));
     };
 #pragma%end
 #pragma%x variadic_expand_0toArN
 
-#undef MWG_FUNCTOR_H__can_be_called_as__content
-#undef MWG_FUNCTOR_H__can_be_called_as__declare_OpR
-#undef MWG_FUNCTOR_H__can_be_called_as__declare_c1
+#undef MWG_FUNCTOR_H_can_be_called_as_content
+#undef MWG_FUNCTOR_H_can_be_called_as_declare_OpR
+#undef MWG_FUNCTOR_H_can_be_called_as_declare_c1
 
     template<typename F,typename S,bool>
     struct can_be_called_as_impl2:stdm::false_type{};

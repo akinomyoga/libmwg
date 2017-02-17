@@ -61,10 +61,10 @@ int HexDecode(const byte*& src0,const byte*const srcN,byte*& dst0,byte*const dst
 }
 //-----------------------------------------------------------------------------
 
-//#define MWG_BIO_TAPE_UTIL_CPP__Base64EncodeImpl1
-#define MWG_BIO_TAPE_UTIL_CPP__Base64EncodeImpl2
+//#define MWG_BIO_TAPE_UTIL_CPP_Base64EncodeImpl1
+#define MWG_BIO_TAPE_UTIL_CPP_Base64EncodeImpl2
 
-#ifdef MWG_BIO_TAPE_UTIL_CPP__Base64EncodeImpl1
+#ifdef MWG_BIO_TAPE_UTIL_CPP_Base64EncodeImpl1
 struct base64encode_state{
   byte count;
   byte c[3];
@@ -130,7 +130,7 @@ int Base64Encode(const byte*& src0,const byte* srcN,byte*& dst0,byte* dstN,void*
 }
 #endif
 
-#ifdef MWG_BIO_TAPE_UTIL_CPP__Base64EncodeImpl2
+#ifdef MWG_BIO_TAPE_UTIL_CPP_Base64EncodeImpl2
 //                                           "0123456789_123456789_123456789_123456789_123456789_123456789_123"
   static const char* const Base64EncodeTable="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
   int Base64Encode(const byte*& src0,const byte*const srcN,byte*& dst0,byte*const dstN,void*& state_){

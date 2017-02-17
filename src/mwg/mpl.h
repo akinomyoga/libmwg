@@ -264,28 +264,28 @@ void test_is_power_of_2() {
  *| struct integral_min<I, Z0> // ERR
  *|   :mwg::stdm::integral_constant<I, Z0> {};
  */
-# define MWG_MPL_H__define_integral_minmax_result(type) \
+# define MWG_MPL_H_define_integral_minmax_result(type) \
 template<type Z0> struct integral_max<type, Z0>: mwg::stdm::integral_constant<type, Z0> {}; \
 template<type Z0> struct integral_min<type, Z0>: mwg::stdm::integral_constant<type, Z0> {}
-    MWG_MPL_H__define_integral_minmax_result(char);
-    MWG_MPL_H__define_integral_minmax_result(signed char);
-    MWG_MPL_H__define_integral_minmax_result(unsigned char);
-    MWG_MPL_H__define_integral_minmax_result(short);
-    MWG_MPL_H__define_integral_minmax_result(unsigned short);
-    MWG_MPL_H__define_integral_minmax_result(int);
-    MWG_MPL_H__define_integral_minmax_result(unsigned int);
-    MWG_MPL_H__define_integral_minmax_result(long);
-    MWG_MPL_H__define_integral_minmax_result(unsigned long);
+    MWG_MPL_H_define_integral_minmax_result(char);
+    MWG_MPL_H_define_integral_minmax_result(signed char);
+    MWG_MPL_H_define_integral_minmax_result(unsigned char);
+    MWG_MPL_H_define_integral_minmax_result(short);
+    MWG_MPL_H_define_integral_minmax_result(unsigned short);
+    MWG_MPL_H_define_integral_minmax_result(int);
+    MWG_MPL_H_define_integral_minmax_result(unsigned int);
+    MWG_MPL_H_define_integral_minmax_result(long);
+    MWG_MPL_H_define_integral_minmax_result(unsigned long);
 #  ifdef MWGCONF_HAS_LONGLONG
-    MWG_MPL_H__define_integral_minmax_result(long long);
-    MWG_MPL_H__define_integral_minmax_result(unsigned long long);
+    MWG_MPL_H_define_integral_minmax_result(long long);
+    MWG_MPL_H_define_integral_minmax_result(unsigned long long);
 #  endif
 #  ifdef MWGCONF_HAS_DISTINCT_INT64
-    MWG_MPL_H__define_integral_minmax_result(__int64);
-    MWG_MPL_H__define_integral_minmax_result(unsigned __int64);
+    MWG_MPL_H_define_integral_minmax_result(__int64);
+    MWG_MPL_H_define_integral_minmax_result(unsigned __int64);
 #  endif
-    MWG_MPL_H__define_integral_minmax_result(bool);
-# undef MWG_MPL_H__define_integral_minmax_result
+    MWG_MPL_H_define_integral_minmax_result(bool);
+# undef MWG_MPL_H_define_integral_minmax_result
 /*- end of WORKAROUND -------------------------------------------------------*/
 #endif
 

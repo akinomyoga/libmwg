@@ -23,7 +23,7 @@
 
 #include "xprintf.h"
 
-// #define XPRINTF__NAN_HAS_NO_SIGN
+// #define XPRINTF_NAN_HAS_NO_SIGN
 
 /**
  * @section printf.functionaname Standard printf Variation
@@ -837,7 +837,7 @@ namespace xprintf_detail {
   public:
     int count_prefix(double const& value) {
       int ret = 0;
-#ifdef XPRINTF__NAN_HAS_NO_SIGN
+#ifdef XPRINTF_NAN_HAS_NO_SIGN
       if (stdm::isnan(value)) return 0;
 #endif
       if (value < 0.0 || spec.flags & (flag_plus | flag_space))
@@ -846,7 +846,7 @@ namespace xprintf_detail {
     }
     template<typename Writer>
     void output_prefix(Writer const& buff, double const& value) {
-#ifdef XPRINTF__NAN_HAS_NO_SIGN
+#ifdef XPRINTF_NAN_HAS_NO_SIGN
       if (stdm::isnan(value)) return;
 #endif
       if (value < 0.0)

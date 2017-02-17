@@ -29,8 +29,8 @@ namespace mwg {
     // using namespace ::std::tr1;
   }
 
-#   define MWG_PREPROC_ADDLINE__(H, L) H##L
-#   define MWG_PREPROC_ADDLINE_(H, L)  MWG_PREPROC_ADDLINE__(H, L)
+#   define MWG_PREPROC_ADDLINE_2(H, L) H##L
+#   define MWG_PREPROC_ADDLINE_(H, L)  MWG_PREPROC_ADDLINE_2(H, L)
 #   define MWG_PREPROC_ADDLINE(H)      MWG_PREPROC_ADDLINE_(H, __LINE__)
 #   define MWG_PREPROC_COMMA           ,
 

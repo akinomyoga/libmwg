@@ -399,11 +399,11 @@ namespace stdm{
 # endif
 #else
   namespace detail{
-    template<typename T,bool B> struct add_lvalue_reference__impl:mwg::identity<T>{};
-    template<typename T>        struct add_lvalue_reference__impl<T,true>:mwg::identity<T&>{};
+    template<typename T,bool B> struct add_lvalue_reference_impl:mwg::identity<T>{};
+    template<typename T>        struct add_lvalue_reference_impl<T,true>:mwg::identity<T&>{};
 # ifdef MWGCONF_STD_RVALUE_REFERENCES
-    template<typename T,bool B> struct add_rvalue_reference__impl:mwg::identity<T>{};
-    template<typename T>        struct add_rvalue_reference__impl<T,true>:mwg::identity<T&&>{};
+    template<typename T,bool B> struct add_rvalue_reference_impl:mwg::identity<T>{};
+    template<typename T>        struct add_rvalue_reference_impl<T,true>:mwg::identity<T&&>{};
 # endif
   }
   // type category           lvalue rvalue
@@ -414,11 +414,11 @@ namespace stdm{
   // is_reference            U&     T
   // is_object               T&     T&&
   template<typename T> struct add_lvalue_reference
-    :detail::add_lvalue_reference__impl<typename remove_reference<T>::type,(!is_void<T>::value&&!detail::is_function_impl<T>::is_qualified)>{};
+    :detail::add_lvalue_reference_impl<typename remove_reference<T>::type,(!is_void<T>::value&&!detail::is_function_impl<T>::is_qualified)>{};
 
 # ifdef MWGCONF_STD_RVALUE_REFERENCES
   template<typename T> struct add_rvalue_reference
-    :detail::add_rvalue_reference__impl<T,!is_reference<T>::value&&!is_void<T>::value&&!detail::is_function_impl<T>::is_qualified>{};
+    :detail::add_rvalue_reference_impl<T,!is_reference<T>::value&&!is_void<T>::value&&!detail::is_function_impl<T>::is_qualified>{};
 # endif
 #endif
 #pragma%x begin_check
@@ -633,19 +633,19 @@ namespace stdm{
 # pragma GCC diagnostic ignored "-Wtype-limits"
 #endif
   template<typename T>
-  void check_is_signed__for_type(bool _signed){
+  void check_is_type_signed(bool _signed){
     mwg_check( (mwg::stdm::is_signed<T>::value==(mwg::stdm::is_arithmetic<T>::value&&_signed)));
     mwg_check( (mwg::stdm::is_unsigned<T>::value==(mwg::stdm::is_arithmetic<T>::value&&!_signed)));
   }
   void check_is_signed(){
-    check_is_signed__for_type<bool>(false);
-    check_is_signed__for_type<char>(char(-1)<char(0));
-    check_is_signed__for_type<signed>(true);
-    check_is_signed__for_type<unsigned>(false);
+    check_is_type_signed<bool>(false);
+    check_is_type_signed<char>(char(-1)<char(0));
+    check_is_type_signed<signed>(true);
+    check_is_type_signed<unsigned>(false);
 
-    check_is_signed__for_type<float>(true);
-    check_is_signed__for_type<double>(true);
-    check_is_signed__for_type<long double>(true);
+    check_is_type_signed<float>(true);
+    check_is_type_signed<double>(true);
+    check_is_type_signed<long double>(true);
 
     mwg_check(( mwg::stdm::is_signed<int>::value));
     mwg_check(( mwg::stdm::is_signed<float>::value));
@@ -866,8 +866,8 @@ namespace stdm{
     struct is_class_or_union
       :integral_constant<bool,is_class_or_union_impl<typename remove_cv<T>::type>::value>{};
 
-  //?mconf X 'intrinsic __is_union' '' "int a=__is_union(int);"
-# ifdef MWGCONF_HAS_INTRINSIC___IS_UNION
+  //?mconf X 'intrinsic is_union' '' "int a=__is_union(int);"
+# ifdef MWGCONF_HAS_INTRINSIC_IS_UNION
     template<typename T> struct is_union_nocv:integral_constant<bool,__is_union(T)>{};
 # else
     template<typename T> struct is_union_nocv:false_type{};
@@ -966,40 +966,40 @@ namespace stdm{
   // test is_convertible for the case from values to references
   //  see also note/20131211.stdlib11-is_convertible-check_def.cpp
   //
-  // struct is_convertible_toref__test
+  // struct test_is_convertible_to_reference
   //   正しく判定できているかの判定用クラス。
   //   コンパイラ毎に正しい結果が異なるので、コンパイラ毎にテストを定義。
-  template<typename F,typename T> struct is_convertible_toref__test{};
+  template<typename F,typename T> struct test_is_convertible_to_reference{};
 #ifdef _MSC_VER
-  template<typename F,typename T> struct is_convertible_toref__test<F,T&>
+  template<typename F,typename T> struct test_is_convertible_to_reference<F,T&>
     :mwg::stdm::integral_constant<bool,mwg::stdm::is_convertible<F,T&>::value==(mwg::stdm::is_const<T>::value&&(mwg::stdm::is_volatile<T>::value||!mwg::stdm::is_volatile<F>::value))>{};
 #elif __INTEL_COMPILER
   // version によって異なる?
-  template<typename F,typename T> struct is_convertible_toref__test<F,T&>
+  template<typename F,typename T> struct test_is_convertible_to_reference<F,T&>
     :mwg::stdm::integral_constant<bool,
       mwg::stdm::is_convertible<F,T&>::value==(mwg::stdm::is_const<T>::value&&(!mwg::stdm::is_volatile<T>::value))||
       mwg::stdm::is_convertible<F,T&>::value==(mwg::stdm::is_const<T>::value&&(!mwg::stdm::is_volatile<T>::value&&!mwg::stdm::is_volatile<F>::value))>{};
 #else
-  template<typename F,typename T> struct is_convertible_toref__test<F,T&>
+  template<typename F,typename T> struct test_is_convertible_to_reference<F,T&>
     :mwg::stdm::integral_constant<bool,mwg::stdm::is_convertible<F,T&>::value==(mwg::stdm::is_const<T>::value&&(!mwg::stdm::is_volatile<T>::value&&!mwg::stdm::is_volatile<F>::value))>{};
 #endif
-  void check_is_convertible__toref(){
-    mwg_check((is_convertible_toref__test<int,int&>::value));
-    mwg_check((is_convertible_toref__test<int,const int&>::value));
-    mwg_check((is_convertible_toref__test<int,volatile int&>::value));
-    mwg_check((is_convertible_toref__test<int,const volatile int&>::value));
-    mwg_check((is_convertible_toref__test<const int,int&>::value));
-    mwg_check((is_convertible_toref__test<const int,const int&>::value));
-    mwg_check((is_convertible_toref__test<const int,volatile int&>::value));
-    mwg_check((is_convertible_toref__test<const int,const volatile int&>::value));
-    mwg_check((is_convertible_toref__test<volatile int,int&>::value));
-    mwg_check((is_convertible_toref__test<volatile int,const int&>::value));
-    mwg_check((is_convertible_toref__test<volatile int,volatile int&>::value));
-    mwg_check((is_convertible_toref__test<volatile int,const volatile int&>::value));
-    mwg_check((is_convertible_toref__test<const volatile int,int&>::value));
-    mwg_check((is_convertible_toref__test<const volatile int,const int&>::value));
-    mwg_check((is_convertible_toref__test<const volatile int,volatile int&>::value));
-    mwg_check((is_convertible_toref__test<const volatile int,const volatile int&>::value));
+  void check_is_convertible_to_reference(){
+    mwg_check((test_is_convertible_to_reference<int,int&>::value));
+    mwg_check((test_is_convertible_to_reference<int,const int&>::value));
+    mwg_check((test_is_convertible_to_reference<int,volatile int&>::value));
+    mwg_check((test_is_convertible_to_reference<int,const volatile int&>::value));
+    mwg_check((test_is_convertible_to_reference<const int,int&>::value));
+    mwg_check((test_is_convertible_to_reference<const int,const int&>::value));
+    mwg_check((test_is_convertible_to_reference<const int,volatile int&>::value));
+    mwg_check((test_is_convertible_to_reference<const int,const volatile int&>::value));
+    mwg_check((test_is_convertible_to_reference<volatile int,int&>::value));
+    mwg_check((test_is_convertible_to_reference<volatile int,const int&>::value));
+    mwg_check((test_is_convertible_to_reference<volatile int,volatile int&>::value));
+    mwg_check((test_is_convertible_to_reference<volatile int,const volatile int&>::value));
+    mwg_check((test_is_convertible_to_reference<const volatile int,int&>::value));
+    mwg_check((test_is_convertible_to_reference<const volatile int,const int&>::value));
+    mwg_check((test_is_convertible_to_reference<const volatile int,volatile int&>::value));
+    mwg_check((test_is_convertible_to_reference<const volatile int,const volatile int&>::value));
   }
 
   void check_is_convertible(){
@@ -1057,7 +1057,7 @@ namespace stdm{
     mwg_check(( mwg::stdm::is_convertible<const volatile int,int>::value));
 
     // from values to references
-    check_is_convertible__toref();
+    check_is_convertible_to_reference();
 
     // - pointers to pointers
     mwg_check(( mwg::stdm::is_convertible<int*,const int*>::value));
@@ -1225,7 +1225,7 @@ namespace stdm{
   //
   //   requirements: conditional, enable_if, is_arithmetic, is_floating_point, is_void
   //
-# define MWG_STD_COMMON_TYPE__EMULATED
+# define MWG_STD_COMMON_TYPE_EMULATED
 # if defined(MWGCONF_STD_VARIADIC_TEMPLATES)
   template<typename... Ts>
   struct common_type{};

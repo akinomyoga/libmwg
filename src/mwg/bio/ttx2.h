@@ -37,12 +37,12 @@ namespace bio{
     bool getnode(mwg::bio::itape& ttx,ttx_node& node,bool untilIsolatedClosingBrace=false);
 
     // 属性操作用一時オブジェクト
-    class _tmpobj__ttx_attr_manipulator{
+    class _tmpobj_ttx_attr_manipulator{
       ttx_node* node;
       std::string const& attrname;
     private:
       friend class mwg::bio::ttx_node;
-      _tmpobj__ttx_attr_manipulator(ttx_node* node,const std::string& attrname)
+      _tmpobj_ttx_attr_manipulator(ttx_node* node,const std::string& attrname)
         :node(node),attrname(attrname){}
     public:
       operator bool() const;
@@ -67,7 +67,7 @@ namespace bio{
         return mwg::lexical_cast<T>(this->get());
       }
 
-      _tmpobj__ttx_attr_manipulator& operator=(const std::string& value){
+      _tmpobj_ttx_attr_manipulator& operator=(const std::string& value){
         this->set(value);
         return *this;
       }
@@ -230,7 +230,7 @@ namespace bio{
   // m_attrs
   //----------------------------------------------------------------------------
   private:
-    friend class ttx2_detail::_tmpobj__ttx_attr_manipulator;
+    friend class ttx2_detail::_tmpobj_ttx_attr_manipulator;
     const std::string& _internal_getAttr(const std::string& _name) const{
       std::vector<ttx_attr>::const_iterator i=m_attrs.begin(),iN=m_attrs.end();
       for(;i<iN;i++)
@@ -254,13 +254,13 @@ namespace bio{
       m_attrs.push_back(ttx_attr(_name,value));
     }
   public:
-    ttx2_detail::_tmpobj__ttx_attr_manipulator
+    ttx2_detail::_tmpobj_ttx_attr_manipulator
     attr(std::string const& attrName){
-      return ttx2_detail::_tmpobj__ttx_attr_manipulator(this,attrName);
+      return ttx2_detail::_tmpobj_ttx_attr_manipulator(this,attrName);
     }
-    ttx2_detail::_tmpobj__ttx_attr_manipulator const
+    ttx2_detail::_tmpobj_ttx_attr_manipulator const
     attr(std::string const& attrName) const{
-      return ttx2_detail::_tmpobj__ttx_attr_manipulator(const_cast<ttx_node*>(this),attrName);
+      return ttx2_detail::_tmpobj_ttx_attr_manipulator(const_cast<ttx_node*>(this),attrName);
     }
   //----------------------------------------------------------------------------
   // enumeration
@@ -328,14 +328,14 @@ namespace bio{
 
   namespace ttx2_detail{
 
-    // class _tmpobj__ttx_attr_manipulator;
-    inline _tmpobj__ttx_attr_manipulator::operator bool() const{
+    // class _tmpobj_ttx_attr_manipulator;
+    inline _tmpobj_ttx_attr_manipulator::operator bool() const{
       return this->node->_internal_hasAttr(this->attrname);
     }
-    inline std::string const& _tmpobj__ttx_attr_manipulator::get() const{
+    inline std::string const& _tmpobj_ttx_attr_manipulator::get() const{
       return this->node->_internal_getAttr(this->attrname);
     }
-    inline void _tmpobj__ttx_attr_manipulator::set(std::string const& value){
+    inline void _tmpobj_ttx_attr_manipulator::set(std::string const& value){
       return this->node->_internal_setAttr(this->attrname,value);
     }
   }
