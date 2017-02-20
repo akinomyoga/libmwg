@@ -462,7 +462,7 @@ namespace functor_detail {
       this->init<F, functor_case_impl<S, typename functor_traits<F, S>::ref_tr> >(f);
     }
     template<typename F>
-    typename stdm::enable_if<is_explicit_functor<F, S>::value, functor_ref&>::type
+    typename stdm::enable_if<be_functor<F, S>::value, functor_ref&>::type
     operator=(const F& f) {
       this->free();
       this->init<F, functor_case_impl<S, typename functor_traits<F, S>::ref_tr> >(f);
@@ -680,7 +680,19 @@ void check_variance() {
   {
     mwg::functor<int(int, int)> g1(&func1);
     mwg_check(g1(1, 2) == func1());
+#if defined(_MSC_VER) && (_MSC_VER == 1700)
+    //
+    // work around for msc17 (Visual Studio 2012) bug
+    //
+    //   何故か代入演算子に関数型を指定すると、
+    //   変換コンストラクタに指定していた std::remove_reference でその関数型を取れなくなる。
+    //   仕方がないので関数ポインタでテストを行う。
+    //   cf. note/20170220.msc17bug.is_function.cpp
+    //
+    g1 = &func1;
+#else
     g1 = func1;
+#endif
     mwg_check(g1(1, 2) == func1());
   }
 

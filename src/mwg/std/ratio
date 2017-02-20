@@ -9,7 +9,14 @@
  *   X -t'std::ratio<I,J>::type' STD_RATIO_TYPE ratio     "sizeof(std::ratio<2,4>::type);"
  * fi
  */
-#if defined(MWGCONF_HEADER_RATIO)&&defined(MWGCONF_HAS_STD_RATIO_TYPE)
+//
+// Note: msc17 は std::ratio_equal が壊れている。
+//   typedef std::ratio_add<std::ratio<1, 4>, std::ratio<1, 4> > sum;
+//   std::ratio_equal<sum, std::ratio<1, 2> >::value がコンパイルできない。
+//
+//   cf. note/20170217.msc17bug.duration_cast.cpp
+//
+#if defined(MWGCONF_HEADER_RATIO) && defined(MWGCONF_HAS_STD_RATIO_TYPE) && (!defined(_MSC_VER) || _MSC_VER >= 1800)
 # include <ratio>
 #else
 # define MWG_STDM_RATIO_EMULATED
