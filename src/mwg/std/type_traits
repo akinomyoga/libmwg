@@ -77,7 +77,7 @@
 #if MWGCONF_HEADER_STD >= 2011 && !defined(MWGCONF_INVALID_HEADER_TYPE_TRAITS)
 # include <type_traits>
 
-#if defined(_MSC_VER) && (_MSC_VER == 1900)
+#if defined(_MSC_VER) && (_MSC_VER == 1900 || _MSC_VER == 1910)
 # include "type_traits.is_convertible.inl"
 #endif
 

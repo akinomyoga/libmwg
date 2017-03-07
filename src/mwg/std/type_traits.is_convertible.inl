@@ -16,7 +16,7 @@ namespace stdm{
 //   そのコンパイラに於ける変換可能性を返す様に実装する方が良い。
 
 #if defined(_MSC_VER) && (_MSC_FULL_VER >= 140050215)
-# if (_MSC_VER == 1900)
+# if (_MSC_VER == 1900 || _MSC_VER == 1910)
   //
   // Note: これは msc19 の work around である。
   //   msc19 では何故か実際の動作と is_convertible の動作が異なる。
