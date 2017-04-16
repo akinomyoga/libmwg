@@ -209,6 +209,31 @@ public:
     return ret;
   }
 
+  // head.read<type, flags>(beg, end);
+  template<typename T, int I, typename OutputIterator>
+  typename rwflags_detail::rwflags_impl<T, I>::rtype
+  read(OutputIterator begin, OutputIterator end) {
+    int count = 0;
+    T element;
+    while (begin != end) {
+      count += rwflags_detail::rwflags_impl<T, I>::read(this, element);
+      *begin++ = element;
+    }
+    return count;
+  }
+  // head.read<type>(beg, end);
+  template<typename T, typename OutputIterator>
+  typename rwflags_detail::rwflags_impl<T, RWFlags>::rtype
+  read(OutputIterator begin, OutputIterator end) {
+    return read<T, RWFlags, OutputIterator>(stdm::move(begin), stdm::move(end));
+  }
+  // head.read(beg, end);
+  template<typename OutputIterator>
+  typename rwflags_detail::rwflags_impl<typename std::iterator_traits<OutputIterator>::value_type, RWFlags>::rtype
+  read(OutputIterator begin, OutputIterator end) {
+    return read<typename std::iterator_traits<OutputIterator>::value_type, RWFlags, OutputIterator>(stdm::move(begin), stdm::move(end));
+  }
+
 public:
   u4t align_fill(int align,byte c=0) const{
     // align must be some power of 2.

@@ -1,6 +1,6 @@
 // -*- mode: c++; coding: utf-8 -*-
-#ifndef MWG_IO_MWT_EXP2
-#define MWG_IO_MWT_EXP2
+#ifndef MWG_BIO_FILE_MWT_IMPL2
+#define MWG_BIO_FILE_MWT_IMPL2
 # include <mwg/std/memory>
 # include "defs.h"
 # include "tape.h"
@@ -13,7 +13,7 @@
 namespace mwg{
 namespace bio{
 namespace mwt_detail{
-//NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN
+
 
   template<typename T>
   class iprop{

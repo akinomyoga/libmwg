@@ -83,6 +83,7 @@ Makefile: Makefile.pp
 #%x AddCxxHeader.r|%file%|mwg/bio/filter.inl|
 #%x AddCxxSource.r|%file%|mwg/bio/tape.util.cpp|
 #%x AddCxxSource.r|%file%|mwg/bio/ttx2.cpp|
+#%x AddCxxHeader.r|%file%|mwg/bio/mwt_i3.h|
 
 #%x AddCxxHeader.r|%file%|mwg/bio/mwb_header.h|
 #%x AddCxxHeader.r|%file%|mwg/bio/mwb_format.h|
