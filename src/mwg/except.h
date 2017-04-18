@@ -315,8 +315,51 @@ mwg_check/mwg_assert
 # include <cstdlib>
 #endif
 
+/* 実装メモ: GCC で unused-function の警告が出ることについて
+ *
+ * 1 一番初めに思いつきそうな以下の方法は使えない
+ *
+ *   #pragma GCC diagnostic push
+ *   #pragma GCC diagnostic ignored "-Wunused"
+ *   #pragma GCC diagnostic ignored "-Wunused-function"
+ *   #pragma GCC diagnostic ignored "-Wunused-variable"
+ *   ...
+ *   #pragma GCC diagnostic pop
+ *
+ *   というのも、unused が判明するのはファイルを末尾まで読んだ後であり、
+ *   その時に -Wunused etc が ignored になっていないと、結局警告が出るからである。
+ *   (勿論 ignored のままにしておけば警告は出なくなるが、
+ *   本当にミスで unused になっている関数について警告が出なくなってしまうのでしたくない)。
+ *
+ * 2 GCC の __attribute__((unused)) をつける方法?
+ *
+ *   | 「文は効果がありません」の警告が出る?
+ *   | どうも __attribute__((unused)) をつけた関数の呼び出しは意味のない文として扱われるようである。
+ *   | →どうやら勘違いであった
+ *
+ * 3 結局ダミー変数の初期化に使う方法?
+ *
+ *   参考: http://stackoverflow.com/questions/11124895/suppress-compiler-warning-function-declared-never-referenced
+ *
+ *   #if defined(__GNUC__)&&!defined(__INTEL_COMPILER)
+ *   # ifndef MWG_SUPPRESS_WUNUSED
+ *   #  define MWG_SUPPRESS_WUNUSED(var) static MWG_ATTRIBUTE_UNUSED int _dummy_tmp_##var=((int)(var)&0)
+ *   # endif
+ *     MWG_SUPPRESS_WUNUSED(mwg_printd_);
+ *     MWG_SUPPRESS_WUNUSED(print_onfail);
+ *     MWG_SUPPRESS_WUNUSED(throw_onfail);
+ *   #endif
+ *
+ *   → icc が警告を出す: 関数ポインタを int に変換する時に符号ビットが消える, 云々.
+ *
+ * 4 そもそも static ではなく inline で宣言しておけば問題ない?
+ *
+ *   ■これは後で考える。(そもそもなぜ static にしたのであったか??)
+ */
+
 namespace mwg {
 namespace except_detail {
+
   struct sgr {
     int value;
     sgr(int value): value(value) {}
@@ -398,7 +441,7 @@ namespace except_detail {
     static int fail_nothrow_count = 0;
     return fail_nothrow_count+=delta; // dummy operation to set break point
   }
-  static bool vprint_fail_impl(const char* expr, const char* pos, const char* func, const char* fmt, va_list arg) {
+  static bool vprint_onfail_impl(const char* expr, const char* pos, const char* func, const char* fmt, va_list arg) {
     using namespace ::mwg::except_detail;
     dbgput d(stderr);
     // first line
@@ -415,23 +458,13 @@ namespace except_detail {
     if (func)
       d << ':' << func << '\n';
 
-    // std::fprintf(stderr, "%s:", pos);
-    // if (func)
-    //   d << sgr(32) << '"' << func << '"' << sgr(0) << ':';
-    // d << " mwg_assertion_failure! ";
-    // if (fmt && *fmt) {
-    //   d << sgr(35);
-    //   std::vfprintf(stderr, fmt, arg);
-    //   d << sgr(0);
-    // }
-    // d << "[expr: " << sgr(94) << expr << sgr(0) << "]\n";
     std::fflush(stderr);
 
     return false;
   }
 
   MWG_ATTRIBUTE_NORETURN
-  static bool vthrow_fail_impl(const char* expr, const char* pos, const char* /* func */, const char* fmt, va_list arg) {
+  static bool vthrow_onfail_impl(const char* expr, const char* pos, const char* /* func */, const char* fmt, va_list arg) {
     std::string buff("assertion failed! ");
     if (fmt && *fmt) {
       char message[1024];
@@ -457,42 +490,41 @@ namespace except_detail {
   }
 
   MWG_ATTRIBUTE_UNUSED
-  static bool mwg_noinline vprint_fail(const char* expr, const char* pos, const char* func, const char* fmt, va_list arg) {
+  static bool mwg_noinline vprint_onfail(const char* expr, const char* pos, const char* func, const char* fmt, va_list arg) {
     increment_fail_count();
-    vprint_fail_impl(expr, pos, func, fmt, arg);
+    vprint_onfail_impl(expr, pos, func, fmt, arg);
     return false;
   }
   MWG_ATTRIBUTE_UNUSED
-  static bool mwg_noinline print_fail(const char* expr, const char* pos, const char* func, const char* fmt, ...) {
+  static bool mwg_noinline print_onfail(const char* expr, const char* pos, const char* func, const char* fmt, ...) {
     va_list arg;
     va_start(arg, fmt);
-    vprint_fail(expr, pos, func, fmt, arg);
+    mwg::except_detail::vprint_onfail(expr, pos, func, fmt, arg);
     va_end(arg);
     return false;
-  }
-
-  MWG_ATTRIBUTE_NORETURN
-  MWG_ATTRIBUTE_UNUSED
-  static bool mwg_noinline vthrow_fail(const char* expr, const char* pos, const char* func, const char* fmt, va_list arg1, va_list arg2) {
-    increment_fail_count();
-#if MWG_DEBUG || !defined(NDEBUG)
-    vprint_fail_impl(expr, pos, func, fmt, arg1);
-#endif
-    vthrow_fail_impl(expr, pos, func, fmt, arg2);
-
-    /*NOTREACHED*/
-    throw;
   }
 
   // [[noreturn]] は __attribute__((unused)) より前になければならない
   MWG_ATTRIBUTE_NORETURN
   MWG_ATTRIBUTE_UNUSED
-  static bool mwg_noinline throw_fail(const char* expr, const char* pos, const char* func, const char* fmt, ...) {
+  static bool mwg_noinline vthrow_onfail(const char* expr, const char* pos, const char* func, const char* fmt, va_list arg1, va_list arg2) {
+    increment_fail_count();
+#if MWG_DEBUG || !defined(NDEBUG)
+    vprint_onfail_impl(expr, pos, func, fmt, arg1);
+#endif
+    vthrow_onfail_impl(expr, pos, func, fmt, arg2);
+
+    /*NOTREACHED*/
+    throw;
+  }
+  MWG_ATTRIBUTE_NORETURN
+  MWG_ATTRIBUTE_UNUSED
+  static bool mwg_noinline throw_onfail(const char* expr, const char* pos, const char* func, const char* fmt, ...) {
     va_list arg1;
     va_list arg2;
     va_start(arg1, fmt);
     va_start(arg2, fmt);
-    vthrow_fail(expr, pos, func, fmt, arg1, arg2);
+    mwg::except_detail::vthrow_onfail(expr, pos, func, fmt, arg1, arg2);
     va_end(arg1);
     va_end(arg2);
     /*NOTREACHED*/
@@ -500,51 +532,9 @@ namespace except_detail {
   }
 
   inline bool nop_succuss() {return true;}
-
-/* 実装メモ: GCC で unused-function の警告が出ることについて
- *
- * 1 一番初めに思いつきそうな以下の方法は使えない
- *
- *   #pragma GCC diagnostic push
- *   #pragma GCC diagnostic ignored "-Wunused"
- *   #pragma GCC diagnostic ignored "-Wunused-function"
- *   #pragma GCC diagnostic ignored "-Wunused-variable"
- *   ...
- *   #pragma GCC diagnostic pop
- *
- *   というのも、unused が判明するのはファイルを末尾まで読んだ後であり、
- *   その時に -Wunused etc が ignored になっていないと、結局警告が出るからである。
- *   (勿論 ignored のままにしておけば警告は出なくなるが、
- *   本当にミスで unused になっている関数について警告が出なくなってしまうのでしたくない)。
- *
- * 2 GCC の __attribute__((unused)) をつける方法?
- *
- *   | 「文は効果がありません」の警告が出る?
- *   | どうも __attribute__((unused)) をつけた関数の呼び出しは意味のない文として扱われるようである。
- *   | →どうやら勘違いであった
- *
- * 3 結局ダミー変数の初期化に使う方法?
- *
- *   参考: http://stackoverflow.com/questions/11124895/suppress-compiler-warning-function-declared-never-referenced
- *
- *   #if defined(__GNUC__)&&!defined(__INTEL_COMPILER)
- *   # ifndef MWG_SUPPRESS_WUNUSED
- *   #  define MWG_SUPPRESS_WUNUSED(var) static MWG_ATTRIBUTE_UNUSED int _dummy_tmp_##var=((int)(var)&0)
- *   # endif
- *     MWG_SUPPRESS_WUNUSED(mwg_printd_);
- *     MWG_SUPPRESS_WUNUSED(print_fail);
- *     MWG_SUPPRESS_WUNUSED(throw_fail);
- *   #endif
- *
- *   → icc が警告を出す: 関数ポインタを int に変換する時に符号ビットが消える, 云々.
- *
- * 4 そもそも static ではなく inline で宣言しておけば問題ない?
- *
- *   ■これは後で考える。(そもそもなぜ static にしたのであったか??)
- */
-
 }
 }
+
 
 /* 実装メモ: mwg_assert の展開式をどの様にするか?
  * 1 (condition||print) にする理由
@@ -580,12 +570,12 @@ namespace except_detail {
 #ifdef MWG_STD_VA_ARGS
 # define mwg_printd(...)                    mwg::except_detail::mwg_printd_(mwg_assert_position, mwg_assert_funcname, "" __VA_ARGS__)
 # ifdef _MSC_VER
-#  define mwg_check_nothrow(condition, ...)   ((condition) || (mwg::except_detail::print_fail(#condition, mwg_assert_position, mwg_assert_funcname, "" __VA_ARGS__), false))
-#  define mwg_check(condition, ...)           ((condition) || (mwg::except_detail::throw_fail(#condition, mwg_assert_position, mwg_assert_funcname, "" __VA_ARGS__), false))
+#  define mwg_check_call(condition, onfail, ...) ((condition) || (onfail(#condition, mwg_assert_position, mwg_assert_funcname, "" __VA_ARGS__), false))
 # else
-#  define mwg_check_nothrow(condition, ...)   ((condition)? mwg::except_detail::nop_succuss(): mwg::except_detail::print_fail(#condition, mwg_assert_position, mwg_assert_funcname, "" __VA_ARGS__))
-#  define mwg_check(condition, ...)           ((condition)? mwg::except_detail::nop_succuss(): mwg::except_detail::throw_fail(#condition, mwg_assert_position, mwg_assert_funcname, "" __VA_ARGS__))
+#  define mwg_check_call(condition, onfail, ...) ((condition)? mwg::except_detail::nop_succuss(): onfail(#condition, mwg_assert_position, mwg_assert_funcname, "" __VA_ARGS__))
 # endif
+# define mwg_check_nothrow(condition, ...) mwg_check_call(condition, mwg::except_detail::print_onfail, __VA_ARGS__)
+# define mwg_check(condition, ...)         mwg_check_call(condition, mwg::except_detail::throw_onfail, __VA_ARGS__)
 #else
 // __VA_ARGS__ が使えない環境ではその場で関手を生成する。
 
@@ -619,9 +609,9 @@ namespace except_detail {
     bool operator()(bool condition) const {
       if (!condition) {
         if (Throw) {
-          throw_fail(expression, position, funcname, "");
+          throw_onfail(expression, position, funcname, "");
         } else {
-          print_fail(expression, position, funcname, "");
+          print_onfail(expression, position, funcname, "");
         }
       }
       return condition;
@@ -634,13 +624,13 @@ namespace except_detail {
           va_list arg2;
           va_start(arg1, fmt);
           va_start(arg2, fmt);
-          vthrow_fail(expression, position, funcname, fmt, arg1, arg2);
+          vthrow_onfail(expression, position, funcname, fmt, arg1, arg2);
           va_end(arg1);
           va_end(arg2);
         } else {
           va_list arg;
           va_start(arg, fmt);
-          vprint_fail(expression, position, funcname, fmt, arg);
+          vprint_onfail(expression, position, funcname, fmt, arg);
           va_end(arg);
         }
       }
