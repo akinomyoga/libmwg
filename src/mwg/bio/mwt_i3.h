@@ -27,23 +27,22 @@ namespace bio {
 namespace mwtfile_detail {
 
   typedef u4t bid_t;
-  static mwg_constexpr_const u4t block_size       = 1024;
-  static mwg_constexpr_const u4t nblock_in_plane  = 1024 / sizeof(bid_t);
-  static mwg_constexpr_const u4t nplane_max       = UINT32_MAX / nblock_in_plane;
-  static mwg_constexpr_const u4t nblock_max       = nplane_max * nblock_in_plane;
-  static mwg_constexpr_const u4t plane_size       = block_size * nblock_in_plane;
-  static mwg_constexpr_const u8t mwtfile_size_max = (u8t) block_size * (u8t) nblock_max;
-  static mwg_constexpr_const u4t mwtfile_magic    = 'M' | 'W' << 8 | 'T' << 16 | '3' << 24;
+  static mwg_constexpr_const u8t   block_size       = 1024;
+  static mwg_constexpr_const bid_t nblock_in_plane  = 1024 / sizeof(bid_t);
+  static mwg_constexpr_const bid_t nplane_max       = UINT32_MAX / nblock_in_plane;
+  static mwg_constexpr_const bid_t nblock_max       = nplane_max * nblock_in_plane;
+  static mwg_constexpr_const u8t   plane_size       = block_size * nblock_in_plane;
+  static mwg_constexpr_const u8t   mwtfile_size_max = block_size * nblock_max;
+  static mwg_constexpr_const u4t   mwtfile_magic    = 'M' | 'W' << 8 | 'T' << 16 | '3' << 24;
 
   static_assert(UINT32_MAX <= SIZE_MAX, "size_t too small");
 
-  enum bid_constants {
-    bid_unused = 0x0000,
-    bid_end    = 0x0100,
 
-    bid_master = 1,
-    offset_fat_master = bid_master * sizeof(bid_t),
-  };
+  static mwg_constexpr_const bid_t bid_unused = 0x0000;
+  static mwg_constexpr_const bid_t bid_end    = 0x0100;
+
+  static mwg_constexpr_const bid_t bid_master = 1;
+  static mwg_constexpr_const u8t   offset_fat_master = bid_master * sizeof(bid_t);
 
   struct mwtfile_block_chain {
     std::vector<bid_t> blocks;
@@ -56,18 +55,16 @@ namespace mwtfile_detail {
   };
   static_assert(sizeof(heap_entry) == 8, "struct heap_entry: unexpected size");
 
+  static mwg_constexpr_const int number_of_heap_levels = 7;
+  static mwg_constexpr_const u8t heap_cell_size_base   = 8;
+  static mwg_constexpr_const u8t offset_master_block   = block_size;
+  static mwg_constexpr_const u8t offset_master_hnodes = block_size + 512;
+  static mwg_constexpr_const hid_t number_of_hnodes_in_block = block_size / sizeof(heap_entry);
+  static mwg_constexpr_const hid_t hid_offset                = number_of_hnodes_in_block / 2;
+
   // struct master_block {
   //   bid_t heap_first[number_of_heap_levels]; // 8 16 32 64 128 256 512
   // };
-  enum master_block_constans {
-    number_of_heap_levels = 7,
-    heap_cell_size_base   = 8,
-    offset_master_block  = block_size,
-    offset_master_hnodes = block_size + 512,
-    number_of_hnodes_in_block        = block_size / sizeof(heap_entry),
-    number_of_hnodes_in_master_block = block_size / 2 / sizeof(heap_entry),
-    hid_offset = number_of_hnodes_in_block - number_of_hnodes_in_master_block,
-  };
 
   inline mwg_constexpr int get_heap_level(u4t size) {
     if (size <= sizeof(bid_t)) return -1;
@@ -92,7 +89,7 @@ namespace mwtfile_detail {
     static std::size_t mwg_constexpr_const bits_per_hbitmap_element = 64;
     mwtfile_block_chain heap_index;
     mwtfile_block_chain heap_buffers[7];
-    std::vector<u8t>    heap_bitmaps[7];
+    std::vector<bid_t>  heap_free_cells[7];
     std::vector<hid_t>  heap_free_nodes;
 
     int status;
@@ -104,21 +101,39 @@ namespace mwtfile_detail {
 
   private:
     bool seek_fill(u8t position) {
-      if (head.seek(position) == 0) return true;
+      if (position <= size)
+        return head.seek(position) == 0;
 
-      if (size <= position) return false;
+      if (!head.can_write()) return false;
+      head.seek(size);
+      size += head.memset(0, position - size);
+      return size == position;
+    }
 
-      if (head.can_write()) {
-        if (head.seek(0, SEEK_END) != 0) return false;
-        size = head.tell();
-        if (position <= size) return false;
-        std::size_t fill_count = position - size;
-        size += head.memset(0, position - size);
-        return size == position;
+  private:
+    bool report_error(const char* expr, const char* position, const char* funcname, const char* fmt, ...) {
+      mwg_unused(funcname);
+      status = 1;
+      if (fmt && *fmt) {
+        char message1[1024];
+        va_list arg;
+        va_start(arg, fmt);
+#ifdef MWGCONF_HAS_VSNPRINTF
+        ::vsnprintf(message1, sizeof message1, fmt, arg);
+#else
+        std::vsprintf(message1, fmt, arg);
+#endif
+        va_end(arg);
+        message += message1;
+        message += "\n";
+      } else {
+        message += "expr =";
+        message += " @ ";
+        message += position;
       }
-
       return false;
     }
+
   private:
     bool load_size() {
       mwg_check(head.seek(0, SEEK_END) == 0);
@@ -174,84 +189,79 @@ namespace mwtfile_detail {
           return false;
         }
       }
-      for (bid_t bid = fat.size(); bid--; )
+      for (bid_t bid = fat.size(); --bid > bid_master; )
         if (fat[bid] == bid_unused)
           free_blocks.push_back(bid);
       return true;
     }
-    bool scan_heap_index_block(
-      std::size_t iblock, bid_t const bid, int const ibeg, int const iend
-    ) {
-      hid_t const hid_base = iblock * number_of_hnodes_in_block;
-      if (head.seek(bid * (u8t) block_size + ibeg * sizeof(heap_entry)) != 0) {
-        u4t const iblock = hid_base / number_of_hnodes_in_block;
-        std::ostringstream sstr;
-        sstr << "failed to seek in bid:heap_index[" << iblock << "]\n";
-        message += sstr.str();
-        status = 1;
-        return false;
-      }
-
-      for (int j = ibeg; j < iend; j++) {
-        heap_entry entry;
-        if (head.read(entry) != 1) {
-          u4t const iblock = hid_base / number_of_hnodes_in_block;
-          std::ostringstream sstr;
-          sstr << "failed to read bid:heap_index[" << iblock << "]/heap_entry[" << j << "]\n";
-          message += sstr.str();
-          status = 1;
-          return false;
-        }
-
-        hid_t const hid = hid_base + j;
-        if (entry.size == 0) {
-          heap_free_nodes.push_back(hid);
-        } else {
-          int const level = get_heap_level(entry.size);
-          if (0 <= level && level < number_of_heap_levels) {
-            heap_bitmaps[level][entry.address / bits_per_hbitmap_element]
-              |= (u8t) 1 << entry.address % bits_per_hbitmap_element;
-          }
-        }
-      }
-
-      return true;
-    }
-    bool initialize_heap_bitmaps() {
-      heap_free_nodes.clear();
+    bool initialize_heap_free_cells() {
+      std::vector<bool> hbitmaps[7];
       for (int level = 0; level < number_of_heap_levels; level++) {
-        std::size_t const cell_size = heap_cell_size_base << level;
-        std::size_t const cell_count_per_block = block_size / cell_size;
-        std::size_t const cell_count = heap_buffers[level].blocks.size() * cell_count_per_block;
-        heap_bitmaps[level].clear();
-        heap_bitmaps[level].resize(cell_count / bits_per_hbitmap_element, 0);
+        u8t const cell_size = heap_cell_size_base << level;
+        u8t const cell_count_per_block = block_size / cell_size;
+        u8t const cell_count = heap_buffers[level].blocks.size() * cell_count_per_block;
+        hbitmaps[level].resize(cell_count, false);
       }
 
+      heap_free_nodes.clear();
       for (std::size_t i = 0, iN = heap_index.blocks.size(); i < iN; i++) {
         bid_t const bid = heap_index.blocks[i];
-        int const offset = i == 0? hid_offset: 0;
-        if (!scan_heap_index_block(i, bid, offset, number_of_hnodes_in_block)) return false;
+        hid_t const hid_base = i * number_of_hnodes_in_block;
+        int const jbeg = i == 0? hid_offset: 0;
+        if (!mwg_check_call(head.seek(bid * block_size + jbeg * sizeof(heap_entry)) == 0,
+            report_error, "failed to seek in bid:heap_index[%d] = %08x", (int) i, (int) bid))
+          return false;
+
+        for (int j = jbeg; j < number_of_hnodes_in_block; j++) {
+          hid_t const hid = hid_base + j;
+          heap_entry entry;
+          if (!mwg_check_call(head.read(entry) == 1,
+              report_error, "failed to read heap_entry[%d]", (int) hid))
+            return false;
+
+          if (entry.size != 0) {
+            int const level = get_heap_level(entry.size);
+            if (level < 0 || number_of_heap_levels <= level) continue;
+
+            if (!mwg_check_call(entry.address < hbitmaps[level].size(),
+                report_error, "hnode[%d].address out of range", (int) hid))
+              return false;
+            if (!mwg_check_call(hbitmaps[level][entry.address] == false,
+                report_error, "hcell%d[%d] doubly referenced", (int) level, (int) entry.address))
+              return false;
+            hbitmaps[level][entry.address] = true;
+          } else
+            heap_free_nodes.push_back(hid);
+        }
+      }
+      std::reverse(heap_free_nodes.begin(), heap_free_nodes.end());
+
+      for (int level = 0; level < number_of_heap_levels; level++) {
+        heap_free_cells[level].clear();
+        for (bid_t addr = hbitmaps[level].size(); addr--; ) {
+          if (!hbitmaps[level][addr])
+            heap_free_cells[level].push_back(addr);
+        }
       }
 
-      std::reverse(heap_free_nodes.begin(), heap_free_nodes.end());
       return true;
     }
     bool load_heap() {
       if (fat[bid_master] == bid_unused) {
         _bchain_initialize(heap_index, bid_unused);
-        for (int i = 0; i < number_of_heap_levels; i++)
-          _bchain_initialize(heap_buffers[i], bid_unused);
+        for (int level = 0; level < number_of_heap_levels; level++)
+          _bchain_initialize(heap_buffers[level], bid_unused);
       } else {
         mwg_check(head.seek(bid_master * (u8t) block_size) == 0);
         _bchain_initialize(heap_index, bid_master);
-        for (int i = 0; i < number_of_heap_levels; i++) {
+        for (int level = 0; level < number_of_heap_levels; level++) {
           bid_t bid = 0;
           mwg_check(head.read(bid) == 1);
-          _bchain_initialize(heap_buffers[i], bid);
+          _bchain_initialize(heap_buffers[level], bid);
         }
       }
 
-      return initialize_heap_bitmaps();
+      return initialize_heap_free_cells();
     }
   public:
     mwtfile(tape_cref tape): tape(tape), head(tape) {
@@ -264,7 +274,13 @@ namespace mwtfile_detail {
     void debug_print_fat() const {
       std::printf("---- FAT ----\n");
       for (std::size_t i = 0; i < fat.size(); i++) {
-        std::printf("%08x ", fat[i]);
+        if (fat[i] == bid_unused)
+          std::printf("-------- ");
+        else if (fat[i] == bid_end)
+          std::printf("[ end  ] ");
+        else
+          std::printf("%08x ", fat[i]);
+
         if (i % 16 == 15) std::putchar('\n');
       }
       std::printf("-------------\n");
@@ -283,9 +299,9 @@ namespace mwtfile_detail {
       std::printf("master.heap_index:");
       print_chain(stdout, heap_index);
       std::putchar('\n');
-      for (int i = 0; i < number_of_heap_levels; i++) {
-        std::printf("master.heap[%d]:", i);
-        print_chain(stdout, heap_buffers[i]);
+      for (int level = 0; level < number_of_heap_levels; level++) {
+        std::printf("master.heap[%d]:", level);
+        print_chain(stdout, heap_buffers[level]);
         std::putchar('\n');
       }
 
@@ -296,6 +312,24 @@ namespace mwtfile_detail {
       }
       if (heap_free_nodes.size() % 16 != 0)
         std::putchar('\n');
+      std::fflush(stdout);
+    }
+    void debug_print_heap() const {
+      for (std::size_t i = 0, iN = heap_index.blocks.size(); i < iN; i++) {
+        bid_t const bid = heap_index.blocks[i];
+        hid_t const offset = i == 0? hid_offset: 0;
+        mwg_check(head.seek(bid * (u8t) block_size + offset * sizeof(heap_entry)) == 0);
+        heap_entry entry;
+        for (int i = offset; i < number_of_hnodes_in_block; i++) {
+          mwg_check(head.read(entry) == 1);
+          if (entry.size == 0) continue;
+          int const level = get_heap_level(entry.size);
+          if (level < 0)
+            std::printf("heap_entry: size = %ld, value = %08ld\n", (long) entry.size, (long) entry.address);
+          else
+            std::printf("heap_entry: size = %ld, addr = %ld\n", (long) entry.size, (long) entry.address);
+        }
+      }
       std::fflush(stdout);
     }
 
@@ -321,10 +355,8 @@ namespace mwtfile_detail {
       bid_t const ret = free_blocks.back();
       free_blocks.pop_back();
       fat[ret] = bid_end;
-      if (size < ret * (u8t) block_size) {
-        size = ret * (u8t) block_size;
-        seek_fill(size);
-      }
+      if (size < (ret + 1) * block_size)
+        seek_fill((ret + 1) * block_size);
       return ret;
     }
     void free_block(u4t const bid) {
@@ -376,7 +408,8 @@ namespace mwtfile_detail {
     }
 
     void write_master_block() {
-      mwg_check(size <= offset_master_block);
+      mwg_check(head.can_write());
+      mwg_check(size <= offset_master_block, "size = %lld, offset_master_block = %d", (long long) size, (int) offset_master_block);
       seek_fill(offset_master_block);
       head.memset(0, block_size);
       head.seek(offset_master_block);
@@ -427,19 +460,24 @@ namespace mwtfile_detail {
       heap_free_nodes.push_back(hid);
     }
 
-    bid_t _hbitmap_allocate(int level) {
-      std::vector<u8t>& hbitmap = heap_bitmaps[level];
-      for (std::size_t i = 0, iN = hbitmap.size(); i < iN; i++) {
-        if (hbitmap[i] == UINT64_MAX) continue;
-        for (int j = 0; j < bits_per_hbitmap_element; j++) {
-          if (hbitmap[i] & 1 << j == 0) {
-            hbitmap[i] |= 1 << j;
-            return i * bits_per_hbitmap_element + j;
-          }
+    bid_t _hcell_allocate(int level) {
+      std::vector<bid_t>& hcells = heap_free_cells[level];
+      if (hcells.empty()) {
+        bid_t const bid = _bchain_add_block(heap_buffers[level]);
+        bid_t const iblock = heap_buffers[level].blocks.size() - 1;
+        if (iblock == 0) {
+          head.seek(offset_master_block + level * sizeof(bid_t));
+          head.write(bid);
         }
+        int const ncell_per_block = block_size / (heap_cell_size_base << level);
+        bid_t const addr_base = iblock * ncell_per_block;
+        for (int i = ncell_per_block; i--; )
+          hcells.push_back(addr_base + i);
       }
-      // ToDo
-      return 0;
+
+      bid_t const ret = hcells.back();
+      hcells.pop_back();
+      return ret;
     }
   public:
     hid_t allocate(std::size_t sz) {
@@ -450,7 +488,7 @@ namespace mwtfile_detail {
       if (level < 0) {
         entry.address = 0;
       } else if (level < number_of_heap_levels) {
-        entry.address = _hbitmap_allocate(level);
+        entry.address = _hcell_allocate(level);
       } else {
         // allocate on write
         entry.address = 0;
@@ -475,8 +513,11 @@ void test() {
 
   mwt.debug_print_fat();
   mwt.debug_print_master();
-  Mwt::hid_t const hid = mwt.allocate(4);
-  std::printf("hid = %d\n", (int) hid);
+  mwt.debug_print_heap();
+  Mwt::hid_t const hid1 = mwt.allocate(4);
+  Mwt::hid_t const hid2 = mwt.allocate(8);
+  std::printf("hid1 = %d\n", (int) hid1);
+  std::printf("hid2 = %d\n", (int) hid2);
 }
 #pragma%x end_test
 
