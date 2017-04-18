@@ -212,7 +212,7 @@ public:
   // head.read<type, flags>(beg, end);
   template<typename T, int I, typename OutputIterator>
   typename rwflags_detail::rwflags_impl<T, I>::rtype
-  read(OutputIterator begin, OutputIterator end) {
+  read(OutputIterator begin, OutputIterator const end) {
     int count = 0;
     T element;
     while (begin != end) {
