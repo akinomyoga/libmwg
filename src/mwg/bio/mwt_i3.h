@@ -829,6 +829,126 @@ namespace mwtfile_detail {
     }
   };
 
+  template<typename Tape>
+  class mwheap_tape {
+    mwheap<Tape>* file;
+    bool flag_write;
+    bool flag_resize;
+
+    hid_t hid;
+    mutable u4t m_pos;
+    mutable u4t m_size;
+    mutable heap_entry entry;
+    mutable std::vector<byte> wbuff;
+
+  public:
+    mwg_constexpr mwheap_tape(mwheap<Tape>& file, hid_t hid):
+      file(&file),
+      flag_write(file.head().can_write()),
+      flag_resize(flag_write),
+      hid(hid),
+      m_pos(0), m_size(0)
+    {
+      file._hnode_load(hid, entry);
+      wbuff.reserve(4 * 1024);
+      m_size = entry.size;
+    }
+    ~mwheap_tape() {flush();}
+
+  public:
+    mwg_constexpr bool can_read() const {return true;}
+    mwg_constexpr bool can_write() const {return flag_write;}
+    mwg_constexpr bool can_seek() const {return true;}
+    mwg_constexpr bool can_trunc() const {return flag_resize;}
+
+    int read(void* data, int unit, int n = 1) const {
+      u4t const capacity = (m_size - m_pos) / unit;
+      if (capacity < n) n = capacity;
+      file->heap_read(hid, entry, data, n * unit);
+      m_pos += n * unit;
+      return n;
+    }
+    int write(const void* _data, int unit, int n = 1) const {
+      mwg_check(can_write() && unit > 0);
+      byte const* data = reinterpret_cast<byte const*>(_data);
+
+      u4t const capacity = ((flag_resize? UINT32_MAX : m_size) - m_pos) / unit;
+      if (capacity < n) n = capacity;
+
+      u4t const wsize   = n * unit;
+      u4t const newpos  = m_pos + wsize;
+      u4t const newsize = newpos > m_size? newpos: m_size;
+      if (wbuff.size() + wsize < wbuff.capacity()) {
+        wbuff.insert(wbuff.end(), data, data + wsize);
+      } else if (wbuff.empty()) {
+        if (entry.size < newsize)
+          file->reallocate(hid, newsize, entry);
+        file->heap_write(hid, entry, m_pos, data, wsize);
+      } else if (wbuff.size() + wsize < 2 * wbuff.capacity()) {
+        std::size_t const rest = wbuff.capacity() - wbuff.size();
+        wbuff.insert(wbuff.end(), data, data + rest);
+        flush();
+        wbuff.insert(wbuff.end(), data + rest, data + wsize);
+      } else {
+        if (entry.size < newsize)
+          file->reallocate(hid, newsize, entry);
+        file->heap_write(hid, entry, m_pos - wbuff.size(), &wbuff[0], wbuff.size());
+        file->heap_write(hid, entry, m_pos, data, wsize);
+        wbuff.clear();
+      }
+
+      m_pos = newpos;
+      m_size = newsize;
+      return n;
+    }
+    int seek(i8t offset, int whence = SEEK_SET) const {
+      i8t newpos = m_pos;
+      switch (whence) {
+      case SEEK_SET:
+        newpos = offset;
+        break;
+      case SEEK_CUR:
+        newpos = m_pos + offset;
+        break;
+      case SEEK_END:
+        newpos = m_size + offset;
+        break;
+      default:
+        mwg_check(false, "invalid argument whence");
+        break;
+      }
+
+      if (newpos == m_pos) return 0;
+      if (newpos < 0) return -1; // out of range
+
+      if (newpos > m_size) {
+        if (!flag_resize) return -1;
+        file->reallocate(hid, newpos, entry);
+        m_size = newpos;
+      }
+      this->flush();
+      m_pos = newpos;
+      return 0;
+    }
+    mwg_constexpr i8t tell() const {return m_pos;}
+    mwg_constexpr u8t size() const {return m_size;}
+    int trunc(u8t newsize) const {
+      mwg_check(can_trunc());
+      this->flush();
+      file->reallocate(hid, newsize, entry);
+    }
+    int flush() const {
+      if (wbuff.empty()) return 0;
+      if (entry.size < m_size)
+        file->reallocate(hid, m_size, entry);
+      bool const result = file->heap_write(hid, entry, m_pos - wbuff.size(), &wbuff[0], wbuff.size());
+      wbuff.clear();
+      return result? 0: -1;
+    }
+
+    mwg_constexpr bool is_alive() const {return (bool) *file;}
+    mwg_constexpr operator bool() const {return this->is_alive();}
+  };
 
 #pragma%x begin_test
 typedef mwg::bio::mwtfile_detail::mwheap<mwg::bio::ftape const&> mwheap_t;
@@ -897,6 +1017,16 @@ void test() {
   test_heap_read_and_write(mwt, 0x42, 512);
   test_heap_read_and_write(mwt, 0x43, 1000);
   test_heap_read_and_write(mwt, 0x44, 2000);
+  {
+    Mwt::hid_t hid_stream = 0x45;
+    mwg_check(mwt.reallocate(hid_stream, 1));
+    Mwt::mwheap_tape<mwg::bio::ftape const&> tape1(mwt, hid_stream);
+
+    typedef Mwt::mwheap_tape<mwg::bio::ftape const&> tape1_t;
+    mwg::bio::tape_head<tape1_t> head1(tape1);
+    head1.write<mwg::u4t>(2134);
+    head1.write<mwg::u4t>(1234);
+  }
 
   // mwt.debug_print_fat();
   // mwt.debug_print_master();
