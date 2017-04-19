@@ -6,6 +6,7 @@
 #include <string>
 #include <sstream>
 #include <algorithm>
+#include <limits>
 #include <mwg/std/type_traits>
 #include <mwg/std/memory>
 #include <mwg/std/utility>
@@ -27,6 +28,11 @@ namespace mwg {
 namespace bio {
 namespace mwtfile_detail {
 
+  template<typename Unsigned>
+  inline bool check_overflow_add(Unsigned a, Unsigned b) {
+    return b <= std::numeric_limits<Unsigned>::max() - a;
+  }
+
   inline mwg_constexpr u4t fourcc(char a, char b, char c, char d) {
     return a | b << 8 | c << 16 | d << 24;
   }
@@ -38,7 +44,7 @@ namespace mwtfile_detail {
   static mwg_constexpr_const bid_t nblock_max       = nplane_max * nblock_in_plane;
   static mwg_constexpr_const u8t   plane_size       = block_size * nblock_in_plane;
   static mwg_constexpr_const u8t   mwtfile_size_max = block_size * nblock_max;
-  static mwg_constexpr_const u4t   mwtfile_magic    = fourcc('m', 'w', 'g', '1');
+  static mwg_constexpr_const u4t   mwtfile_magic    = fourcc('m', 'w', 'h', '1');
   static mwg_constexpr_const u4t   mwtype_heap      = fourcc('h', 'e', 'a', 'p');
   static mwg_constexpr_const u4t   mwtype_tree      = fourcc('t', 'r', 'e', 'e'); // not yet used
 
@@ -80,14 +86,14 @@ namespace mwtfile_detail {
     return number_of_heap_levels;
   }
 
-  template<typename ITape>
-  class mwtfile {
-    typedef ITape tape_storage_t;
-    typedef typename stdx::add_const_reference<ITape>::type tape_cref;
-    typedef typename stdx::remove_reference<ITape>::type tape_type;
+  template<typename Tape>
+  class mwheap {
+    typedef Tape tape_storage_t;
+    typedef typename stdx::add_const_reference<Tape>::type tape_cref;
+    typedef typename stdx::remove_reference<Tape>::type tape_type;
 
     tape_storage_t tape;
-    tape_head<tape_type, little_endian_flag> head;
+    tape_head<tape_type, little_endian_flag> m_head;
 
     i8t size;
     std::vector<bid_t> fat;
@@ -105,15 +111,16 @@ namespace mwtfile_detail {
 
   public:
     operator bool() const {return status == 0;}
+    tape_head<tape_type, little_endian_flag> const& head() const {return m_head;}
 
   private:
     bool seek_fill(u8t position) {
       if (position <= size)
-        return head.seek(position) == 0;
+        return m_head.seek(position) == 0;
 
-      if (!head.can_write()) return false;
-      head.seek(size);
-      size += head.fill_n((byte) 0, position - size);
+      if (!m_head.can_write()) return false;
+      m_head.seek(size);
+      size += m_head.fill_n((byte) 0, position - size);
       return size == position;
     }
 
@@ -143,9 +150,9 @@ namespace mwtfile_detail {
 
   private:
     bool load_size() {
-      mwg_check(head.seek(0, SEEK_END) == 0);
-      size = head.tell();
-      if (size == 0 && head.can_write()) {
+      mwg_check(m_head.seek(0, SEEK_END) == 0);
+      size = m_head.tell();
+      if (size == 0 && m_head.can_write()) {
         // will be initialized in load_fat.
         return true;
       } else if (size < 4 || mwtfile_size_max < (u8t) size) {
@@ -154,9 +161,9 @@ namespace mwtfile_detail {
         return false;
       }
       if (size % block_size != 0) {
-        if (head.can_write()) {
-          head.align_fill(block_size);
-          size = head.tell();
+        if (m_head.can_write()) {
+          m_head.align_fill(block_size);
+          size = m_head.tell();
         } else {
           message += "invalid size of mwt structure!\n";
           status = 1;
@@ -168,7 +175,7 @@ namespace mwtfile_detail {
     bool load_fat() {
       fat.clear();
       free_blocks.clear();
-      if (size == 0 && head.can_write()) {
+      if (size == 0 && m_head.can_write()) {
         allocate_plane();
         return true;
       }
@@ -177,8 +184,8 @@ namespace mwtfile_detail {
       fat.resize(nplane * nblock_in_plane);
       for (u4t iplane = 0; iplane < nplane; iplane++) {
         bid_t* const pfat1 = &fat[iplane * nblock_in_plane];
-        mwg_check(head.seek(iplane * (u8t) plane_size) == 0);
-        int const count = head.read(pfat1, pfat1 + nblock_in_plane);
+        mwg_check(m_head.seek(iplane * (u8t) plane_size) == 0);
+        int const count = m_head.read(pfat1, pfat1 + nblock_in_plane);
         if (count == 0) {
           std::ostringstream ostr;
           ostr << "failed to read FATBlock[" << iplane << "] !\n";
@@ -197,7 +204,7 @@ namespace mwtfile_detail {
         }
       }
       for (bid_t bid = fat.size(); --bid > bid_master; )
-        if (fat[bid] == bid_unused)
+        if (fat[bid] == bid_unused && fat[bid] != bid_master)
           free_blocks.push_back(bid);
       return true;
     }
@@ -215,14 +222,14 @@ namespace mwtfile_detail {
         bid_t const bid = heap_index.blocks[i];
         hid_t const hid_base = i * number_of_hnodes_in_block;
         int const jbeg = i == 0? hid_offset: 0;
-        if (!mwg_check_call(head.seek(bid * block_size + jbeg * sizeof(heap_entry)) == 0,
+        if (!mwg_check_call(m_head.seek(bid * block_size + jbeg * sizeof(heap_entry)) == 0,
             report_error, "failed to seek in bid:heap_index[%zd] = %08" PRIx32, i, bid))
           return false;
 
         for (int j = jbeg; j < number_of_hnodes_in_block; j++) {
           hid_t const hid = hid_base + j;
           heap_entry entry;
-          if (!mwg_check_call(head.read(entry) == 1,
+          if (!mwg_check_call(m_head.read(entry) == 1,
               report_error, "failed to read heap_entry[%" PRId32 "]", hid))
             return false;
 
@@ -231,10 +238,11 @@ namespace mwtfile_detail {
             if (level < 0 || number_of_heap_levels <= level) continue;
 
             if (!mwg_check_call(entry.address < hbitmaps[level].size(),
-                report_error, "hnode[%" PRId32 "].address out of range", hid))
+                report_error, "hnode[%" PRIx32 "].address (= %" PRId32 ") is out of range [0, %zd)",
+                hid, entry.address, hbitmaps[level].size()))
               return false;
             if (!mwg_check_call(hbitmaps[level][entry.address] == false,
-                report_error, "hcell%d[%" PRId32 "] doubly referenced", level, entry.address))
+                report_error, "hcell%d[%" PRIx32 "] doubly referenced", level, entry.address))
               return false;
             hbitmaps[level][entry.address] = true;
           } else
@@ -260,10 +268,10 @@ namespace mwtfile_detail {
           _bchain_initialize(heap_buffers[level], bid_unused);
       } else {
         _bchain_initialize(heap_index, bid_master);
-        mwg_check(head.seek(master_offset_of_heap_root) == 0);
+        mwg_check(m_head.seek(master_offset_of_heap_root) == 0);
         for (int level = 0; level < number_of_heap_levels; level++) {
           bid_t bid = 0;
-          mwg_check(head.read(bid) == 1);
+          mwg_check(m_head.read(bid) == 1);
           _bchain_initialize(heap_buffers[level], bid);
         }
       }
@@ -271,13 +279,14 @@ namespace mwtfile_detail {
       return initialize_heap_free_cells();
     }
   public:
-    mwtfile(tape_cref tape): tape(tape), head(tape) {
+    mwheap(tape_cref tape): tape(tape), m_head(tape) {
       status = 0;
       if (!this->load_size()) return;
       if (!this->load_fat()) return;
       if (!this->load_heap()) return;
     }
 
+  public:
     void debug_print_fat() const {
       std::printf("---- FAT ----\n");
       for (std::size_t i = 0; i < fat.size(); i++) {
@@ -318,10 +327,10 @@ namespace mwtfile_detail {
       for (std::size_t i = 0, iN = heap_index.blocks.size(); i < iN; i++) {
         bid_t const bid = heap_index.blocks[i];
         hid_t const offset = i == 0? hid_offset: 0;
-        mwg_check(head.seek(bid * (u8t) block_size + offset * sizeof(heap_entry)) == 0);
+        mwg_check(m_head.seek(bid * (u8t) block_size + offset * sizeof(heap_entry)) == 0);
         heap_entry entry;
         for (int j = offset; j < number_of_hnodes_in_block; j++) {
-          mwg_check(head.read(entry) == 1);
+          mwg_check(m_head.read(entry) == 1);
           if (entry.size == 0) continue;
           int const level = get_heap_level(entry.size);
           std::printf("heap_entry[%" PRIx32 "]: ", i * number_of_hnodes_in_block + j);
@@ -344,8 +353,32 @@ namespace mwtfile_detail {
     }
 
   private:
+    void fat_write(bid_t bid, bid_t next) {
+      mwg_check(status == 0 && m_head.can_write());
+      u4t const iplane = bid / nblock_in_plane;
+      u4t const column = bid % nblock_in_plane;
+      u8t const offset = iplane * (u8t) plane_size + column * sizeof(u4t);
+      mwg_check(m_head.seek(offset) == 0 && m_head.write(next) == 1);
+      m_head.flush();
+      fat[bid] = next;
+    }
+
+    void write_master_block() {
+      mwg_check(m_head.can_write());
+      mwg_check(size <= master_offset, "size = %lld, master_offset = %d", (long long) size, (int) master_offset);
+      seek_fill(master_offset);
+      m_head.fill_n((byte) 0, block_size);
+      m_head.seek(master_offset);
+      m_head.write((u4t) mwtype_heap);
+      m_head.write((u4t) 0);
+      m_head.fill_n((bid_t) 0, number_of_heap_levels);
+      fat_write(bid_master, bid_end);
+      size = (u8t) master_offset + block_size;
+    }
+
+  private:
     void allocate_plane() {
-      mwg_check(status == 0 && head.can_write());
+      mwg_check(status == 0 && m_head.can_write());
 
       bid_t const bid0 = (bid_t) fat.size();
       bid_t const bidN = bid0 + nblock_in_plane;
@@ -353,14 +386,15 @@ namespace mwtfile_detail {
 
       fat.resize(bidN, bid_unused);
       fat[bid0] = mwtfile_magic;
-      mwg_check(head.seek(block_size * (u8t) bid0) == 0);
-      head.write_data(&fat[bid0], sizeof(u4t), nblock_in_plane);
-      for (bid_t bid = bid0 + 1; bid < bidN; bid++)
-        free_blocks.push_back(bid);
+      mwg_check(m_head.seek(block_size * (u8t) bid0) == 0);
+      m_head.write_data(&fat[bid0], sizeof(u4t), nblock_in_plane);
+      for (bid_t bid = bidN, bid1 = bid0 + 1; bid-- > bid1; )
+        if (bid != bid_master)
+          free_blocks.push_back(bid);
       size = (bid0 + 1) * block_size;
     }
     bid_t _block_allocate() {
-      mwg_check(status == 0 && head.can_write());
+      mwg_check(status == 0 && m_head.can_write());
       if (!free_blocks.size()) allocate_plane();
       bid_t const ret = free_blocks.back();
       free_blocks.pop_back();
@@ -407,6 +441,22 @@ namespace mwtfile_detail {
       chain.blocks.push_back(newBlock);
       return newBlock;
     }
+    bid_t _bchain_add_block(mwtfile_block_chain& chain, u4t count) {
+      if (count == 0) return bid_unused;
+
+      std::size_t const old_nblock = chain.blocks.size();
+      chain.blocks.reserve(chain.blocks.size() + count);
+      for (u4t i = 0; i < count; i++)
+        chain.blocks.push_back(_block_allocate());
+
+      u4t iblock = chain.blocks.size() - 1;
+      fat_write(chain.blocks[iblock], bid_end);
+      for (; iblock > old_nblock; iblock--)
+        fat_write(chain.blocks[iblock - 1], chain.blocks[iblock]);
+      if (old_nblock != 0)
+        fat_write(chain.blocks[old_nblock - 1], chain.blocks[old_nblock]);
+      return chain.blocks.back();
+    }
 
     bool _bchain_seek(mwtfile_block_chain const& chain, u8t offset) const {
       u8t const bindex = offset / block_size;
@@ -415,46 +465,77 @@ namespace mwtfile_detail {
       bid_t const bid = chain.blocks[bindex];
       u8t const toffset = bid * (u8t) block_size + boffset;
       mwg_check(toffset < size, "toffset = %" PRId64 ", size = %" PRId64, toffset, size);
-      return head.seek(toffset) == 0;
+      return m_head.seek(toffset) == 0;
     }
     template<typename T>
-    bool _bchain_read(mwtfile_block_chain const& chain, u8t offset, T& value) const {
-      mwg_check(offset % block_size + sizeof(value) <= block_size);
+    bool _bchain_aligned_read(mwtfile_block_chain const& chain, u8t offset, T& value) const {
+      mwg_assert(offset % block_size + sizeof(value) <= block_size);
       _bchain_seek(chain, offset);
-      return head.template read<T>(value) == 1;
+      return m_head.template read<T>(value) == 1;
     }
     template<typename T>
-    bool _bchain_write(mwtfile_block_chain const& chain, u8t offset, T const& value) const {
-      mwg_check(offset % block_size + sizeof(value) <= block_size);
+    bool _bchain_aligned_write(mwtfile_block_chain const& chain, u8t offset, T const& value) const {
+      mwg_assert(offset % block_size + sizeof(value) <= block_size);
       _bchain_seek(chain, offset);
-      return head.template write<T>(value) == 1;
+      return m_head.template write<T>(value) == 1;
+    }
+    void _bchain_generic_read(mwtfile_block_chain const& chain, u4t offset, void* _data, u4t sz) {
+      byte* data = reinterpret_cast<byte*>(_data);
+      u4t beg = offset;
+      u4t const end = offset + sz;
+
+      u4t iblock = beg / (u4t) block_size;
+      u4t offset_in_block = beg % block_size;
+      while (beg < end) {
+        if (iblock >= chain.blocks.size()) {
+          std::fill(data, data + (end - beg), 0);
+          return;
+        }
+
+        m_head.seek(chain.blocks[iblock] * block_size + offset_in_block);
+        u4t const boundary = (iblock + 1) * (u4t) block_size;
+        if (end <= boundary) {
+          m_head.read_data(data, 1, end - beg);
+          return;
+        }
+
+        m_head.read_data(data, 1, boundary - beg);
+        data += boundary - beg;
+        beg = boundary;
+        iblock++;
+        offset_in_block = 0;
+      }
+    }
+    void _bchain_generic_write(mwtfile_block_chain& chain, u4t offset, void const* _data, u4t sz) {
+      byte const* data = reinterpret_cast<byte const*>(_data);
+      u4t beg = offset;
+      u4t const end = offset + sz;
+
+      u4t const nblock = (end + (block_size - 1)) / block_size;
+      if (nblock > chain.blocks.size())
+        _bchain_add_block(chain, nblock - chain.blocks.size());
+
+      u4t iblock = beg / (u4t) block_size;
+      u4t offset_in_block = beg % block_size;
+      while (beg < end) {
+        m_head.seek(chain.blocks[iblock] * block_size + offset_in_block);
+        u4t const boundary = (iblock + 1) * (u4t) block_size;
+        if (end <= boundary) {
+          m_head.write_data(data, 1, end - beg);
+          return;
+        }
+
+        m_head.write_data(data, 1, boundary - beg);
+        data += boundary - beg;
+        beg = boundary;
+        iblock++;
+        offset_in_block = 0;
+      }
     }
 
   private:
-    void fat_write(bid_t bid, bid_t next) {
-      mwg_check(status == 0 && head.can_write());
-      u4t const iplane = bid / nblock_in_plane;
-      u4t const column = bid % nblock_in_plane;
-      u8t const offset = iplane * (u8t) plane_size + column * sizeof(u4t);
-      mwg_check(head.seek(offset) == 0 && head.write(next) == 1);
-      fat[bid] = next;
-    }
-
-    void write_master_block() {
-      mwg_check(head.can_write());
-      mwg_check(size <= master_offset, "size = %lld, master_offset = %d", (long long) size, (int) master_offset);
-      seek_fill(master_offset);
-      head.fill_n((byte) 0, block_size);
-      head.seek(master_offset);
-      head.write((u4t) mwtype_heap);
-      head.write((u4t) 0);
-      head.fill_n((bid_t) 0, number_of_heap_levels);
-      fat_write(bid_master, bid_end);
-      size = (u8t) master_offset + block_size;
-    }
-
     hid_t _hnode_allocate() {
-      mwg_check(status == 0 && head.can_write());
+      mwg_check(status == 0 && m_head.can_write());
 
       if (heap_free_nodes.empty()) {
         if (heap_index.blocks.empty()) {
@@ -463,8 +544,8 @@ namespace mwtfile_detail {
         } else {
           bid_t const bid = _bchain_add_block(heap_index);
           heap_entry const empty = {};
-          head.seek(bid * (u8t) block_size);
-          head.fill_n(empty, number_of_hnodes_in_block);
+          m_head.seek(bid * (u8t) block_size);
+          m_head.fill_n(empty, number_of_hnodes_in_block);
         }
 
         std::size_t ilast = heap_index.blocks.size() - 1;
@@ -487,20 +568,33 @@ namespace mwtfile_detail {
         bid = heap_index.blocks[hid / number_of_hnodes_in_block - 1];
 
       heap_entry const empty = {};
-      mwg_check(head.seek(bid * (u8t) block_size + hid * (u8t) sizeof(heap_entry)) == 0);
-      head.write(empty);
+      mwg_check(m_head.seek(bid * (u8t) block_size + hid * (u8t) sizeof(heap_entry)) == 0);
+      m_head.write(empty);
+      m_head.flush();
 
       heap_free_nodes.push_back(hid);
     }
+  public:
+    bool _hnode_load(hid_t hid, heap_entry& entry) {
+      return _bchain_aligned_read(heap_index, hid * sizeof(heap_entry), entry);
+    }
+  private:
+    bool _hnode_write(hid_t hid, heap_entry const& entry) {
+      bool const ret = _bchain_aligned_write(heap_index, hid * sizeof(heap_entry), entry);
+      m_head.flush();
+      return ret;
+    }
 
+  private:
     bid_t _hcell_allocate(int level) {
       std::vector<bid_t>& hcells = heap_free_cells[level];
       if (hcells.empty()) {
         bid_t const bid = _bchain_add_block(heap_buffers[level]);
         bid_t const iblock = heap_buffers[level].blocks.size() - 1;
         if (iblock == 0) {
-          head.seek(master_offset_of_heap_root + level * sizeof(bid_t));
-          head.write(bid);
+          m_head.seek(master_offset_of_heap_root + level * sizeof(bid_t));
+          m_head.write(bid);
+          m_head.flush();
         }
         int const ncell_per_block = block_size / (hcell_min_size << level);
         bid_t const addr_base = iblock * ncell_per_block;
@@ -517,8 +611,20 @@ namespace mwtfile_detail {
       hcells.push_back(addr);
     }
 
+  private:
+    static void _hentry_to_array(heap_entry const& entry, byte* data) {
+      for (u4t i = 0; i < entry.size; i++)
+        data[i] = (byte) (entry.address >> i * 8);
+    }
+    static void _hentry_from_array(heap_entry& entry, byte* data) {
+      u4t address = 0;
+      for (u4t i = 0; i < entry.size; i++)
+        address |= (u4t) data[i] << i * 8;
+      entry.address = address;
+    }
+
   public:
-    hid_t allocate(std::size_t sz) {
+    hid_t allocate(u4t sz) {
       if (sz == 0) sz = 1;
       hid_t const ret = _hnode_allocate();
       heap_entry entry;
@@ -532,12 +638,12 @@ namespace mwtfile_detail {
         // allocate on write
         entry.address = 0;
       }
-      _bchain_write(heap_index, ret * sizeof(heap_entry), entry);
+      _hnode_write(ret, entry);
       return ret;
     }
     void deallocate(hid_t hid) {
       heap_entry entry;
-      _bchain_read(heap_index, hid * sizeof(heap_entry), entry);
+      _hnode_load(hid, entry);
       if (entry.size == 0) return;
 
       int const level = get_heap_level(entry.size);
@@ -551,7 +657,10 @@ namespace mwtfile_detail {
     }
     void reallocate(hid_t const hid, u4t const new_size) {
       heap_entry entry;
-      _bchain_read(heap_index, hid * sizeof(heap_entry), entry);
+      _hnode_load(hid, entry);
+      return reallocate(hid, new_size, entry);
+    }
+    void reallocate(hid_t const hid, u4t const new_size, heap_entry& entry) {
       if (entry.size == 0) return;
       u4t const old_size = entry.size;
 
@@ -559,24 +668,26 @@ namespace mwtfile_detail {
       int const level2 = get_heap_level(new_size);
       if (level1 == level2) {
         entry.size = new_size;
-        _bchain_write(heap_index, hid * sizeof(heap_entry), entry);
+        _hnode_write(hid, entry);
         return;
       }
 
+      // ToDo: 先に元データ領域を解放してしまうと
+      // 突然プログラムが停止した時にデータが消えてしまうのでは?
+
       byte data[hcell_max_size];
       if (level1 < 0) {
-        for (int i = 0; i < old_size; i++)
-          data[i] = (byte) (entry.address >> i * 8);
+        _hentry_to_array(entry, data);
       } else if (level1 < number_of_heap_levels) {
         _bchain_seek(heap_buffers[level1], entry.address * (hcell_min_size << level1));
-        head.read_data(data, 1, std::min(new_size, old_size));
+        m_head.read_data(data, 1, std::min(new_size, old_size));
         _hcell_deallocate(level1, entry.address);
       } else if (level1 == number_of_heap_levels) {
         mwg_assert(new_size < old_size);
         bid_t const bid = entry.address;
         if (bid != bid_unused) {
-          head.seek(bid * block_size);
-          head.read_data(data, 1, new_size);
+          m_head.seek(bid * block_size);
+          m_head.read_data(data, 1, new_size);
           _bchain_free(bid);
         } else
           std::fill(data, data + new_size, 0);
@@ -585,73 +696,148 @@ namespace mwtfile_detail {
 
       entry.size = new_size;
       if (level2 < 0) {
-        entry.address = 0;
-        for (int i = 0; i < new_size; i++)
-          entry.address |= data[i] << i * 8;
+        _hentry_from_array(entry, data);
       } else if (level2 < number_of_heap_levels) {
         entry.address = _hcell_allocate(level2);
         _bchain_seek(heap_buffers[level2], entry.address * (hcell_min_size << level2));
         if (new_size <= old_size) {
-          head.write_data(data, 1, new_size);
+          m_head.write_data(data, 1, new_size);
         } else {
-          head.write_data(data, 1, old_size);
-          head.fill_n((byte) 0, new_size - old_size);
+          m_head.write_data(data, 1, old_size);
+          m_head.fill_n((byte) 0, new_size - old_size);
         }
       } else if (level2 == number_of_heap_levels) {
         mwg_assert(new_size > old_size);
         bid_t const bid = _block_allocate();
         fat_write(bid, bid_end);
-        head.seek(bid * block_size);
-        head.write_data(data, 1, old_size);
-        head.fill_n((byte) 0, std::min(new_size, block_size) - old_size);
+        m_head.seek(bid * block_size);
+        m_head.write_data(data, 1, old_size);
+        m_head.fill_n((byte) 0, (u4t) std::min<u8t>(new_size, block_size) - old_size);
         entry.address = bid;
+        // ToDo: データの短縮に対応する。bchain を開放する。
       } else
         mwg_assert(0);
-      _bchain_write(heap_index, hid * sizeof(heap_entry), entry);
+      _hnode_write(hid, entry);
     }
 
+  public:
+    void heap_read(hid_t hid, heap_entry const& entry, u4t offset, void* data, u4t sz) {
+      mwg_check(check_overflow_add<u4t>(offset, sz), "overflow");
+      mwg_check(offset + sz <= entry.size, "out of range");
+      int const level = get_heap_level(entry.size);
+      if (level < 0) {
+        byte content[4];
+        _hentry_to_array(entry, content);
+        std::copy(content + offset, content + offset + sz, reinterpret_cast<byte*>(data));
+      } else if(level < number_of_heap_levels) {
+        _bchain_seek(heap_buffers[level], entry.address * (hcell_min_size << level) + offset);
+        m_head.read_data(data, 1, sz);
+      } else {
+        mwg_assert(level == number_of_heap_levels);
+        mwtfile_block_chain chain;
+        _bchain_initialize(chain, entry.address);
+        _bchain_generic_read(chain, offset, data, sz);
+      }
+    }
+    void heap_write(hid_t hid, heap_entry& entry, u4t offset, void const* data, u4t sz) {
+      mwg_check(check_overflow_add<u4t>(offset, sz), "overflow");
+      mwg_check(offset + sz <= entry.size, "out of range. stream size is not automatically extended");
+      int const level = get_heap_level(entry.size);
+      if (level < 0) {
+        byte content[4];
+        _hentry_to_array(entry, content);
+        byte const* const bdata = reinterpret_cast<byte const*>(data);
+        std::copy(bdata, bdata + sz, content + offset);
+        _hentry_from_array(entry, content);
+        _hnode_write(hid, entry);
+      } else if(level < number_of_heap_levels) {
+        _bchain_seek(heap_buffers[level], entry.address * (hcell_min_size << level) + offset);
+        m_head.write_data(data, 1, sz);
+      } else {
+        mwg_assert(level == number_of_heap_levels);
+        mwtfile_block_chain chain;
+        _bchain_initialize(chain, entry.address);
+        bool const is_empty = chain.blocks.empty();
+        _bchain_generic_write(chain, offset, data, sz);
+        if (is_empty && !chain.blocks.empty()) {
+          entry.address = chain.blocks[0];
+          _hnode_write(hid, entry);
+        }
+      }
+    }
   };
 
 
 #pragma%x begin_test
+typedef mwg::bio::mwtfile_detail::mwheap<mwg::bio::ftape const&> mwheap_t;
+void test_heap_read_and_write(mwheap_t& mwt, mwg::bio::mwtfile_detail::hid_t hid, mwg::u4t cell_size) {
+  namespace Mwt = mwg::bio::mwtfile_detail;
+  Mwt::heap_entry entry;
+  mwt._hnode_load(hid, entry);
+  if (entry.size == 0) {
+    hid = mwt.allocate(cell_size);
+    mwt._hnode_load(hid, entry);
+  }
+
+  mwg::i4t value;
+  mwt.heap_read(hid, entry, 0, &value, sizeof(value));
+  value++;
+  mwt.heap_write(hid, entry, 0, &value, sizeof(value));
+  std::printf("cell[%" PRIu32 "]=%" PRId32 "\n", cell_size, value);
+}
 void test() {
   namespace Mwt = mwg::bio::mwtfile_detail;
 
-  mwg::bio::ftape file("a.mwt", "r+");
+  mwg::bio::ftape file("a.mwheap", "r+");
   mwg_check(file);
-  mwg::bio::tape_head<mwg::bio::ftape> head(file);
-  head.write<mwg::u4t>(Mwt::mwtfile_magic);
-
-  Mwt::mwtfile<mwg::bio::ftape const&> mwt(file);
-  mwg_assert(mwt, "%s", mwt.message.c_str());
+  Mwt::mwheap<mwg::bio::ftape const&> mwt(file);
+  if (!mwt) {
+    std::fprintf(stderr, "a.mwheap is an invalid mwheap file.\n%s", mwt.message.c_str());
+    return;
+  }
 
   mwt.debug_print_fat();
   mwt.debug_print_master();
-
-  Mwt::hid_t const hid1 = mwt.allocate(4);
-  Mwt::hid_t const hid2 = mwt.allocate(8);
-  std::printf("hid1 = %x\n", (int) hid1);
-  std::printf("hid2 = %x\n", (int) hid2);
-  mwt.deallocate(hid1);
-  mwt.deallocate(hid2);
-
-  std::vector<Mwt::hid_t> hids;
-  hids.push_back(mwt.allocate(1));
-  hids.push_back(mwt.allocate(4));
-  hids.push_back(mwt.allocate(5));
-  hids.push_back(mwt.allocate(8));
-  hids.push_back(mwt.allocate(9));
-  hids.push_back(mwt.allocate(16));
-  hids.push_back(mwt.allocate(30));
-  hids.push_back(mwt.allocate(60));
-  hids.push_back(mwt.allocate(100));
-  hids.push_back(mwt.allocate(200));
-  hids.push_back(mwt.allocate(500));
-  hids.push_back(mwt.allocate(1000));
   mwt.debug_print_heap();
-  for (int i = 0; i < hids.size(); i++)
-    mwt.deallocate(hids[i]);
 
+  // test allocate
+  {
+    Mwt::hid_t const hid1 = mwt.allocate(4);
+    Mwt::hid_t const hid2 = mwt.allocate(8);
+    mwt.deallocate(hid2);
+    mwt.deallocate(hid1);
+
+    std::vector<Mwt::hid_t> hids;
+    hids.push_back(mwt.allocate(1));
+    hids.push_back(mwt.allocate(4));
+    hids.push_back(mwt.allocate(5));
+    hids.push_back(mwt.allocate(8));
+    hids.push_back(mwt.allocate(500));
+    hids.push_back(mwt.allocate(1000));
+    for (int i = hids.size(); i--; )
+      mwt.deallocate(hids[i]);
+  }
+
+  // test reallocate
+  {
+    Mwt::hid_t hid = mwt.allocate(1);
+    mwt.reallocate(hid, 2);
+    mwt.reallocate(hid, 4);
+    mwt.reallocate(hid, 8);
+    mwt.reallocate(hid, 500);
+    mwt.reallocate(hid, 1000);
+    mwt.deallocate(hid);
+  }
+
+  // test heap_read/heap_write
+  test_heap_read_and_write(mwt, 0x40, 4);
+  test_heap_read_and_write(mwt, 0x41, 8);
+  test_heap_read_and_write(mwt, 0x42, 512);
+  test_heap_read_and_write(mwt, 0x43, 1000);
+  test_heap_read_and_write(mwt, 0x44, 2000);
+
+  // mwt.debug_print_fat();
+  // mwt.debug_print_master();
   mwt.debug_print_heap();
 }
 #pragma%x end_test
