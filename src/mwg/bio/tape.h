@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <mwg/std/type_traits>
 #include <mwg/exp/utils.h> /* for static_flags */
+#include <mwg/std/iterator>
 #include "defs.h"
 
 #include <mwg/impl/warning_push.inl>
@@ -229,9 +230,9 @@ public:
   }
   // head.read(beg, end);
   template<typename OutputIterator>
-  typename rwflags_detail::rwflags_impl<typename std::iterator_traits<OutputIterator>::value_type, RWFlags>::rtype
+  typename rwflags_detail::rwflags_impl<typename stdm::iterator_traits<OutputIterator>::value_type, RWFlags>::rtype
   read(OutputIterator begin, OutputIterator end) {
-    return read<typename std::iterator_traits<OutputIterator>::value_type, RWFlags, OutputIterator>(stdm::move(begin), stdm::move(end));
+    return read<typename stdm::iterator_traits<OutputIterator>::value_type, RWFlags, OutputIterator>(stdm::move(begin), stdm::move(end));
   }
 
 public:

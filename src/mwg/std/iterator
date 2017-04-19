@@ -55,6 +55,59 @@ namespace stdm{
   template<typename T, std::size_t N>
   mwg_constexpr std::size_t size(T const (&)[N]) {return N;}
 #endif
+
+  /*?mconf
+   * X -t'std::iterator_traits<int>' -oMWGCONF_HAS_CXX17_ITERATOR_TRAITS iterator 'std::iterator_traits<int> var;'
+   */
+#ifndef MWGCONF_HAS_CXX17_ITERATOR_TRAITS
+  namespace iterator_detail {
+    template<
+      typename T0 = void, typename T1 = void,
+      typename T2 = void, typename T3 = void,
+      typename T4 = void, typename T5 = void,
+      typename T6 = void, typename T7 = void,
+      typename T8 = void, typename T9 = void>
+    struct void_type: mwg::identity<void> {};
+
+    template<class T, typename = void>
+    struct iterator_traits_base {};
+
+    template<typename T>
+    struct iterator_traits_base<
+      T, typename void_type<
+           typename T::difference_type,
+           typename T::value_type,
+           typename T::pointer,
+           typename T::reference,
+           typename T::iterator_category
+           >::type>
+    {
+      typedef typename T::difference_type   difference_type;
+      typedef typename T::value_type        value_type;
+      typedef typename T::pointer           pointer;
+      typedef typename T::reference         reference;
+      typedef typename T::iterator_category iterator_category;
+    };
+  }
+
+  template<class T> struct iterator_traits: iterator_detail::iterator_traits_base<T> {};
+
+  template<class T> struct iterator_traits<T*> {
+    typedef std::ptrdiff_t difference_type;
+    typedef T value_type;
+    typedef T* pointer;
+    typedef T& reference;
+    typedef random_access_iterator_tag iterator_category;
+  };
+  template<class T> struct iterator_traits<const T*> {
+    typedef std::ptrdiff_t difference_type;
+    typedef T value_type;
+    typedef const T* pointer;
+    typedef const T& reference;
+    typedef random_access_iterator_tag iterator_category;
+  };
+#endif
+
 }
 }
 
