@@ -33,6 +33,7 @@ Makefile: Makefile.pp
 #%x AddCxxHeader.r|%file%|mwg/std/cmath|
 #%x AddCxxSource.r|%file%|mwg/std/cmath.impl.cpp|
 #%x AddCxxHeader.r|%file%|mwg/std/cstdint|
+#%x AddCxxHeader.r|%file%|mwg/std/cinttypes|
 #%x AddCxxHeader.r|%file%|mwg/std/cctype|
 #%x AddCxxHeader.r|%file%|mwg/std/cwctype|
 #%x AddCxxHeader.r|%file%|mwg/std/initializer_list|
