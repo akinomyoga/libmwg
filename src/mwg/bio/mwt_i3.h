@@ -106,7 +106,7 @@ namespace mwtfile_detail {
 
       if (!head.can_write()) return false;
       head.seek(size);
-      size += head.memset(0, position - size);
+      size += head.fill_n((byte) 0, position - size);
       return size == position;
     }
 
@@ -411,10 +411,9 @@ namespace mwtfile_detail {
       mwg_check(head.can_write());
       mwg_check(size <= offset_master_block, "size = %lld, offset_master_block = %d", (long long) size, (int) offset_master_block);
       seek_fill(offset_master_block);
-      head.memset(0, block_size);
+      head.fill_n((byte) 0, block_size);
       head.seek(offset_master_block);
-      for (int i = 0; i < number_of_heap_levels; i++)
-        head.template write<bid_t>(0);
+      head.fill_n((bit_t) 0, number_of_heap_levels);
       fat_write(bid_master, bid_end);
       size = (u8t) offset_master_block + block_size;
     }
@@ -430,8 +429,7 @@ namespace mwtfile_detail {
           bid_t const bid = _bchain_add_block(heap_index);
           heap_entry const empty = {};
           head.seek(bid * (u8t) block_size);
-          for (int i = 0; i < number_of_hnodes_in_block; i++)
-            head.write(empty);
+          head.fill_n(empty, number_of_hnodes_in_block);
         }
 
         std::size_t ilast = heap_index.blocks.size() - 1;

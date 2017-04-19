@@ -173,7 +173,7 @@ namespace mwt_detail{
           head.seek(iplane*(i8t)PlaneSize);
           head.template write<byte>(1);
           head.seek(iplane*(i8t)PlaneSize+sizeof(i4t));
-          head.memset(0,sizeof(i4t)*(NCellInPlane-1));
+          head.fill_n<byte>(0,sizeof(i4t)*(NCellInPlane-1));
           return iplane*NCellInPlane+1;
         }
 
@@ -395,7 +395,7 @@ namespace mwt_detail{
           i4t iblk=osize/CellSize;
           if(offs){
             head.seek(cells[iblk]*CellSize+offs);
-            head.memset(0,CellSize-offs);
+            head.fill_n<byte>(0,CellSize-offs);
             offs=0;
             iblk++;
           }
@@ -406,7 +406,7 @@ namespace mwt_detail{
         u4t offs=osize%CellSize;
         i4t iblk=osize/CellSize;
         head.seek(cells[iblk]*CellSize+offs);
-        head.memset(0,nsize-osize);
+        head.fill_n<byte>(0,nsize-osize);
       }
 
       this->ptr.length=nsize;
@@ -434,7 +434,7 @@ namespace mwt_detail{
         // padding
         if(this->fZERO){
           head.seek(bidNew*CellSize);
-          head.memset(0,CellSize);
+          head.fill_n<byte>(0,CellSize);
         }
       }
 
@@ -858,7 +858,7 @@ namespace mwt_detail{
           head.seek(PlaneSize*iPlane);
           head.write(node0);
           head.write(node1);
-          head.memset(0,sizeof(NodeIndex)*(NNodeInPlane-2));
+          head.fill_n<byte>(0,sizeof(NodeIndex)*(NNodeInPlane-2));
           return iPlane*NNodeInPlane+1;
         }
 

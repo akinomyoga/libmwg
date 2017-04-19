@@ -240,7 +240,7 @@ public:
     // align must be some power of 2.
     i8t pos = this->m_tape->tell();
     i4t res = i4t(pos & (align - 1));
-    return res == 0? 0: memset(c, align - res);
+    return res == 0? 0: fill_n(c, align - res);
   }
 
 private:
@@ -262,7 +262,7 @@ public:
     // i4t pad = pos + advance - this->m_tape->size();
     // if (pad > 0) {
     //   this->m_tape->seek(res, SEEK_END);
-    //   if (this->m_tape->can_write()) memset(c, pad);
+    //   if (this->m_tape->can_write()) fill_n(c, pad);
     // } else {
     //   this->m_tape->seek(advance, SEEK_CUR);
     // }
@@ -274,12 +274,24 @@ public:
     return advance;
   }
 
-  u4t memset(byte c, u4t size) const {
+  template<typename T>
+  u4t fill_n(T const& value, u4t count) const {
     u4t r = 0;
-    i4t p = c | c << 8; p |= p << 16;
-    for (u4t n = 4; n <= size; n += 4)
-      r += 4 * m_tape->write(&p, 4);
-    if (size &= 3) r += m_tape->write(&p, 1, size);
+    if (sizeof(value) == 1) {
+      byte const c = reinterpret_cast<byte const&>(value);
+      byte const p[4] = {c, c, c, c};
+      for (u4t n = 4; n <= count; n += 4)
+        r += 4 * m_tape->write(p, 4);
+      if (count &= 3)
+        r += m_tape->write(p, 1, count);
+    } else
+      while (count--) r += write<T>(value);
+    return r;
+  }
+  template<int I, typename T>
+  u4t fill_n(T const& value, u4t count) const {
+    u4t r = 0;
+    while (count--) r += write<I, T>(value);
     return r;
   }
 
