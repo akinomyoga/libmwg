@@ -394,12 +394,12 @@ namespace mwtfile_detail {
           free_blocks.push_back(bid);
       size = (bid0 + 1) * block_size;
     }
-    bid_t _block_allocate() {
+    bid_t _block_allocate(bid_t bid_next) {
       mwg_check(status == 0 && m_head.can_write());
       if (!free_blocks.size()) allocate_plane();
       bid_t const ret = free_blocks.back();
       free_blocks.pop_back();
-      fat[ret] = bid_end;
+      fat_write(ret, bid_next);
       if (size < (ret + 1) * block_size)
         seek_fill((ret + 1) * block_size);
       return ret;
@@ -434,8 +434,7 @@ namespace mwtfile_detail {
       chain.blocks.clear();
     }
     bid_t _bchain_add_block(mwtfile_block_chain& chain) {
-      bid_t const newBlock = _block_allocate();
-      fat_write(newBlock, bid_end);
+      bid_t const newBlock = _block_allocate(bid_end);
       if (!chain.blocks.empty())
         fat_write(chain.blocks.back(), newBlock);
       chain.blocks.push_back(newBlock);
@@ -461,11 +460,8 @@ namespace mwtfile_detail {
       if (iblock >= nblock) return first;
 
       bid_t bid_next = bid_end;
-      for (u4t jblock = nblock; jblock-- > iblock; ) {
-        bid_t const bid = _block_allocate();
-        fat_write(bid, bid_next);
-        bid_next = bid;
-      }
+      for (u4t jblock = nblock; jblock-- > iblock; )
+        bid_next = _block_allocate(bid_next);
 
       if (bid_prev == bid_unused) return bid_next;
       fat_write(bid_prev, bid_next);
@@ -474,19 +470,20 @@ namespace mwtfile_detail {
     void _bchain_truncate(mwtfile_block_chain& chain, u4t nblock) {
       std::vector<bid_t>& blocks = chain.blocks;
       if (blocks.size() <= nblock) {
-        if (blocks.size() == nblock) return;
-
         std::size_t const old_nblock = blocks.size();
-        blocks.reserve(nblock);
-        for (u4t i = old_nblock; i < nblock; i++)
-          blocks.push_back(_block_allocate());
+        if (old_nblock == nblock) return;
 
-        u4t iblock = nblock - 1;
-        fat_write(blocks[iblock], bid_end);
-        for (; iblock > old_nblock; iblock--)
-          fat_write(blocks[iblock - 1], blocks[iblock]);
+        blocks.reserve(nblock, bid_unused);
+        bid_t bid_next = bid_end;
+        for (u4t iblock = nblock; iblock-- > old_nblock; ) {
+          bid_t const bid = _block_allocate(bid_next);
+          blocks.push_back(bid);
+          bid_next = bid;
+        }
+        std::reverse(blocks.begin() + old_nblock, blocks.end());
+
         if (old_nblock > 0)
-          fat_write(blocks[old_nblock - 1], blocks[old_nblock]);
+          fat_write(blocks[old_nblock - 1], bid_next);
       } else {
         if (nblock > 0)
           fat_write(blocks[nblock - 1], bid_end);
@@ -495,7 +492,6 @@ namespace mwtfile_detail {
         blocks.erase(blocks.begin() + nblock, blocks.end());
       }
     }
-
     bool _bchain_seek(mwtfile_block_chain const& chain, u8t offset) const {
       u8t const bindex = offset / block_size;
       u8t const boffset = offset % block_size;
@@ -768,8 +764,7 @@ namespace mwtfile_detail {
         }
       } else if (level2 == number_of_heap_levels) {
         mwg_assert(new_size > old_size);
-        bid_t const bid = _block_allocate();
-        fat_write(bid, bid_end);
+        bid_t const bid = _block_allocate(bid_end);
         m_head.seek(bid * block_size);
         m_head.write_data(data, 1, old_size);
         m_head.fill_n((byte) 0, (u4t) std::min<u8t>(new_size, block_size) - old_size);
