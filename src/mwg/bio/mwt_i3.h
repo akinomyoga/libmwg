@@ -9,6 +9,7 @@
 #include <mwg/std/type_traits>
 #include <mwg/std/memory>
 #include <mwg/std/utility>
+#include <mwg/std/cinttypes>
 #include "defs.h"
 #include "tape.h"
 #pragma%include "../impl/ManagedTest.pp"
@@ -209,14 +210,14 @@ namespace mwtfile_detail {
         hid_t const hid_base = i * number_of_hnodes_in_block;
         int const jbeg = i == 0? hid_offset: 0;
         if (!mwg_check_call(head.seek(bid * block_size + jbeg * sizeof(heap_entry)) == 0,
-            report_error, "failed to seek in bid:heap_index[%d] = %08x", (int) i, (int) bid))
+            report_error, "failed to seek in bid:heap_index[%zd] = %08" PRIx32, i, bid))
           return false;
 
         for (int j = jbeg; j < number_of_hnodes_in_block; j++) {
           hid_t const hid = hid_base + j;
           heap_entry entry;
           if (!mwg_check_call(head.read(entry) == 1,
-              report_error, "failed to read heap_entry[%d]", (int) hid))
+              report_error, "failed to read heap_entry[%" PRId32 "]", hid))
             return false;
 
           if (entry.size != 0) {
@@ -224,10 +225,10 @@ namespace mwtfile_detail {
             if (level < 0 || number_of_heap_levels <= level) continue;
 
             if (!mwg_check_call(entry.address < hbitmaps[level].size(),
-                report_error, "hnode[%d].address out of range", (int) hid))
+                report_error, "hnode[%" PRId32 "].address out of range", hid))
               return false;
             if (!mwg_check_call(hbitmaps[level][entry.address] == false,
-                report_error, "hcell%d[%d] doubly referenced", (int) level, (int) entry.address))
+                report_error, "hcell%d[%" PRId32 "] doubly referenced", level, entry.address))
               return false;
             hbitmaps[level][entry.address] = true;
           } else
@@ -279,7 +280,7 @@ namespace mwtfile_detail {
         else if (fat[i] == bid_end)
           std::printf("[ end  ] ");
         else
-          std::printf("%08x ", fat[i]);
+          std::printf("%08" PRIx32 " ", fat[i]);
 
         if (i % 16 == 15) std::putchar('\n');
       }
@@ -305,13 +306,6 @@ namespace mwtfile_detail {
         std::putchar('\n');
       }
 
-      std::printf("master.heap_free_nodes:\n");
-      for (std::size_t i = 0, iN = heap_free_nodes.size(); i < iN; i++) {
-        std::printf(" %08x", heap_free_nodes[i]);
-        if (i % 16 == 15) std::putchar('\n');
-      }
-      if (heap_free_nodes.size() % 16 != 0)
-        std::putchar('\n');
       std::fflush(stdout);
     }
     void debug_print_heap() const {
@@ -320,16 +314,26 @@ namespace mwtfile_detail {
         hid_t const offset = i == 0? hid_offset: 0;
         mwg_check(head.seek(bid * (u8t) block_size + offset * sizeof(heap_entry)) == 0);
         heap_entry entry;
-        for (int i = offset; i < number_of_hnodes_in_block; i++) {
+        for (int j = offset; j < number_of_hnodes_in_block; j++) {
           mwg_check(head.read(entry) == 1);
           if (entry.size == 0) continue;
           int const level = get_heap_level(entry.size);
+          std::printf("heap_entry[%" PRIx32 "]: ", i * number_of_hnodes_in_block + j);
           if (level < 0)
-            std::printf("heap_entry: size = %ld, value = %08ld\n", (long) entry.size, (long) entry.address);
+            std::printf("size = %" PRId32 ", value = %08" PRIx32 "\n", entry.size, entry.address);
           else
-            std::printf("heap_entry: size = %ld, addr = %ld\n", (long) entry.size, (long) entry.address);
+            std::printf("size = %" PRId32 ", addr = %" PRId32 "\n", entry.size, entry.address);
         }
       }
+
+      std::printf("heap_free_nodes:\n");
+      for (std::size_t i = 0, iN = heap_free_nodes.size(); i < iN; i++) {
+        std::printf(" %08" PRIx32, heap_free_nodes[i]);
+        if (i % 16 == 15) std::putchar('\n');
+      }
+      if (heap_free_nodes.size() % 16 != 0)
+        std::putchar('\n');
+
       std::fflush(stdout);
     }
 
@@ -392,7 +396,7 @@ namespace mwtfile_detail {
       mwg_check(bindex < chain.blocks.size());
       bid_t const bid = chain.blocks[bindex];
       u8t const toffset = bid * (u8t) block_size + boffset;
-      mwg_check(toffset < size, "toffset = %zd, size = %zd", (std::size_t) toffset, (std::size_t) size);
+      mwg_check(toffset < size, "toffset = %" PRId64 ", size = %" PRId64, toffset, size);
       head.seek(toffset);
       head.template write<T>(value);
     }
