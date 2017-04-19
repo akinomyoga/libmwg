@@ -353,7 +353,7 @@ namespace mwtfile_detail {
         free_blocks.push_back(bid);
       size = (bid0 + 1) * block_size;
     }
-    bid_t allocate_block() {
+    bid_t _block_allocate() {
       mwg_check(status == 0 && head.can_write());
       if (!free_blocks.size()) allocate_plane();
       bid_t const ret = free_blocks.back();
@@ -363,15 +363,15 @@ namespace mwtfile_detail {
         seek_fill((ret + 1) * block_size);
       return ret;
     }
-    void free_block(u4t const bid) {
+    void _block_free(u4t const bid) {
       mwg_assert(bid < fat.size());
-      fat[bid] = bid_unused;
+      fat_write(bid, bid_unused);
       free_blocks.push_back(bid);
-      return 0;
     }
 
   private:
     void _bchain_initialize(mwtfile_block_chain& chain, bid_t bid) const {
+      // ToDo 無限ループのチェック
       while (bid != bid_unused && bid != bid_end) {
         mwg_check(bid <= fat.size(), "block_chain: invalid bid");
         chain.blocks.push_back(bid);
@@ -380,7 +380,7 @@ namespace mwtfile_detail {
     }
 
     bid_t _bchain_add_block(mwtfile_block_chain& chain) {
-      bid_t const newBlock = allocate_block();
+      bid_t const newBlock = _block_allocate();
       fat_write(newBlock, bid_end);
       if (!chain.blocks.empty())
         fat_write(chain.blocks.back(), newBlock);
@@ -389,7 +389,7 @@ namespace mwtfile_detail {
     }
 
     template<typename T>
-    void _bchain_write(mwtfile_block_chain const& chain, u8t offset, T const& value) const {
+    bool _bchain_read(mwtfile_block_chain const& chain, u8t offset, T& value) const {
       u8t const bindex = offset / block_size;
       u8t const boffset = offset % block_size;
       mwg_check(boffset + sizeof(value) <= block_size);
@@ -398,7 +398,19 @@ namespace mwtfile_detail {
       u8t const toffset = bid * (u8t) block_size + boffset;
       mwg_check(toffset < size, "toffset = %" PRId64 ", size = %" PRId64, toffset, size);
       head.seek(toffset);
-      head.template write<T>(value);
+      return head.template read<T>(value) == 1;
+    }
+    template<typename T>
+    bool _bchain_write(mwtfile_block_chain const& chain, u8t offset, T const& value) const {
+      u8t const bindex = offset / block_size;
+      u8t const boffset = offset % block_size;
+      mwg_check(boffset + sizeof(value) <= block_size);
+      mwg_check(bindex < chain.blocks.size());
+      bid_t const bid = chain.blocks[bindex];
+      u8t const toffset = bid * (u8t) block_size + boffset;
+      mwg_check(toffset < size, "toffset = %" PRId64 ", size = %" PRId64, toffset, size);
+      head.seek(toffset);
+      return head.template write<T>(value) == 1;
     }
 
   private:
@@ -417,7 +429,7 @@ namespace mwtfile_detail {
       seek_fill(offset_master_block);
       head.fill_n((byte) 0, block_size);
       head.seek(offset_master_block);
-      head.fill_n((bit_t) 0, number_of_heap_levels);
+      head.fill_n((bid_t) 0, number_of_heap_levels);
       fat_write(bid_master, bid_end);
       size = (u8t) offset_master_block + block_size;
     }
@@ -481,8 +493,14 @@ namespace mwtfile_detail {
       hcells.pop_back();
       return ret;
     }
+    void _hcell_deallocate(int level, bid_t addr) {
+      std::vector<bid_t>& hcells = heap_free_cells[level];
+      hcells.push_back(addr);
+    }
+
   public:
     hid_t allocate(std::size_t sz) {
+      if (sz == 0) sz = 1;
       hid_t const ret = allocate_hnode();
       heap_entry entry;
       entry.size = sz;
@@ -497,6 +515,23 @@ namespace mwtfile_detail {
       }
       _bchain_write(heap_index, ret * sizeof(heap_entry), entry);
       return ret;
+    }
+    void deallocate(hid_t hid) {
+      heap_entry entry;
+      _bchain_read(heap_index, hid * sizeof(heap_entry), entry);
+      if (entry.size == 0) return;
+
+      int const level = get_heap_level(entry.size);
+      if (0<= level && level < number_of_heap_levels) {
+        _hcell_deallocate(level, entry.address);
+      } else if (level == number_of_heap_levels) {
+        mwtfile_block_chain chain;
+        _bchain_initialize(chain, entry.address);
+        for (std::size_t i = 0, iN = chain.blocks.size(); i < iN; i++)
+          _block_free(chain.blocks[i]);
+      }
+
+      free_hnode(hid);
     }
   };
 
@@ -518,8 +553,10 @@ void test() {
   mwt.debug_print_heap();
   Mwt::hid_t const hid1 = mwt.allocate(4);
   Mwt::hid_t const hid2 = mwt.allocate(8);
-  std::printf("hid1 = %d\n", (int) hid1);
-  std::printf("hid2 = %d\n", (int) hid2);
+  std::printf("hid1 = %x\n", (int) hid1);
+  std::printf("hid2 = %x\n", (int) hid2);
+  mwt.deallocate(hid1);
+  mwt.deallocate(hid2);
 }
 #pragma%x end_test
 
