@@ -27,6 +27,10 @@ namespace mwg {
 namespace bio {
 namespace mwtfile_detail {
 
+  inline mwg_constexpr u4t fourcc(char a, char b, char c, char d) {
+    return a | b << 8 | c << 16 | d << 24;
+  }
+
   typedef u4t bid_t;
   static mwg_constexpr_const u8t   block_size       = 1024;
   static mwg_constexpr_const bid_t nblock_in_plane  = 1024 / sizeof(bid_t);
@@ -34,16 +38,15 @@ namespace mwtfile_detail {
   static mwg_constexpr_const bid_t nblock_max       = nplane_max * nblock_in_plane;
   static mwg_constexpr_const u8t   plane_size       = block_size * nblock_in_plane;
   static mwg_constexpr_const u8t   mwtfile_size_max = block_size * nblock_max;
-  static mwg_constexpr_const u4t   mwtfile_magic    = 'M' | 'W' << 8 | 'T' << 16 | '3' << 24;
+  static mwg_constexpr_const u4t   mwtfile_magic    = fourcc('m', 'w', 'g', '1');
+  static mwg_constexpr_const u4t   mwtype_heap      = fourcc('h', 'e', 'a', 'p');
+  static mwg_constexpr_const u4t   mwtype_tree      = fourcc('t', 'r', 'e', 'e'); // not yet used
 
   static_assert(UINT32_MAX <= SIZE_MAX, "size_t too small");
 
 
   static mwg_constexpr_const bid_t bid_unused = 0x0000;
   static mwg_constexpr_const bid_t bid_end    = 0x0100;
-
-  static mwg_constexpr_const bid_t bid_master = 1;
-  static mwg_constexpr_const u8t   offset_fat_master = bid_master * sizeof(bid_t);
 
   struct mwtfile_block_chain {
     std::vector<bid_t> blocks;
@@ -56,21 +59,24 @@ namespace mwtfile_detail {
   };
   static_assert(sizeof(heap_entry) == 8, "struct heap_entry: unexpected size");
 
-  static mwg_constexpr_const int number_of_heap_levels = 7;
-  static mwg_constexpr_const u8t heap_cell_size_base   = 8;
-  static mwg_constexpr_const u8t offset_master_block   = block_size;
-  static mwg_constexpr_const u8t offset_master_hnodes = block_size + 512;
-  static mwg_constexpr_const hid_t number_of_hnodes_in_block = block_size / sizeof(heap_entry);
-  static mwg_constexpr_const hid_t hid_offset                = number_of_hnodes_in_block / 2;
-
   // struct master_block {
+  //   byte type[4];
+  //   u4t  version;
   //   bid_t heap_first[number_of_heap_levels]; // 8 16 32 64 128 256 512
   // };
+  static mwg_constexpr_const bid_t bid_master = 1;
+  static mwg_constexpr_const u8t   master_offset              = bid_master * block_size;
+  static mwg_constexpr_const u8t   master_offset_of_heap_root = master_offset + 8;
+  static mwg_constexpr_const int   number_of_heap_levels      = 7;
+  static mwg_constexpr_const u8t   hcell_min_size = 8;
+  static mwg_constexpr_const u8t   hcell_max_size = hcell_min_size << number_of_heap_levels - 1;
+  static mwg_constexpr_const hid_t number_of_hnodes_in_block = block_size / sizeof(heap_entry);
+  static mwg_constexpr_const hid_t hid_offset                = number_of_hnodes_in_block / 2;
 
   inline mwg_constexpr int get_heap_level(u4t size) {
     if (size <= sizeof(bid_t)) return -1;
     for (int i = 0; i < number_of_heap_levels; i++)
-      if (size <= heap_cell_size_base << i) return i;
+      if (size <= hcell_min_size << i) return i;
     return number_of_heap_levels;
   }
 
@@ -198,7 +204,7 @@ namespace mwtfile_detail {
     bool initialize_heap_free_cells() {
       std::vector<bool> hbitmaps[7];
       for (int level = 0; level < number_of_heap_levels; level++) {
-        u8t const cell_size = heap_cell_size_base << level;
+        u8t const cell_size = hcell_min_size << level;
         u8t const cell_count_per_block = block_size / cell_size;
         u8t const cell_count = heap_buffers[level].blocks.size() * cell_count_per_block;
         hbitmaps[level].resize(cell_count, false);
@@ -253,8 +259,8 @@ namespace mwtfile_detail {
         for (int level = 0; level < number_of_heap_levels; level++)
           _bchain_initialize(heap_buffers[level], bid_unused);
       } else {
-        mwg_check(head.seek(bid_master * (u8t) block_size) == 0);
         _bchain_initialize(heap_index, bid_master);
+        mwg_check(head.seek(master_offset_of_heap_root) == 0);
         for (int level = 0; level < number_of_heap_levels; level++) {
           bid_t bid = 0;
           mwg_check(head.read(bid) == 1);
@@ -425,13 +431,15 @@ namespace mwtfile_detail {
 
     void write_master_block() {
       mwg_check(head.can_write());
-      mwg_check(size <= offset_master_block, "size = %lld, offset_master_block = %d", (long long) size, (int) offset_master_block);
-      seek_fill(offset_master_block);
+      mwg_check(size <= master_offset, "size = %lld, master_offset = %d", (long long) size, (int) master_offset);
+      seek_fill(master_offset);
       head.fill_n((byte) 0, block_size);
-      head.seek(offset_master_block);
+      head.seek(master_offset);
+      head.write((u4t) mwtype_heap);
+      head.write((u4t) 0);
       head.fill_n((bid_t) 0, number_of_heap_levels);
       fat_write(bid_master, bid_end);
-      size = (u8t) offset_master_block + block_size;
+      size = (u8t) master_offset + block_size;
     }
 
     hid_t allocate_hnode() {
@@ -450,7 +458,7 @@ namespace mwtfile_detail {
 
         std::size_t ilast = heap_index.blocks.size() - 1;
         hid_t const hid0 = ilast == 0? hid_offset: ilast * number_of_hnodes_in_block;
-        hid_t const hidN = hid0 + number_of_hnodes_in_block;
+        hid_t const hidN = (ilast + 1) * number_of_hnodes_in_block;
         for (hid_t hid = hidN; hid-- > hid0; ) heap_free_nodes.push_back(hid);
       }
 
@@ -480,10 +488,10 @@ namespace mwtfile_detail {
         bid_t const bid = _bchain_add_block(heap_buffers[level]);
         bid_t const iblock = heap_buffers[level].blocks.size() - 1;
         if (iblock == 0) {
-          head.seek(offset_master_block + level * sizeof(bid_t));
+          head.seek(master_offset_of_heap_root + level * sizeof(bid_t));
           head.write(bid);
         }
-        int const ncell_per_block = block_size / (heap_cell_size_base << level);
+        int const ncell_per_block = block_size / (hcell_min_size << level);
         bid_t const addr_base = iblock * ncell_per_block;
         for (int i = ncell_per_block; i--; )
           hcells.push_back(addr_base + i);
@@ -550,13 +558,32 @@ void test() {
 
   mwt.debug_print_fat();
   mwt.debug_print_master();
-  mwt.debug_print_heap();
+
   Mwt::hid_t const hid1 = mwt.allocate(4);
   Mwt::hid_t const hid2 = mwt.allocate(8);
   std::printf("hid1 = %x\n", (int) hid1);
   std::printf("hid2 = %x\n", (int) hid2);
   mwt.deallocate(hid1);
   mwt.deallocate(hid2);
+
+  std::vector<Mwt::hid_t> hids;
+  hids.push_back(mwt.allocate(1));
+  hids.push_back(mwt.allocate(4));
+  hids.push_back(mwt.allocate(5));
+  hids.push_back(mwt.allocate(8));
+  hids.push_back(mwt.allocate(9));
+  hids.push_back(mwt.allocate(16));
+  hids.push_back(mwt.allocate(30));
+  hids.push_back(mwt.allocate(60));
+  hids.push_back(mwt.allocate(100));
+  hids.push_back(mwt.allocate(200));
+  hids.push_back(mwt.allocate(500));
+  hids.push_back(mwt.allocate(1000));
+  mwt.debug_print_heap();
+  for (int i = 0; i < hids.size(); i++)
+    mwt.deallocate(hids[i]);
+
+  mwt.debug_print_heap();
 }
 #pragma%x end_test
 
