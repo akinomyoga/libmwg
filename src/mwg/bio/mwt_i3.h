@@ -384,6 +384,20 @@ namespace mwtfile_detail {
         bid = fat[bid];
       }
     }
+    void _bchain_free(bid_t const first) {
+      bid_t bid = first;
+      while (bid != bid_unused && bid != bid_end) {
+        mwg_check(bid <= fat.size(), "block_chain: invalid bid");
+        bid_t const next = fat[bid];
+        _block_free(bid);
+        bid = next;
+      }
+    }
+    void _bchain_free(mwtfile_block_chain& chain) {
+      for (std::size_t i = 0, iN = chain.blocks.size(); i < iN; i++)
+        _block_free(chain.blocks[i]);
+      chain.blocks.clear();
+    }
 
     bid_t _bchain_add_block(mwtfile_block_chain& chain) {
       bid_t const newBlock = _block_allocate();
@@ -394,28 +408,25 @@ namespace mwtfile_detail {
       return newBlock;
     }
 
-    template<typename T>
-    bool _bchain_read(mwtfile_block_chain const& chain, u8t offset, T& value) const {
+    bool _bchain_seek(mwtfile_block_chain const& chain, u8t offset) const {
       u8t const bindex = offset / block_size;
       u8t const boffset = offset % block_size;
-      mwg_check(boffset + sizeof(value) <= block_size);
       mwg_check(bindex < chain.blocks.size());
       bid_t const bid = chain.blocks[bindex];
       u8t const toffset = bid * (u8t) block_size + boffset;
       mwg_check(toffset < size, "toffset = %" PRId64 ", size = %" PRId64, toffset, size);
-      head.seek(toffset);
+      return head.seek(toffset) == 0;
+    }
+    template<typename T>
+    bool _bchain_read(mwtfile_block_chain const& chain, u8t offset, T& value) const {
+      mwg_check(offset % block_size + sizeof(value) <= block_size);
+      _bchain_seek(chain, offset);
       return head.template read<T>(value) == 1;
     }
     template<typename T>
     bool _bchain_write(mwtfile_block_chain const& chain, u8t offset, T const& value) const {
-      u8t const bindex = offset / block_size;
-      u8t const boffset = offset % block_size;
-      mwg_check(boffset + sizeof(value) <= block_size);
-      mwg_check(bindex < chain.blocks.size());
-      bid_t const bid = chain.blocks[bindex];
-      u8t const toffset = bid * (u8t) block_size + boffset;
-      mwg_check(toffset < size, "toffset = %" PRId64 ", size = %" PRId64, toffset, size);
-      head.seek(toffset);
+      mwg_check(offset % block_size + sizeof(value) <= block_size);
+      _bchain_seek(chain, offset);
       return head.template write<T>(value) == 1;
     }
 
@@ -442,7 +453,7 @@ namespace mwtfile_detail {
       size = (u8t) master_offset + block_size;
     }
 
-    hid_t allocate_hnode() {
+    hid_t _hnode_allocate() {
       mwg_check(status == 0 && head.can_write());
 
       if (heap_free_nodes.empty()) {
@@ -466,7 +477,7 @@ namespace mwtfile_detail {
       heap_free_nodes.pop_back();
       return ret;
     }
-    void free_hnode(hid_t hid) {
+    void _hnode_free(hid_t hid) {
       if (hid < hid_offset) return;
 
       bid_t bid;
@@ -509,7 +520,7 @@ namespace mwtfile_detail {
   public:
     hid_t allocate(std::size_t sz) {
       if (sz == 0) sz = 1;
-      hid_t const ret = allocate_hnode();
+      hid_t const ret = _hnode_allocate();
       heap_entry entry;
       entry.size = sz;
       int const level = get_heap_level(sz);
@@ -533,14 +544,72 @@ namespace mwtfile_detail {
       if (0<= level && level < number_of_heap_levels) {
         _hcell_deallocate(level, entry.address);
       } else if (level == number_of_heap_levels) {
-        mwtfile_block_chain chain;
-        _bchain_initialize(chain, entry.address);
-        for (std::size_t i = 0, iN = chain.blocks.size(); i < iN; i++)
-          _block_free(chain.blocks[i]);
+        _bchain_free(entry.address);
       }
 
-      free_hnode(hid);
+      _hnode_free(hid);
     }
+    void reallocate(hid_t const hid, u4t const new_size) {
+      heap_entry entry;
+      _bchain_read(heap_index, hid * sizeof(heap_entry), entry);
+      if (entry.size == 0) return;
+      u4t const old_size = entry.size;
+
+      int const level1 = get_heap_level(old_size);
+      int const level2 = get_heap_level(new_size);
+      if (level1 == level2) {
+        entry.size = new_size;
+        _bchain_write(heap_index, hid * sizeof(heap_entry), entry);
+        return;
+      }
+
+      byte data[hcell_max_size];
+      if (level1 < 0) {
+        for (int i = 0; i < old_size; i++)
+          data[i] = (byte) (entry.address >> i * 8);
+      } else if (level1 < number_of_heap_levels) {
+        _bchain_seek(heap_buffers[level1], entry.address * (hcell_min_size << level1));
+        head.read_data(data, 1, std::min(new_size, old_size));
+        _hcell_deallocate(level1, entry.address);
+      } else if (level1 == number_of_heap_levels) {
+        mwg_assert(new_size < old_size);
+        bid_t const bid = entry.address;
+        if (bid != bid_unused) {
+          head.seek(bid * block_size);
+          head.read_data(data, 1, new_size);
+          _bchain_free(bid);
+        } else
+          std::fill(data, data + new_size, 0);
+      } else
+        mwg_assert(0);
+
+      entry.size = new_size;
+      if (level2 < 0) {
+        entry.address = 0;
+        for (int i = 0; i < new_size; i++)
+          entry.address |= data[i] << i * 8;
+      } else if (level2 < number_of_heap_levels) {
+        entry.address = _hcell_allocate(level2);
+        _bchain_seek(heap_buffers[level2], entry.address * (hcell_min_size << level2));
+        if (new_size <= old_size) {
+          head.write_data(data, 1, new_size);
+        } else {
+          head.write_data(data, 1, old_size);
+          head.fill_n((byte) 0, new_size - old_size);
+        }
+      } else if (level2 == number_of_heap_levels) {
+        mwg_assert(new_size > old_size);
+        bid_t const bid = _block_allocate();
+        fat_write(bid, bid_end);
+        head.seek(bid * block_size);
+        head.write_data(data, 1, old_size);
+        head.fill_n((byte) 0, std::min(new_size, block_size) - old_size);
+        entry.address = bid;
+      } else
+        mwg_assert(0);
+      _bchain_write(heap_index, hid * sizeof(heap_entry), entry);
+    }
+
   };
 
 
