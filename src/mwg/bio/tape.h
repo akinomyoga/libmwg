@@ -238,36 +238,38 @@ public:
 public:
   u4t align_fill(int align, byte c = 0) const {
     // align must be some power of 2.
-    i8t pos = this->m_tape->tell();
-    i4t res = i4t(pos & (align - 1));
+    i8t const pos = this->tell();
+    i4t const res = i4t(pos & (align - 1));
     return res == 0? 0: fill_n(c, align - res);
   }
 
 private:
   u4t read_skip(u4t size) const {
     u4t r = 0; u4t dummy;
-    for (u4t n = 4; n <= size; n += 4) r += 4 * m_tape->read(&dummy, 4);
-    if (size &= 3) r += m_tape->read(&dummy, 1, size);
+    for (u4t n = 4; n <= size; n += 4)
+      r += 4 * this->read_data(&dummy, 4);
+    if (size &= 3)
+      r += this->read_data(&dummy, 1, size);
     return r;
   }
 public:
 
   u4t align(int align) const {
     // align must be some power of 2.
-    i8t pos = this->m_tape->tell();
-    i4t res = i4t(pos & (align - 1));
+    i8t const pos = this->tell();
+    i4t const res = i4t(pos & (align - 1));
     if (res == 0) return 0;
 
-    i4t advance = align - res;
-    // i4t pad = pos + advance - this->m_tape->size();
+    i4t const advance = align - res;
+    // i4t pad = pos + advance - this->size();
     // if (pad > 0) {
-    //   this->m_tape->seek(res, SEEK_END);
-    //   if (this->m_tape->can_write()) fill_n(c, pad);
+    //   this->seek(res, SEEK_END);
+    //   if (this->can_write()) fill_n(c, pad);
     // } else {
-    //   this->m_tape->seek(advance, SEEK_CUR);
+    //   this->seek(advance, SEEK_CUR);
     // }
-    if (this->m_tape->can_seek())
-      this->m_tape->seek(advance, SEEK_CUR);
+    if (this->can_seek())
+      this->seek(advance, SEEK_CUR);
     else
       this->read_skip(advance);
 
@@ -281,9 +283,9 @@ public:
       byte const c = reinterpret_cast<byte const&>(value);
       byte const p[4] = {c, c, c, c};
       for (u4t n = 4; n <= count; n += 4)
-        r += 4 * m_tape->write(p, 4);
+        r += 4 * this->write_data(p, 4);
       if (count &= 3)
-        r += m_tape->write(p, 1, count);
+        r += this->write_data(p, 1, count);
     } else
       while (count--) r += write<T>(value);
     return r;
