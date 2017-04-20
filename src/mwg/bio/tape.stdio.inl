@@ -39,26 +39,31 @@ class cstd_file_tape:public itape{
 //  Initialization
 //------------------------------------------------------------------------------
 public:
-  cstd_file_tape():file(nullptr){
-    f_read=false;
-    f_write=false;
-    f_seek=false;
-  }
+  cstd_file_tape():
+    file(nullptr),
+    f_read(false), f_write(false), f_seek(false)
+  {}
+
   cstd_file_tape(FILE* file,const char* mode){
     //std::printf("dbg:cstd_file_tape: file\n");
     this->file=file;
-    f_read =nullptr!=strchr(mode,'r');
-    f_write=nullptr!=strchr(mode,'w');
-    f_seek =nullptr!=strchr(mode,'s');
+    f_read  = nullptr!=std::strchr(mode,'r');
+    f_write = nullptr!=std::strchr(mode,'w');
+    f_seek  = nullptr!=std::strchr(mode,'s');
 
 #ifdef MWG_BIO_TAPE_H_stdio__require_setmode
-    if(nullptr!=strchr(mode,'b'))
+    if(nullptr!=std::strchr(mode,'b'))
       setmode(fileno(file), O_BINARY);
 #endif
   }
   // ディスク上のファイルから
-  cstd_file_tape(const char* filepath,const char* mode){
-    //std::printf("dbg:cstd_file_tape: filepath\n");
+  cstd_file_tape(const char* filepath,const char* mode) {
+    this->open(filepath, mode);
+  }
+public:
+  bool open(const char* filepath, const char* mode) {
+    this->close();
+
 #ifdef _MSC_VER
     file=std::fopen(filepath,mode);
 #elif defined(__MINGW32__)
@@ -71,19 +76,17 @@ public:
     if(file!=nullptr)
       _file.reset(file,std::fclose);
 
-    bool is_a=nullptr!=strchr(mode,'a');
-    bool is_r=nullptr!=strchr(mode,'r');
-    bool is_w=nullptr!=strchr(mode,'w');
-    bool is_p=nullptr!=strchr(mode,'+');
+    bool is_a=nullptr!=std::strchr(mode,'a');
+    bool is_r=nullptr!=std::strchr(mode,'r');
+    bool is_w=nullptr!=std::strchr(mode,'w');
+    bool is_p=nullptr!=std::strchr(mode,'+');
     f_read=is_r||is_p;
     f_write=is_w||is_p||is_a;
     f_seek=!is_a;
-    //std::printf("dbg: mode: %s\n",mode);
-    //std::printf("dbg: w: %d\n",is_w);
-    //std::printf("dbg: +: %d\n",is_p);
-    //std::printf("dbg: f_write: %d\n",this->f_write);
+
+    return is_alive();
   }
-public:
+
   bool is_alive() const{
     return file!=nullptr;
   }
