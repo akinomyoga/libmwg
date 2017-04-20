@@ -473,7 +473,7 @@ namespace mwtfile_detail {
         std::size_t const old_nblock = blocks.size();
         if (old_nblock == nblock) return;
 
-        blocks.reserve(nblock, bid_unused);
+        blocks.reserve(nblock);
         bid_t bid_next = bid_end;
         for (u4t iblock = nblock; iblock-- > old_nblock; ) {
           bid_t const bid = _block_allocate(bid_next);
@@ -777,7 +777,7 @@ namespace mwtfile_detail {
 
   public:
     bool heap_read(hid_t hid, heap_entry const& entry, u4t offset, void* data, u4t sz) {
-      mwg_check(check_overflow_add<u4t>(offset, sz), "overflow");
+      mwg_check(check_overflow_add<u4t>(offset, sz), "overflow: offset=0x%" PRIx32 ", sz=0x%" PRIx32, offset, sz);
       mwg_check(offset + sz <= entry.size, "out of range");
       int const level = get_heap_level(entry.size);
       if (level < 0) {
@@ -796,7 +796,7 @@ namespace mwtfile_detail {
       }
     }
     bool heap_write(hid_t hid, heap_entry& entry, u4t offset, void const* data, u4t sz) {
-      mwg_check(check_overflow_add<u4t>(offset, sz), "overflow");
+      mwg_check(check_overflow_add<u4t>(offset, sz), "overflow: offset=0x%" PRIx32 ", sz=0x%" PRIx32, offset, sz);
       mwg_check(offset + sz <= entry.size, "out of range. stream size is not automatically extended");
       int const level = get_heap_level(entry.size);
       if (level < 0) {
@@ -859,7 +859,7 @@ namespace mwtfile_detail {
     int read(void* data, int unit, int n = 1) const {
       u4t const capacity = (m_size - m_pos) / unit;
       if (capacity < n) n = capacity;
-      file->heap_read(hid, entry, data, n * unit);
+      file->heap_read(hid, entry, m_pos, data, n * unit);
       m_pos += n * unit;
       return n;
     }
@@ -873,18 +873,23 @@ namespace mwtfile_detail {
       u4t const wsize   = n * unit;
       u4t const newpos  = m_pos + wsize;
       u4t const newsize = newpos > m_size? newpos: m_size;
-      if (wbuff.size() + wsize < wbuff.capacity()) {
+      if (wbuff.size() + wsize <= wbuff.capacity()) {
         wbuff.insert(wbuff.end(), data, data + wsize);
       } else if (wbuff.empty()) {
         if (entry.size < newsize)
           file->reallocate(hid, newsize, entry);
         file->heap_write(hid, entry, m_pos, data, wsize);
       } else if (wbuff.size() + wsize < 2 * wbuff.capacity()) {
+        if (entry.size < newsize)
+          file->reallocate(hid, newsize, entry);
+        u4t const buffered_pos = m_pos - wbuff.size();
         std::size_t const rest = wbuff.capacity() - wbuff.size();
         wbuff.insert(wbuff.end(), data, data + rest);
-        flush();
+        file->heap_write(hid, entry, buffered_pos, &wbuff[0], wbuff.size());
+        wbuff.clear();
         wbuff.insert(wbuff.end(), data + rest, data + wsize);
       } else {
+        mwg_assert(wbuff.size() <= m_pos, "|wbuff| = %zd, m_pos = %" PRId32, wbuff.size(), m_pos);
         if (entry.size < newsize)
           file->reallocate(hid, newsize, entry);
         file->heap_write(hid, entry, m_pos - wbuff.size(), &wbuff[0], wbuff.size());
@@ -934,6 +939,7 @@ namespace mwtfile_detail {
     }
     int flush() const {
       if (wbuff.empty()) return 0;
+      mwg_assert(wbuff.size() <= m_pos, "|wbuff| = %zd, m_pos = %" PRId32, wbuff.size(), m_pos);
       if (entry.size < m_size)
         file->reallocate(hid, m_size, entry);
       bool const result = file->heap_write(hid, entry, m_pos - wbuff.size(), &wbuff[0], wbuff.size());
@@ -1019,8 +1025,14 @@ void test() {
 
     typedef Mwt::mwheap_tape<mwg::bio::ftape const&> tape1_t;
     mwg::bio::tape_head<tape1_t> head1(tape1);
-    head1.write<mwg::u4t>(2134);
-    head1.write<mwg::u4t>(1234);
+    for (int i = 0; i < 1200; i++)
+      head1.write<mwg::u4t>(i * (i + 1) % 9731);
+    head1.seek(0);
+    for (int i = 0; i < 1200; i++) {
+      mwg::u4t value;
+      head1.read<mwg::u4t>(value);
+      mwg_check_nothrow(value == i * (i + 1) % 9731);
+    }
   }
 
   // mwt.debug_print_fat();
