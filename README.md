@@ -42,3 +42,5 @@ Currently it's only tested with the following C++ implementations:
 - Cygwin (Windows 10)
   - g++ (GCC) 5.4.0 (`-std=c++98, c++11, c++14`)
   - clang version 3.8.1 (tags/RELEASE_381/final) (Target: i686-pc-windows-cygnus) (`-std=c++98, c++11, c++14`)
+  - cl.exe 19.00.24213.1 (Microsoft(R) C/C++ Optimizing Compiler Version 19.00.24213.1 for x86)
+  - cl.exe 19.10.25017 (Microsoft(R) C/C++ Optimizing Compiler Version 19.10.25017 for x86)
