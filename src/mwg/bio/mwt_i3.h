@@ -17,10 +17,17 @@
 #pragma%include "../impl/ManagedTest.pp"
 #pragma%x begin_check
 #include <cstdio>
+#include <string>
+#include <cstring>
 #include <mwg/except.h>
 #include <mwg/bio/mwt_i3.h>
+std::string outputdir = ".";
 int main(int argc, char** argv){
-  //if (argc > 0) std::puts(argv[0]);
+  if (argc > 0) {
+    char* const last = std::strrchr(argv[0], '/');
+    if (last) outputdir = std::string(argv[0], last);
+  }
+
   managed_test::run_tests();
   return 0;
 }
@@ -1011,12 +1018,16 @@ void test_heap_read_and_write(mwheap_t& mwt, mwg::bio::mwtfile_detail::hid_t hid
 void test() {
   namespace Mwt = mwg::bio::mwtfile_detail;
 
-  mwg::bio::ftape file("a.mwheap", "r+");
-  mwg_check(file);
+  std::string filename = outputdir + "/a.mwheap";
+  mwg::bio::ftape file;
+  if (!file.open(filename.c_str(), "r+"))
+    file.open(filename.c_str(), "w+");
+  mwg_check(file, "failed to open the file '%s'\n", filename.c_str());
+
   Mwt::mwheap<mwg::bio::ftape const&> mwt(file);
   if (!mwt) {
     std::fprintf(stderr, "a.mwheap is an invalid mwheap file.\n%s", mwt.message.c_str());
-    return;
+    mwg_check(mwt);
   }
 
   mwt.debug_print_fat();
