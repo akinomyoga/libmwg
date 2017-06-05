@@ -111,6 +111,15 @@ namespace stat{
     product_binning(product_binning&& other)
       :data(mwg::stdm::move(other.data)){}
 # endif
+
+  public:
+    product_binning& operator=(const product_binning& rhs)
+#ifdef MWGCONF_STD_DEFAULTED_FUNCTIONS
+    = default;
+#else
+    {this->data = rhs.data;}
+#endif
+
   public:
     std::size_t size() const{
       return detail::ProductBinningImpl<sizeof...(TBs)-1>::GetBinNumber(data);
