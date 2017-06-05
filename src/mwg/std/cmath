@@ -357,29 +357,29 @@ namespace stdm {
 #pragma%end
 #pragma%#ppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp#
 
+#pragma%x MWG_STDM_CMATH::ImportClassificationMacros.r/@fname/isnan/   .r/@expr/value != value/
+#pragma%x MWG_STDM_CMATH::ImportClassificationMacros.r/@fname/isinf/   .r/@expr/value == (T) INFINITY || value == (T) -INFINITY/
+#pragma%x MWG_STDM_CMATH::ImportClassificationMacros.r/@fname/isfinite/.r/@expr/!(mwg::stdm_detail::isnan_impl(value) || mwg::stdm_detail::isinf_impl(value))/
 #if !defined(MWGCONF_HAS_STD_ISNORMAL) && !defined(MWGCONF_HAS_ISNORMAL) && !defined(isnormal)
 namespace mwg {
 namespace stdm {
 namespace cmath_detail {
   static inline bool isnormal_impl(const float& value) {
-    if (!mwg::stdm_detail::isfinite_impl(value)) return false;
+    if (!mwg::stdm::isfinite(value)) return false;
     return value >= FLT_MIN || -FLT_MIN >= value;
   }
   static inline bool isnormal_impl(const double& value) {
-    if (!mwg::stdm_detail::isfinite_impl(value)) return false;
+    if (!mwg::stdm::isfinite(value)) return false;
     return value >= DBL_MIN || -DBL_MIN >= value;
   }
   static inline bool isnormal_impl(const long double& value) {
-    if (!mwg::stdm_detail::isfinite_impl(value)) return false;
+    if (!mwg::stdm::isfinite(value)) return false;
     return value >= LDBL_MIN || -LDBL_MIN >= value;
   }
 }
 }
 }
 #endif
-#pragma%x MWG_STDM_CMATH::ImportClassificationMacros.r/@fname/isnan/   .r/@expr/value != value/
-#pragma%x MWG_STDM_CMATH::ImportClassificationMacros.r/@fname/isinf/   .r/@expr/value == (T) INFINITY || value == (T) -INFINITY/
-#pragma%x MWG_STDM_CMATH::ImportClassificationMacros.r/@fname/isfinite/.r/@expr/!(mwg::stdm_detail::isnan_impl(value) || mwg::stdm_detail::isinf_impl(value))/
 #pragma%x MWG_STDM_CMATH::ImportClassificationMacros.r/@fname/isnormal/.r/@expr/mwg::stdm::cmath_detail::isnormal_impl(value)/
 
 #endif /* end of !defined(_MSC_VER) */
