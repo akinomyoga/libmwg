@@ -137,6 +137,26 @@ namespace stdm {
 # define mwg_constexpr14
 #endif
 //------------------------------------------------------------------------------
+//  noexcept
+//------------------------------------------------------------------------------
+#ifdef MWGCONF_STD_NOEXCEPT
+# define mwg_noexcept         noexcept
+# define mwg_noexcept_when(A) noexcept(A)
+#else
+# define mwg_noexcept
+# define mwg_noexcept_when(A)
+#endif
+//------------------------------------------------------------------------------
+//  override / final
+//------------------------------------------------------------------------------
+#ifdef MWGCONF_STD_OVERRIDE_CONTROL
+# define mwg_override override
+# define mwg_final    final
+#else
+# define mwg_override
+# define mwg_final
+#endif
+//------------------------------------------------------------------------------
 //  static_assert
 //------------------------------------------------------------------------------
 #ifndef MWGCONF_STD_STATIC_ASSERT

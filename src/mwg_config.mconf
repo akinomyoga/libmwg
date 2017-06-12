@@ -302,7 +302,7 @@ declare_feature() {
 
 EOF
 
-  if test -n "$c_gcc$c_icc$c_vc$c_clang"; then
+  if [[ $c_gcc$c_icc$c_vc$c_clang ]]; then
     P "/* $defname will be defined in $msg_commonConfigName */"
     P
   else
@@ -482,6 +482,26 @@ cond_msc='_MSC_VER>=1800'
 cond_clang='__has_feature(cxx_generalized_initializers)' # clang-3.1
 cond_expression='int a { 1 };'
 declare_feature initializer_lists 200806
+
+#------------------------------------------------------------------------------
+# c++11 noexcept (N3050)
+
+cond_gcc='MWGCONF_GCC_STD11>=40600'
+cond_icc='MWGCONF_ICC_STD11>=1400'
+cond_msc='_MSC_VER>=1900'
+cond_clang='-a' # clang-3.0
+cond_expression='struct C { void mem() noexcept {} };'
+declare_feature noexcept 201003
+
+#------------------------------------------------------------------------------
+# c++11 override_control (N2928, N3206, N3272)
+
+cond_gcc='MWGCONF_GCC_STD11>=40700'
+cond_icc='MWGCONF_ICC_STD11>=1400'
+cond_msc='_MSC_VER>=1700'
+cond_clang='-a' # clang-2.9
+cond_expression='struct B {virtual void mem() {}}; struct C1: B {void mem() override {}}; struct C2: B {void mem() final {}};'
+declare_feature override_control 201103
 
 #------------------------------------------------------------------------------
 # c++1y concept
