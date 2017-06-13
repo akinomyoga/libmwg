@@ -11,6 +11,8 @@
 #include <cmath>
 #include <cfloat>
 #include <climits>
+#include <algorithm>
+#include <utility>
 #include <mwg/defs.h>
 #include <mwg/std/type_traits>
 
@@ -1083,8 +1085,14 @@ namespace stdm {
   using ::std::sqrt;
 #endif
 
+//
+// C++11 std::cbrt
+//
 #pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/cbrt/.r|@expr|return mwg::stdm::copysign(std::pow(std::abs((R) value), R(1.0 / 3.0)), value)|
 
+//
+// C++11 std::hypot(x, y)
+//
 //?mconf check_cfunc 2 hypot HYPOT
 #if !defined(MWGCONF_HAS_STD_HYPOT)
 # ifdef MWGCONF_HAS_HYPOT
@@ -1093,16 +1101,42 @@ namespace stdm {
   template<typename T, typename U>
   typename cmath_detail::overload<T, U>::type hypot(T x, U y) {
     typedef typename cmath_detail::overload<T, U>::type R;
-    R const x_ = std::abs((R) x), y_ = std::abs((R) y);
-    if (x_ == 0.0 && y_ == 0.0)
+    R const _x = std::abs((R) x), _y = std::abs((R) y);
+    if (_x == 0.0 && _y == 0.0)
       return 0.0;
-    else if (x_ < y_)
-      return y_ * std::sqrt(1.0 + (x_ / y_) * (x_ / y_));
+    else if (_x < _y)
+      return _y * std::sqrt(1.0 + (_x / _y) * (_x / _y));
     else
-      return x_ * std::sqrt(1.0 + (y_ / x_) * (y_ / x_));
+      return _x * std::sqrt(1.0 + (_y / _x) * (_y / _x));
   }
   static inline float hypotf(float lhs, float rhs) {return hypot(lhs, rhs);}
   static inline long double hypotl(long double lhs, long double rhs) {return hypot(lhs, rhs);}
+# endif
+#elif defined(MWGCONF_GCC295BUG_USING_NAMESPACE_STD)
+  using ::std::hypot;
+#endif
+
+//
+// C++17 std::hypot(x, y, z)
+//
+//?mconf check_cfunc 3 hypot HYPOT3
+#if !defined(MWGCONF_HAS_STD_HYPOT3)
+# ifdef MWGCONF_HAS_HYPOT3
+#pragma%x MWG_STDM_CMATH::ImportTernaryMathFunction::UseCOverload.r/@fname/hypot/
+# else
+  template<typename T, typename U, typename V>
+  typename cmath_detail::overload<T, U, V>::type hypot(T x, U y, V z) {
+    typedef typename cmath_detail::overload<T, U, V>::type R;
+    R _x = std::abs((R) x), _y = std::abs((R) y), _z = std::abs((R) z);
+    if (_x < _z) std::swap(_x, _z);
+    if (_x < _y) std::swap(_x, _y);
+    if (_x == 0.0) return 0.0;
+    _y /= _x;
+    _z /= _x;
+    return _x * std::sqrt(1.0 + _y * _y + _z * _z);
+  }
+  static inline float hypotf(float a1, float a2, float a3) {return hypot(a1, a2, a3);}
+  static inline long double hypotl(long double a1, long double a2, long double a3) {return hypot(a1, a2, a3);}
 # endif
 #elif defined(MWGCONF_GCC295BUG_USING_NAMESPACE_STD)
   using ::std::hypot;
