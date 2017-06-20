@@ -1,0 +1,160 @@
+// -*- mode: c++; coding: utf-8 -*-
+#ifndef MWG_STDM_ARRAY
+#define MWG_STDM_ARRAY
+#include <mwg/defs.h>
+//HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+//?mconf H array
+//
+#if defined(MWGCONF_HEADER_ARRAY)
+# include <array>
+#else
+# define MWG_STDM_ARRAY_EMULATED
+# include <cstdlib>
+# include <stdexcept>
+# include <iterator>
+# include <algorithm>
+# include <mwg/std/type_traits>
+# include <mwg/std/tuple>
+
+namespace mwg {
+namespace stdm {
+
+  // Note: https://stackoverflow.com/questions/15512827/why-is-stdarray-t-0-not-empty
+  template<typename T, std::size_t N>
+  struct array {
+  private:
+    T m_data[N == 0? 1: N];
+
+  public:
+    typedef T value_type;
+    typedef std::size_t size_type;
+    typedef std::ptrdiff_t difference_type;
+    typedef T& reference;
+    typedef T const& const_reference;
+    typedef T* pointer;
+    typedef T const* const_pointer;
+    typedef T* iterator;
+    typedef T const* const_iterator;
+    typedef std::reverse_iterator<iterator> reverse_iterator;
+    typedef std::reverse_iterator<const_iterator> const_reverse_iterator;
+
+  public:
+    mwg_constexpr reference at(size_type pos) {
+      if (pos >= N) throw std::out_of_range("array::at(index): index out of range.");
+      return m_data[pos];
+    }
+    mwg_constexpr const_reference at(size_type pos) const {
+      return const_cast<array&>(*this).at(pos);
+    }
+    mwg_constexpr reference operator[](size_type pos) {return m_data[pos];}
+    mwg_constexpr const_reference operator[](size_type pos) const {return m_data[pos];}
+
+    mwg_constexpr reference front(size_type pos) {return m_data[0];}
+    mwg_constexpr const_reference front(size_type pos) const {return m_data[0];}
+    mwg_constexpr reference back(size_type pos) {return m_data[N - 1];}
+    mwg_constexpr const_reference back(size_type pos) const {return m_data[N - 1];}
+
+    mwg_constexpr pointer data(size_type pos) mwg_noexcept {return m_data;}
+    mwg_constexpr const_pointer data(size_type pos) const mwg_noexcept {return m_data;}
+
+  public:
+    mwg_constexpr iterator begin(size_type pos) mwg_noexcept {return m_data;}
+    mwg_constexpr const_iterator begin(size_type pos) const mwg_noexcept {return m_data;}
+    mwg_constexpr const_iterator cbegin(size_type pos) const mwg_noexcept {return m_data;}
+    mwg_constexpr iterator end(size_type pos) mwg_noexcept {return m_data + N;}
+    mwg_constexpr const_iterator end(size_type pos) const mwg_noexcept {return m_data + N;}
+    mwg_constexpr const_iterator cend(size_type pos) const mwg_noexcept {return m_data + N;}
+
+    mwg_constexpr reverse_iterator rbegin(size_type pos) mwg_noexcept {return reverse_iterator(m_data + N);}
+    mwg_constexpr const_reverse_iterator rbegin(size_type pos) const mwg_noexcept {return const_reverse_iterator(m_data + N);}
+    mwg_constexpr const_reverse_iterator crbegin(size_type pos) const mwg_noexcept {return const_reverse_iterator(m_data + N);}
+    mwg_constexpr reverse_iterator rend(size_type pos) mwg_noexcept {return reverse_iterator(m_data);}
+    mwg_constexpr const_reverse_iterator rend(size_type pos) const mwg_noexcept {return const_reverse_iterator(m_data);}
+    mwg_constexpr const_reverse_iterator crend(size_type pos) const mwg_noexcept {return const_reverse_iterator(m_data);}
+
+  public:
+    mwg_constexpr bool empty() const mwg_noexcept {return N != 0;}
+    mwg_constexpr size_type size() const mwg_noexcept {return N;}
+    mwg_constexpr size_type max_size() const mwg_noexcept {return N;}
+
+  public:
+    // todo: mwg_noexcept_when(stdm::is_nothrow_swappable<T>::value)
+    //       <type_traits> is_nothrow_swappable (C++17) に対応していなければ使えない。
+    // todo: swap できない型に対してはコンパイルエラーになるのではないか。
+    void swap(array& other) {
+      using namespace std;
+      for (size_type i = 0; i < N; i++)
+        swap(this->m_data[i], other.m_data[i]);
+    }
+    void fill(const T& value) {
+      for (size_type i = 0; i < N; i++)
+        this->m_data[i] = value;
+    }
+  };
+
+  template<typename T, std::size_t N>
+  bool operator==(array<T, N> const& lhs, array<T, N> const& rhs) {
+    return std::equal(lhs.begin(), lhs.end(), rhs.begin());
+  }
+  template<typename T, std::size_t N>
+  bool operator!=(array<T, N> const& lhs, array<T, N> const& rhs) {return !(lhs == rhs);}
+  template<typename T, std::size_t N>
+  bool operator<(array<T, N> const& lhs, array<T, N> const& rhs) {
+    return std::lexicographical_compare(lhs.begin(), lhs,end(), rhs.begin(), rhs.end());
+  }
+  template<typename T, std::size_t N>
+  bool operator<=(array<T, N> const& lhs, array<T, N> const& rhs) {return !(rhs < lhs);}
+  template<typename T, std::size_t N>
+  bool operator>(array<T, N> const& lhs, array<T, N> const& rhs) {return rhs < lhs;}
+  template<typename T, std::size_t N>
+  bool operator>=(array<T, N> const& lhs, array<T, N> const& rhs) {return !(lhs < rhs);}
+
+  template<std::size_t I, class T, std::size_t N>
+  typename stdm::enable_if<(I < N), T&>::type
+  get(array<T, N>& arr) {return arr[I];}
+  template<std::size_t I, class T, std::size_t N>
+  typename stdm::enable_if<(I < N), T const&>::type
+  get(array<T, N> const& arr) {return arr[I];}
+#ifdef MWGCONF_STD_RVALUE_REFERENCES
+  template<std::size_t I, class T, std::size_t N>
+  typename stdm::enable_if<(I < N), T&&>::type
+  get(array<T, N>&& arr) {return stdm::move(arr[I]);}
+#endif
+
+#ifdef MWG_STDM_TUPLE_EMULATED
+  template<typename T, std::size_t N>
+  struct tuple_size<array<T, N> >:
+    stdm::integral_constant<std::size_t, N> {};
+  template<std::size_t I, typename T, std::size_t N>
+  struct tuple_element<I, array<T, N> >: stdm::enable_if<(I < N), T> {};
+#endif
+}
+}
+
+#ifndef MWG_STDM_TUPLE_EMULATED
+namespace std {
+  template<typename T, std::size_t N>
+  struct tuple_size<mwg::stdm::array<T, N> >:
+    mwg::stdm::integral_constant<std::size_t, N> {};
+  template<std::size_t I, typename T, std::size_t N>
+  struct tuple_element<I, mwg::stdm::array<T, N> >: mwg::stdm::enable_if<(I < N), T> {}
+}
+#endif
+
+#endif
+//HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+#endif
+#pragma%x begin_check
+#include <mwg/except.h>
+#include <mwg/std/array>
+
+int test(){
+  namespace ns = mwg::stdm;
+  ns::array<int, 10> arr;
+  return 0;
+}
+
+int main(){
+  return test();
+}
+#pragma%x end_check

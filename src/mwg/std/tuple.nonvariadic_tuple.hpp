@@ -1,6 +1,7 @@
 // -*- mode: c++; coding: utf-8 -*-
 #ifndef MWG_STDM_TUPLE_NONVARIADIC_TUPLE_INL
 #define MWG_STDM_TUPLE_NONVARIADIC_TUPLE_INL
+#define MWG_STDM_TUPLE_EMULATED
 #include <cstddef>
 #include <mwg/defs.h>
 #include <mwg/std/type_traits>
