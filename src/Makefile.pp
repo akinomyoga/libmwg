@@ -46,6 +46,7 @@ Makefile: Makefile.pp
 #%x AddCxxHeader.r|%file%|mwg/std/tuple.nonvariadic_tuple.inl|
 #%x AddCxxHeader.r|%file%|mwg/std/tuple.variadic_tuple.inl|
 #%x AddCxxHeader.r|%file%|mwg/std/array|
+#%x AddCxxHeader.r|%file%|mwg/std/algorithm|
 
 #%x AddCxxHeader.r|%file%|mwg/bits/autoload.inl|
 

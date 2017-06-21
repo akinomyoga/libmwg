@@ -1,0 +1,169 @@
+// -*- mode: c++; coding: utf-8 -*-
+#ifndef MWG_STDM_ALGORITHM
+#define MWG_STDM_ALGORITHM
+#include <algorithm>
+
+// todo: <execution>
+
+#include <mwg/std/initializer_list>
+
+#ifndef MWG_STD_CXX11
+# include <mwg/defs.h>
+# include <mwg/std/utility>
+namespace mwg {
+namespace stdm {
+  template<typename InputIterator, typename Predicate>
+  bool any_of(InputIterator first, InputIterator last, Predicate pred) {
+    for (; first != last; ++first) if (pred(*first)) return true;
+    return false;
+  }
+
+  template<typename InputIterator, typename Predicate>
+  bool none_of(InputIterator first, InputIterator last, Predicate pred) {
+    return !any_of(first, last, pred);
+  }
+
+  template<typename InputIterator, typename Predicate>
+  bool all_of(InputIterator first, InputIterator last, Predicate pred) {
+    for (; first != last; ++first) if (!pred(*first)) return false;
+    return true;
+  }
+
+  template<typename InputIterator, typename UnaryPredicate>
+  InputIterator find_if_not(InputIterator first, InputIterator last, UnaryPredicate pred) {
+    for (; first != last; ++first) if (!pred(*first)) break;
+    return first;
+  }
+
+  template<typename InputIterator, typename OutputIterator, typename UnaryPredicate>
+  OutputIterator copy_if(InputIterator src, InputIterator src_end, OutputIterator dst, UnaryPredicate pred) {
+    for (; src != src_end; ++src) if (pred(*src)) *dst++ = *src;
+    return dst;
+  }
+
+  template<typename InputIterator, typename Size, typename OutputIterator>
+  OutputIterator copy_n(InputIterator src, Size n, OutputIterator dst) {
+    while (n--) *dst++ = *src++;
+    return dst;
+  }
+
+  template<typename InputIterator, typename OutputIterator>
+  OutputIterator move(InputIterator src, InputIterator src_last, OutputIterator dst) {
+    while (src != src_last) *dst++ = stdm::move(*src++);
+    return dst;
+  }
+
+  template<typename BidirectionalIterator1, typename BidirectionalIterator2>
+  BidirectionalIterator2 move_backward(BidirectionalIterator1 src_first, BidirectionalIterator1 src_last, BidirectionalIterator2 dst_last ) {
+    while (src_first != src_last) *--dst_last = stdm::move(*--src_last);
+    return dst_last;
+  }
+
+  template<typename OutputIterator, typename Size, typename T>
+  OutputIterator fill_n(OutputIterator first, Size n, const T& value) {
+    while (n--) *first++ = value;
+    return first;
+  }
+
+  template<typename OutputIterator, typename Size, typename Generator>
+  OutputIterator generate_n(OutputIterator first, Size n, Generator generator) {
+    while (n--) *first++ = generator();
+    return first;
+  }
+
+}
+
+#endif /* end of MWG_STD_CXX11 */
+
+#ifndef MWG_STD_CXX14
+# include <mwg/defs.h>
+# include <mwg/std/utility>
+# include <mwg/std/functional>
+
+// todo: <mwg/std/functional> mwg::stdm::equal_to<>
+
+// C++14
+namespace mwg {
+namespace stdm {
+  template<typename InputIterator1, typename InputIterator2>
+  std::pair<InputIterator1, InputIterator2> mismatch(InputIterator1 first1, InputIterator2 last1, InputIterator2 first2, InputIterator2 last2, BinaryPredicate pred) {
+    while (first1 != last1 && first2 != last2 && pred(*first1, *first2)) ++first1, ++first2;
+    return stdm::make_pair(first1, first2);
+  }
+
+  template<typename InputIterator1, typename InputIterator2>
+  std::pair<InputIterator1, InputIterator2> mismatch(InputIterator1 first1, InputIterator2 last1, InputIterator2 first2, InputIterator2 last2) {
+    return mismatch(first1, last1, first2, last2, stdm::equal_to<>());
+  }
+
+  template<typename InputIterator1, typename InputIterator2>
+  bool equal(InputIterator1 first1, InputIterator2 last1, InputIterator2 first2, InputIterator2 last2, BinaryPredicate pred) {
+    for (; first1 != last1 && first2 != last2; ++first1, ++first2)
+      if (!pred(*first1, *first2)) return false;
+  }
+
+  template<typename InputIterator1, typename InputIterator2>
+  bool equal(InputIterator1 first1, InputIterator2 last1, InputIterator2 first2, InputIterator2 last2) {
+    return equal(first1, last1, first2, last2, stdm::equal_to<>());
+  }
+
+}
+
+#endif /* end of MWG_STD_CXX14 */
+
+#ifndef MWG_STD_CXX17
+// C++17
+
+namespace mwg {
+namespace stdm {
+  template<typename InputIterator, typename Size, typename UnaryFunction>
+  InputIterator for_each_n(InputIterator first, Size n, UnaryFunction f) {
+    while (n--) f(*first++);
+  }
+
+  template<typename ForwardIterator, typename Searcher>
+  ForwardIterator search(ForwardIterator first, ForwardIterator last, const Searcher& searcher) {
+    return searcher(first, last).first;
+  }
+}
+}
+
+
+// C++17 <execution>
+//
+// template<typename InputIterator, typename Predicate>
+// bool all_of(ExecutionPolicy&& policy, InputIterator first, InputIterator last, Predicate pred);
+// template<typename InputIterator, typename Predicate>
+// bool any_of(ExecutionPolicy&& policy, InputIterator first, InputIterator last, Predicate pred);
+// template<typename InputIterator, typename Predicate>
+// bool none_of(ExecutionPolicy&& policy, InputIterator first, InputIterator last, Predicate pred);
+// template< class ExecutionPolicy, class ForwardIt, class UnaryFunction2 >
+// void for_each( ExecutionPolicy&& policy, ForwardIt first, ForwardIt last, UnaryFunction2 f );
+// template< class ExecutionPolicy, class ForwardIt, class Size, class UnaryFunction2 >
+// ForwardIt for_each_n( ExecutionPolicy&& policy, ForwardIt first, Size n, UnaryFunction2 f );
+// template< class ExecutionPolicy, class ForwardIt, class T >
+// typename iterator_traits<ForwardIt>::difference_type
+// count( ExecutionPolicy&& policy, ForwardIt first, ForwardIt last, const T &value );
+// template< class ExecutionPolicy, class ForwardIt, class UnaryPredicate >
+// typename iterator_traits<ForwardIt>::difference_type
+// count_if( ExecutionPolicy&& policy, ForwardIt first, ForwardIt last, UnaryPredicate p );
+//
+// ... many
+
+#endif /* end of MWG_STD_CXX17 */
+
+
+#endif /* end of MWG_STDM_ALGORITHM */
+#pragma%x begin_check
+#include <mwg/except.h>
+#include <mwg/std/algorithm>
+
+int test(){
+  namespace ns = mwg::stdm;
+  return 0;
+}
+
+int main(){
+  return test();
+}
+#pragma%x end_check

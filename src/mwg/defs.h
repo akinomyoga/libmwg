@@ -44,9 +44,17 @@ namespace mwg {
 
 // c.f. Q_UNUSED
 #ifndef mwg_unused
-# define mwg_unused(param) (void)param
+# define mwg_unused(param) (void) param
 #endif
 }
+
+#if __cplusplus >= 201103L
+# define MWG_STD_CXX11
+#endif
+#if __cplusplus >= 201402L
+# define MWG_STD_CXX14
+#endif
+#undef MWG_STD_CXX17
 
 //MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
 //  C++03 Features
@@ -57,7 +65,7 @@ namespace mwg {
 # define MWG_STD_WCHAR_UTF32
 #endif
 //MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
-//  C++0x Features
+//  C++11 Features
 //------------------------------------------------------------------------------
 //  nullptr
 //------------------------------------------------------------------------------
