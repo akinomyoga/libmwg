@@ -175,21 +175,43 @@ namespace stdm {
     }
   }
 
-  template<typename ForwardIterator, typename Compare>
-  ForwardIterator is_sorted_until(ForwardIterator first, ForwardIterator last, Compare compare) {
+  template<typename ForwardIterator>
+  ForwardIterator is_sorted_until(ForwardIterator first, ForwardIterator last) {
     return is_sorted_until(first, last, std::less<typename std::iterator_traits<ForwardIterator>::type>());
   }
 
   template<typename ForwardIterator, typename Compare>
   bool is_sorted(ForwardIterator first, ForwardIterator last, Compare compare) {
-    return is_sorted_until(first, last, compare) == last;
+    return last == is_sorted_until(first, last, compare);
   }
 
   template<typename ForwardIterator>
   bool is_sorted(ForwardIterator first, ForwardIterator last) {
-    return is_sorted_until(first, last) == last;
+    return last == is_sorted_until(first, last);
   }
 
+  template<typename RandomAccessIterator, typename Compare>
+  RandomAccessIterator is_heap_until(RandomAccessIterator first, RandomAccessIterator last, Compare compare) {
+    if (first == last) return first;
+    RandomAccessIterator parent = first++;
+    for (std::size_t i = 1; first != last && !compare(*parent, *first); ++first, ++i % 2 && ++parent);
+    return first;
+  }
+
+  template<typename RandomAccessIterator>
+  RandomAccessIterator is_heap_until(RandomAccessIterator first, RandomAccessIterator last) {
+    return is_heap_until(first, last, std::less<typename std::iterator_traits<ForwardIterator>::type>());
+  }
+
+  template<typename RandomAccessIterator, typename Compare>
+  bool is_heap(RandomAccessIterator first, RandomAccessIterator last, Compare compare) {
+    return last == is_heap_until(first, last, compare);
+  }
+
+  template<typename RandomAccessIterator>
+  bool is_heap(RandomAccessIterator first, RandomAccessIterator last) {
+    return last == is_heap_until(first, last);
+  }
 
 }
 }
