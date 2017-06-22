@@ -170,6 +170,16 @@ namespace stdm {
 # define mwg_final
 #endif
 //------------------------------------------------------------------------------
+//  auto / -> decltype()
+//------------------------------------------------------------------------------
+#if defined(MWGCONF_STD_AUTO_TYPE) && defined(MWGCONF_STD_DECLTYPE)
+# define mwg_auto(T) auto
+# define mwg_decltyped(EXPR) -> decltype(EXPR)
+#else
+# define mwg_auto(T) T
+# define mwg_decltyped(EXPR)
+#endif
+//------------------------------------------------------------------------------
 //  static_assert
 //------------------------------------------------------------------------------
 #ifndef MWGCONF_STD_STATIC_ASSERT

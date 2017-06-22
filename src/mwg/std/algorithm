@@ -2,11 +2,7 @@
 #ifndef MWG_STDM_ALGORITHM
 #define MWG_STDM_ALGORITHM
 #include <algorithm>
-
-// todo: <execution>
-
-#include <mwg/std/initializer_list>
-
+#include <mwg/defs.h>
 #ifndef MWG_STD_CXX11
 # include <iterator>
 # include <functional>
@@ -222,9 +218,7 @@ namespace stdm {
 # include <mwg/defs.h>
 # include <mwg/std/utility>
 # include <mwg/std/initializer_list>
-//# include <mwg/std/functional>
-
-// todo: <mwg/std/functional> mwg::stdm::equal_to<>
+# include <mwg/std/functional>
 
 // C++14
 namespace mwg {
@@ -326,8 +320,13 @@ namespace stdm {
 #endif /* end of MWG_STD_CXX14 */
 
 #ifndef MWG_STD_CXX17
-// C++17
+# include <iterator>
+# include <functional>
 
+// todo: <execution>
+
+
+// C++17
 namespace mwg {
 namespace stdm {
   template<typename InputIterator, typename Size, typename UnaryFunction>
@@ -375,10 +374,6 @@ namespace stdm {
   }
 #endif
 
-}
-}
-
-
 // C++17 <execution>
 //
 // template<typename InputIterator, typename Predicate>
@@ -399,6 +394,9 @@ namespace stdm {
 // count_if( ExecutionPolicy&& policy, ForwardIt first, ForwardIt last, UnaryPredicate p );
 //
 // ... many
+
+}
+}
 
 #endif /* end of MWG_STD_CXX17 */
 
