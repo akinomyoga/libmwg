@@ -71,6 +71,27 @@ namespace stdm {
     return first;
   }
 
+  template<typename ForwardIterator>
+  ForwardIterator rotate(ForwardIterator first, ForwardIterator mid, ForwardIterator last) {
+    if (first == last || mid == last) return first;
+    if (mid == first) return last;
+    ForwardIterator mid0 = mid;
+    do {
+      std::iter_swap(first++, mid++);
+      if (first == mid0) mid0 = mid;
+    } while (mid != last);
+
+    // We now know the return value, so use
+    // C++03 `std::rotate` to perform the remaining rotation.
+    ::std::rotate(first, mid0, last);
+    return first;
+  }
+
+  template<typename RandomIterator, typename UniformRandomBitGenerator>
+  void shuffle(RandomIterator first, RandomIterator last, UniformRandomBitGenerator mwg_forward_rvalue g) {
+    // call C++03 `std::random_shuffle` which is deprecated in C++14
+    ::std::random_shuffle(first, last, stdm::forward<URBG>(g));
+  }
 }
 
 #endif /* end of MWG_STD_CXX11 */
