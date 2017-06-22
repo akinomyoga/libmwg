@@ -23,9 +23,9 @@
 #include <mwg/except.h>
 #pragma%x end_check
 
-// ToDo: erf erfc tgamma lgamma
-// ToDo: strtof strtold 関連を cstdlib に移動(真面目に実装するとなると少々面倒であるが)。
-// ToDo: 古くからある関数や using した関数でも arithmetic overloads を追加する?
+// TODO: erf erfc tgamma lgamma
+// TODO: strtof strtold 関連を cstdlib に移動(真面目に実装するとなると少々面倒であるが)。
+// TODO: 古くからある関数や using した関数でも arithmetic overloads を追加する?
 
 namespace mwg {
 namespace stdm {

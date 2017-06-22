@@ -154,7 +154,7 @@ namespace cstdint_detail {
   typedef cstdint_detail::integer_switch<sizeof(void*)>::int_t intptr_t;
   typedef cstdint_detail::integer_switch<sizeof(void*)>::uint_t uintptr_t;
 
-  // todo
+  // TODO
   typedef int8_t  int_fast8_t;
   typedef int16_t int_fast16_t;
   typedef int32_t int_fast32_t;

@@ -13,7 +13,7 @@ namespace functor_detail{
 //    functor_traits_chain<F>
 //      F where `(*declval<F>()).operator()(...)` is a valid expression.
 //
-// ToDo
+// TODO
 //
 //   * operator() と operator() const の両方が定義されている場合
 //     どちらか一方を優先させる■

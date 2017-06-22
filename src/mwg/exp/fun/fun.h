@@ -720,7 +720,7 @@ namespace fun_detail {
       typename mem_t = typename type_traits::is_member_pointer<MemObj>::member_type,
       typename obj_t = typename type_traits::is_member_pointer<MemObj>::object_type,
 
-      // ToDo @intrinsic_overload
+      // TODO @intrinsic_overload
       typename mem_lref_t = typename stdm::add_lvalue_reference<mem_t>::type,
       typename mem_cref_t = typename stdm::conditional<
         stdm::is_reference<mem_t>::value, mem_t,
@@ -799,7 +799,7 @@ namespace fun_detail {
       //   + 右辺値参照のある環境では obj_t& 及び obj_t&& の多重定義を作ることに対応するが、
       //     現状では未だ intrinsic_signature として多重定義を許す様になっていないので、
       //     取り敢えずのところは const& で修飾して内部で const_cast する様にして置く。
-      //     ToDo @intrinsic_overload
+      //     TODO @intrinsic_overload
       //
       typename obj_cref_t = typename type_traits::reference_parameter<obj_t>::type,
 

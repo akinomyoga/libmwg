@@ -118,8 +118,8 @@ namespace stdm {
 # include <mwg/defs.h>
 # include <mwg/std/utility>
 
-//todo: find_first_of
-//todo: is_permutation
+//TODO: find_first_of
+//TODO: is_permutation
 
 // C++11
 namespace mwg {

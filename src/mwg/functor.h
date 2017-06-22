@@ -261,7 +261,7 @@ namespace functor_detail {
 
   template<typename F, typename S, typename CaseTr>
   struct _as_functor_adapter {};
-// ToDo: struct _as_functor_adapter<F, R (A..., ...)>;
+// TODO: struct _as_functor_adapter<F, R (A..., ...)>;
 #pragma%m 1
   template<typename F, typename CaseTr, typename R, typename... A>
   struct _as_functor_adapter<F, R (A...), CaseTr> {

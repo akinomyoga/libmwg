@@ -78,9 +78,9 @@ namespace stdm {
     mwg_constexpr size_type max_size() const mwg_noexcept {return N;}
 
   public:
-    // todo: mwg_noexcept_when(stdm::is_nothrow_swappable<T>::value)
+    // TODO: mwg_noexcept_when(stdm::is_nothrow_swappable<T>::value)
     //       <type_traits> is_nothrow_swappable (C++17) に対応していなければ使えない。
-    // todo: swap できない型に対してはコンパイルエラーになるのではないか。
+    // TODO: swap できない型に対してはコンパイルエラーになるのではないか。
     void swap(array& other) {
       using namespace std;
       for (size_type i = 0; i < N; i++)
