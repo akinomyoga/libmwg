@@ -16,9 +16,9 @@ fname_swc="$CFGDIR/include/mwg_config_common.h"
 msg_commonConfigName=mwg/config.h
 exec 7>"$fname_swc"; fdbase=7
 cat<<EOF >&$fdbase
-#pragma once
 #ifndef MWGCONF_MWG_CONFIG_COMMON_H
 #define MWGCONF_MWG_CONFIG_COMMON_H
+#include <mwg_config.h>
 
 #ifdef __GNUC__
 # define MWG_GNUC_VER (__GNUC__*10000+__GNUC_MINOR__*100+__GNUC_PATCHLEVEL__)
@@ -180,9 +180,6 @@ cat<<EOF >&$fdbase
 
 EOF
 
-# C++11 Features
-#   http://wiki.apache.org/stdcxx/C%2B%2B0xCompilerSupport
-
 if M compiler_icc   '' __INTEL_COMPILER; then
   # MWGCONF_ICC_VER
   #   MWGCONF_ICC_VER  500 : icc 5.0.0
@@ -263,9 +260,33 @@ elif M compiler_vc    '' _MSC_VER; then
   c_vc=1
 fi
 
-# TODO: Preprocessor __VA_ARGS__ / MWG_STD_VA_ARGS
+#******************************************************************************
+#
+#  C++ Features
+#
+#******************************************************************************
+#
+# Table
+#
+#   http://en.cppreference.com/w/cpp/compiler_support
+#   http://wiki.apache.org/stdcxx/C%2B%2B0xCompilerSupport
+#
+# ToDo: Preprocessor __VA_ARGS__ / MWG_STD_VA_ARGS
+#
 #------------------------------------------------------------------------------
 # definitions
+
+cat <<EOF >&$fdbase
+//*****************************************************************************
+//
+// C++ Features
+//
+//-----------------------------------------------------------------------------
+#ifndef mwg_has_feature
+# define mwg_has_feature(NAME) mwg_has_feature_IMPL_##NAME
+#endif
+
+EOF
 
 # @var[in] cond_msc
 # @var[in] cond_gcc
@@ -274,7 +295,8 @@ fi
 declare_feature() {
   local name="$1"
   local value="$2"
-  local defname; mwg.uppercase.set defname "MWGCONF_STD_$name"
+  local defname_old; mwg.uppercase.set defname_old "MWGCONF_STD_$name"
+  local defname=mwg_has_feature_IMPL_cxx_$name
   local m_cond_gcc="${cond_gcc}"
   local m_cond_icc="${cond_icc}"
   local m_cond_msc="${cond_msc}"
@@ -288,15 +310,20 @@ declare_feature() {
   
   cat <<EOF >&$fdbase
 //-----------------------------------------------------------------------------
-//  $defname: $name
+//  mwg_has_feature(cxx_$name)
 //-----------------------------------------------------------------------------
 #ifndef $defname
-# if (${m_cond_gcc})||(${m_cond_icc})||(${m_cond_msc})
-#  define $defname${value:+ }$value
+# if (${m_cond_gcc}) || (${m_cond_icc}) || (${m_cond_msc})
+#  define $defname ${value:-1}
 # elif defined(MWGCONF_CLANG_VER)
 #  if $m_cond_clang
-#   define $defname${value:+ }$value
+#   define $defname ${value:-1}
 #  endif
+# endif
+# ifdef $defname
+#  define $defname_old $defname
+# else
+#  define $defname 0
 # endif
 #endif
 
@@ -312,8 +339,10 @@ void f(){
 }
 EOF
       D $defname 1
+      D $defname_old 1
     else
-      D $defname
+      D $defname 0
+      D $defname_old
     fi
   fi
 }
@@ -504,7 +533,27 @@ cond_expression='struct B {virtual void mem() {}}; struct C1: B {void mem() over
 declare_feature override_control 201103
 
 #------------------------------------------------------------------------------
-# c++1y concept
+# c++14 variable templates (N3651)
+
+cond_gcc='MWGCONF_GCC_STD11>=50000'
+cond_icc='MWGCONF_ICC_STD11>=1700'
+cond_msc='_MSC_VER>=1900'
+cond_clang='-a' # clang-3.4
+cond_expression='struct B {template<typename T> static constexpr T pi = 3.14;}; double a = B::pi<double>;'
+declare_feature variable_templates 201304
+
+#------------------------------------------------------------------------------
+# c++17 inline variables (P0386R2)
+
+cond_gcc='MWGCONF_GCC_STD11>=70000'
+cond_icc='0'
+cond_msc='0'
+cond_clang='-a' # clang-3.4
+cond_expression='struct B {inline int var {123};};'
+declare_feature inline_variables 201606
+
+#------------------------------------------------------------------------------
+# c++2x concept
 
 # undef
 D MWGCONF_STD_CONCEPT
@@ -512,7 +561,6 @@ D MWGCONF_STD_CONCEPT
 #******************************************************************************
 
 cat<<EOF >&$fdbase
-#include <mwg_config.h>
 #endif /* MWGCONF_MWG_CONFIG_COMMON_H */
 EOF
 

@@ -228,6 +228,18 @@ namespace mwg {
 #if defined(_MSC_VER)? (_MSC_VER >= 1400): (defined(__GNUC__)? (__GNUC__ >= 3): 1)
 # define MWG_STD_VA_ARGS
 #endif
+//------------------------------------------------------------------------------
+//  mwg_has_feature(cxx_inline_variables)
+//------------------------------------------------------------------------------
+#if mwg_has_feature(cxx_inline_variables)
+# define mwg_inline_variable inline
+# define mwg_inline_variable_static inline
+# define mwg_inline_variable_constexpr inline
+#else
+# define mwg_inline_variable
+# define mwg_inline_variable_static static
+# define mwg_inline_variable_constexpr constexpr
+#endif
 //MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
 //  Compiler Intrinsic Features
 //------------------------------------------------------------------------------
