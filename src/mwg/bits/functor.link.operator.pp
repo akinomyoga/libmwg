@@ -52,7 +52,7 @@ namespace functor_detail{
 #pragma%end
 #pragma%x variadic_expand_0toArN
 
-#if defined(MWGCONF_STD_DECLTYPE)
+#if mwg_has_feature(cxx_decltype)
 //-----------------------------------------------------------------------------
 // [traits.functor] F with R F::operator()(%types%)
   template<typename Mfp>

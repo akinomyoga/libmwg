@@ -32,7 +32,7 @@ namespace histogram_impl2_detail{
     explicit histogram(const T& binning)
       :part(binning),data(new TAcc[binning.size()+1]),ptr(&data[1])
     {}
-#if defined(MWGCONF_STD_RVALUE_REFERENCES)
+#if mwg_has_feature(cxx_rvalue_references)
     histogram& operator=(histogram&& other){
       this->part=mwg::stdm::move(other.part);
       this->data   =mwg::stdm::move(other.data);
@@ -76,7 +76,7 @@ namespace histogram_impl2_detail{
     bin_type& operator()(bindex index){
       return ptr[(int)index];
     }
-#if defined(MWGCONF_STD_RVALUE_REFERENCES)&&defined(MWGCONF_STD_VARIADIC_TEMPLATES)
+#if mwg_has_feature(cxx_rvalue_references)&&mwg_has_feature(cxx_variadic_templates)
     template<typename A0,typename... Args>
     const bin_type& operator()(A0&& arg0,Args&&... args) const{
       return ptr[(int)part(mwg::stdm::forward<A0>(arg0),mwg::stdm::forward<Args>(args)...)];

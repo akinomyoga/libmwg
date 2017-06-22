@@ -44,7 +44,7 @@
  *       alloc.deallocate(ptr);
  *     }
  *   };
- * # ifdef MWGCONF_STD_VARIADIC_TEMPLATES
+ * # if mwg_has_feature(cxx_variadic_templates)
  *   /// std::make_shared
  *   template<typename T,typename Args...>
  *   shared_ptr<T> make_shared(Args mwg_forward_rvalue... args){
@@ -74,7 +74,7 @@
  *   }
  * #   include <mwg/impl/DeclareVariadicFunction.inl>
  * #  undef mwg_impl_variadic_function
- * # endif \/\* end of !defined(MWGCONF_STD_VARIADIC_TEMPLATES) \*\/
+ * # endif \/\* end of !mwg_has_feature(cxx_variadic_templates) \*\/
  * }
  * }
  */
@@ -144,7 +144,7 @@ namespace detail{
     typedef typename stdm::remove_const<T>::type value_type;
     value_type* ptr() const{return (value_type*)this->data;}
   public:
-#ifdef MWGCONF_STD_VARIADIC_TEMPLATES
+#if mwg_has_feature(cxx_variadic_templates)
     template<typename... Args>
     count_buff_inplace(Args mwg_forward_rvalue... args){
       new(this->data) T(mwg::stdm::forward<Args>(args)...);
@@ -172,7 +172,7 @@ namespace detail{
     typedef typename stdm::remove_const<T>::type value_type;
     value_type* ptr() const{return (value_type*)this->data;}
   public:
-#ifdef MWGCONF_STD_VARIADIC_TEMPLATES
+#if mwg_has_feature(cxx_variadic_templates)
     template<typename... Args>
     count_buff_inplaceAllocated(A const& alloc,Args mwg_forward_rvalue... args):alloc(alloc){
       mwg_unused(alloc);
@@ -479,7 +479,7 @@ namespace detail{
 #endif
   };
 
-#ifdef MWGCONF_STD_VARIADIC_TEMPLATES
+#if mwg_has_feature(cxx_variadic_templates)
   /// std::make_shared
   template<typename T,typename... Args>
   shared_ptr<T> make_shared(Args mwg_forward_rvalue... args){

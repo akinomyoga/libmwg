@@ -70,7 +70,7 @@ namespace mwg {
 //  nullptr
 //------------------------------------------------------------------------------
 //?mconf X -t'std::nullptr_t' -oMWGCONF_STD_NULLPTR_T cstddef 'std::nullptr_t* value=0'
-#if !defined(MWGCONF_STD_NULLPTR) && !defined(nullptr)
+#if !mwg_has_feature(cxx_nullptr) && !defined(nullptr)
 namespace mwg {
 namespace stdm {
   static const class nullptr_t {
@@ -97,7 +97,7 @@ namespace stdm {
 }
 }
 #   define nullptr ::mwg::stdm::nullptr_instance
-#elif !defined(MWGCONF_STD_NULLPTR_T) && defined(MWGCONF_STD_DECLTYPE)
+#elif !defined(MWGCONF_STD_NULLPTR_T) && mwg_has_feature(cxx_decltype)
 namespace mwg {
 namespace stdm {
   typedef decltype(nullptr) nullptr_t;
@@ -107,12 +107,12 @@ namespace stdm {
 //------------------------------------------------------------------------------
 //  Defaulted/deleted member functions
 //------------------------------------------------------------------------------
-#ifdef MWGCONF_STD_DEFAULTED_FUNCTIONS
+#if mwg_has_feature(cxx_defaulted_functions)
 # define mwg_std_defaulted = default
 #else
 # define mwg_std_defaulted
 #endif
-#ifdef MWGCONF_STD_DELETED_FUNCTIONS
+#if mwg_has_feature(cxx_deleted_functions)
 # define mwg_std_deleted = delete
 #else
 # define mwg_std_deleted
@@ -120,7 +120,7 @@ namespace stdm {
 //------------------------------------------------------------------------------
 //  explicit conversion operators
 //------------------------------------------------------------------------------
-#ifdef MWGCONF_STD_EXPLICIT_CONVERSIONS
+#if mwg_has_feature(cxx_explicit_conversions)
 # define mwg_explicit_operator explicit operator
 #else
 # define mwg_explicit_operator operator
@@ -128,7 +128,7 @@ namespace stdm {
 //------------------------------------------------------------------------------
 //  constexpr
 //------------------------------------------------------------------------------
-#ifdef MWGCONF_STD_CONSTEXPR
+#if mwg_has_feature(cxx_constexpr)
 //
 // Note: constexpr の振る舞いは度々変わっている。
 //
@@ -152,7 +152,7 @@ namespace stdm {
 //------------------------------------------------------------------------------
 //  noexcept
 //------------------------------------------------------------------------------
-#ifdef MWGCONF_STD_NOEXCEPT
+#if mwg_has_feature(cxx_noexcept)
 # define mwg_noexcept         noexcept
 # define mwg_noexcept_when(A) noexcept(A)
 #else
@@ -162,7 +162,7 @@ namespace stdm {
 //------------------------------------------------------------------------------
 //  override / final
 //------------------------------------------------------------------------------
-#ifdef MWGCONF_STD_OVERRIDE_CONTROL
+#if mwg_has_feature(cxx_override_control)
 # define mwg_override override
 # define mwg_final    final
 #else
@@ -172,7 +172,7 @@ namespace stdm {
 //------------------------------------------------------------------------------
 //  auto / -> decltype()
 //------------------------------------------------------------------------------
-#if defined(MWGCONF_STD_AUTO_TYPE) && defined(MWGCONF_STD_DECLTYPE)
+#if mwg_has_feature(cxx_auto_type) && mwg_has_feature(cxx_decltype)
 # define mwg_auto(T) auto
 # define mwg_decltyped(EXPR) -> decltype(EXPR)
 #else
@@ -182,7 +182,7 @@ namespace stdm {
 //------------------------------------------------------------------------------
 //  static_assert
 //------------------------------------------------------------------------------
-#ifndef MWGCONF_STD_STATIC_ASSERT
+#if !mwg_has_feature(cxx_static_assert)
 namespace mwg {
   namespace detail {
     template<bool B, int LINE>
@@ -266,7 +266,7 @@ namespace mwg {
 namespace mwg {
   template<typename T> struct identity {typedef T type;};
 
-#ifdef MWGCONF_STD_RVALUE_REFERENCES
+#if mwg_has_feature(cxx_rvalue_references)
   template<typename T>
   struct declval_type: mwg::identity<T&&> {typedef T&& reference_type;};
   template<typename T, unsigned N>

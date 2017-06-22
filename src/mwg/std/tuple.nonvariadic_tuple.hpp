@@ -190,7 +190,7 @@ namespace tuple_detail{
     typedef lvalue_reference_wrapper<T> stored_type;
   };
 
-# if defined(MWGCONF_STD_RVALUE_REFERENCES)
+# if mwg_has_feature(cxx_rvalue_references)
   template<typename T>
   struct rvalue_reference_wrapper{
     T* rvalue;
@@ -285,7 +285,7 @@ namespace detail{
   struct tuple_get_impl<1,R,pair<A0,A1> const&>{
     static R _get(pair<A0,A1> const& p){return reinterpret_cast<R>(p.second);}
   };
-#if defined(MWGCONF_STD_RVALUE_REFERENCES)
+#if mwg_has_feature(cxx_rvalue_references)
   template<typename R,typename A0,typename A1>
   struct tuple_get_impl<0,R,pair<A0,A1>&&>{
     static R _get(pair<A0,A1>&& p){return mwg::stdm::forward<R>(p.first);}
@@ -312,7 +312,7 @@ namespace detail{
     typedef typename add_lvalue_reference<typename tuple_element<I,TT>::type>::type return_type;
     return detail::tuple_get_impl<I,return_type,argument_type>::_get(t);
   }
-#if defined(MWGCONF_STD_RVALUE_REFERENCES)
+#if mwg_has_feature(cxx_rvalue_references)
   template<std::size_t I,typename TT>
   typename add_rvalue_reference<typename tuple_element<I,TT>::type>::type
   get(TT&& t){
@@ -463,7 +463,7 @@ public:
       typename mwg::stdm::enable_if<!detail::is_tuple<BK>::value,detail::sfinae_parameter*>::type=0
     ):m_head(mwg::stdm::forward<BK>(arg)){}
 
-#ifndef MWGCONF_STD_RVALUE_REFERENCES
+#if !mwg_has_feature(cxx_rvalue_references)
     //
     // C++03 における完全転送が不完全なので参照版も用意する。
     // これがないと std::tie で tuple を構築できない。ただしこれでも完全ではない。
@@ -486,7 +486,7 @@ public:
     )
       :m_head(mwg::stdm::forward<B0>(arg0)),
        m_rest($".for/K/1/%Ar%/mwg::stdm::forward<BK>(argK)/,"){}
-#ifndef MWGCONF_STD_RVALUE_REFERENCES
+#if !mwg_has_feature(cxx_rvalue_references)
     template<$".for/K/0/%Ar%/typename BK/,">
     explicit tuple(
       $".for/K/0/%Ar%/BK& argK/,",
@@ -501,7 +501,7 @@ public:
     //
     // copy constructors
     //
-#ifdef MWGCONF_STD_DEFAULTED_FUNCTIONS
+#if mwg_has_feature(cxx_defaulted_functions)
     tuple(const tuple& other) = default;
 #else
     tuple(const tuple& other)
@@ -525,11 +525,11 @@ public:
       ,m_rest(other.second){}
 #pragma%%end
 
-#ifdef MWGCONF_STD_RVALUE_REFERENCES
+#if mwg_has_feature(cxx_rvalue_references)
     //
     // move constructors
     //
-# ifdef MWGCONF_STD_DEFAULTED_FUNCTIONS
+# if mwg_has_feature(cxx_defaulted_functions)
     tuple(tuple&& other) = default;
 # else
     tuple(tuple&& other)
@@ -589,7 +589,7 @@ public:
     }
 #pragma%%end
 
-#ifdef MWGCONF_STD_RVALUE_REFERENCES
+#if mwg_has_feature(cxx_rvalue_references)
     //
     // move assignments
     //
@@ -678,7 +678,7 @@ public:
   // make_tuple, forward_as_tuple
   inline tuple<> make_tuple(){return tuple<>();}
   inline tuple<> forward_as_tuple(){return tuple<>();}
-#if defined(MWGCONF_STD_RVALUE_REFERENCES)
+#if mwg_has_feature(cxx_rvalue_references)
 #pragma%expand
   template<$".for/K/0/%Ar%/typename TK/,">
   tuple<$".for/K/0/%Ar%/typename decay<TK>::type/,">

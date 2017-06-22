@@ -98,7 +98,7 @@ namespace stat{
   public:
     typedef T domain_type;
     list_binning(std::vector<T> const& data):data(data){}
-#ifdef MWGCONF_STD_RVALUE_REFERENCES
+#if mwg_has_feature(cxx_rvalue_references)
     list_binning(std::vector<T>&& data):data(mwg::stdm::move(data)){}
 #endif
     list_binning(stdm::initializer_list<T> list){
@@ -248,7 +248,7 @@ namespace stat{
 //TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
 //  ProductBinning : !TBinning
 //-----------------------------------------------------------------------------
-#if defined(MWGCONF_STD_VARIADIC_TEMPLATES)
+#if mwg_has_feature(cxx_variadic_templates)
 # include "binning2.ProductBinning.inl"
 #else
 # include "binning2.ProductBinning_nonvariadic.inl"

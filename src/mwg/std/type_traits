@@ -205,7 +205,7 @@ namespace stdm{
   template<typename T> struct is_lvalue_reference:false_type{};
   template<typename T> struct is_lvalue_reference<T&>:true_type{};
   template<typename T> struct is_rvalue_reference:false_type{};
-# ifdef MWGCONF_STD_RVALUE_REFERENCES
+# if mwg_has_feature(cxx_rvalue_references)
   template<typename T> struct is_rvalue_reference<T&&>:true_type{};
 # endif
 #ifdef MWG_STDM_TYPE_TRAITS_WithTr1Header
@@ -273,7 +273,7 @@ namespace stdm{
     mwg_check( (mwg::stdm::is_volatile<int volatile const>::value));
     mwg_check(!(mwg::stdm::is_volatile<int&>::value));
     mwg_check(!(mwg::stdm::is_volatile<int volatile&>::value));
-#ifdef MWGCONF_STD_RVALUE_REFERENCES
+#if mwg_has_feature(cxx_rvalue_references)
     mwg_check(!(mwg::stdm::is_volatile<int&&>::value));
     mwg_check(!(mwg::stdm::is_volatile<int volatile&&>::value));
 #endif
@@ -350,7 +350,7 @@ namespace stdm{
 # endif
 #pragma%end
 #pragma%x variadic_expand_0toArN
-#if defined(MWGCONF_STD_VARIADIC_TEMPLATES) && defined(MWGCONF_STD_REF_QUALIFIERS) && defined(MWG_STD_QUALIFIED_FUNCTION_TYPES)
+#if mwg_has_feature(cxx_variadic_templates) && mwg_has_feature(cxx_ref_qualifiers) && defined(MWG_STD_QUALIFIED_FUNCTION_TYPES)
     template<class R,class... A>
     struct is_function_impl<R(A...) &>: is_function_def<false, false, lref_qualified>{};
     template<class R,class... A>
@@ -386,7 +386,7 @@ namespace stdm{
 #else
   template<typename T> struct remove_reference:mwg::identity<T>{};
   template<typename T> struct remove_reference<T&>:mwg::identity<T>{};
-# ifdef MWGCONF_STD_RVALUE_REFERENCES
+# if mwg_has_feature(cxx_rvalue_references)
   template<typename T> struct remove_reference<T&&>:mwg::identity<T>{};
 # endif
 #endif
@@ -401,7 +401,7 @@ namespace stdm{
   namespace detail{
     template<typename T,bool B> struct add_lvalue_reference_impl:mwg::identity<T>{};
     template<typename T>        struct add_lvalue_reference_impl<T,true>:mwg::identity<T&>{};
-# ifdef MWGCONF_STD_RVALUE_REFERENCES
+# if mwg_has_feature(cxx_rvalue_references)
     template<typename T,bool B> struct add_rvalue_reference_impl:mwg::identity<T>{};
     template<typename T>        struct add_rvalue_reference_impl<T,true>:mwg::identity<T&&>{};
 # endif
@@ -416,7 +416,7 @@ namespace stdm{
   template<typename T> struct add_lvalue_reference
     :detail::add_lvalue_reference_impl<typename remove_reference<T>::type,(!is_void<T>::value&&!detail::is_function_impl<T>::is_qualified)>{};
 
-# ifdef MWGCONF_STD_RVALUE_REFERENCES
+# if mwg_has_feature(cxx_rvalue_references)
   template<typename T> struct add_rvalue_reference
     :detail::add_rvalue_reference_impl<T,!is_reference<T>::value&&!is_void<T>::value&&!detail::is_function_impl<T>::is_qualified>{};
 # endif
@@ -427,7 +427,7 @@ namespace stdm{
     mwg_check((mwg::stdm::is_same<void,mwg::stdm::add_lvalue_reference<void>::type>::value));
     mwg_check((mwg::stdm::is_same<int&,mwg::stdm::add_lvalue_reference<int>::type>::value));
     mwg_check((mwg::stdm::is_same<int&,mwg::stdm::add_lvalue_reference<int&>::type>::value));
-#ifdef MWGCONF_STD_RVALUE_REFERENCES
+#if mwg_has_feature(cxx_rvalue_references)
     mwg_check((mwg::stdm::is_same<int&,mwg::stdm::add_lvalue_reference<int&&>::type>::value));
 
     mwg_check((mwg::stdm::is_same<void ,mwg::stdm::add_rvalue_reference<void>::type>::value));
@@ -540,7 +540,7 @@ namespace stdm{
     mwg_check(( mwg::stdm::is_integral<const volatile int>::value));
 
     mwg_check((!mwg::stdm::is_integral<int&>::value));
-#ifdef MWGCONF_STD_RVALUE_REFERENCES
+#if mwg_has_feature(cxx_rvalue_references)
     mwg_check((!mwg::stdm::is_integral<int&&>::value));
 #endif
 
@@ -555,7 +555,7 @@ namespace stdm{
     mwg_check(( mwg::stdm::is_floating_point<long double>::value));
 
     mwg_check((!mwg::stdm::is_floating_point<double&>::value));
-#ifdef MWGCONF_STD_RVALUE_REFERENCES
+#if mwg_has_feature(cxx_rvalue_references)
     mwg_check((!mwg::stdm::is_floating_point<double&&>::value));
 #endif
     mwg_check((!mwg::stdm::is_floating_point<double*>::value));
@@ -570,7 +570,7 @@ namespace stdm{
     mwg_check((!mwg::stdm::is_arithmetic<int&>::value));
     mwg_check((!mwg::stdm::is_arithmetic<double*>::value));
     mwg_check((!mwg::stdm::is_arithmetic<double&>::value));
-#ifdef MWGCONF_STD_RVALUE_REFERENCES
+#if mwg_has_feature(cxx_rvalue_references)
     mwg_check((!mwg::stdm::is_arithmetic<int&&>::value));
     mwg_check((!mwg::stdm::is_arithmetic<double&&>::value));
 #endif
@@ -661,7 +661,7 @@ namespace stdm{
     mwg_check((!mwg::stdm::is_signed<T*>::value));
 
     mwg_check((!mwg::stdm::is_signed<int&>::value));
-#ifdef MWGCONF_STD_RVALUE_REFERENCES
+#if mwg_has_feature(cxx_rvalue_references)
     mwg_check((!mwg::stdm::is_signed<double&&>::value));
 #endif
 
@@ -1226,7 +1226,7 @@ namespace stdm{
   //   requirements: conditional, enable_if, is_arithmetic, is_floating_point, is_void
   //
 # define MWG_STD_COMMON_TYPE_EMULATED
-# if defined(MWGCONF_STD_VARIADIC_TEMPLATES)
+# if mwg_has_feature(cxx_variadic_templates)
   template<typename... Ts>
   struct common_type{};
 # else
@@ -1244,7 +1244,7 @@ namespace stdm{
   template<typename T0> struct common_type<T0>:mwg::identity<T0>{};
   //---------------------------------------------------------------------------
   //  common_type<T0,T1>
-# if defined(MWGCONF_STD_DECLTYPE)
+# if mwg_has_feature(cxx_decltype)
   template<typename T0,typename T1>
   struct common_type<T0,T1>:mwg::identity<decltype(true?mwg::declval<T0>():mwg::declval<T1>())>{};
 # else
@@ -1300,7 +1300,7 @@ namespace stdm{
 # endif
   //---------------------------------------------------------------------------
   //  common_type<T0,T1,T2,...>::type
-# if defined(MWGCONF_STD_VARIADIC_TEMPLATES)
+# if mwg_has_feature(cxx_variadic_templates)
   template<typename T0,typename T1,typename T2,typename... Ts>
   struct common_type<T0,T1,T2,Ts...>
     :common_type<typename common_type<T0,T1>::type,T2,Ts...>{};
@@ -1406,7 +1406,7 @@ namespace stdx{
   template<typename T> struct add_const_reference: add_lvalue_reference<typename add_const<T>::type>{};
 
   // parameter_pack<Ts...>
-#if defined(MWGCONF_STD_VARIADIC_TEMPLATES)
+#if mwg_has_feature(cxx_variadic_templates)
   template<typename... Ts>
   struct parameter_pack{static const std::size_t size=sizeof...(Ts);};
 #else
@@ -1423,7 +1423,7 @@ namespace stdx{
   //
   // struct copy_reference<T,From>
   //
-#ifdef MWGCONF_STD_RVALUE_REFERENCES
+#if mwg_has_feature(cxx_rvalue_references)
   template<typename To,typename From> struct copy_reference
     :conditional<
       is_rvalue_reference<From>::value,typename add_rvalue_reference<To>::type,
@@ -1446,7 +1446,7 @@ namespace stdx{
   //
   template<bool B> struct ice_not:false_type{};
   template<> struct ice_not<false>:true_type{};
-#if defined(MWGCONF_STD_VARIADIC_TEMPLATES)
+#if mwg_has_feature(cxx_variadic_templates)
   template<bool... Bs> struct ice_and;
   template<bool... Bs> struct ice_and<false,Bs...>:stdm::false_type{};
   template<bool... Bs> struct ice_and<true,Bs...>:ice_and<Bs...>{};
@@ -1465,7 +1465,7 @@ namespace stdx{
 #endif
 
   // is_convertible_pack<Ts...>
-#if defined(MWGCONF_STD_VARIADIC_TEMPLATES)
+#if mwg_has_feature(cxx_variadic_templates)
   namespace detail{
     template<typename TT1,typename TT2,bool S>
     struct is_convertible_pack_impl:stdm::false_type{};

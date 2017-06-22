@@ -131,7 +131,7 @@ namespace detail{
       this->reset();
       return (*this);
     }
-#ifdef MWGCONF_STD_RVALUE_REFERENCES
+#if mwg_has_feature(cxx_rvalue_references)
   public:
     unique_ptr(pointer p,typename remove_reference<D>::type&& d):base(p,stdm::move(d)){}
     unique_ptr(unique_ptr&& movee)
@@ -206,7 +206,7 @@ namespace detail{
       std::swap(this->get_deleter(),right.get_deleter());
     }
 
-#ifdef MWGCONF_STD_RVALUE_REFERENCES
+#if mwg_has_feature(cxx_rvalue_references)
     void swap(unique_ptr&& right){
       if(this!=&right){
         std::swap(this->ptr,right.ptr);
@@ -273,7 +273,7 @@ namespace detail{
     template<typename T2,typename D2> unique_ptr(const unique_ptr<T2,D2>&) mwg_std_deleted;
     unique_ptr& operator=(const unique_ptr&) mwg_std_deleted;
     template<typename T2,typename D2> unique_ptr& operator=(const unique_ptr<T2,D2>&) mwg_std_deleted;
-#ifdef MWGCONF_STD_RVALUE_REFERENCES
+#if mwg_has_feature(cxx_rvalue_references)
   public:
     unique_ptr(
       pointer p,
@@ -311,7 +311,7 @@ namespace detail{
       std::swap(this->ptr,right.ptr);
       std::swap(this->get_deleter(),right.get_deleter());
     }
-#ifdef MWGCONF_STD_RVALUE_REFERENCES
+#if mwg_has_feature(cxx_rvalue_references)
     void swap(unique_ptr&& right){
       if(this!=&right){
         std::swap(this->ptr,right.ptr);
@@ -351,7 +351,7 @@ namespace detail{
 //-----------------------------------------------------------------------------
   template<typename T,typename D>
   void swap(unique_ptr<T,D>& l,unique_ptr<T,D>& r){l.swap(r);}
-#ifdef MWGCONF_STD_RVALUE_REFERENCES
+#if mwg_has_feature(cxx_rvalue_references)
   template<typename T,typename D>
   void swap(unique_ptr<T,D>& l,unique_ptr<T,D>&& r){l.swap(r);}
   template<typename T,typename D>

@@ -24,7 +24,7 @@ namespace funcsig {
   //   に一致させる事はできない様だ。仕方がないので `R (AHead, A...)`
   //   に一致させて回転を行ってから削除する。
   //
-#ifdef MWGCONF_STD_VARIADIC_TEMPLATES
+#if mwg_has_feature(cxx_variadic_templates)
   namespace detail {
     template<typename S>
     struct _arity_front_manipulation {};

@@ -464,7 +464,7 @@ namespace stdm {
     return equal(first1, last1, first2, last2, stdm::equal_to<>());
   }
 
-#ifdef MWGCONF_STD_CONSTEXPR
+#if mwg_has_feature(cxx_constexpr)
   template<typename T>
   constexpr T const& max(T const& lhs, T const& rhs) {return lhs < rhs? rhs: lhs;}
   template<typename T>

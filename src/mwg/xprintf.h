@@ -220,7 +220,7 @@ namespace vararg {
   }
 
   namespace detail {
-#if defined(_MSC_VER) && defined(MWGCONF_STD_RVALUE_REFERENCES)
+#if defined(_MSC_VER) && mwg_has_feature(cxx_rvalue_references)
     /* 2016-03-27 vcbug workaround
      *
      * YArgs&& で受け取った変数を forward するとどうしても一時オブジェクトになってしまう。
@@ -271,7 +271,7 @@ namespace vararg {
     }
 
 #pragma%end
-#ifdef MWGCONF_STD_VARIADIC_TEMPLATES
+#if mwg_has_feature(cxx_variadic_templates)
 #pragma%x 1.r/##//
 #pragma%m 1 1.R@(^|\n)[[:space:]]*//[^\n]*(\n|$)@$1@
 #else
@@ -759,9 +759,9 @@ namespace xprintf_detail {
      * #
      * S -t 'MSC18BUG: C(C&&) = default;' -o MWGCONF_STD_DEFAULTED_MOVE_CONSTRUCTORS '' 'struct C {C(C&&) = default;};'
      */
-#if defined(MWGCONF_STD_DEFAULTED_FUNCTIONS)
+#if mwg_has_feature(cxx_defaulted_functions)
     _vxputf_temporary_object(_vxputf_temporary_object const& c) = default;
-# ifdef MWGCONF_STD_RVALUE_REFERENCES
+# if mwg_has_feature(cxx_rvalue_references)
 #  ifdef MWGCONF_STD_DEFAULTED_MOVE_CONSTRUCTORS
     _vxputf_temporary_object(_vxputf_temporary_object&& c) = default;
 #  else
@@ -809,10 +809,10 @@ namespace xprintf_detail {
   public:
     _xputf_temporary_object(const char* fmt, pack_type mwg_forward_rvalue args): m_fmt(fmt), m_args(mwg::stdm::move(args)) {}
 
-#if defined(MWGCONF_STD_DEFAULTED_FUNCTIONS) && defined(MWGCONF_STD_RVALUE_REFERENCES)
+#if mwg_has_feature(cxx_defaulted_functions) && mwg_has_feature(cxx_rvalue_references)
   private:
     _xputf_temporary_object(_xputf_temporary_object const& c) = default;
-# ifdef MWGCONF_STD_RVALUE_REFERENCES
+# if mwg_has_feature(cxx_rvalue_references)
 #  ifdef MWGCONF_STD_DEFAULTED_MOVE_CONSTRUCTORS
     _xputf_temporary_object(_xputf_temporary_object&& c) = default;
 #  else
@@ -821,7 +821,7 @@ namespace xprintf_detail {
 # endif
 #endif
 
-#if defined(MWGCONF_STD_RVALUE_REFERENCES)
+#if mwg_has_feature(cxx_rvalue_references)
   private:
 #pragma%m 1
     template<typename... Args>

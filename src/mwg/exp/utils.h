@@ -222,7 +222,7 @@ namespace exp{
 
     enumerator& operator=(ienumerator<T>* p){this->ptr.reset(p);return *this;}
 
-#ifdef MWGCONF_STD_RVALUE_REFERENCES
+#if mwg_has_feature(cxx_rvalue_references)
     enumerator(enumerator&& movee){this->ptr=stdm::move(movee.ptr);}
     enumerator& operator=(enumerator&& movee){
       this->ptr=stdm::move(movee.ptr);

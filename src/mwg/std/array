@@ -118,7 +118,7 @@ namespace stdm {
   template<std::size_t I, class T, std::size_t N>
   mwg_constexpr typename stdm::enable_if<(I < N), T const&>::type
   get(array<T, N> const& arr) {return arr[I];}
-#ifdef MWGCONF_STD_RVALUE_REFERENCES
+#if mwg_has_feature(cxx_rvalue_references)
   template<std::size_t I, class T, std::size_t N>
   mwg_constexpr typename stdm::enable_if<(I < N), T&&>::type
   get(array<T, N>&& arr) {return stdm::move(arr[I]);}

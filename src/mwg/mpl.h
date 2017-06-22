@@ -161,7 +161,7 @@ void test_is_power_of_2() {
     template<typename I, I Z1, I Z2>
     struct integral_gcd_impl: integral_gcd_impl2<I, Z1, Z2, (Z1 < Z2? 1: Z2 == 0? 2: 0)> {};
 
-#ifdef MWGCONF_STD_VARIADIC_TEMPLATES
+#if mwg_has_feature(cxx_variadic_templates)
     template<typename I, I... Zs>
     struct integral_gcd {};
     template<typename I>
@@ -198,7 +198,7 @@ void test_is_power_of_2() {
     struct integral_lcm: mwg::stdm::integral_constant<I, (Z1 / integral_gcd<I, Z1, Z2>::value) * Z2> {};
 #endif
 
-#ifdef MWGCONF_STD_VARIADIC_TEMPLATES
+#if mwg_has_feature(cxx_variadic_templates)
     template<typename I, I... Zs>
     struct integral_max {};
     template<typename I>

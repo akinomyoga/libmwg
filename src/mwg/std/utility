@@ -33,7 +33,7 @@
 namespace mwg{
 namespace stdm{
 
-#if defined(MWGCONF_STD_RVALUE_REFERENCES)
+#if mwg_has_feature(cxx_rvalue_references)
   template<typename T>
   T&& forward(typename stdm::remove_reference<T>::type& value){
     return static_cast<T&&>(value);
@@ -131,7 +131,7 @@ namespace stdx{
  *
  */
 
-#if defined(MWGCONF_STD_RVALUE_REFERENCES)
+#if mwg_has_feature(cxx_rvalue_references)
 #  define mwg_forward_lvalue &
 #  define mwg_forward_rvalue &&
 #else
@@ -151,7 +151,7 @@ int main(){
   int& b1=mwg::stdm::forward<int&>(b);
   mwg_unused(b1);
 
-#ifdef MWGCONF_STD_RVALUE_REFERENCES
+#if mwg_has_feature(cxx_rvalue_references)
   int&& a1=mwg::stdm::forward<int>(123);
   int&& a2=mwg::stdm::forward<int&&>(123);
   mwg_unused(a1);
