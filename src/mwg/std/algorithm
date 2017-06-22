@@ -9,6 +9,7 @@
 
 #ifndef MWG_STD_CXX11
 # include <iterator>
+# include <functional>
 # include <mwg/defs.h>
 # include <mwg/std/utility>
 namespace mwg {
@@ -164,6 +165,31 @@ namespace stdm {
   partition_point(ForwardIterator first, ForwardIterator last, UnaryPredicate pred) {
     return find_if_not(first, last, pred);
   }
+
+  template<typename ForwardIterator, typename Compare>
+  ForwardIterator is_sorted_until(ForwardIterator first, ForwardIterator last, Compare compare) {
+    if (first == last) return first;
+    for (;;) {
+      ForwardIterator prev = first++;
+      if (first == last || compare(*first, *prev)) return first;
+    }
+  }
+
+  template<typename ForwardIterator, typename Compare>
+  ForwardIterator is_sorted_until(ForwardIterator first, ForwardIterator last, Compare compare) {
+    return is_sorted_until(first, last, std::less<typename std::iterator_traits<ForwardIterator>::type>());
+  }
+
+  template<typename ForwardIterator, typename Compare>
+  bool is_sorted(ForwardIterator first, ForwardIterator last, Compare compare) {
+    return is_sorted_until(first, last, compare) == last;
+  }
+
+  template<typename ForwardIterator>
+  bool is_sorted(ForwardIterator first, ForwardIterator last) {
+    return is_sorted_until(first, last) == last;
+  }
+
 
 }
 }
