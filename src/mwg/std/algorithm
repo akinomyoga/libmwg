@@ -3,11 +3,125 @@
 #define MWG_STDM_ALGORITHM
 #include <algorithm>
 #include <mwg/defs.h>
-#ifndef MWG_STD_CXX11
+#pragma%include "../impl/ManagedTest.pp"
+#pragma%x begin_check
+#include <mwg/except.h>
+#include <mwg/std/algorithm>
+#include <mwg/std/iterator>
+#pragma%x end_check
+
+// C++03
+namespace mwg {
+namespace stdm {
+  // Note: mwg::stdm での多重定義で隠蔽されない様に using する必要がある。
+  using ::std::for_each;
+  using ::std::count;
+  using ::std::count_if;
+  using ::std::mismatch;
+  using ::std::equal;
+  using ::std::find;
+  using ::std::find_if;
+  using ::std::find_end;
+  using ::std::adjacent_find;
+  using ::std::search;
+  using ::std::search_n;
+  using ::std::copy;
+  using ::std::fill;
+  using ::std::transform;
+  using ::std::generate;
+  using ::std::remove;
+  using ::std::remove_if;
+  using ::std::remove_copy;
+  using ::std::remove_copy_if;
+  using ::std::replace;
+  using ::std::replace_if;
+  using ::std::replace_copy;
+  using ::std::replace_copy_if;
+  using ::std::swap_ranges;
+  using ::std::reverse;
+  using ::std::reverse_copy;
+  using ::std::rotate_copy;
+  using ::std::unique;
+  using ::std::unique_copy;
+  using ::std::stable_partition;
+  using ::std::sort;
+  using ::std::partial_sort;
+  using ::std::partial_sort_copy;
+  using ::std::stable_sort;
+  using ::std::nth_element;
+  using ::std::merge;
+  using ::std::inplace_merge;
+  using ::std::includes;
+  using ::std::set_difference;
+  using ::std::set_intersection;
+  using ::std::set_symmetric_difference;
+  using ::std::set_union;
+  using ::std::lexicographical_compare;
+
+  // Note: 以下は constexpr 版が C++14/C++17 で導入されたが、
+  //   constexpr に対応していない場合に C++03 のものを使用する為に using する。
+  using ::std::min;
+  using ::std::max;
+  using ::std::min_element;
+  using ::std::max_element;
+
+  // Note: 以下は (今のところ) 上書きされないので using は不要だが念のため。
+  using ::std::copy_backward;
+  using ::std::iter_swap;
+  using ::std::lower_bound;
+  using ::std::upper_bound;
+  using ::std::binary_search;
+  using ::std::equal_range;
+  using ::std::make_heap;
+  using ::std::push_heap;
+  using ::std::pop_heap;
+  using ::std::sort_heap;
+  using ::std::next_permutation;
+  using ::std::prev_permutation;
+}
+}
+
+#ifdef MWG_STD_CXX11
+namespace mwg {
+namespace stdm {
+  using ::std::all_of;
+  using ::std::any_of;
+  using ::std::none_of;
+  using ::std::find_if_not;
+  using ::std::find_first_of;
+  using ::std::copy_n;
+  using ::std::move;
+  using ::std::move_backward; //
+  using ::std::fill_n;
+  using ::std::generate_n;
+  using ::std::rotate;
+  using ::std::shuffle;
+  using ::std::is_partitioned;
+  using ::std::partition;
+  using ::std::partition_copy;
+  using ::std::partition_point;
+  using ::std::is_sorted;
+  using ::std::is_sorted_until;
+  using ::std::is_heap;
+  using ::std::is_heap_until;
+  using ::std::is_permutation;
+
+  // Note: 以下は constexpr 版が C++14/C++17 で導入されたが、
+  //   constexpr に対応していない場合に C++03 のものを使用する為に using する。
+  using ::std::minmax;
+  using ::std::minmax_element;
+}
+}
+#else
 # include <iterator>
 # include <functional>
 # include <mwg/defs.h>
 # include <mwg/std/utility>
+
+//todo: find_first_of
+//todo: is_permutation
+
+// C++11
 namespace mwg {
 namespace stdm {
   template<typename InputIterator, typename Predicate>
@@ -33,6 +147,57 @@ namespace stdm {
     return first;
   }
 
+#pragma%x begin_test
+  struct is_one {bool operator()(int a) const {return a == 1;}};
+  void test() {
+    int arr1[] = {1, 1, 1, 1, 1, 1, 1, 1};
+    int arr2[] = {0, 0, 0, 0, 0, 0, 0, 1};
+    int arr3[] = {1, 0, 0, 0, 0, 0, 0, 0};
+    int arr4[] = {0};
+    int arr5[] = {1};
+    int arr6[] = {0, 0, 0, 0, 0, 0, 0, 0};
+    int arr7[] = {0, 1, 0, 0, 0, 0, 0, 0};
+
+    namespace ns = mwg::stdm;
+
+    mwg_check( ns::any_of(ns::begin(arr1), ns::end(arr1), is_one()));
+    mwg_check( ns::any_of(ns::begin(arr2), ns::end(arr2), is_one()));
+    mwg_check( ns::any_of(ns::begin(arr3), ns::end(arr3), is_one()));
+    mwg_check(!ns::any_of(ns::begin(arr4), ns::end(arr4), is_one()));
+    mwg_check( ns::any_of(ns::begin(arr5), ns::end(arr5), is_one()));
+    mwg_check(!ns::any_of(ns::begin(arr6), ns::end(arr6), is_one()));
+    mwg_check( ns::any_of(ns::begin(arr7), ns::end(arr7), is_one()));
+    mwg_check(!ns::any_of(ns::begin(arr1), ns::begin(arr1), is_one()));
+
+    mwg_check(!ns::none_of(ns::begin(arr1), ns::end(arr1), is_one()));
+    mwg_check(!ns::none_of(ns::begin(arr2), ns::end(arr2), is_one()));
+    mwg_check(!ns::none_of(ns::begin(arr3), ns::end(arr3), is_one()));
+    mwg_check( ns::none_of(ns::begin(arr4), ns::end(arr4), is_one()));
+    mwg_check(!ns::none_of(ns::begin(arr5), ns::end(arr5), is_one()));
+    mwg_check( ns::none_of(ns::begin(arr6), ns::end(arr6), is_one()));
+    mwg_check(!ns::none_of(ns::begin(arr7), ns::end(arr7), is_one()));
+    mwg_check( ns::none_of(ns::begin(arr1), ns::begin(arr1), is_one()));
+
+    mwg_check( ns::all_of(ns::begin(arr1), ns::end(arr1), is_one()));
+    mwg_check(!ns::all_of(ns::begin(arr2), ns::end(arr2), is_one()));
+    mwg_check(!ns::all_of(ns::begin(arr3), ns::end(arr3), is_one()));
+    mwg_check(!ns::all_of(ns::begin(arr4), ns::end(arr4), is_one()));
+    mwg_check( ns::all_of(ns::begin(arr5), ns::end(arr5), is_one()));
+    mwg_check(!ns::all_of(ns::begin(arr6), ns::end(arr6), is_one()));
+    mwg_check(!ns::all_of(ns::begin(arr7), ns::end(arr7), is_one()));
+    mwg_check( ns::all_of(ns::begin(arr1), ns::begin(arr1), is_one()));
+
+    mwg_check(ns::find_if_not(ns::begin(arr1), ns::end(arr1), is_one()) == ns::end(arr1));
+    mwg_check(ns::find_if_not(ns::begin(arr2), ns::end(arr2), is_one()) == ns::begin(arr2));
+    mwg_check(ns::find_if_not(ns::begin(arr3), ns::end(arr3), is_one()) == ns::begin(arr3) + 1);
+    mwg_check(ns::find_if_not(ns::begin(arr4), ns::end(arr4), is_one()) == ns::begin(arr4));
+    mwg_check(ns::find_if_not(ns::begin(arr5), ns::end(arr5), is_one()) == ns::begin(arr5) + 1);
+    mwg_check(ns::find_if_not(ns::begin(arr6), ns::end(arr6), is_one()) == ns::begin(arr6));
+    mwg_check(ns::find_if_not(ns::begin(arr7), ns::end(arr7), is_one()) == ns::begin(arr7));
+    mwg_check(ns::find_if_not(ns::begin(arr1), ns::begin(arr1), is_one()) == ns::begin(arr1));
+  }
+#pragma%x end_test
+
   template<typename InputIterator, typename OutputIterator, typename UnaryPredicate>
   OutputIterator copy_if(InputIterator src, InputIterator src_end, OutputIterator dst, UnaryPredicate pred) {
     for (; src != src_end; ++src) if (pred(*src)) *dst++ = *src;
@@ -45,6 +210,60 @@ namespace stdm {
     return dst;
   }
 
+#pragma%x begin_test
+  struct is_odd {bool operator()(int a) const {return a % 2 == 1;}};
+  void test_copy_if_1(const char* name, int (&arr)[8], int const (&src)[8], int const (&ans)[8]) {
+    namespace ns = mwg::stdm;
+    std::fill(ns::begin(arr), ns::end(arr), 0);
+    ns::copy_if(ns::begin(src), ns::end(src), ns::begin(arr), is_odd());
+    mwg_check(ns::equal(ns::begin(arr), ns::end(arr), ns::begin(ans)), "test of copy_if %s", name);
+  }
+  void test() {
+    int arr[8];
+
+    namespace ns = mwg::stdm;
+
+    {
+      int src1[] = {1, 3, 1, 5, 1, 7, 1, 9};
+      int ans1[] = {1, 3, 1, 5, 1, 7, 1, 9};
+      test_copy_if_1("#1", arr, src1, ans1);
+      int src2[] = {2, 2, 2, 2, 2, 2, 2, 2};
+      int ans2[] = {0, 0, 0, 0, 0, 0, 0, 0};
+      test_copy_if_1("#2", arr, src2, ans2);
+      int src3[] = {1, 2, 3, 2, 5, 2, 7, 2};
+      int ans3[] = {1, 3, 5, 7, 0, 0, 0, 0};
+      test_copy_if_1("#3", arr, src3, ans3);
+      int src4[] = {2, 3, 2, 5, 2, 7, 2, 9};
+      int ans4[] = {3, 5, 7, 9, 0, 0, 0, 0};
+      test_copy_if_1("#4", arr, src4, ans4);
+    }
+
+    {
+      int src[] = {1, 2, 3, 4, 5, 6, 7, 8};
+      int ans1[] = {0, 0, 0, 0, 0, 0, 0, 0};
+      int ans2[] = {1, 2, 3, 4, 5, 6, 7, 8};
+      int ans3[] = {1, 0, 0, 0, 0, 0, 0, 0};
+      int ans4[] = {1, 2, 3, 4, 0, 0, 0, 0};
+      int ans5[] = {1, 2, 3, 4, 5, 6, 7, 0};
+      std::fill(ns::begin(arr), ns::end(arr), 0);
+      ns::copy_n(ns::begin(src), 0, ns::begin(arr));
+      mwg_check(ns::equal(ns::begin(arr), ns::end(arr), ns::begin(ans1)));
+      std::fill(ns::begin(arr), ns::end(arr), 0);
+      ns::copy_n(ns::begin(src), 8, ns::begin(arr));
+      mwg_check(ns::equal(ns::begin(arr), ns::end(arr), ns::begin(ans2)));
+      std::fill(ns::begin(arr), ns::end(arr), 0);
+      ns::copy_n(ns::begin(src), 1, ns::begin(arr));
+      mwg_check(ns::equal(ns::begin(arr), ns::end(arr), ns::begin(ans3)));
+      std::fill(ns::begin(arr), ns::end(arr), 0);
+      ns::copy_n(ns::begin(src), 4, ns::begin(arr));
+      mwg_check(ns::equal(ns::begin(arr), ns::end(arr), ns::begin(ans4)));
+      std::fill(ns::begin(arr), ns::end(arr), 0);
+      ns::copy_n(ns::begin(src), 7, ns::begin(arr));
+      mwg_check(ns::equal(ns::begin(arr), ns::end(arr), ns::begin(ans5)));
+    }
+  }
+#pragma%x end_test
+
   template<typename InputIterator, typename OutputIterator>
   OutputIterator move(InputIterator src, InputIterator src_last, OutputIterator dst) {
     while (src != src_last) *dst++ = stdm::move(*src++);
@@ -52,7 +271,7 @@ namespace stdm {
   }
 
   template<typename BidirectionalIterator1, typename BidirectionalIterator2>
-  BidirectionalIterator2 move_backward(BidirectionalIterator1 src_first, BidirectionalIterator1 src_last, BidirectionalIterator2 dst_last ) {
+  BidirectionalIterator2 move_backward(BidirectionalIterator1 src_first, BidirectionalIterator1 src_last, BidirectionalIterator2 dst_last) {
     while (src_first != src_last) *--dst_last = stdm::move(*--src_last);
     return dst_last;
   }
@@ -403,8 +622,6 @@ namespace stdm {
 
 #endif /* end of MWG_STDM_ALGORITHM */
 #pragma%x begin_check
-#include <mwg/except.h>
-#include <mwg/std/algorithm>
 
 int test(){
   namespace ns = mwg::stdm;
@@ -412,6 +629,7 @@ int test(){
 }
 
 int main(){
+  managed_test::run_tests();
   return test();
 }
 #pragma%x end_check
