@@ -138,7 +138,12 @@ namespace stdm {
 //
 # define mwg_constexpr constexpr
 # define mwg_constexpr_const constexpr
-# define mwg_constexpr14
+# ifdef MWG_STD_CXX14
+#  define mwg_constexpr14
+# else
+#  define mwg_constexpr14 constexpr
+#  define MWGCONF_STD_CONSTEXPR14
+# endif
 #else
 # define mwg_constexpr
 # define mwg_constexpr_const const

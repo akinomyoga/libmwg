@@ -177,7 +177,7 @@ namespace stdm {
 
   template<typename ForwardIterator>
   ForwardIterator is_sorted_until(ForwardIterator first, ForwardIterator last) {
-    return is_sorted_until(first, last, std::less<typename std::iterator_traits<ForwardIterator>::type>());
+    return is_sorted_until(first, last, std::less<typename std::iterator_traits<ForwardIterator>::value_type>());
   }
 
   template<typename ForwardIterator, typename Compare>
@@ -200,7 +200,7 @@ namespace stdm {
 
   template<typename RandomAccessIterator>
   RandomAccessIterator is_heap_until(RandomAccessIterator first, RandomAccessIterator last) {
-    return is_heap_until(first, last, std::less<typename std::iterator_traits<ForwardIterator>::type>());
+    return is_heap_until(first, last, std::less<typename std::iterator_traits<ForwardIterator>::value_type>());
   }
 
   template<typename RandomAccessIterator, typename Compare>
@@ -213,6 +213,7 @@ namespace stdm {
     return last == is_heap_until(first, last);
   }
 
+  // Note: C++11 minmax, min(std::initializer_list<T>), max(std::initializer_list<T>) are replaced by C++14
 }
 }
 #endif /* end of MWG_STD_CXX11 */
@@ -220,6 +221,7 @@ namespace stdm {
 #ifndef MWG_STD_CXX14
 # include <mwg/defs.h>
 # include <mwg/std/utility>
+# include <mwg/std/initializer_list>
 //# include <mwg/std/functional>
 
 // todo: <mwg/std/functional> mwg::stdm::equal_to<>
@@ -249,6 +251,76 @@ namespace stdm {
     return equal(first1, last1, first2, last2, stdm::equal_to<>());
   }
 
+#ifdef MWGCONF_STD_CONSTEXPR
+  template<typename T>
+  constexpr T const& max(T const& lhs, T const& rhs) {return lhs < rhs? rhs: lhs;}
+  template<typename T>
+  constexpr T const& min(T const& lhs, T const& rhs) {return rhs < lhs? rhs: lhs;}
+  template<typename T, typename Compare>
+  constexpr T const& max(T const& lhs, T const& rhs, Compare compare) {return compare(lhs, rhs)? rhs: lhs;}
+  template<typename T>
+  constexpr T const& min(T const& lhs, T const& rhs, Compare compare) {return compare(rhs, lhs)? rhs: lhs;}
+#endif
+  template<typename T, typename Compare>
+  mwg_constexpr std::pair<T const&,T const&> minmax(T const& lhs, T const& rhs, Compare compare) {
+    typedef std::pair<T const &, T const&> return_type;
+    return compare(rhs, lhs)? return_type(rhs, lhs): return_type(lhs, rhs);
+  }
+  template<typename T>
+  mwg_constexpr std::pair<T const&,T const&> minmax(T const& lhs, T const& rhs) {
+    return minmax(lhs, rhs, std::less<T>());
+  }
+
+  template<typename T, typename Compare>
+  mwg_constexpr14 T max(stdm::initializer_list<T> list, Compare compare) {
+    typedef typename stdm::initializer_list<T>::const_iterator const_iterator;
+    const_iterator i = list.begin();
+    mwg_check(i != list.end());
+    const_iterator iret = i++;
+    for (; i != list.end(); ++i)
+      if (compare(*iret, *i)) iret = i;
+    return *iret;
+  }
+  template<typename T, typename Compare>
+  mwg_constexpr14 T min(stdm::initializer_list<T> list, Compare compare) {
+    typedef typename stdm::initializer_list<T>::const_iterator const_iterator;
+    const_iterator i = list.begin();
+    mwg_check(i != list.end());
+    const_iterator iret = i++;
+    for (; i != list.end(); ++i)
+      if (compare(*i, *iret)) iret = i;
+    return *iret;
+  }
+  template<typename T, typename Compare>
+  mwg_constexpr14 std::pair<T, T> minmax(stdm::initializer_list<T> list, Compare compare) {
+    typedef typename stdm::initializer_list<T>::const_iterator const_iterator;
+    using std::swap;
+    const_iterator i = list.begin();
+    mwg_check(i != list.end());
+    const_iterator imin = i;
+    const_iterator imax = i;
+    for (++i; i != list.end(); ) {
+      const_iterator i1 = i++;
+      if (i == list.end()) {
+        if (compare(*i, *imin)) imin = i;
+        if (!compare(*i, *imax)) imax = i; // right most is chosen
+        break;
+      }
+      const_iterator i2 = i++;
+      if (compare(*i2, *i1)) swap(i1, i2);
+      if (compare(*i1, *imin)) imin = i1;
+      if (!compare(*i2, *imax)) imax = i2; // right most is chosen
+    }
+    return std::make_pair(*imin, *imax);
+  }
+
+  template<typename T>
+  mwg_constexpr14 T max(stdm::initializer_list<T> list) {return max(list, std::less<T>());}
+  template<typename T>
+  mwg_constexpr14 T min(stdm::initializer_list<T> list) {return min(list, std::less<T>());}
+  template<typename T>
+  mwg_constexpr14 std::pair<T, T> minmax(stdm::initializer_list<T> list) {return minmax(list, std::less<T>());}
+
 }
 }
 #endif /* end of MWG_STD_CXX14 */
@@ -267,6 +339,42 @@ namespace stdm {
   ForwardIterator search(ForwardIterator first, ForwardIterator last, const Searcher& searcher) {
     return searcher(first, last).first;
   }
+
+  template<typename T, typename Compare>
+  T clamp(T const& value, T const& lower, T const& upper, Compare compare) {
+    return compare(value, lower)? lower: compare(upper, value)? upper: value;
+  }
+
+  template<typename T>
+  T clamp(T const& value, T const& lower, T const& upper) {
+    return value < lower? lower: value > upper? upper: value;
+  }
+
+#ifdef MWGCONF_STD_CONSTEXPR14
+  template<typename ForwardIterator, typename Compare>
+  constexpr ForwardIterator max_element(ForwardIterator first, ForwardIterator last, Compare compare) {
+    if (first == last) return first;
+    ForwardIterator ret = first++;
+    for (; first != last; ++first) if (compare(*ret, *first)) ret = first;
+    return ret;
+  }
+  template<typename ForwardIterator, typename Compare>
+  constexpr ForwardIterator min_element(ForwardIterator first, ForwardIterator last, Compare compare) {
+    if (first == last) return first;
+    ForwardIterator ret = first++;
+    for (; first != last; ++first) if (compare(*first, *ret)) ret = first;
+    return ret;
+  }
+  template<typename ForwardIterator>
+  constexpr ForwardIterator max_element(ForwardIterator first, ForwardIterator last) {
+    return max_element(first, last, std::less<typename std::iterator_traits<ForwardIterator>::value_type>());
+  }
+  template<typename ForwardIterator>
+  constexpr ForwardIterator min_element(ForwardIterator first, ForwardIterator last) {
+    return min_element(first, last, std::less<typename std::iterator_traits<ForwardIterator>::value_type>());
+  }
+#endif
+
 }
 }
 
