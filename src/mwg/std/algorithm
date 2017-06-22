@@ -8,6 +8,7 @@
 #include <mwg/std/initializer_list>
 
 #ifndef MWG_STD_CXX11
+# include <iterator>
 # include <mwg/defs.h>
 # include <mwg/std/utility>
 namespace mwg {
@@ -92,21 +93,93 @@ namespace stdm {
     // call C++03 `std::random_shuffle` which is deprecated in C++14
     ::std::random_shuffle(first, last, stdm::forward<URBG>(g));
   }
-}
 
+  template<typename InputIterator, typename UnaryPredicate>
+  bool is_partitioned(InputIterator first, InputIterator last, UnaryPredicate pred) {
+    while (first != last)
+      if (!pred(*first++))
+        return none_of(first, last, pred);
+    return true;
+  }
+
+  // Note: partition は C++11 で BidirectionalIterator でなくて ForwardIterator でも実行できるようになった。
+
+  namespace algorithm_detail {
+    template<typename InputIterator, typename OutputIterator, typename UnaryPredicate>
+    OutputIterator swap_if(InputIterator src, InputIterator src_end, OutputIterator dst, UnaryPredicate pred) {
+      for (; src != src_end; ++src) if (pred(*src)) std::iter_swap(dst++, src);
+      return dst;
+    }
+  }
+
+  template<typename ForwardIterator, typename UnaryPredicate>
+  typename stdm::enable_if<
+    stdm::is_base_of<std::bidirectional_iterator_tag, typename std::iterator_traits<ForwardIterator>::iterator_category>::value,
+    ForwardIterator>::type
+  partition(ForwardIterator first, ForwardIterator last, UnaryPredicate pred) {
+    return ::std::partition(first, last, pred);
+  }
+
+  template<typename ForwardIterator, typename UnaryPredicate>
+  typename stdm::enable_if<
+    !stdm::is_base_of<std::bidirectional_iterator_tag, typename std::iterator_traits<ForwardIterator>::iterator_category>::value,
+    ForwardIterator>::type
+  partition(ForwardIterator first, ForwardIterator last, UnaryPredicate pred) {
+    for (; first != last; ++first) {
+      if (!pred(*first)) {
+        ForwardIterator dst = first++;
+        return algorithm_detail::swap_if(first, last, dst, pred);
+      }
+    }
+    return first;
+  }
+
+  template<typename InputIterator, typename OutputIterator1, typename OutputIterator2, typename UnaryPredicate>
+  std::pair<OutputIterator1, OutputIterator2>
+  partition_copy(InputIterator first, InputIterator last, OutputIterator1 dst_true, OutputIterator2 dst_false, UnaryPredicate pred) {
+    for (; first != last; ++first) (pred(*first)? dst_true++: dst_false++) = *first;
+    return std::make_pair(dst_true, dst_false);
+  }
+
+  template<typename ForwardIterator, typename UnaryPredicate>
+  typename stdm::enable_if<
+    stdm::is_base_of<std::random_access_iterator_tag, typename std::iterator_traits<ForwardIterator>::iterator_category>::value,
+    ForwardIterator>::type
+  partition_point(ForwardIterator first, ForwardIterator last, UnaryPredicate pred) {
+    std::ptrdiff_t l = 0, u = last - first;
+    while (l < u) {
+      std::ptrdiff_t m = (l + u) / 2;
+      if (pred(first[m]))
+        l = m + 1;
+      else
+        u = m;
+    }
+    return first + l;
+  }
+
+  template<typename ForwardIterator, typename UnaryPredicate>
+  typename stdm::enable_if<
+    !stdm::is_base_of<std::random_access_iterator_tag, typename std::iterator_traits<ForwardIterator>::iterator_category>::value,
+    ForwardIterator>::type
+  partition_point(ForwardIterator first, ForwardIterator last, UnaryPredicate pred) {
+    return find_if_not(first, last, pred);
+  }
+
+}
+}
 #endif /* end of MWG_STD_CXX11 */
 
 #ifndef MWG_STD_CXX14
 # include <mwg/defs.h>
 # include <mwg/std/utility>
-# include <mwg/std/functional>
+//# include <mwg/std/functional>
 
 // todo: <mwg/std/functional> mwg::stdm::equal_to<>
 
 // C++14
 namespace mwg {
 namespace stdm {
-  template<typename InputIterator1, typename InputIterator2>
+  template<typename InputIterator1, typename InputIterator2, typename BinaryPredicate>
   std::pair<InputIterator1, InputIterator2> mismatch(InputIterator1 first1, InputIterator2 last1, InputIterator2 first2, InputIterator2 last2, BinaryPredicate pred) {
     while (first1 != last1 && first2 != last2 && pred(*first1, *first2)) ++first1, ++first2;
     return stdm::make_pair(first1, first2);
@@ -117,7 +190,7 @@ namespace stdm {
     return mismatch(first1, last1, first2, last2, stdm::equal_to<>());
   }
 
-  template<typename InputIterator1, typename InputIterator2>
+  template<typename InputIterator1, typename InputIterator2, typename BinaryPredicate>
   bool equal(InputIterator1 first1, InputIterator2 last1, InputIterator2 first2, InputIterator2 last2, BinaryPredicate pred) {
     for (; first1 != last1 && first2 != last2; ++first1, ++first2)
       if (!pred(*first1, *first2)) return false;
@@ -129,7 +202,7 @@ namespace stdm {
   }
 
 }
-
+}
 #endif /* end of MWG_STD_CXX14 */
 
 #ifndef MWG_STD_CXX17
