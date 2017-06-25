@@ -4,7 +4,7 @@
 #include <mwg/defs.h>
 
 #ifdef MWG_STD_CXX17
-# include <functional>
+# include <execution>
 #else
 # include <mwg/std/type_traits>
 

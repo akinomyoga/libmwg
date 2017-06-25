@@ -61,7 +61,7 @@ namespace ratio_detail{
   typedef ratio<1000000000000000LL> peta;
   typedef ratio<1000000000000000000LL> exa;
 
-#ifdef MWG_STD_ALIAS_TEMPLATE
+#if mwg_has_feature(cxx_alias_templates)
   template<typename R1,typename R2>
   using ratio_add=ratio<
     R1::num*(R2::den/ratio_detail::intmax_gcd<R1::den,R2::den>::value)+

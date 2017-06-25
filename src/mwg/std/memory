@@ -223,7 +223,7 @@ namespace detail{
       }
       return *this;
     }
-#ifdef MWG_STD_RVALUE_REFERENCE
+#if mwg_has_feature(cxx_rvalue_references)
     template<typename T,typename D>
     shared_count(T* p,D&& deleter){
       typedef typename stdm::remove_reference<D>::type deleter_type;
@@ -330,7 +330,7 @@ namespace detail{
       counter=sp.counter;
       return *this;
     }
-#ifdef MWG_STD_RVALUE_REFERENCE
+#if mwg_has_feature(cxx_rvalue_references)
   public:
     shared_ptr(shared_ptr&& sp):ptr(sp.ptr){
       shared_count::swap(counter,sp.counter);
