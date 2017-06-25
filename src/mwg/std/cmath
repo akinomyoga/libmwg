@@ -459,7 +459,7 @@ namespace stdm {
 
   template<typename T>
   int fpclassify(const T& value) {
-    switch(::_fpclass((double) value)) {
+    switch (::_fpclass((double) value)) {
     case _FPCLASS_SNAN:
     case _FPCLASS_QNAN:
       return FP_NAN;
@@ -904,7 +904,7 @@ namespace stdm {
 
 /*?mconf
  * X -t'std::scalbn(x, y)' -oMWGCONF_HAS_STD_SCALBN cmath 'std::scalbn(1.0, 2)' ||
- *   X -t'::scalbn(x, y)' -oMWGCONF_HAS_SCALBN math.h '::scalbn(1.0, 2);::scalbnf(1.0f, 2);::scalbnl(1.0L, 2);'
+ *   X -t'::scalbn(x, y)' -oMWGCONF_HAS_SCALBN math.h '::scalbn(1.0, 2); ::scalbnf(1.0f, 2); ::scalbnl(1.0L, 2);'
  */
 #if !defined(MWGCONF_HAS_STD_SCALBN)
 # ifdef MWGCONF_HAS_SCALBN
@@ -927,7 +927,7 @@ namespace stdm {
 
 /*?mconf
  * X -t'std::scalbln(x, y)' -oMWGCONF_HAS_STD_SCALBLN cmath 'std::scalbln(1.0, 2L)' ||
- *   X -t'::scalbln(x, y)' -oMWGCONF_HAS_SCALBLN math.h '::scalbln(1.0, 2L);::scalblnf(1.0f, 2L);::scalblnl(1.0L, 2L);'
+ *   X -t'::scalbln(x, y)' -oMWGCONF_HAS_SCALBLN math.h '::scalbln(1.0, 2L); ::scalblnf(1.0f, 2L); ::scalblnl(1.0L, 2L);'
  */
 #if !defined(MWGCONF_HAS_STD_SCALBLN)
 # ifdef MWGCONF_HAS_SCALBLN
@@ -986,7 +986,7 @@ namespace stdm {
 
 /*?mconf
  * X -t'std::nexttoward(x, y)' -oMWGCONF_HAS_STD_NEXTTOWARD cmath 'std::nexttoward(1.0, 2L)' ||
- *   X -t'::nexttoward(x, y)' -oMWGCONF_HAS_NEXTTOWARD math.h '::nexttoward(1.0, 2L);::nexttowardf(1.0f, 2L);::nexttowardl(1.0L, 2L);'
+ *   X -t'::nexttoward(x, y)' -oMWGCONF_HAS_NEXTTOWARD math.h '::nexttoward(1.0, 2L); ::nexttowardf(1.0f, 2L); ::nexttowardl(1.0L, 2L);'
  */
 #if !defined(MWGCONF_HAS_STD_NEXTTOWARD)
 # ifdef MWGCONF_HAS_NEXTTOWARD
@@ -1038,7 +1038,7 @@ namespace stdm {
 /*?mconf
  * function check_nan {
  *   X -t'std::nan(arg)' -oMWGCONF_HAS_STD_NAN cmath 'std::nan("")' ||
- *     X -t'::nan(arg)' -oMWGCONF_HAS_NAN math.h '::nan("");::nanf("");::nanl("");'
+ *     X -t'::nan(arg)' -oMWGCONF_HAS_NAN math.h '::nan(""); ::nanf(""); ::nanl("");'
  * }
  * if ! check_nan; then
  *   X -t'std::strtof(arg)' -oMWGCONF_HAS_STD_STRTOF cmath 'std::strtof("1.0", 0)' ||
@@ -1165,11 +1165,11 @@ namespace stdm {
  * # 何と gcc-2.95 ではそもそも同じ arity の SFINAE 関数を複数定義できない?
  * # → そもそも SFINAE は gcc 3.0 以降でしか有効でないようだ。
  * S -t'"sfinae"' 'STD_SFINAE' '' '
- * template<typename T> struct is_a{};
- * template<typename T> struct is_b{typedef int type;};
- * template<typename T> void foo(T const&,typename is_a<T>::type = 0){}
- * template<typename T> void foo(T const&,typename is_b<T>::type = 0){}
- * int main(){foo(1);}
+ * template<typename T> struct is_a {};
+ * template<typename T> struct is_b {typedef int type;};
+ * template<typename T> void foo(T const&,typename is_a<T>::type = 0) {}
+ * template<typename T> void foo(T const&,typename is_b<T>::type = 0) {}
+ * int main() {foo(1);}
  * '
  */
 
@@ -1234,8 +1234,8 @@ namespace mwg {
 namespace stdm {
 
 /*?mconf
- * X -t'std::remquo(x, y, &q)' -oMWGCONF_HAS_STD_REMQUO cmath 'int  d;std::remquo(1.0, 2.0, &d)' ||
- *   X -t'::remquo(x, y, &q)' -oMWGCONF_HAS_REMQUO math.h 'int d;::remquo(1.0, 2.0, &d);::remquof(1.0f, 2.0f, &d);::remquol(1.0L, 2.0L, &d);'
+ * X -t'std::remquo(x, y, &q)' -oMWGCONF_HAS_STD_REMQUO cmath 'int  d; std::remquo(1.0, 2.0, &d)' ||
+ *   X -t'::remquo(x, y, &q)' -oMWGCONF_HAS_REMQUO math.h 'int d; ::remquo(1.0, 2.0, &d); ::remquof(1.0f, 2.0f, &d); ::remquol(1.0L, 2.0L, &d);'
  */
 #if !defined(MWGCONF_HAS_STD_REMQUO)
 # ifdef MWGCONF_HAS_REMQUO
@@ -1366,7 +1366,7 @@ namespace stdm {
 //HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 #endif /* end of MWG_STDM_CMATH */
 #pragma%x begin_check
-int main(){
+int main() {
   managed_test::run_tests();
   return 0;
 }

@@ -47,15 +47,15 @@
 }
 */
 
-namespace mwg{
-namespace stdm{
+namespace mwg {
+namespace stdm {
 
   // C99 Features
   //?mconf X -t'std::isblank(x)' -oMWGCONF_HAS_STD_ISBLANK cctype "std::isblank('\t')"
 
 #if !defined(MWGCONF_HAS_STD_ISBLANK)
-  inline mwg_constexpr int isblank(int value){
-    return value=='\t'||value==' '?1:0;
+  inline mwg_constexpr int isblank(int value) {
+    return value == '\t' || value == ' '? 1: 0;
   }
 #endif
 
@@ -66,7 +66,7 @@ namespace stdm{
 #pragma%x begin_check
 #include <mwg/std/cctype>
 #include <mwg/except.h>
-int main(){
+int main() {
   mwg_check( mwg::stdm::isblank(' '));
   mwg_check( mwg::stdm::isblank('\t'));
   mwg_check(!mwg::stdm::isblank('\n'));

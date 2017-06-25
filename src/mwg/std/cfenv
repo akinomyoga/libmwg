@@ -125,7 +125,7 @@ namespace stdm {
       if (!_fenv().fe_nonstop) {
         if (except & FE_INVALID)
           errno = EDOM;
-        else if(except & (FE_DIVBYZERO | FE_OVERFLOW))
+        else if (except & (FE_DIVBYZERO | FE_OVERFLOW))
           errno = ERANGE;
       }
 

@@ -6,7 +6,7 @@
 /*?mconf
  * H ratio
  * if test -n "$MWGCONF_HEADER_RATIO"; then
- *   X -t'std::ratio<I,J>::type' STD_RATIO_TYPE ratio     "sizeof(std::ratio<2,4>::type);"
+ *   X -t'std::ratio<I, J>::type' STD_RATIO_TYPE ratio     "sizeof(std::ratio<2, 4>::type);"
  * fi
  */
 //
@@ -23,35 +23,35 @@
 # include "cstdint"
 # include "type_traits"
 # include <mwg/mpl.h>
-namespace mwg{
-namespace stdm{
-namespace ratio_detail{
+namespace mwg {
+namespace stdm {
+namespace ratio_detail {
   template<mwg::stdm::intmax_t Z1>
-  struct intmax_abs:mwg::mpl::integral_abs<mwg::stdm::intmax_t,Z1>{};
+  struct intmax_abs: mwg::mpl::integral_abs<mwg::stdm::intmax_t, Z1> {};
   template<mwg::stdm::intmax_t Z1>
-  struct intmax_sgn:mwg::mpl::integral_sgn<mwg::stdm::intmax_t,Z1>{};
-  template<mwg::stdm::intmax_t Z1,mwg::stdm::intmax_t Z2>
-  struct intmax_gcd:mwg::mpl::integral_gcd<mwg::stdm::intmax_t,Z1,Z2>{};
-  template<mwg::stdm::intmax_t Z1,mwg::stdm::intmax_t Z2>
-  struct intmax_lcm:mwg::mpl::integral_lcm<mwg::stdm::intmax_t,Z1,Z2>{};
+  struct intmax_sgn: mwg::mpl::integral_sgn<mwg::stdm::intmax_t, Z1> {};
+  template<mwg::stdm::intmax_t Z1, mwg::stdm::intmax_t Z2>
+  struct intmax_gcd: mwg::mpl::integral_gcd<mwg::stdm::intmax_t, Z1, Z2> {};
+  template<mwg::stdm::intmax_t Z1, mwg::stdm::intmax_t Z2>
+  struct intmax_lcm: mwg::mpl::integral_lcm<mwg::stdm::intmax_t, Z1, Z2> {};
 }
-  template<mwg::stdm::intmax_t Num,mwg::stdm::intmax_t Den=1>
-  struct ratio{
+  template<mwg::stdm::intmax_t Num, mwg::stdm::intmax_t Den = 1>
+  struct ratio {
     static const mwg::stdm::intmax_t num=
-      ratio_detail::intmax_sgn<Num>::value*ratio_detail::intmax_sgn<Den>::value*ratio_detail::intmax_abs<Num>::value/ratio_detail::intmax_gcd<Num,Den>::value;
+      ratio_detail::intmax_sgn<Num>::value * ratio_detail::intmax_sgn<Den>::value * ratio_detail::intmax_abs<Num>::value / ratio_detail::intmax_gcd<Num, Den>::value;
     static const mwg::stdm::intmax_t den=
-      ratio_detail::intmax_abs<Den>::value/ratio_detail::intmax_gcd<Num,Den>::value;
-    typedef mwg::stdm::ratio<num,den> type;
+      ratio_detail::intmax_abs<Den>::value / ratio_detail::intmax_gcd<Num, Den>::value;
+    typedef mwg::stdm::ratio<num, den> type;
   };
 
-  typedef ratio<1,10> deci;
-  typedef ratio<1,100> centi;
-  typedef ratio<1,1000> milli;
-  typedef ratio<1,1000000LL> micro;
-  typedef ratio<1,1000000000LL> nano;
-  typedef ratio<1,1000000000000LL> pico;
-  typedef ratio<1,1000000000000000LL> femto;
-  typedef ratio<1,1000000000000000000LL> atto;
+  typedef ratio<1, 10> deci;
+  typedef ratio<1, 100> centi;
+  typedef ratio<1, 1000> milli;
+  typedef ratio<1, 1000000LL> micro;
+  typedef ratio<1, 1000000000LL> nano;
+  typedef ratio<1, 1000000000000LL> pico;
+  typedef ratio<1, 1000000000000000LL> femto;
+  typedef ratio<1, 1000000000000000000LL> atto;
   typedef ratio<10> deca;
   typedef ratio<100> hecto;
   typedef ratio<1000> kilo;
@@ -62,67 +62,67 @@ namespace ratio_detail{
   typedef ratio<1000000000000000000LL> exa;
 
 #if mwg_has_feature(cxx_alias_templates)
-  template<typename R1,typename R2>
-  using ratio_add=ratio<
-    R1::num*(R2::den/ratio_detail::intmax_gcd<R1::den,R2::den>::value)+
-    R2::num*(R1::den/ratio_detail::intmax_gcd<R1::den,R2::den>::value),
-    (R1::den/ratio_detail::intmax_gcd<R1::den,R2::den>::value)*R2::den
+  template<typename R1, typename R2>
+  using ratio_add = ratio<
+    R1::num * (R2::den / ratio_detail::intmax_gcd<R1::den, R2::den>::value) +
+    R2::num * (R1::den / ratio_detail::intmax_gcd<R1::den, R2::den>::value),
+    (R1::den / ratio_detail::intmax_gcd<R1::den, R2::den>::value) * R2::den
   >;
-  template<typename R1,typename R2>
-  using ratio_subtract=ratio<
-    R1::num*(R2::den/ratio_detail::intmax_gcd<R1::den,R2::den>::value)-
-    R2::num*(R1::den/ratio_detail::intmax_gcd<R1::den,R2::den>::value),
-    (R1::den/ratio_detail::intmax_gcd<R1::den,R2::den>::value)*R2::den
+  template<typename R1, typename R2>
+  using ratio_subtract = ratio<
+    R1::num * (R2::den / ratio_detail::intmax_gcd<R1::den, R2::den>::value) -
+    R2::num * (R1::den / ratio_detail::intmax_gcd<R1::den, R2::den>::value),
+    (R1::den / ratio_detail::intmax_gcd<R1::den, R2::den>::value) * R2::den
   >;
-  template<typename R1,typename R2>
-  using ratio_multiply=ratio<
-    (R1::num/ratio_detail::intmax_gcd<R1::num,R2::den>::value)*
-    (R2::num/ratio_detail::intmax_gcd<R1::den,R2::num>::value),
-    (R1::den/ratio_detail::intmax_gcd<R1::den,R2::num>::value)*
-    (R2::den/ratio_detail::intmax_gcd<R1::num,R2::den>::value)
+  template<typename R1, typename R2>
+  using ratio_multiply = ratio<
+    (R1::num / ratio_detail::intmax_gcd<R1::num, R2::den>::value) *
+    (R2::num / ratio_detail::intmax_gcd<R1::den, R2::num>::value),
+    (R1::den / ratio_detail::intmax_gcd<R1::den, R2::num>::value) *
+    (R2::den / ratio_detail::intmax_gcd<R1::num, R2::den>::value)
   >;
-  template<typename R1,typename R2>
-  using ratio_divide=ratio_multiply<
-    R1,ratio<R2::den,R2::num>
+  template<typename R1, typename R2>
+  using ratio_divide = ratio_multiply<
+    R1, ratio<R2::den, R2::num>
   >;
 #else
-  template<typename R1,typename R2>
-  struct ratio_add:ratio<
-    R1::num*(R2::den/ratio_detail::intmax_gcd<R1::den,R2::den>::value)+
-    R2::num*(R1::den/ratio_detail::intmax_gcd<R1::den,R2::den>::value),
-    (R1::den/ratio_detail::intmax_gcd<R1::den,R2::den>::value)*R2::den
-  >{};
-  template<typename R1,typename R2>
-  struct ratio_subtract:ratio<
-    R1::num*(R2::den/ratio_detail::intmax_gcd<R1::den,R2::den>::value)-
-    R2::num*(R1::den/ratio_detail::intmax_gcd<R1::den,R2::den>::value),
-    (R1::den/ratio_detail::intmax_gcd<R1::den,R2::den>::value)*R2::den
-  >{};
-  template<typename R1,typename R2>
-  struct ratio_multiply:ratio<
-    (R1::num/ratio_detail::intmax_gcd<R1::num,R2::den>::value)*
-    (R2::num/ratio_detail::intmax_gcd<R1::den,R2::num>::value),
-    (R1::den/ratio_detail::intmax_gcd<R1::den,R2::num>::value)*
-    (R2::den/ratio_detail::intmax_gcd<R1::num,R2::den>::value)
-  >{};
-  template<typename R1,typename R2>
-  struct ratio_divide:ratio_multiply<
-    R1,ratio<R2::den,R2::num>
-  >{};
+  template<typename R1, typename R2>
+  struct ratio_add: ratio<
+    R1::num * (R2::den / ratio_detail::intmax_gcd<R1::den, R2::den>::value) +
+    R2::num * (R1::den / ratio_detail::intmax_gcd<R1::den, R2::den>::value),
+    (R1::den / ratio_detail::intmax_gcd<R1::den, R2::den>::value) * R2::den
+  > {};
+  template<typename R1, typename R2>
+  struct ratio_subtract: ratio<
+    R1::num * (R2::den / ratio_detail::intmax_gcd<R1::den, R2::den>::value) -
+    R2::num * (R1::den / ratio_detail::intmax_gcd<R1::den, R2::den>::value),
+    (R1::den / ratio_detail::intmax_gcd<R1::den, R2::den>::value) * R2::den
+  > {};
+  template<typename R1, typename R2>
+  struct ratio_multiply: ratio<
+    (R1::num / ratio_detail::intmax_gcd<R1::num, R2::den>::value) *
+    (R2::num / ratio_detail::intmax_gcd<R1::den, R2::num>::value),
+    (R1::den / ratio_detail::intmax_gcd<R1::den, R2::num>::value) *
+    (R2::den / ratio_detail::intmax_gcd<R1::num, R2::den>::value)
+  > {};
+  template<typename R1, typename R2>
+  struct ratio_divide: ratio_multiply<
+    R1, ratio<R2::den, R2::num>
+  > {};
 #endif
 
-  template<typename R1,typename R2>
-  struct ratio_equal:mwg::stdm::integral_constant<bool,(ratio_subtract<R1,R2>::num==0)>{};
-  template<typename R1,typename R2>
-  struct ratio_not_equal:mwg::stdm::integral_constant<bool,(ratio_subtract<R1,R2>::num!=0)>{};
-  template<typename R1,typename R2>
-  struct ratio_less:mwg::stdm::integral_constant<bool,(ratio_subtract<R1,R2>::num<0)>{};
-  template<typename R1,typename R2>
-  struct ratio_less_equal:mwg::stdm::integral_constant<bool,(ratio_subtract<R1,R2>::num<=0)>{};
-  template<typename R1,typename R2>
-  struct ratio_greater:mwg::stdm::integral_constant<bool,(ratio_subtract<R1,R2>::num>0)>{};
-  template<typename R1,typename R2>
-  struct ratio_greater_equal:mwg::stdm::integral_constant<bool,(ratio_subtract<R1,R2>::num>=0)>{};
+  template<typename R1, typename R2>
+  struct ratio_equal: mwg::stdm::integral_constant<bool, (ratio_subtract<R1, R2>::num == 0)> {};
+  template<typename R1, typename R2>
+  struct ratio_not_equal: mwg::stdm::integral_constant<bool, (ratio_subtract<R1, R2>::num != 0)> {};
+  template<typename R1, typename R2>
+  struct ratio_less: mwg::stdm::integral_constant<bool, (ratio_subtract<R1, R2>::num < 0)> {};
+  template<typename R1, typename R2>
+  struct ratio_less_equal: mwg::stdm::integral_constant<bool, (ratio_subtract<R1, R2>::num <= 0)> {};
+  template<typename R1, typename R2>
+  struct ratio_greater: mwg::stdm::integral_constant<bool, (ratio_subtract<R1, R2>::num > 0)> {};
+  template<typename R1, typename R2>
+  struct ratio_greater_equal: mwg::stdm::integral_constant<bool, (ratio_subtract<R1, R2>::num >= 0)> {};
 }
 }
 #endif
@@ -133,70 +133,70 @@ namespace ratio_detail{
 #include <mwg/std/type_traits>
 #include <mwg/std/ratio>
 
-int main(){
-  namespace ns=mwg::stdm;
+int main() {
+  namespace ns = mwg::stdm;
 
   // check of gcd
-  mwg_assert((!ns::is_same<ns::ratio<2,4>      ,ns::ratio<1,2>      >::value));
-  mwg_assert((!ns::is_same<ns::ratio<0,9>      ,ns::ratio<0,5>      >::value));
-  mwg_assert(( ns::is_same<ns::ratio<2,4>::type,ns::ratio<1,2>::type>::value));
-  mwg_assert(( ns::is_same<ns::ratio<0,9>::type,ns::ratio<0,5>::type>::value));
+  mwg_assert((!ns::is_same<ns::ratio<2, 4>      , ns::ratio<1, 2>      >::value));
+  mwg_assert((!ns::is_same<ns::ratio<0, 9>      , ns::ratio<0, 5>      >::value));
+  mwg_assert(( ns::is_same<ns::ratio<2, 4>::type, ns::ratio<1, 2>::type>::value));
+  mwg_assert(( ns::is_same<ns::ratio<0, 9>::type, ns::ratio<0, 5>::type>::value));
 
-  mwg_assert((ns::ratio<6,8>::num==3));
-  mwg_assert((ns::ratio<6,8>::den==4));
-
-  // comparison
-  mwg_assert((!ns::ratio_equal<ns::ratio<1,2>,ns::ratio<2,1> >::value));
-  mwg_assert(( ns::ratio_equal<ns::ratio<2  >,ns::ratio<2,1> >::value));
-  mwg_assert(( ns::ratio_equal<ns::ratio<1,2>,ns::ratio<2,4> >::value));
-  mwg_assert(( ns::ratio_equal<ns::ratio<0,2>,ns::ratio<0> >::value));
-  mwg_assert(( ns::ratio_not_equal<ns::ratio<1,2>,ns::ratio<2,1> >::value));
-  mwg_assert((!ns::ratio_not_equal<ns::ratio<2  >,ns::ratio<2,1> >::value));
-  mwg_assert((!ns::ratio_not_equal<ns::ratio<1,2>,ns::ratio<2,4> >::value));
-  mwg_assert((!ns::ratio_less<ns::ratio<3,4>,ns::ratio<2,3> >::value));
-  mwg_assert((!ns::ratio_less<ns::ratio<6,8>,ns::ratio<4,6> >::value));
-  mwg_assert((!ns::ratio_less<ns::ratio<2,4>,ns::ratio<1,2> >::value));
-  mwg_assert(( ns::ratio_less<ns::ratio<2,3>,ns::ratio<3,4> >::value));
-  mwg_assert(( ns::ratio_less<ns::ratio<4,6>,ns::ratio<6,8> >::value));
-  mwg_assert((!ns::ratio_less_equal<ns::ratio<3,4>,ns::ratio<2,3> >::value));
-  mwg_assert((!ns::ratio_less_equal<ns::ratio<6,8>,ns::ratio<4,6> >::value));
-  mwg_assert(( ns::ratio_less_equal<ns::ratio<2,4>,ns::ratio<1,2> >::value));
-  mwg_assert(( ns::ratio_less_equal<ns::ratio<2,3>,ns::ratio<3,4> >::value));
-  mwg_assert(( ns::ratio_less_equal<ns::ratio<4,6>,ns::ratio<6,8> >::value));
-  mwg_assert(( ns::ratio_greater<ns::ratio<3,4>,ns::ratio<2,3> >::value));
-  mwg_assert(( ns::ratio_greater<ns::ratio<6,8>,ns::ratio<4,6> >::value));
-  mwg_assert((!ns::ratio_greater<ns::ratio<2,4>,ns::ratio<1,2> >::value));
-  mwg_assert((!ns::ratio_greater<ns::ratio<2,3>,ns::ratio<3,4> >::value));
-  mwg_assert((!ns::ratio_greater<ns::ratio<4,6>,ns::ratio<6,8> >::value));
-  mwg_assert(( ns::ratio_greater_equal<ns::ratio<3,4>,ns::ratio<2,3> >::value));
-  mwg_assert(( ns::ratio_greater_equal<ns::ratio<6,8>,ns::ratio<4,6> >::value));
-  mwg_assert(( ns::ratio_greater_equal<ns::ratio<2,4>,ns::ratio<1,2> >::value));
-  mwg_assert((!ns::ratio_greater_equal<ns::ratio<2,3>,ns::ratio<3,4> >::value));
-  mwg_assert((!ns::ratio_greater_equal<ns::ratio<4,6>,ns::ratio<6,8> >::value));
+  mwg_assert((ns::ratio<6, 8>::num == 3));
+  mwg_assert((ns::ratio<6, 8>::den == 4));
 
   // comparison
-  mwg_assert(( ns::ratio_equal<ns::ratio_add<ns::ratio<1,3>,ns::ratio<1,4> >,ns::ratio<7,12> >::value));
-  mwg_assert(( ns::ratio_equal<ns::ratio_subtract<ns::ratio<2,3>,ns::ratio<1,4> >,ns::ratio<5,12> >::value));
-  mwg_assert(( ns::ratio_equal<ns::ratio_multiply<ns::ratio<2,3>,ns::ratio<3,4> >,ns::ratio<1,2> >::value));
-  mwg_assert(( ns::ratio_equal<ns::ratio_divide<ns::ratio<1,3>,ns::ratio<1,4> >,ns::ratio<4,3> >::value));
+  mwg_assert((!ns::ratio_equal<ns::ratio<1, 2>, ns::ratio<2, 1> >::value));
+  mwg_assert(( ns::ratio_equal<ns::ratio<2   >, ns::ratio<2, 1> >::value));
+  mwg_assert(( ns::ratio_equal<ns::ratio<1, 2>, ns::ratio<2, 4> >::value));
+  mwg_assert(( ns::ratio_equal<ns::ratio<0, 2>, ns::ratio<0   > >::value));
+  mwg_assert(( ns::ratio_not_equal<ns::ratio<1, 2>, ns::ratio<2, 1> >::value));
+  mwg_assert((!ns::ratio_not_equal<ns::ratio<2   >, ns::ratio<2, 1> >::value));
+  mwg_assert((!ns::ratio_not_equal<ns::ratio<1, 2>, ns::ratio<2, 4> >::value));
+  mwg_assert((!ns::ratio_less<ns::ratio<3, 4>, ns::ratio<2, 3> >::value));
+  mwg_assert((!ns::ratio_less<ns::ratio<6, 8>, ns::ratio<4, 6> >::value));
+  mwg_assert((!ns::ratio_less<ns::ratio<2, 4>, ns::ratio<1, 2> >::value));
+  mwg_assert(( ns::ratio_less<ns::ratio<2, 3>, ns::ratio<3, 4> >::value));
+  mwg_assert(( ns::ratio_less<ns::ratio<4, 6>, ns::ratio<6, 8> >::value));
+  mwg_assert((!ns::ratio_less_equal<ns::ratio<3, 4>, ns::ratio<2, 3> >::value));
+  mwg_assert((!ns::ratio_less_equal<ns::ratio<6, 8>, ns::ratio<4, 6> >::value));
+  mwg_assert(( ns::ratio_less_equal<ns::ratio<2, 4>, ns::ratio<1, 2> >::value));
+  mwg_assert(( ns::ratio_less_equal<ns::ratio<2, 3>, ns::ratio<3, 4> >::value));
+  mwg_assert(( ns::ratio_less_equal<ns::ratio<4, 6>, ns::ratio<6, 8> >::value));
+  mwg_assert(( ns::ratio_greater<ns::ratio<3, 4>, ns::ratio<2, 3> >::value));
+  mwg_assert(( ns::ratio_greater<ns::ratio<6, 8>, ns::ratio<4, 6> >::value));
+  mwg_assert((!ns::ratio_greater<ns::ratio<2, 4>, ns::ratio<1, 2> >::value));
+  mwg_assert((!ns::ratio_greater<ns::ratio<2, 3>, ns::ratio<3, 4> >::value));
+  mwg_assert((!ns::ratio_greater<ns::ratio<4, 6>, ns::ratio<6, 8> >::value));
+  mwg_assert(( ns::ratio_greater_equal<ns::ratio<3, 4>, ns::ratio<2, 3> >::value));
+  mwg_assert(( ns::ratio_greater_equal<ns::ratio<6, 8>, ns::ratio<4, 6> >::value));
+  mwg_assert(( ns::ratio_greater_equal<ns::ratio<2, 4>, ns::ratio<1, 2> >::value));
+  mwg_assert((!ns::ratio_greater_equal<ns::ratio<2, 3>, ns::ratio<3, 4> >::value));
+  mwg_assert((!ns::ratio_greater_equal<ns::ratio<4, 6>, ns::ratio<6, 8> >::value));
+
+  // comparison
+  mwg_assert(( ns::ratio_equal<ns::ratio_add<ns::ratio<1, 3>, ns::ratio<1, 4> >, ns::ratio<7, 12> >::value));
+  mwg_assert(( ns::ratio_equal<ns::ratio_subtract<ns::ratio<2, 3>, ns::ratio<1, 4> >, ns::ratio<5, 12> >::value));
+  mwg_assert(( ns::ratio_equal<ns::ratio_multiply<ns::ratio<2, 3>, ns::ratio<3, 4> >, ns::ratio<1, 2> >::value));
+  mwg_assert(( ns::ratio_equal<ns::ratio_divide<ns::ratio<1, 3>, ns::ratio<1, 4> >, ns::ratio<4, 3> >::value));
 
   // SI prefices
-  mwg_assert(( ns::ratio_equal<ns::deca,ns::ratio<10> >::value));
-  mwg_assert(( ns::ratio_equal<ns::hecto,ns::ratio<100> >::value));
-  mwg_assert(( ns::ratio_equal<ns::kilo,ns::ratio<1000> >::value));
-  mwg_assert(( ns::ratio_equal<ns::mega,ns::ratio_multiply<ns::kilo,ns::kilo> >::value));
-  mwg_assert(( ns::ratio_equal<ns::giga,ns::ratio_multiply<ns::mega,ns::kilo> >::value));
-  mwg_assert(( ns::ratio_equal<ns::tera,ns::ratio_multiply<ns::giga,ns::kilo> >::value));
-  mwg_assert(( ns::ratio_equal<ns::peta,ns::ratio_multiply<ns::tera,ns::kilo> >::value));
-  mwg_assert(( ns::ratio_equal<ns::exa,ns::ratio_multiply<ns::peta,ns::kilo> >::value));
-  mwg_assert(( ns::ratio_equal<ns::ratio_multiply<ns::deci,ns::deca>,ns::ratio<1> >::value));
-  mwg_assert(( ns::ratio_equal<ns::ratio_multiply<ns::centi,ns::hecto>,ns::ratio<1> >::value));
-  mwg_assert(( ns::ratio_equal<ns::ratio_multiply<ns::milli,ns::kilo>,ns::ratio<1> >::value));
-  mwg_assert(( ns::ratio_equal<ns::ratio_multiply<ns::micro,ns::mega>,ns::ratio<1> >::value));
-  mwg_assert(( ns::ratio_equal<ns::ratio_multiply<ns::nano,ns::giga>,ns::ratio<1> >::value));
-  mwg_assert(( ns::ratio_equal<ns::ratio_multiply<ns::pico,ns::tera>,ns::ratio<1> >::value));
-  mwg_assert(( ns::ratio_equal<ns::ratio_multiply<ns::femto,ns::peta>,ns::ratio<1> >::value));
-  mwg_assert(( ns::ratio_equal<ns::ratio_multiply<ns::atto,ns::exa>,ns::ratio<1> >::value));
+  mwg_assert(( ns::ratio_equal<ns::deca, ns::ratio<10> >::value));
+  mwg_assert(( ns::ratio_equal<ns::hecto, ns::ratio<100> >::value));
+  mwg_assert(( ns::ratio_equal<ns::kilo, ns::ratio<1000> >::value));
+  mwg_assert(( ns::ratio_equal<ns::mega, ns::ratio_multiply<ns::kilo, ns::kilo> >::value));
+  mwg_assert(( ns::ratio_equal<ns::giga, ns::ratio_multiply<ns::mega, ns::kilo> >::value));
+  mwg_assert(( ns::ratio_equal<ns::tera, ns::ratio_multiply<ns::giga, ns::kilo> >::value));
+  mwg_assert(( ns::ratio_equal<ns::peta, ns::ratio_multiply<ns::tera, ns::kilo> >::value));
+  mwg_assert(( ns::ratio_equal<ns::exa, ns::ratio_multiply<ns::peta, ns::kilo> >::value));
+  mwg_assert(( ns::ratio_equal<ns::ratio_multiply<ns::deci, ns::deca>, ns::ratio<1> >::value));
+  mwg_assert(( ns::ratio_equal<ns::ratio_multiply<ns::centi, ns::hecto>, ns::ratio<1> >::value));
+  mwg_assert(( ns::ratio_equal<ns::ratio_multiply<ns::milli, ns::kilo>, ns::ratio<1> >::value));
+  mwg_assert(( ns::ratio_equal<ns::ratio_multiply<ns::micro, ns::mega>, ns::ratio<1> >::value));
+  mwg_assert(( ns::ratio_equal<ns::ratio_multiply<ns::nano, ns::giga>, ns::ratio<1> >::value));
+  mwg_assert(( ns::ratio_equal<ns::ratio_multiply<ns::pico, ns::tera>, ns::ratio<1> >::value));
+  mwg_assert(( ns::ratio_equal<ns::ratio_multiply<ns::femto, ns::peta>, ns::ratio<1> >::value));
+  mwg_assert(( ns::ratio_equal<ns::ratio_multiply<ns::atto, ns::exa>, ns::ratio<1> >::value));
 
   return 0;
 }

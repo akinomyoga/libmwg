@@ -1096,12 +1096,12 @@ namespace stdm {
 #endif /* end of MWG_STDM_ALGORITHM */
 #pragma%x begin_check
 
-int test(){
+int test() {
   namespace ns = mwg::stdm;
   return 0;
 }
 
-int main(){
+int main() {
   managed_test::run_tests();
   return test();
 }

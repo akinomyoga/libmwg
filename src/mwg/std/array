@@ -151,13 +151,13 @@ namespace std {
 #include <mwg/except.h>
 #include <mwg/std/array>
 
-int test(){
+int test() {
   namespace ns = mwg::stdm;
   ns::array<int, 10> arr;
   return 0;
 }
 
-int main(){
+int main() {
   return test();
 }
 #pragma%x end_check
