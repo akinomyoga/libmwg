@@ -2,82 +2,14 @@
 #ifndef MWG_STDM_MEMORY
 #define MWG_STDM_MEMORY
 #include <mwg/defs.h>
-//HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+/*
+ * Note: TR1 std::tr1::shared_ptr と C++11 std::shared_ptr はインターフェイスが異なるので使わない。
+ *   例えば std::tr1::shared_ptr は std::unique_ptr で初期化できないなどの違いがある。
+ *   また boost/shared_ptr.hpp も使わないことにした。
+ *
+ */
 #if MWGCONF_HEADER_STD >= 2011
 # include <memory>
-
-/* 以下は現在は使っていない config check である:
- * # C++Tr1
- * H tr1/memory
- * X -t'std::shared_ptr<T>' shared_ptr memory "std::shared_ptr<int> a;"
- *
- * # C++11
- * X -t'std::unique_ptr<T>' unique_ptr memory "std::unique_ptr<int> a;"
- *
- * # Boost Library Headers
- * if test -n "$MWGCONF_HEADER_BOOST_CONFIG_HPP"; then
- *   H boost/tr1/memory.hpp
- *   H boost/shared_ptr.hpp
- * fi
- */
-
-// ↓ std::tr1::shared_ptr ... c++11 shared_ptr と interface が異なるので使わない (unique_ptr で初期化できない)
-/*
- * #elif MWGCONF_HEADER_STD >= 2005 || defined(MWGCONF_HEADER_TR1)
- * # if MWGCONF_HEADER_STD >= 2005
- * #  include <memory>
- * # elif defined(MWGCONF_HEADER_TR1)
- * #  include <tr1/memory>
- * # endif
- * # include <mwg/std/utility>
- * # include "memory.unique_ptr.inl"
- * namespace mwg {
- * namespace stdm {
- *   template<typename T, typename A>
- *   struct _allocate_shared_deleter {
- *     typedef typename A::template rebind<T>::other allocator_type;
- *     allocator_type alloc;
- *   public:
- *     _allocate_shared_deleter(A const& alloc): alloc(alloc) {}
- *     T* operator()(T* ptr) const {
- *       ptr->~T();
- *       alloc.deallocate(ptr);
- *     }
- *   };
- * # if mwg_has_feature(cxx_variadic_templates)
- *   /// std::make_shared
- *   template<typename T, typename Args...>
- *   shared_ptr<T> make_shared(Args mwg_forward_rvalue... args) {
- *     return shared_ptr<T>(new T(mwg::stdm::forward<Args>(args)...));
- *   }
- *   /// std::allocate_shared
- *   template<typename T, typename A, typename Args...>
- *   shared_ptr<T> allocate_shared(A const& alloc, Args mwg_forward_rvalue... args) {
- *     T* buff;
- *     A::template rebind<T>::other(alloc).allocate(buff);
- *     return shared_ptr<T>(new(buff) T(mwg::stdm::forward<Args>(args)...), _allocate_shared_deleter<T, A>(alloc), alloc);
- *   }
- * # else
- * #  define mwg_impl_variadic_function                                   \
- *   template<typename T mwg_impl_variadic_template_params_r> \
- *   shared_ptr<T> make_shared(mwg_impl_variadic_forward_params) { \
- *     return shared_ptr<T>(new T(mwg_impl_variadic_forward_args)); \
- *   }
- * #   include <mwg/impl/DeclareVariadicFunction.inl>
- * #  undef mwg_impl_variadic_function
- * #  define mwg_impl_variadic_function                                   \
- *   template<typename T, typename A mwg_impl_variadic_template_params_r>  \
- *   shared_ptr<T> allocate_shared(A const& alloc mwg_impl_variadic_forward_params_r) { \
- *     T* buff; \
- *     A::template rebind<T>::other(alloc).allocate(buff); \
- *     return shared_ptr<T>(new(buff) T(mwg_impl_variadic_forward_args), _allocate_shared_deleter<T, A>(alloc), alloc); \
- *   }
- * #   include <mwg/impl/DeclareVariadicFunction.inl>
- * #  undef mwg_impl_variadic_function
- * # endif \/\* end of !mwg_has_feature(cxx_variadic_templates) \*\/
- * }
- * }
- */
 #else
 # include <memory>
 # include <algorithm>
@@ -152,7 +84,7 @@ namespace detail {
 #else
 #  define mwg_impl_variadic_function                                   \
     mwg_impl_variadic_template_decl                                    \
-    count_buff_inplace(mwg_impl_variadic_forward_params) {              \
+    count_buff_inplace(mwg_impl_variadic_forward_params) {             \
       new(this->data) T(mwg_impl_variadic_forward_args);               \
     }
 #    include <mwg/impl/DeclareVariadicFunction.inl>
@@ -182,7 +114,7 @@ namespace detail {
 #  define mwg_impl_variadic_function                                   \
     mwg_impl_variadic_template_decl                                    \
     count_buff_inplaceAllocated(A const& alloc mwg_impl_variadic_forward_params_r) { \
-      mwg_unused(alloc);                                                \
+      mwg_unused(alloc);                                               \
       new(this->data) T(mwg_impl_variadic_forward_args);               \
     }
 #    include <mwg/impl/DeclareVariadicFunction.inl>
@@ -526,6 +458,5 @@ namespace detail {
 namespace std {
   using mwg::stdm::detail::swap;
 }
-#endif
-//HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+#endif /* end of MWGCONF_HEADER_STD < 2011 */
 #endif
