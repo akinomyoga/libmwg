@@ -418,16 +418,6 @@ C++
   ToDo
 ------------------------------------------------------------------------------
 
-2017-07-04
-
-* is_permutation の実装は怪しいのでテストを追加する。
-
-* algorithm: 全般に ForwardIterator のチェックを行う様にする。
-
-  その時 is_permutation と同じ仕組みにするか、
-  標準的なタグディスパッチにするか、
-  或いは SFINAE にするかはどれが良いか考える。
-
 2017-06-30
 
 * 謎: <algorithm> の関数の集合は不完全な気がする。例えば以下のようなものがない。
@@ -1400,6 +1390,35 @@ C++
 ------------------------------------------------------------------------------
 
 2017-07-04
+
+* is_permutation の実装は怪しいのでテストを追加する。
+
+* algorithm: 全般に ForwardIterator のチェックを行う様にする。
+
+  その時 is_permutation と同じ仕組みにするか、
+  標準的なタグディスパッチにするか、
+  或いは SFINAE にするかはどれが良いか考える。
+
+  取り敢えず面倒なので現在使っている仕組みをそのまま使うことにした。
+  つまり、require_forward_iterator<ForwardIterator>() を呼び出す。
+
+  1 ただし、constexpr の関数から constexpr void require_forward_itereator を呼び出すことができるだろうか。
+    どうも constexpr void は許されていない様だ → constexpr int にして 0 をダミーで返す様にした。
+
+  2 デフォルト引数の tag オブジェクト構築は constexpr として取り扱われるだろうか。
+    constepxr になってくれる気がするが自信がないので取り敢えず試してみることにする。
+    →wandbox で試してみた所 constexpr になるようだ。
+
+    // 実験1
+    struct tag {};
+    template<typename T> constexpr int check(T = T()) {return 0;}
+    template<typename T> constexpr int test1() {check<tag>(); return 1;}
+    constexpr auto a = test1<int>();
+
+    // 実験2
+    template<typename T> constexpr int check(std::forward_iterator_tag = T()) {return 0;}
+    template<typename T> constexpr int test1() {check<std::bidirectional_iterator_tag>(); return 1;}
+    constexpr auto a = test1<int>();
 
 * is_permutation の実装に関して。
 

@@ -82,6 +82,15 @@ namespace stdm {
 }
 }
 
+namespace mwg {
+namespace stdm {
+namespace algorithm_detail {
+  template<typename ForwardIterator>
+  mwg_constexpr int require_forward_iterator(std::forward_iterator_tag = typename std::iterator_traits<ForwardIterator>::iterator_category()) {return 0;}
+}
+}
+}
+
 #ifdef MWG_STD_CXX11
 namespace mwg {
 namespace stdm {
@@ -305,6 +314,7 @@ namespace stdm {
 
   template<typename ForwardIterator>
   ForwardIterator rotate(ForwardIterator first, ForwardIterator mid, ForwardIterator last) {
+    algorithm_detail::require_forward_iterator<ForwardIterator>();
     if (first == last || mid == last) return first;
     if (mid == first) return last;
     ForwardIterator mid0 = mid;
@@ -356,6 +366,7 @@ namespace stdm {
     !stdm::is_base_of<std::bidirectional_iterator_tag, typename std::iterator_traits<ForwardIterator>::iterator_category>::value,
     ForwardIterator>::type
   partition(ForwardIterator first, ForwardIterator last, UnaryPredicate pred) {
+    algorithm_detail::require_forward_iterator<ForwardIterator>();
     for (; first != last; ++first) {
       if (!pred(*first)) {
         ForwardIterator dst = first++;
@@ -393,11 +404,13 @@ namespace stdm {
     !stdm::is_base_of<std::random_access_iterator_tag, typename std::iterator_traits<ForwardIterator>::iterator_category>::value,
     ForwardIterator>::type
   partition_point(ForwardIterator first, ForwardIterator last, UnaryPredicate pred) {
+    // InputIterator で動く
     return find_if_not(first, last, pred);
   }
 
   template<typename ForwardIterator, typename Compare>
   ForwardIterator is_sorted_until(ForwardIterator first, ForwardIterator last, Compare compare) {
+    algorithm_detail::require_forward_iterator<ForwardIterator>();
     if (first == last) return first;
     for (;;) {
       ForwardIterator prev = first++;
@@ -407,16 +420,19 @@ namespace stdm {
 
   template<typename ForwardIterator>
   ForwardIterator is_sorted_until(ForwardIterator first, ForwardIterator last) {
+    algorithm_detail::require_forward_iterator<ForwardIterator>();
     return is_sorted_until(first, last, std::less<typename std::iterator_traits<ForwardIterator>::value_type>());
   }
 
   template<typename ForwardIterator, typename Compare>
   bool is_sorted(ForwardIterator first, ForwardIterator last, Compare compare) {
+    algorithm_detail::require_forward_iterator<ForwardIterator>();
     return last == is_sorted_until(first, last, compare);
   }
 
   template<typename ForwardIterator>
   bool is_sorted(ForwardIterator first, ForwardIterator last) {
+    algorithm_detail::require_forward_iterator<ForwardIterator>();
     return last == is_sorted_until(first, last);
   }
 
@@ -444,9 +460,6 @@ namespace stdm {
   }
 
   namespace algorithm_detail {
-    template<typename ForwardIterator>
-    void require_forward_iterator(std::forward_iterator_tag = typename std::iterator_traits<ForwardIterator>::iterator_category()) {}
-
     template<typename InputIterator, typename Value, typename BinaryPredicate>
     std::size_t count(InputIterator first, InputIterator last, Value const& value, BinaryPredicate pred) {
       std::size_t ret = 0;
@@ -735,6 +748,7 @@ namespace stdm {
 #ifdef MWGCONF_STD_CONSTEXPR14
   template<typename ForwardIterator, typename Compare>
   constexpr ForwardIterator max_element(ForwardIterator first, ForwardIterator last, Compare compare) {
+    algorithm_detail::require_forward_iterator<ForwardIterator>();
     if (first == last) return first;
     ForwardIterator ret = first++;
     for (; first != last; ++first) if (compare(*ret, *first)) ret = first;
@@ -742,6 +756,7 @@ namespace stdm {
   }
   template<typename ForwardIterator, typename Compare>
   constexpr ForwardIterator min_element(ForwardIterator first, ForwardIterator last, Compare compare) {
+    algorithm_detail::require_forward_iterator<ForwardIterator>();
     if (first == last) return first;
     ForwardIterator ret = first++;
     for (; first != last; ++first) if (compare(*first, *ret)) ret = first;
