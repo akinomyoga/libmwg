@@ -20,6 +20,7 @@ namespace stdm {
   using ::std::mismatch;
   using ::std::equal;
   using ::std::find;
+  using ::std::find_first_of;
   using ::std::find_if;
   using ::std::find_end;
   using ::std::adjacent_find;
@@ -88,7 +89,6 @@ namespace stdm {
   using ::std::any_of;
   using ::std::none_of;
   using ::std::find_if_not;
-  using ::std::find_first_of;
   using ::std::copy_n;
   using ::std::move;
   using ::std::move_backward; //
@@ -118,7 +118,6 @@ namespace stdm {
 # include <mwg/defs.h>
 # include <mwg/std/utility>
 
-//TODO: find_first_of
 //TODO: is_permutation
 
 // C++11
@@ -145,6 +144,24 @@ namespace stdm {
   InputIterator find_if_not(InputIterator first, InputIterator last, UnaryPredicate pred) {
     for (; first != last; ++first) if (!pred(*first)) break;
     return first;
+  }
+
+  template<typename ForwardIterator1, typename ForwardIterator2>
+  typename stdm::enable_if<
+    stdm::is_base_of<std::forward_iterator_tag, typename std::iterator_traits<ForwardIterator1>::iterator_category>::value,
+    ForwardIterator1>::type
+  find_first_of(ForwardIterator1 first1, ForwardIterator1 last1, ForwardIterator2 first2, ForwardIterator2 last2) {
+    return ::std::find_first_of(first1, last1, first2, last2);
+  }
+
+  template<typename InputIterator, typename ForwardIterator>
+  typename stdm::enable_if<
+    !stdm::is_base_of<std::forward_iterator_tag, typename std::iterator_traits<InputIterator>::iterator_category>::value,
+    InputIterator>::type
+  find_first_of(InputIterator first1, InputIterator last1, ForwardIterator first2, ForwardIterator last2) {
+    for (; first1 != last1; ++first1)
+      if (std::find(first2, last2, *first1) != last2) break;
+    return first1;
   }
 
 #pragma%x begin_test
@@ -426,6 +443,127 @@ namespace stdm {
   template<typename RandomAccessIterator>
   bool is_heap(RandomAccessIterator first, RandomAccessIterator last) {
     return last == is_heap_until(first, last);
+  }
+
+  namespace detail {
+    template<typename ForwardIterator>
+    void require_forward_iterator(std::forward_iterator_tag = typename std::iterator_traits<ForwardIterator>::iterator_category()) {}
+
+    template<typename InputIterator, typename Value, typename BinaryPredicate>
+    std::size_t count(InputIterator first, InputIterator last, Value const& value, BinaryPredicate pred) {
+      std::size_t ret = 0;
+      for (; first != last; ++first)
+        if (pred(*first, value)) ret++;
+      return ret;
+    }
+
+    /* Note: is_permutation 実装について。
+     *
+     * # アルゴリズム
+     *
+     * 計算量: 最悪の比較回数は、N^2回 (一致時)、N^2+max(N-2,0)回 (不一致時) である。
+     *
+     * まず初めに左列と右列の長さを確認する。長さが違えば自明に結果は false である。
+     * 以降、左列と右列の長さが同じと仮定する。この時、結果は以下に等価である。
+     *
+     *   ```
+     *   for all [x] in 左列, count(左列, x) <= count(右列, x)
+     *   ```
+     *
+     * 但し、[x] は左列の中の同値類。更に、以下のように変形できる。
+     *
+     *   ```
+     *   while |左列| != 0 {
+     *     if !(count(左列, 左列.head) <= count(右列, 左列.head)) return false;
+     *     左列の先頭要素を取り除く。
+     *   }
+     *   return true;
+     *   ```
+     *
+     * 何故なら1回 [左列.head] による判定が完了すれば、比較 <= の左辺が減るような破壊をしても問題ないから。
+     *
+     * 後は、多少工夫を加えて実装した。現状のコードの最悪の計算量は以下の通り。
+     *
+     * - 一致時は最大 N^2 回の pred 呼び出しで済む。
+     *
+     * - 不一致時は最大 N^2 + N - 2 (N >= 2) 回の pred 呼び出しで済む。
+     *
+     * 実は pred 呼び出し回数を調べて N^2 を越える時点で不一致と分かるので、
+     * 不一致の場合でも N^2 回に抑えられるが、pred 呼び出し回数を毎回調べるコストが増える。
+     * N^2 オーバーフローのチェックも必要だし、実装も煩雑になるので今は敢えてそのような最適化は行っていない。
+     *
+     */
+    template<typename ForwardIterator1, typename ForwardIterator2, typename BinaryPredicate>
+    bool is_permutation_impl(std::size_t size, ForwardIterator1 first1, ForwardIterator1 last1, ForwardIterator2 first2, BinaryPredicate pred) {
+      detail::require_forward_iterator<ForwardIterator1>();
+      detail::require_forward_iterator<ForwardIterator2>();
+
+      for (; first1 != last1; ++first1) {
+        ForwardIterator2 j = first2;
+        std::size_t jrest = size;
+
+        // 一致要素を探索
+        for (;;) {
+          if (pred(*first1, *j)) break;
+          if (--jrest == 0) return false;
+          ++j;
+        }
+
+        // Note: 先頭要素で一致した場合、単に両データ列から先頭要素を除けば良い。
+        //   これはなくても動作するが、比較回数を減らすためのものであることに注意する。
+        //   特にこれがないと、列が完全一致でも最大 N^2 回の比較が必要になってしまい規格の要件を満たさなくなる。
+        if (jrest == size) {
+          ++first2;
+          --size;
+          continue;
+        }
+
+        // 重複要素を数える
+        ForwardIterator1 i = first1;
+        std::size_t count = detail::count(++i, last1, *j, pred);
+        if (count != 0) {
+          --jrest;
+          ++j;
+
+          for (;;) {
+            if (jrest == 0) return false;
+            if (pred(*first1, *j) && --count == 0) break;
+            --jrest;
+            ++j;
+          }
+        }
+
+        // Note: 両データ列が順列の関係にある時に一番最後の要素で一致した場合、
+        //   もうその要素では二度と一致しないことは分かっている。
+        //   これもなくても動作するが、以降の比較回数を減らすためのものである。
+        //   ただし、効果は限定的である。一致失敗時の比較回数が1回減るだけだ。
+        if (jrest == 1) --size;
+      }
+
+      return true;
+    }
+  }
+
+  template<typename ForwardIterator1, typename ForwardIterator2, typename BinaryPredicate>
+  bool is_permutation(ForwardIterator1 first1, ForwardIterator1 last1, ForwardIterator2 first2, BinaryPredicate pred) {
+    std::size_t const size = (std::size_t) std::distance(first1, last1);
+    return detail::is_permutation_impl(first1, last1, first2, pred);
+  }
+  template<typename ForwardIterator1, typename ForwardIterator2>
+  bool is_permutation(ForwardIterator1 first1, ForwardIterator1 last1, ForwardIterator2 first2) {
+    return is_permutation(first1, last1, first2, stdm::equal_to<>());
+  }
+
+  // C++14
+  template<typename ForwardIterator1, typename ForwardIterator2, typename BinaryPredicate>
+  bool is_permutation(ForwardIterator1 first1, ForwardIterator1 last1, ForwardIterator2 first2, ForwardIterator2 last2, BinaryPredicate pred) {
+    std::size_t const size1 = (std::size_t) std::distance(first1, last1);
+    std::size_t const size2 = (std::size_t) std::distance(first2, last2);
+    return size1 == size2 && detail::is_permutation_impl(size1, first1, last1, first2);
+  }
+  template<typename ForwardIterator1, typename ForwardIterator2>
+  bool is_permutation(ForwardIterator1 first1, ForwardIterator1 last1, ForwardIterator2 first2, ForwardIterator2 last2) {
+    return is_permutation(first1, last1, first2, last2, stdm::equal_to<>());
   }
 
   // Note: C++11 minmax, min(std::initializer_list<T>), max(std::initializer_list<T>) are replaced by C++14
