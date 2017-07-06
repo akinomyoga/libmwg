@@ -1,0 +1,68 @@
+// -*- mode: c++; coding: utf-8 -*-
+#ifndef MWG_STDM_FUNCTIONAL
+#define MWG_STDM_FUNCTIONAL
+#include <functional>
+#include <mwg/defs.h>
+#ifndef MWG_STD_CXX14
+
+// C++14
+namespace mwg {
+namespace stdm {
+
+#define MWG_STDM_FUNCTIONAL_DeclareUnaryOperator(Name, Op, Ret) \
+  template<typename T = void> struct Name { \
+    typedef T result_type; /* deprecated in C++17 */ \
+    typedef T argument_type; /* deprecated in C++17 */ \
+    mwg_constexpr Ret operator()(T const& a1) const {return Op a1;} \
+  }; \
+  template<> struct Name<void> { \
+    template<typename T> \
+    mwg_constexpr mwg_auto(Ret) operator()(T mwg_forward_rvalue a1) const \
+      mwg_decltyped(Op stdm::forward<T>(a1)) \
+    { \
+      return Op stdm::forward<T>(a1); \
+    } \
+  }
+#define MWG_STDM_FUNCTIONAL_DeclareBinaryOperator(Name, Op, Ret) \
+  template<typename T = void> struct Name { \
+    typedef T result_type; /* deprecated in C++17 */ \
+    typedef T first_argument_type; /* deprecated in C++17 */ \
+    typedef T second_argument_type; /* deprecated in C++17 */ \
+    mwg_constexpr Ret operator()(T const& a1, T const& a2) const {return a1 Op a2;} \
+  }; \
+  template<> struct Name<void> { \
+    template<typename T, typename U> \
+    mwg_constexpr mwg_auto(Ret) operator()(T mwg_forward_rvalue a1, U mwg_forward_rvalue a2) const \
+      mwg_decltyped(stdm::forward<T>(a1) Op stdm::forward<U>(a2)) \
+    { \
+      return stdm::forward<T>(a1) Op stdm::forward<U>(a2); \
+    } \
+  }
+
+  MWG_STDM_FUNCTIONAL_DeclareBinaryOperator(plus, +, T);
+  MWG_STDM_FUNCTIONAL_DeclareBinaryOperator(minus, -, T);
+  MWG_STDM_FUNCTIONAL_DeclareBinaryOperator(multiplies, *, T);
+  MWG_STDM_FUNCTIONAL_DeclareBinaryOperator(divides, /, T);
+  MWG_STDM_FUNCTIONAL_DeclareBinaryOperator(modulus, %, T);
+  MWG_STDM_FUNCTIONAL_DeclareUnaryOperator(negate, -, T);
+
+  MWG_STDM_FUNCTIONAL_DeclareBinaryOperator(equal_to, ==, bool);
+  MWG_STDM_FUNCTIONAL_DeclareBinaryOperator(not_equal_to, !=, bool);
+  MWG_STDM_FUNCTIONAL_DeclareBinaryOperator(greater, >, bool);
+  MWG_STDM_FUNCTIONAL_DeclareBinaryOperator(less, <, bool);
+  MWG_STDM_FUNCTIONAL_DeclareBinaryOperator(greater_equal, >=, bool);
+
+  MWG_STDM_FUNCTIONAL_DeclareBinaryOperator(logical_and, &&, bool);
+  MWG_STDM_FUNCTIONAL_DeclareBinaryOperator(logical_or, ||, bool);
+  MWG_STDM_FUNCTIONAL_DeclareUnaryOperator(logical_not, !, bool);
+
+  MWG_STDM_FUNCTIONAL_DeclareBinaryOperator(bit_and, &, T);
+  MWG_STDM_FUNCTIONAL_DeclareBinaryOperator(bit_or, |, T);
+  MWG_STDM_FUNCTIONAL_DeclareBinaryOperator(bit_xor, ^, T);
+  MWG_STDM_FUNCTIONAL_DeclareUnaryOperator(bit_not, ~, T);
+
+}
+}
+#endif /* end of MWG_STD_CXX11 */
+
+#endif

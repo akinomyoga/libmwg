@@ -220,7 +220,7 @@ namespace vararg {
   }
 
   namespace detail {
-#if defined(_MSC_VER) && defined(MWGCONF_STD_RVALUE_REFERENCES)
+#if defined(_MSC_VER) && mwg_has_feature(cxx_rvalue_references)
     /* 2016-03-27 vcbug workaround
      *
      * YArgs&& で受け取った変数を forward するとどうしても一時オブジェクトになってしまう。
@@ -271,7 +271,7 @@ namespace vararg {
     }
 
 #pragma%end
-#ifdef MWGCONF_STD_VARIADIC_TEMPLATES
+#if mwg_has_feature(cxx_variadic_templates)
 #pragma%x 1.r/##//
 #pragma%m 1 1.R@(^|\n)[[:space:]]*//[^\n]*(\n|$)@$1@
 #else
@@ -353,15 +353,22 @@ namespace xprintf_detail {
 namespace mwg {
 namespace xprintf_detail {
 
-  inline int va_getIndex(...) {
-    throw mwg::except("mwg::xprintf(): invalid argument type");
+  struct from_any {
+    template<typename T> from_any(T&) {}
+    template<typename T> from_any(T const&) {}
+    template<typename T> from_any(T volatile&) {}
+    template<typename T> from_any(T const volatile&) {}
+  };
+
+  inline int getIndex(from_any, ...) {
+    throw mwg::except("mwg::xprintf(): invalid argument type (expects an integer)");
   }
   template<typename T>
-  inline typename stdm::enable_if<stdm::is_floating_point<T>::value, int>::type
-  va_getIndex(T const&) {
+  typename stdm::enable_if<stdm::is_floating_point<T>::value, int>::type
+  getIndex(T const&, int) {
     throw mwg::except("mwg::xprintf(): a floating point number cannot used for an index.");
   }
-  inline int va_getIndex(int const& value) {
+  inline int getIndex(int value, int) {
     return value;
   }
 
@@ -370,7 +377,7 @@ namespace xprintf_detail {
 
     template<typename T>
     static int eval(T const& value) {
-      return va_getIndex(value);
+      return getIndex(value, /* dummy */ 0);
     }
 
     static int out_of_range() {return -1;}
@@ -382,10 +389,10 @@ namespace xprintf_detail {
   }
 
 
-  inline const char* va_getFormat(...) {
+  inline const char* getFormat(from_any, ...) {
     throw mwg::except("mwg::xprintf(): invalid argument type (expecting const char* fmt)");
   }
-  inline const char* va_getFormat(const char* value) {
+  inline const char* getFormat(const char* value, int) {
     return value;
   }
   struct va_getFormat_eval {
@@ -393,7 +400,7 @@ namespace xprintf_detail {
 
     template<typename T>
     static const char* eval(T const& value) {
-      return va_getFormat(value);
+      return getFormat(value, /* dummy */ 0);
     }
 
     static const char* out_of_range() {
@@ -752,9 +759,9 @@ namespace xprintf_detail {
      * #
      * S -t 'MSC18BUG: C(C&&) = default;' -o MWGCONF_STD_DEFAULTED_MOVE_CONSTRUCTORS '' 'struct C {C(C&&) = default;};'
      */
-#if defined(MWGCONF_STD_DEFAULTED_FUNCTIONS)
+#if mwg_has_feature(cxx_defaulted_functions)
     _vxputf_temporary_object(_vxputf_temporary_object const& c) = default;
-# ifdef MWGCONF_STD_RVALUE_REFERENCES
+# if mwg_has_feature(cxx_rvalue_references)
 #  ifdef MWGCONF_STD_DEFAULTED_MOVE_CONSTRUCTORS
     _vxputf_temporary_object(_vxputf_temporary_object&& c) = default;
 #  else
@@ -802,10 +809,10 @@ namespace xprintf_detail {
   public:
     _xputf_temporary_object(const char* fmt, pack_type mwg_forward_rvalue args): m_fmt(fmt), m_args(mwg::stdm::move(args)) {}
 
-#if defined(MWGCONF_STD_DEFAULTED_FUNCTIONS) && defined(MWGCONF_STD_RVALUE_REFERENCES)
+#if mwg_has_feature(cxx_defaulted_functions) && mwg_has_feature(cxx_rvalue_references)
   private:
     _xputf_temporary_object(_xputf_temporary_object const& c) = default;
-# ifdef MWGCONF_STD_RVALUE_REFERENCES
+# if mwg_has_feature(cxx_rvalue_references)
 #  ifdef MWGCONF_STD_DEFAULTED_MOVE_CONSTRUCTORS
     _xputf_temporary_object(_xputf_temporary_object&& c) = default;
 #  else
@@ -814,7 +821,7 @@ namespace xprintf_detail {
 # endif
 #endif
 
-#if defined(MWGCONF_STD_RVALUE_REFERENCES)
+#if mwg_has_feature(cxx_rvalue_references)
   private:
 #pragma%m 1
     template<typename... Args>
@@ -1203,6 +1210,11 @@ void test2() {
   check_printf("nan NAN +nan NAN", "%a %1$A %1$+a %A", nan, -nan);
 }
 
+void test_types() {
+  std::string line = "Hello world!";
+  check_printf("Hello world!\n", "%s\n", line);
+}
+
 int main() {
   check_read_fmtspec();
 
@@ -1210,6 +1222,7 @@ int main() {
 
   test1();
   test2();
+  test_types();
   return 0;
 }
 

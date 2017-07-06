@@ -13,7 +13,7 @@ namespace functor_detail{
 //    functor_traits_chain<F>
 //      F where `(*declval<F>()).operator()(...)` is a valid expression.
 //
-// ToDo
+// TODO
 //
 //   * operator() と operator() const の両方が定義されている場合
 //     どちらか一方を優先させる■
@@ -52,7 +52,7 @@ namespace functor_detail{
 #pragma%end
 #pragma%x variadic_expand_0toArN
 
-#if defined(MWGCONF_STD_DECLTYPE)
+#if mwg_has_feature(cxx_decltype)
 //-----------------------------------------------------------------------------
 // [traits.functor] F with R F::operator()(%types%)
   template<typename Mfp>

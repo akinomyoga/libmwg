@@ -111,7 +111,7 @@ namespace bio{
       :m_name(_name),m_parent(nullptr),m_index(-1){}
     explicit ttx_node(const std::string& _name)
       :m_name(_name),m_parent(nullptr),m_index(-1){}
-#ifdef MWGCONF_STD_RVALUE_REFERENCES
+#if mwg_has_feature(cxx_rvalue_references)
     explicit ttx_node(std::string&& _name)
       :m_name(stdm::move(_name)),m_parent(nullptr),m_index(-1){}
 #endif
@@ -201,7 +201,7 @@ namespace bio{
     ttx_node* create_node(const std::string& _name){
       return this->add_node(new ttx_node(_name));
     }
-#ifdef MWGCONF_STD_RVALUE_REFERENCES
+#if mwg_has_feature(cxx_rvalue_references)
     ttx_node* create_node(std::string&& _name){
       return this->add_node(new ttx_node(std::move(_name)));
     }

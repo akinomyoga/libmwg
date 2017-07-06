@@ -11,6 +11,8 @@
 #include <cmath>
 #include <cfloat>
 #include <climits>
+#include <algorithm>
+#include <utility>
 #include <mwg/defs.h>
 #include <mwg/std/type_traits>
 
@@ -21,9 +23,9 @@
 #include <mwg/except.h>
 #pragma%x end_check
 
-// ToDo: erf erfc tgamma lgamma
-// ToDo: strtof strtold 関連を cstdlib に移動(真面目に実装するとなると少々面倒であるが)。
-// ToDo: 古くからある関数や using した関数でも arithmetic overloads を追加する?
+// TODO: erf erfc tgamma lgamma
+// TODO: strtof strtold 関連を cstdlib に移動(真面目に実装するとなると少々面倒であるが)。
+// TODO: 古くからある関数や using した関数でも arithmetic overloads を追加する?
 
 namespace mwg {
 namespace stdm {
@@ -357,29 +359,29 @@ namespace stdm {
 #pragma%end
 #pragma%#ppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp#
 
+#pragma%x MWG_STDM_CMATH::ImportClassificationMacros.r/@fname/isnan/   .r/@expr/value != value/
+#pragma%x MWG_STDM_CMATH::ImportClassificationMacros.r/@fname/isinf/   .r/@expr/value == (T) INFINITY || value == (T) -INFINITY/
+#pragma%x MWG_STDM_CMATH::ImportClassificationMacros.r/@fname/isfinite/.r/@expr/!(mwg::stdm_detail::isnan_impl(value) || mwg::stdm_detail::isinf_impl(value))/
 #if !defined(MWGCONF_HAS_STD_ISNORMAL) && !defined(MWGCONF_HAS_ISNORMAL) && !defined(isnormal)
 namespace mwg {
 namespace stdm {
 namespace cmath_detail {
   static inline bool isnormal_impl(const float& value) {
-    if (!mwg::stdm_detail::isfinite_impl(value)) return false;
+    if (!mwg::stdm::isfinite(value)) return false;
     return value >= FLT_MIN || -FLT_MIN >= value;
   }
   static inline bool isnormal_impl(const double& value) {
-    if (!mwg::stdm_detail::isfinite_impl(value)) return false;
+    if (!mwg::stdm::isfinite(value)) return false;
     return value >= DBL_MIN || -DBL_MIN >= value;
   }
   static inline bool isnormal_impl(const long double& value) {
-    if (!mwg::stdm_detail::isfinite_impl(value)) return false;
+    if (!mwg::stdm::isfinite(value)) return false;
     return value >= LDBL_MIN || -LDBL_MIN >= value;
   }
 }
 }
 }
 #endif
-#pragma%x MWG_STDM_CMATH::ImportClassificationMacros.r/@fname/isnan/   .r/@expr/value != value/
-#pragma%x MWG_STDM_CMATH::ImportClassificationMacros.r/@fname/isinf/   .r/@expr/value == (T) INFINITY || value == (T) -INFINITY/
-#pragma%x MWG_STDM_CMATH::ImportClassificationMacros.r/@fname/isfinite/.r/@expr/!(mwg::stdm_detail::isnan_impl(value) || mwg::stdm_detail::isinf_impl(value))/
 #pragma%x MWG_STDM_CMATH::ImportClassificationMacros.r/@fname/isnormal/.r/@expr/mwg::stdm::cmath_detail::isnormal_impl(value)/
 
 #endif /* end of !defined(_MSC_VER) */
@@ -457,7 +459,7 @@ namespace stdm {
 
   template<typename T>
   int fpclassify(const T& value) {
-    switch(::_fpclass((double) value)) {
+    switch (::_fpclass((double) value)) {
     case _FPCLASS_SNAN:
     case _FPCLASS_QNAN:
       return FP_NAN;
@@ -902,7 +904,7 @@ namespace stdm {
 
 /*?mconf
  * X -t'std::scalbn(x, y)' -oMWGCONF_HAS_STD_SCALBN cmath 'std::scalbn(1.0, 2)' ||
- *   X -t'::scalbn(x, y)' -oMWGCONF_HAS_SCALBN math.h '::scalbn(1.0, 2);::scalbnf(1.0f, 2);::scalbnl(1.0L, 2);'
+ *   X -t'::scalbn(x, y)' -oMWGCONF_HAS_SCALBN math.h '::scalbn(1.0, 2); ::scalbnf(1.0f, 2); ::scalbnl(1.0L, 2);'
  */
 #if !defined(MWGCONF_HAS_STD_SCALBN)
 # ifdef MWGCONF_HAS_SCALBN
@@ -925,7 +927,7 @@ namespace stdm {
 
 /*?mconf
  * X -t'std::scalbln(x, y)' -oMWGCONF_HAS_STD_SCALBLN cmath 'std::scalbln(1.0, 2L)' ||
- *   X -t'::scalbln(x, y)' -oMWGCONF_HAS_SCALBLN math.h '::scalbln(1.0, 2L);::scalblnf(1.0f, 2L);::scalblnl(1.0L, 2L);'
+ *   X -t'::scalbln(x, y)' -oMWGCONF_HAS_SCALBLN math.h '::scalbln(1.0, 2L); ::scalblnf(1.0f, 2L); ::scalblnl(1.0L, 2L);'
  */
 #if !defined(MWGCONF_HAS_STD_SCALBLN)
 # ifdef MWGCONF_HAS_SCALBLN
@@ -984,7 +986,7 @@ namespace stdm {
 
 /*?mconf
  * X -t'std::nexttoward(x, y)' -oMWGCONF_HAS_STD_NEXTTOWARD cmath 'std::nexttoward(1.0, 2L)' ||
- *   X -t'::nexttoward(x, y)' -oMWGCONF_HAS_NEXTTOWARD math.h '::nexttoward(1.0, 2L);::nexttowardf(1.0f, 2L);::nexttowardl(1.0L, 2L);'
+ *   X -t'::nexttoward(x, y)' -oMWGCONF_HAS_NEXTTOWARD math.h '::nexttoward(1.0, 2L); ::nexttowardf(1.0f, 2L); ::nexttowardl(1.0L, 2L);'
  */
 #if !defined(MWGCONF_HAS_STD_NEXTTOWARD)
 # ifdef MWGCONF_HAS_NEXTTOWARD
@@ -1036,7 +1038,7 @@ namespace stdm {
 /*?mconf
  * function check_nan {
  *   X -t'std::nan(arg)' -oMWGCONF_HAS_STD_NAN cmath 'std::nan("")' ||
- *     X -t'::nan(arg)' -oMWGCONF_HAS_NAN math.h '::nan("");::nanf("");::nanl("");'
+ *     X -t'::nan(arg)' -oMWGCONF_HAS_NAN math.h '::nan(""); ::nanf(""); ::nanl("");'
  * }
  * if ! check_nan; then
  *   X -t'std::strtof(arg)' -oMWGCONF_HAS_STD_STRTOF cmath 'std::strtof("1.0", 0)' ||
@@ -1083,8 +1085,14 @@ namespace stdm {
   using ::std::sqrt;
 #endif
 
+//
+// C++11 std::cbrt
+//
 #pragma%x MWG_STDM_CMATH::ImportUnaryMathFunction.r/@fname/cbrt/.r|@expr|return mwg::stdm::copysign(std::pow(std::abs((R) value), R(1.0 / 3.0)), value)|
 
+//
+// C++11 std::hypot(x, y)
+//
 //?mconf check_cfunc 2 hypot HYPOT
 #if !defined(MWGCONF_HAS_STD_HYPOT)
 # ifdef MWGCONF_HAS_HYPOT
@@ -1093,16 +1101,42 @@ namespace stdm {
   template<typename T, typename U>
   typename cmath_detail::overload<T, U>::type hypot(T x, U y) {
     typedef typename cmath_detail::overload<T, U>::type R;
-    R const x_ = std::abs((R) x), y_ = std::abs((R) y);
-    if (x_ == 0.0 && y_ == 0.0)
+    R const _x = std::abs((R) x), _y = std::abs((R) y);
+    if (_x == 0.0 && _y == 0.0)
       return 0.0;
-    else if (x_ < y_)
-      return y_ * std::sqrt(1.0 + (x_ / y_) * (x_ / y_));
+    else if (_x < _y)
+      return _y * std::sqrt(1.0 + (_x / _y) * (_x / _y));
     else
-      return x_ * std::sqrt(1.0 + (y_ / x_) * (y_ / x_));
+      return _x * std::sqrt(1.0 + (_y / _x) * (_y / _x));
   }
   static inline float hypotf(float lhs, float rhs) {return hypot(lhs, rhs);}
   static inline long double hypotl(long double lhs, long double rhs) {return hypot(lhs, rhs);}
+# endif
+#elif defined(MWGCONF_GCC295BUG_USING_NAMESPACE_STD)
+  using ::std::hypot;
+#endif
+
+//
+// C++17 std::hypot(x, y, z)
+//
+//?mconf check_cfunc 3 hypot HYPOT3
+#if !defined(MWGCONF_HAS_STD_HYPOT3)
+# ifdef MWGCONF_HAS_HYPOT3
+#pragma%x MWG_STDM_CMATH::ImportTernaryMathFunction::UseCOverload.r/@fname/hypot/
+# else
+  template<typename T, typename U, typename V>
+  typename cmath_detail::overload<T, U, V>::type hypot(T x, U y, V z) {
+    typedef typename cmath_detail::overload<T, U, V>::type R;
+    R _x = std::abs((R) x), _y = std::abs((R) y), _z = std::abs((R) z);
+    if (_x < _z) std::swap(_x, _z);
+    if (_x < _y) std::swap(_x, _y);
+    if (_x == 0.0) return 0.0;
+    _y /= _x;
+    _z /= _x;
+    return _x * std::sqrt(1.0 + _y * _y + _z * _z);
+  }
+  static inline float hypotf(float a1, float a2, float a3) {return hypot(a1, a2, a3);}
+  static inline long double hypotl(long double a1, long double a2, long double a3) {return hypot(a1, a2, a3);}
 # endif
 #elif defined(MWGCONF_GCC295BUG_USING_NAMESPACE_STD)
   using ::std::hypot;
@@ -1131,11 +1165,11 @@ namespace stdm {
  * # 何と gcc-2.95 ではそもそも同じ arity の SFINAE 関数を複数定義できない?
  * # → そもそも SFINAE は gcc 3.0 以降でしか有効でないようだ。
  * S -t'"sfinae"' 'STD_SFINAE' '' '
- * template<typename T> struct is_a{};
- * template<typename T> struct is_b{typedef int type;};
- * template<typename T> void foo(T const&,typename is_a<T>::type = 0){}
- * template<typename T> void foo(T const&,typename is_b<T>::type = 0){}
- * int main(){foo(1);}
+ * template<typename T> struct is_a {};
+ * template<typename T> struct is_b {typedef int type;};
+ * template<typename T> void foo(T const&,typename is_a<T>::type = 0) {}
+ * template<typename T> void foo(T const&,typename is_b<T>::type = 0) {}
+ * int main() {foo(1);}
  * '
  */
 
@@ -1200,8 +1234,8 @@ namespace mwg {
 namespace stdm {
 
 /*?mconf
- * X -t'std::remquo(x, y, &q)' -oMWGCONF_HAS_STD_REMQUO cmath 'int  d;std::remquo(1.0, 2.0, &d)' ||
- *   X -t'::remquo(x, y, &q)' -oMWGCONF_HAS_REMQUO math.h 'int d;::remquo(1.0, 2.0, &d);::remquof(1.0f, 2.0f, &d);::remquol(1.0L, 2.0L, &d);'
+ * X -t'std::remquo(x, y, &q)' -oMWGCONF_HAS_STD_REMQUO cmath 'int  d; std::remquo(1.0, 2.0, &d)' ||
+ *   X -t'::remquo(x, y, &q)' -oMWGCONF_HAS_REMQUO math.h 'int d; ::remquo(1.0, 2.0, &d); ::remquof(1.0f, 2.0f, &d); ::remquol(1.0L, 2.0L, &d);'
  */
 #if !defined(MWGCONF_HAS_STD_REMQUO)
 # ifdef MWGCONF_HAS_REMQUO
@@ -1332,7 +1366,7 @@ namespace stdm {
 //HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 #endif /* end of MWG_STDM_CMATH */
 #pragma%x begin_check
-int main(){
+int main() {
   managed_test::run_tests();
   return 0;
 }

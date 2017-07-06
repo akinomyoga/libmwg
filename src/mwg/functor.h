@@ -261,7 +261,7 @@ namespace functor_detail {
 
   template<typename F, typename S, typename CaseTr>
   struct _as_functor_adapter {};
-// ToDo: struct _as_functor_adapter<F, R (A..., ...)>;
+// TODO: struct _as_functor_adapter<F, R (A..., ...)>;
 #pragma%m 1
   template<typename F, typename CaseTr, typename R, typename... A>
   struct _as_functor_adapter<F, R (A...), CaseTr> {
@@ -444,7 +444,7 @@ namespace functor_detail {
     functor_ref() {}
     template<typename F, typename Case>
     void init(const F& f) {
-#ifdef MWGCONF_STD_STATIC_ASSERT
+#if mwg_has_feature(cxx_static_assert)
       static_assert(sizeof(Case) <= sizeof(this->buffer), "sizeof(Case) too large");
 #else
       static_assert(sizeof(Case) <= sizeof(mwg::declval<functor_ref>().buffer), "sizeof(Case) too large");
@@ -478,7 +478,7 @@ namespace functor_detail {
       this->h = f.h->placement_clone(this->buffer);
       return *this;
     }
-#ifdef MWGCONF_STD_RVALUE_REFERENCES
+#if mwg_has_feature(cxx_rvalue_references)
     functor_ref(functor_ref&& f) {
       if (this == &f) return;
       this->h = f.h->placement_move(this->buffer);

@@ -177,7 +177,7 @@ namespace functor_detail{
    */
   template<typename P>
   struct is_pointer_to_single_operator_functor{
-#if defined(MWGCONF_STD_DECLTYPE)
+#if mwg_has_feature(cxx_decltype)
 
 # ifdef mwg_concept_is_valid_expression
     mwg_concept_is_valid_expression(c1,P,P_,*expr<P_>());
@@ -253,7 +253,7 @@ namespace functor_detail{
       // struct c1:stdm::true_type{};
 #endif
 
-#if defined(MWGCONF_STD_DECLTYPE)
+#if mwg_has_feature(cxx_decltype)
 # define MWG_FUNCTOR_H_can_be_called_as_declare_OpR(Parameters,Arguments) \
       template<typename F_, bool B> struct s1 {typedef void type;};     \
       template<typename F_> struct s1<F_, true> {                       \

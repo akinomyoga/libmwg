@@ -1,0 +1,35 @@
+// -*- mode: c++; coding: utf-8 -*-
+#ifndef MWG_STDM_EXECUTION
+#define MWG_STDM_EXECUTION
+#include <mwg/defs.h>
+
+#ifdef MWG_STD_CXX17
+# include <execution>
+#else
+# include <mwg/std/type_traits>
+
+// C++17
+namespace mwg {
+namespace stdm {
+
+  namespace execution {
+    namespace detail { struct execution_policy_base {}; }
+    struct sequenced_policy: detail::execution_policy_base {};
+    struct parallel_policy: detail::execution_policy_base {};
+    struct parallel_unsequenced_policy: detail::execution_policy_base {};
+    mwg_inline_variable_static mwg_constexpr_const sequenced_policy seq = sequenced_policy();
+    mwg_inline_variable_static mwg_constexpr_const parallel_policy par = parallel_policy();
+    mwg_inline_variable_static mwg_constexpr_const parallel_unsequenced_policy par_unseq = parallel_unsequenced_policy();
+  }
+
+  template<typename T>
+  struct is_execution_policy: stdm::is_base_of<execution::detail::execution_policy_base, T> {};
+#if mwg_has_feature(cxx_variable_templates)
+  template<typename T> mwg_inline_variable mwg_constexpr bool is_execution_policy_v = is_execution_policy<T>::value;
+#endif
+
+}
+}
+#endif /* end of !defined(MWG_STD_CXX17) */
+
+#endif

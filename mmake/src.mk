@@ -94,14 +94,13 @@ config_files+=$(CFGDIR)/config/${name}.h
 $(CFGDIR)/config/${name}.h: $(CPPDIR)/${filex}.mconf | $(CFGDIR)/config
 	@echo 'CFG ${file}'; $(MMAKECMD) config ${file} $(FLAGS) $(CXXFLAGS) $(LDFLAGS)
 check@${file}: $(CFGDIR)/check/${name}.stamp
-.PHONY: check@{file}
+check-${file}: $(CFGDIR)/check/${name}.stamp
+.PHONY: check@${file} check-${file}
 check_files+=$(CFGDIR)/check/${name}.stamp
 $(CPPDIR)/check/${name}$(CXXEXT): $(CPPDIR)/${file}
 -include $(CFGDIR)/check/${name}.dep
 $(CFGDIR)/check/${name}.stamp: $(CPPDIR)/check/${name}$(CXXEXT)
 	@echo 'CHK ${file}'; $(MMAKECMD) check ${file} $(FLAGS) $(CXXFLAGS) $(LDFLAGS)
-.PHONY: check-${file}
-check-${file}: $(CFGDIR)/check/${name}.stamp
 #%end
 
 #%m _check_duplicates

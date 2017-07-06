@@ -50,7 +50,7 @@ namespace str_detail{
 
     public:
       buffer_type(std::basic_string<XCH> const& source):m_str(source){}
-#ifdef MWGCONF_STD_RVALUE_REFERENCES
+#if mwg_has_feature(cxx_rvalue_references)
       buffer_type(std::basic_string<XCH>&& source):m_str(stdm::move(source)){}
 #endif
 
@@ -107,7 +107,7 @@ namespace str_detail{
       this->data=rhs.data;
       return *this;
     }
-#ifdef MWGCONF_STD_RVALUE_REFERENCES
+#if mwg_has_feature(cxx_rvalue_references)
     strbuf(strbuf&& s):base(mwg::stdm::move(s.data)){}
     strbuf& operator=(strbuf&& rhs){
       this->data=mwg::stdm::move(rhs.data);

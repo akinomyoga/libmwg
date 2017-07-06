@@ -121,7 +121,7 @@ namespace mwb1{
   class QuotedDataFormatNode:public IFormatNode{
     std::vector<byte> m_data;
   public:
-#ifdef MWGCONF_STD_RVALUE_REFERENCES
+#if mwg_has_feature(cxx_rvalue_references)
     QuotedDataFormatNode(std::vector<byte>&& data):m_data(stdm::move(data)){}
 #endif
     QuotedDataFormatNode(std::vector<byte> const& data):m_data(data){}

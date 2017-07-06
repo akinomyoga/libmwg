@@ -98,34 +98,34 @@ namespace cstdint_detail {
     typedef T int_t;
     typedef U uint_t;
   };
-  template<int I> struct integral_types{};
-  template<> struct integral_types<0>: type_and_size<signed char, unsigned char>{};
-  template<> struct integral_types<1>: type_and_size<short, unsigned short>{};
-  template<> struct integral_types<2>: type_and_size<int, unsigned int>{};
-  template<> struct integral_types<3>: type_and_size<long, unsigned long>{};
+  template<int I> struct integral_types {};
+  template<> struct integral_types<0>: type_and_size<signed char, unsigned char> {};
+  template<> struct integral_types<1>: type_and_size<short, unsigned short> {};
+  template<> struct integral_types<2>: type_and_size<int, unsigned int> {};
+  template<> struct integral_types<3>: type_and_size<long, unsigned long> {};
 #if defined(MWGCONF_HAS_LONGLONG)
-  template<> struct integral_types<4>: type_and_size<long long, unsigned long long>{};
+  template<> struct integral_types<4>: type_and_size<long long, unsigned long long> {};
 #else
   template<> struct integral_types<4> {static const int size = 0;};
 #endif
 #if defined(MWGCONF_HAS_DISTINCT_INT64)
-  template<> struct integral_types<5>: type_and_size<__int64, unsigned __int64>{};
+  template<> struct integral_types<5>: type_and_size<__int64, unsigned __int64> {};
 #else
   template<> struct integral_types<5> {static const int size = 0;};
 #endif
 
   template<bool C, typename T, typename F> struct conditional {};
-  template<typename T, typename F> struct conditional<true, T, F>: mwg::identity<T>{};
-  template<typename T, typename F> struct conditional<false, T, F>: mwg::identity<F>{};
+  template<typename T, typename F> struct conditional<true, T, F>: mwg::identity<T> {};
+  template<typename T, typename F> struct conditional<false, T, F>: mwg::identity<F> {};
 
   template<int I, int J = 0>
   struct integer_switch: conditional<
     (integral_types<J>::size >= I),
     integral_types<J>, integer_switch<I, J + 1>
-  >::type{};
+  >::type {};
 
   template<int I>
-  struct integer_switch<I, 6>:integer_switch<I / 2>{};
+  struct integer_switch<I, 6>:integer_switch<I / 2> {};
 }
 
   typedef cstdint_detail::integer_switch<1>::int_t  int8_t;
@@ -154,7 +154,7 @@ namespace cstdint_detail {
   typedef cstdint_detail::integer_switch<sizeof(void*)>::int_t intptr_t;
   typedef cstdint_detail::integer_switch<sizeof(void*)>::uint_t uintptr_t;
 
-  // todo
+  // TODO
   typedef int8_t  int_fast8_t;
   typedef int16_t int_fast16_t;
   typedef int32_t int_fast32_t;

@@ -1,0 +1,1466 @@
+// -*- mode: c++; coding: utf-8 -*-
+#ifndef MWG_STDM_ALGORITHM
+#define MWG_STDM_ALGORITHM
+#include <algorithm>
+#include <iterator>
+#include <mwg/defs.h>
+#pragma%include "../impl/ManagedTest.pp"
+#pragma%x begin_check
+#include <mwg/except.h>
+#include <mwg/std/algorithm>
+#include <mwg/std/iterator>
+#pragma%x end_check
+
+namespace mwg {
+namespace stdm {
+namespace algorithm_detail {
+  template<typename ForwardIterator>
+  mwg_constexpr int require_forward_iterator(std::forward_iterator_tag = typename std::iterator_traits<ForwardIterator>::iterator_category()) {return 0;}
+}
+}
+}
+
+//-----------------------------------------------------------------------------
+// std::find_first_of
+
+#ifdef MWG_STD_CXX11
+namespace mwg {
+namespace stdm {
+  using std::find_first_of;
+}
+}
+#else
+# include <mwg/std/type_traits>
+namespace mwg {
+namespace stdm {
+  template<typename ForwardIterator1, typename ForwardIterator2>
+  typename stdm::enable_if<
+    stdm::is_base_of<std::forward_iterator_tag, typename std::iterator_traits<ForwardIterator1>::iterator_category>::value,
+    ForwardIterator1>::type
+  find_first_of(ForwardIterator1 first1, ForwardIterator1 last1, ForwardIterator2 first2, ForwardIterator2 last2) {
+    return std::find_first_of(first1, last1, first2, last2);
+  }
+
+  template<typename InputIterator, typename ForwardIterator>
+  typename stdm::enable_if<
+    !stdm::is_base_of<std::forward_iterator_tag, typename std::iterator_traits<InputIterator>::iterator_category>::value,
+    InputIterator>::type
+  find_first_of(InputIterator first1, InputIterator last1, ForwardIterator first2, ForwardIterator last2) {
+    for (; first1 != last1; ++first1)
+      if (std::find(first2, last2, *first1) != last2) break;
+    return first1;
+  }
+}
+}
+#endif
+
+#ifndef MWG_STD_CXX17
+# include <mwg/std/type_traits>
+# include <mwg/std/execution>
+# include <mwg/std/utility>
+namespace mwg {
+namespace stdm {
+  template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt1>::type
+  find_first_of(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first, ForwardIt1 last, ForwardIt2 s_first, ForwardIt2 s_last) {
+    return find_first_of(first, last, s_first, s_last);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2, typename BinaryPredicate>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt1>::type
+  find_first_of(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first, ForwardIt1 last, ForwardIt2 s_first, ForwardIt2 s_last, BinaryPredicate p) {
+    return find_first_of(first, last, s_first, s_last, p);
+  }
+}
+}
+#endif
+
+//-----------------------------------------------------------------------------
+// std::rotate
+
+// Note: C++03 std::rotate は上書きされる
+
+#ifdef MWG_STD_CXX11
+namespace mwg {
+namespace stdm {
+  using ::std::rotate;
+}
+}
+#else
+namespace mwg {
+namespace stdm {
+  template<typename ForwardIterator>
+  ForwardIterator rotate(ForwardIterator first, ForwardIterator mid, ForwardIterator last) {
+    algorithm_detail::require_forward_iterator<ForwardIterator>();
+    if (first == last || mid == last) return first;
+    if (mid == first) return last;
+    ForwardIterator mid0 = mid;
+    do {
+      std::iter_swap(first++, mid++);
+      if (first == mid0) mid0 = mid;
+    } while (mid != last);
+
+    // We now know the return value, so use
+    // C++03 `std::rotate` to perform the remaining rotation.
+    ::std::rotate(first, mid0, last);
+    return first;
+  }
+}
+}
+#endif
+
+#ifndef MWG_STD_CXX17
+# include <mwg/std/type_traits>
+# include <mwg/std/execution>
+# include <mwg/std/utility>
+namespace mwg {
+namespace stdm {
+  template<typename ExecutionPolicy, typename ForwardIt>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt>::type
+  rotate(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt n_first, ForwardIt last) {
+    return rotate(first, n_first, last);
+  }
+}
+}
+#endif
+
+//-----------------------------------------------------------------------------
+// std::partition
+
+// Note: C++03 std::partition は上書きされる。
+//   C++11 で BidirectionalIterator でなくて ForwardIterator でも実行できるようになった。
+
+#ifdef MWG_STD_CXX11
+namespace mwg {
+namespace stdm {
+  using ::std::partition;
+}
+}
+#else
+# include <mwg/std/type_traits>
+namespace mwg {
+namespace stdm {
+  template<typename ForwardIterator, typename UnaryPredicate>
+  typename stdm::enable_if<
+    stdm::is_base_of<std::bidirectional_iterator_tag, typename std::iterator_traits<ForwardIterator>::iterator_category>::value,
+    ForwardIterator>::type
+  partition(ForwardIterator first, ForwardIterator last, UnaryPredicate pred) {
+    return ::std::partition(first, last, pred);
+  }
+
+  template<typename ForwardIterator, typename UnaryPredicate>
+  typename stdm::enable_if<
+    !stdm::is_base_of<std::bidirectional_iterator_tag, typename std::iterator_traits<ForwardIterator>::iterator_category>::value,
+    ForwardIterator>::type
+  partition(ForwardIterator first, ForwardIterator last, UnaryPredicate pred) {
+    algorithm_detail::require_forward_iterator<ForwardIterator>();
+    for (; first != last; ++first) {
+      if (!pred(*first)) {
+        ForwardIterator dst = first++;
+        return algorithm_detail::swap_if(first, last, dst, pred);
+      }
+    }
+    return first;
+  }
+}
+}
+#endif
+
+#ifndef MWG_STD_CXX17
+# include <mwg/std/type_traits>
+# include <mwg/std/execution>
+# include <mwg/std/utility>
+namespace mwg {
+namespace stdm {
+  template<typename ExecutionPolicy, typename ForwardIt, typename UnaryPredicate>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt>::type
+  partition(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last, UnaryPredicate p) {
+    return partition(first, last, p);
+  }
+}
+}
+#endif
+
+//-----------------------------------------------------------------------------
+// std::min, std::max, std::minmax
+
+// Note: C++03 std::min(x, y, [compare]), std::max(x, y, [compare]) は C++14 で上書きされる。
+// Note: C++11 std::minmax(x, y, [compare]) は C++14 で上書きされる。
+// Note: C++11 std::{min,max,minmax}(initializer_list, [compare]) は C++14 で上書きされる。
+
+#ifdef MWG_STD_CXX14
+namespace mwg {
+namespace stdm {
+  using ::std::min;
+  using ::std::max;
+  using ::std::minmax;
+}
+}
+#else
+# include <functional>
+# include <mwg/std/initializer_list>
+namespace mwg {
+namespace stdm {
+
+  /* C++03 std::min, std::max, C++11 std::minmax の constexpr 版。
+   *
+   * Note: constexpr がない場合は上書きする意味がないように思われるが、
+   *   といって using std::min などとすると他の多重定義が上書きできなくなるので、
+   *   結局全て上書きすることにする。
+   */
+
+  template<typename T>
+  mwg_constexpr T const& max(T const& lhs, T const& rhs) {return lhs < rhs? rhs: lhs;}
+  template<typename T>
+  mwg_constexpr T const& min(T const& lhs, T const& rhs) {return rhs < lhs? rhs: lhs;}
+  template<typename T, typename Compare>
+  mwg_constexpr T const& max(T const& lhs, T const& rhs, Compare compare) {return compare(lhs, rhs)? rhs: lhs;}
+  template<typename T, typename Compare>
+  mwg_constexpr T const& min(T const& lhs, T const& rhs, Compare compare) {return compare(rhs, lhs)? rhs: lhs;}
+  template<typename T, typename Compare>
+  mwg_constexpr std::pair<T const&,T const&> minmax(T const& lhs, T const& rhs, Compare compare) {
+    typedef std::pair<T const &, T const&> return_type;
+    return compare(rhs, lhs)? return_type(rhs, lhs): return_type(lhs, rhs);
+  }
+  template<typename T>
+  mwg_constexpr std::pair<T const&,T const&> minmax(T const& lhs, T const& rhs) {
+    return minmax(lhs, rhs, std::less<T>());
+  }
+
+  // Note: C++11 std::{min,max,minmax}(initializer_list, [compare]) の constexpr 版。
+
+  template<typename T, typename Compare>
+  mwg_constexpr14 T max(stdm::initializer_list<T> list, Compare compare) {
+    typedef typename stdm::initializer_list<T>::const_iterator const_iterator;
+    const_iterator i = list.begin();
+    mwg_check(i != list.end());
+    const_iterator iret = i++;
+    for (; i != list.end(); ++i)
+      if (compare(*iret, *i)) iret = i;
+    return *iret;
+  }
+  template<typename T, typename Compare>
+  mwg_constexpr14 T min(stdm::initializer_list<T> list, Compare compare) {
+    typedef typename stdm::initializer_list<T>::const_iterator const_iterator;
+    const_iterator i = list.begin();
+    mwg_check(i != list.end());
+    const_iterator iret = i++;
+    for (; i != list.end(); ++i)
+      if (compare(*i, *iret)) iret = i;
+    return *iret;
+  }
+  template<typename T, typename Compare>
+  mwg_constexpr14 std::pair<T, T> minmax(stdm::initializer_list<T> list, Compare compare) {
+    typedef typename stdm::initializer_list<T>::const_iterator const_iterator;
+    using std::swap;
+    const_iterator i = list.begin();
+    mwg_check(i != list.end());
+    const_iterator imin = i;
+    const_iterator imax = i;
+    for (++i; i != list.end(); ) {
+      const_iterator i1 = i++;
+      if (i == list.end()) {
+        if (compare(*i, *imin)) imin = i;
+        if (!compare(*i, *imax)) imax = i; // right most is chosen
+        break;
+      }
+      const_iterator i2 = i++;
+      if (compare(*i2, *i1)) swap(i1, i2);
+      if (compare(*i1, *imin)) imin = i1;
+      if (!compare(*i2, *imax)) imax = i2; // right most is chosen
+    }
+    return std::make_pair(*imin, *imax);
+  }
+
+  template<typename T>
+  mwg_constexpr14 T max(stdm::initializer_list<T> list) {return max(list, std::less<T>());}
+  template<typename T>
+  mwg_constexpr14 T min(stdm::initializer_list<T> list) {return min(list, std::less<T>());}
+  template<typename T>
+  mwg_constexpr14 std::pair<T, T> minmax(stdm::initializer_list<T> list) {return minmax(list, std::less<T>());}
+}
+}
+#endif
+
+//-----------------------------------------------------------------------------
+// std::min_element, std::max_element, std::minmax_element
+
+// Note: C++03 std::min_element, max_element は C++17 で constexpr 版に上書きされる。
+// Note: C++11 std::minmax_element は C++11 で導入されたが C++17 で constexpr 版に上書きされる。
+
+#ifdef MWG_STD_CXX17
+namespace mwg {
+namespace stdm {
+  using ::std::min_element;
+  using ::std::max_element;
+  using ::std::minmax_element;
+}
+}
+#else
+# include <functional>
+# include <utility>
+# include <mwg/std/type_traits>
+# include <mwg/std/execution>
+# include <mwg/std/utility>
+namespace mwg {
+namespace stdm {
+
+# ifndef MWGCONF_STD_CONSTEXPR14
+  using ::std::min_element; // use C++03 std::min_element
+  using ::std::max_element; // use C++03 std::max_element
+# else
+  template<typename ForwardIterator, typename Compare>
+  constexpr ForwardIterator max_element(ForwardIterator first, ForwardIterator last, Compare compare) {
+    algorithm_detail::require_forward_iterator<ForwardIterator>();
+    if (first == last) return first;
+    ForwardIterator ret = first++;
+    for (; first != last; ++first) if (compare(*ret, *first)) ret = first;
+    return ret;
+  }
+  template<typename ForwardIterator, typename Compare>
+  constexpr ForwardIterator min_element(ForwardIterator first, ForwardIterator last, Compare compare) {
+    algorithm_detail::require_forward_iterator<ForwardIterator>();
+    if (first == last) return first;
+    ForwardIterator ret = first++;
+    for (; first != last; ++first) if (compare(*first, *ret)) ret = first;
+    return ret;
+  }
+  template<typename ForwardIterator>
+  constexpr ForwardIterator max_element(ForwardIterator first, ForwardIterator last) {
+    return max_element(first, last, std::less<typename std::iterator_traits<ForwardIterator>::value_type>());
+  }
+  template<typename ForwardIterator>
+  constexpr ForwardIterator min_element(ForwardIterator first, ForwardIterator last) {
+    return min_element(first, last, std::less<typename std::iterator_traits<ForwardIterator>::value_type>());
+  }
+# endif
+
+# if !defined(MWGCONF_STD_CONSTEXPR14) && defined(MWG_STD_CXX11)
+  using ::std::minmax_element; // use C++11 std::minmax_element
+# else
+  template<typename ForwardIterator, typename Compare>
+  mwg_constexpr14 std::pair<ForwardIterator, ForwardIterator> minmax_element(ForwardIterator first, ForwardIterator last, Compare compare) {
+    algorithm_detail::require_forward_iterator<ForwardIterator>();
+    std::pair<ForwardIterator, ForwardIterator> ret(first, first);
+    if (first == last) return ret;
+    for (++first; first != last; ++first) {
+      if (compare(*first, *ret.first)) ret.first = first;
+      if (!compare(*first, *ret.second)) ret.second = first;
+    }
+    return ret;
+  }
+  template<typename ForwardIterator>
+  mwg_constexpr14 std::pair<ForwardIterator, ForwardIterator> minmax_element(ForwardIterator first, ForwardIterator last) {
+    return minmax_element(first, last, std::less<typename std::iterator_traits<ForwardIterator>::value_type>());
+  }
+# endif
+
+  // execution_policy 版
+
+  template<typename ExecutionPolicy, typename ForwardIt>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt>::type
+  max_element(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last) {
+    return max_element(first, last);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt, typename Compare>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt>::type
+  max_element(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last, Compare cmp) {
+    return max_element(first, last, cmp);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt>::type
+  min_element(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last) {
+    return min_element(first, last);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt, typename Compare>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt>::type
+  min_element(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last, Compare comp) {
+    return min_element(first, last, comp);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, std::pair<ForwardIt, ForwardIt> >::type
+  minmax_element(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last) {
+    return minmax_element(first, last);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt, typename Compare>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, std::pair<ForwardIt, ForwardIt> >::type
+  minmax_element(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last, Compare comp) {
+    return minmax_element(first, last, comp);
+  }
+}
+}
+#endif
+
+
+//-----------------------------------------------------------------------------
+// std::is_permutation
+
+#ifdef MWG_STD_CXX11
+namespace mwg {
+namespace stdm {
+  using ::std::is_permutation;
+}
+}
+#else
+# include <cstddef>
+# include <mwg/std/functional>
+namespace mwg {
+namespace stdm {
+  namespace algorithm_detail {
+    template<typename InputIterator, typename Value, typename BinaryPredicate>
+    std::size_t count(InputIterator first, InputIterator last, Value const& value, BinaryPredicate pred) {
+      std::size_t ret = 0;
+      for (; first != last; ++first)
+        if (pred(*first, value)) ret++;
+      return ret;
+    }
+
+    /* Note: is_permutation 実装について。
+     *
+     * # アルゴリズム
+     *
+     * 計算量: 最悪の比較回数は、N^2回 (一致時)、N^2+max(N-2,0)回 (不一致時) である。
+     *
+     * まず初めに左列と右列の長さを確認する。長さが違えば自明に結果は false である。
+     * 以降、左列と右列の長さが同じと仮定する。この時、結果は以下に等価である。
+     *
+     *   ```
+     *   for all [x] in 左列, count(左列, x) <= count(右列, x)
+     *   ```
+     *
+     * 但し、[x] は左列の中の同値類。更に、以下のように変形できる。
+     *
+     *   ```
+     *   while |左列| != 0 {
+     *     if !(count(左列, 左列.head) <= count(右列, 左列.head)) return false;
+     *     左列の先頭要素を取り除く。
+     *   }
+     *   return true;
+     *   ```
+     *
+     * 何故なら1回 [左列.head] による判定が完了すれば、比較 <= の左辺が減るような破壊をしても問題ないから。
+     *
+     * 後は、多少工夫を加えて実装した。現状のコードの最悪の計算量は以下の通り。
+     *
+     * - 一致時は最大 N^2 回の pred 呼び出しで済む。
+     *
+     * - 不一致時は最大 N^2 + N - 2 (N >= 2) 回の pred 呼び出しで済む。
+     *
+     * 実は pred 呼び出し回数を調べて N^2 を越える時点で不一致と分かるので、
+     * 不一致の場合でも N^2 回に抑えられるが、pred 呼び出し回数を毎回調べるコストが増える。
+     * N^2 オーバーフローのチェックも必要だし、実装も煩雑になるので今は敢えてそのような最適化は行っていない。
+     *
+     */
+    template<typename ForwardIterator1, typename ForwardIterator2, typename BinaryPredicate>
+    bool is_permutation_impl(std::size_t size, ForwardIterator1 first1, ForwardIterator1 last1, ForwardIterator2 first2, BinaryPredicate pred) {
+      algorithm_detail::require_forward_iterator<ForwardIterator1>();
+      algorithm_detail::require_forward_iterator<ForwardIterator2>();
+
+      for (; first1 != last1; ++first1) {
+        ForwardIterator2 j = first2;
+        std::size_t jrest = size;
+
+        // 一致要素 (*j s.t. `pred(*first1, *j)`) を探索
+        for (; !pred(*first1, *j); ++j)
+          if (--jrest == 0) return false;
+
+        // Note: 先頭要素で一致した場合、単に両データ列から先頭要素を除けば良い。
+        //   これはなくても動作するが、比較回数を減らすためのものであることに注意する。
+        //   特にこれがないと、列が完全一致でも最大 N^2 回の比較が必要になってしまい規格の要件を満たさなくなる。
+        if (jrest == size) {
+          ++first2;
+          --size;
+          continue;
+        }
+
+        // 重複要素を数える
+        ForwardIterator1 i = first1;
+        std::size_t count = algorithm_detail::count(++i, last1, *j, pred);
+        if (count != 0) {
+          do {
+            if (--jrest == 0) return false;
+            ++j;
+          } while (!pred(*first1, *j) || --count);
+        }
+
+        // Note: 両データ列が順列の関係にある時に一番最後の要素で一致した場合、
+        //   もうその要素では二度と一致しないことは分かっている。
+        //   これもなくても動作するが、以降の比較回数を減らすためのものである。
+        //   よく考えたら、効果は限定的である。一致失敗時の比較回数が1回減るだけだ。
+        if (jrest == 1) --size;
+      }
+
+      return true;
+    }
+  }
+
+  template<typename ForwardIterator1, typename ForwardIterator2, typename BinaryPredicate>
+  bool is_permutation(ForwardIterator1 first1, ForwardIterator1 last1, ForwardIterator2 first2, BinaryPredicate pred) {
+    std::size_t const size = (std::size_t) std::distance(first1, last1);
+    return algorithm_detail::is_permutation_impl(first1, last1, first2, pred);
+  }
+  template<typename ForwardIterator1, typename ForwardIterator2>
+  bool is_permutation(ForwardIterator1 first1, ForwardIterator1 last1, ForwardIterator2 first2) {
+    return is_permutation(first1, last1, first2, stdm::equal_to<>());
+  }
+}
+}
+#endif
+
+#ifndef MWG_STD_CXX14
+namespace mwg {
+namespace stdm {
+# ifdef MWG_STD_CXX11
+  template<typename ForwardIterator1, typename ForwardIterator2, typename BinaryPredicate>
+  bool is_permutation(ForwardIterator1 first1, ForwardIterator1 last1, ForwardIterator2 first2, ForwardIterator2 last2, BinaryPredicate pred) {
+    std::size_t const size1 = (std::size_t) std::distance(first1, last1);
+    std::size_t const size2 = (std::size_t) std::distance(first2, last2);
+    return size1 == size2 && std::is_permutation(first1, last1, first2, pred);
+  }
+# else
+  template<typename ForwardIterator1, typename ForwardIterator2, typename BinaryPredicate>
+  bool is_permutation(ForwardIterator1 first1, ForwardIterator1 last1, ForwardIterator2 first2, ForwardIterator2 last2, BinaryPredicate pred) {
+    std::size_t const size1 = (std::size_t) std::distance(first1, last1);
+    std::size_t const size2 = (std::size_t) std::distance(first2, last2);
+    return size1 == size2 && algorithm_detail::is_permutation_impl(size1, first1, last1, first2, pred);
+  }
+# endif
+
+  template<typename ForwardIterator1, typename ForwardIterator2>
+  bool is_permutation(ForwardIterator1 first1, ForwardIterator1 last1, ForwardIterator2 first2, ForwardIterator2 last2) {
+    return is_permutation(first1, last1, first2, last2, stdm::equal_to<>());
+  }
+}
+}
+#endif
+
+#pragma%x begin_test
+void test() {
+  namespace ns = mwg::stdm;
+  int a1[] = {1, 2, 3, 4};
+  int a2[] = {4, 1, 2, 3};
+  int a3[] = {1, 1, 2, 3};
+  mwg_check( ns::is_permutation(ns::begin(a1), ns::end(a1), ns::begin(a1), ns::end(a1)));
+  mwg_check( ns::is_permutation(ns::begin(a1), ns::end(a1), ns::begin(a2), ns::end(a2)));
+  mwg_check(!ns::is_permutation(ns::begin(a1), ns::end(a1), ns::begin(a3), ns::end(a3)));
+
+  // 長さが違う場合
+  int a4[] = {1, 2, 3, 4, 5};
+  mwg_check(!ns::is_permutation(ns::begin(a1), ns::end(a1), ns::begin(a4), ns::end(a4)));
+
+  // 長さが0の場合
+  mwg_check( ns::is_permutation(ns::begin(a1), ns::begin(a1), ns::begin(a4), ns::begin(a4)));
+
+  // 重複がある場合
+  int b1[] = {1, 1, 1, 2, 2, 3, 4};
+  int b2[] = {4, 1, 2, 1, 2, 1, 3};
+  int b3[] = {4, 1, 2, 2, 2, 1, 3};
+  mwg_check(ns::is_permutation(ns::begin(b1), ns::end(b1), ns::begin(b1), ns::end(b1)));
+  mwg_check(ns::is_permutation(ns::begin(b1), ns::end(b1), ns::begin(b2), ns::end(b2)));
+  mwg_check(!ns::is_permutation(ns::begin(b1), ns::end(b1), ns::begin(b3), ns::end(b3)));
+
+  // TODO: 比較回数のチェック?
+}
+#pragma%x end_test
+
+//-----------------------------------------------------------------------------
+// other functions
+
+// C++03
+namespace mwg {
+namespace stdm {
+  // Note: mwg::stdm での多重定義で隠蔽されない様に using する必要がある。
+  using ::std::for_each;
+  using ::std::count;
+  using ::std::count_if;
+  using ::std::mismatch;
+  using ::std::equal;
+  using ::std::find;
+  using ::std::find_if;
+  using ::std::find_end;
+  using ::std::adjacent_find;
+  using ::std::search;
+  using ::std::search_n;
+  using ::std::copy;
+  using ::std::fill;
+  using ::std::transform;
+  using ::std::generate;
+  using ::std::remove;
+  using ::std::remove_if;
+  using ::std::remove_copy;
+  using ::std::remove_copy_if;
+  using ::std::replace;
+  using ::std::replace_if;
+  using ::std::replace_copy;
+  using ::std::replace_copy_if;
+  using ::std::swap_ranges;
+  using ::std::reverse;
+  using ::std::reverse_copy;
+  using ::std::rotate_copy;
+  using ::std::unique;
+  using ::std::unique_copy;
+  using ::std::stable_partition;
+  using ::std::sort;
+  using ::std::partial_sort;
+  using ::std::partial_sort_copy;
+  using ::std::stable_sort;
+  using ::std::nth_element;
+  using ::std::merge;
+  using ::std::inplace_merge;
+  using ::std::includes;
+  using ::std::set_difference;
+  using ::std::set_intersection;
+  using ::std::set_symmetric_difference;
+  using ::std::set_union;
+  using ::std::lexicographical_compare;
+
+  // Note: 以下は (今のところ) 上書きされないので using は不要だが念のため。
+  using ::std::copy_backward;
+  using ::std::iter_swap;
+  using ::std::lower_bound;
+  using ::std::upper_bound;
+  using ::std::binary_search;
+  using ::std::equal_range;
+  using ::std::make_heap;
+  using ::std::push_heap;
+  using ::std::pop_heap;
+  using ::std::sort_heap;
+  using ::std::next_permutation;
+  using ::std::prev_permutation;
+}
+}
+
+#ifdef MWG_STD_CXX11
+namespace mwg {
+namespace stdm {
+  using ::std::all_of;
+  using ::std::any_of;
+  using ::std::none_of;
+  using ::std::find_if_not;
+  using ::std::copy_n;
+  using ::std::move;
+  using ::std::move_backward; //
+  using ::std::fill_n;
+  using ::std::generate_n;
+  using ::std::shuffle;
+  using ::std::is_partitioned;
+  using ::std::partition_copy;
+  using ::std::partition_point;
+  using ::std::is_sorted;
+  using ::std::is_sorted_until;
+  using ::std::is_heap;
+  using ::std::is_heap_until;
+}
+}
+#else
+# include <mwg/std/utility>
+# include <mwg/std/functional>
+
+// C++11
+namespace mwg {
+namespace stdm {
+  template<typename InputIterator, typename Predicate>
+  bool any_of(InputIterator first, InputIterator last, Predicate pred) {
+    for (; first != last; ++first) if (pred(*first)) return true;
+    return false;
+  }
+
+  template<typename InputIterator, typename Predicate>
+  bool none_of(InputIterator first, InputIterator last, Predicate pred) {
+    return !any_of(first, last, pred);
+  }
+
+  template<typename InputIterator, typename Predicate>
+  bool all_of(InputIterator first, InputIterator last, Predicate pred) {
+    for (; first != last; ++first) if (!pred(*first)) return false;
+    return true;
+  }
+
+  template<typename InputIterator, typename UnaryPredicate>
+  InputIterator find_if_not(InputIterator first, InputIterator last, UnaryPredicate pred) {
+    for (; first != last; ++first) if (!pred(*first)) break;
+    return first;
+  }
+
+#pragma%x begin_test
+  struct is_one {bool operator()(int a) const {return a == 1;}};
+  void test() {
+    int arr1[] = {1, 1, 1, 1, 1, 1, 1, 1};
+    int arr2[] = {0, 0, 0, 0, 0, 0, 0, 1};
+    int arr3[] = {1, 0, 0, 0, 0, 0, 0, 0};
+    int arr4[] = {0};
+    int arr5[] = {1};
+    int arr6[] = {0, 0, 0, 0, 0, 0, 0, 0};
+    int arr7[] = {0, 1, 0, 0, 0, 0, 0, 0};
+
+    namespace ns = mwg::stdm;
+
+    mwg_check( ns::any_of(ns::begin(arr1), ns::end(arr1), is_one()));
+    mwg_check( ns::any_of(ns::begin(arr2), ns::end(arr2), is_one()));
+    mwg_check( ns::any_of(ns::begin(arr3), ns::end(arr3), is_one()));
+    mwg_check(!ns::any_of(ns::begin(arr4), ns::end(arr4), is_one()));
+    mwg_check( ns::any_of(ns::begin(arr5), ns::end(arr5), is_one()));
+    mwg_check(!ns::any_of(ns::begin(arr6), ns::end(arr6), is_one()));
+    mwg_check( ns::any_of(ns::begin(arr7), ns::end(arr7), is_one()));
+    mwg_check(!ns::any_of(ns::begin(arr1), ns::begin(arr1), is_one()));
+
+    mwg_check(!ns::none_of(ns::begin(arr1), ns::end(arr1), is_one()));
+    mwg_check(!ns::none_of(ns::begin(arr2), ns::end(arr2), is_one()));
+    mwg_check(!ns::none_of(ns::begin(arr3), ns::end(arr3), is_one()));
+    mwg_check( ns::none_of(ns::begin(arr4), ns::end(arr4), is_one()));
+    mwg_check(!ns::none_of(ns::begin(arr5), ns::end(arr5), is_one()));
+    mwg_check( ns::none_of(ns::begin(arr6), ns::end(arr6), is_one()));
+    mwg_check(!ns::none_of(ns::begin(arr7), ns::end(arr7), is_one()));
+    mwg_check( ns::none_of(ns::begin(arr1), ns::begin(arr1), is_one()));
+
+    mwg_check( ns::all_of(ns::begin(arr1), ns::end(arr1), is_one()));
+    mwg_check(!ns::all_of(ns::begin(arr2), ns::end(arr2), is_one()));
+    mwg_check(!ns::all_of(ns::begin(arr3), ns::end(arr3), is_one()));
+    mwg_check(!ns::all_of(ns::begin(arr4), ns::end(arr4), is_one()));
+    mwg_check( ns::all_of(ns::begin(arr5), ns::end(arr5), is_one()));
+    mwg_check(!ns::all_of(ns::begin(arr6), ns::end(arr6), is_one()));
+    mwg_check(!ns::all_of(ns::begin(arr7), ns::end(arr7), is_one()));
+    mwg_check( ns::all_of(ns::begin(arr1), ns::begin(arr1), is_one()));
+
+    mwg_check(ns::find_if_not(ns::begin(arr1), ns::end(arr1), is_one()) == ns::end(arr1));
+    mwg_check(ns::find_if_not(ns::begin(arr2), ns::end(arr2), is_one()) == ns::begin(arr2));
+    mwg_check(ns::find_if_not(ns::begin(arr3), ns::end(arr3), is_one()) == ns::begin(arr3) + 1);
+    mwg_check(ns::find_if_not(ns::begin(arr4), ns::end(arr4), is_one()) == ns::begin(arr4));
+    mwg_check(ns::find_if_not(ns::begin(arr5), ns::end(arr5), is_one()) == ns::begin(arr5) + 1);
+    mwg_check(ns::find_if_not(ns::begin(arr6), ns::end(arr6), is_one()) == ns::begin(arr6));
+    mwg_check(ns::find_if_not(ns::begin(arr7), ns::end(arr7), is_one()) == ns::begin(arr7));
+    mwg_check(ns::find_if_not(ns::begin(arr1), ns::begin(arr1), is_one()) == ns::begin(arr1));
+  }
+#pragma%x end_test
+
+  template<typename InputIterator, typename OutputIterator, typename UnaryPredicate>
+  OutputIterator copy_if(InputIterator src, InputIterator src_end, OutputIterator dst, UnaryPredicate pred) {
+    for (; src != src_end; ++src) if (pred(*src)) *dst++ = *src;
+    return dst;
+  }
+
+  template<typename InputIterator, typename Size, typename OutputIterator>
+  OutputIterator copy_n(InputIterator src, Size n, OutputIterator dst) {
+    while (n--) *dst++ = *src++;
+    return dst;
+  }
+
+#pragma%x begin_test
+  struct is_odd {bool operator()(int a) const {return a % 2 == 1;}};
+  void test_copy_if_1(const char* name, int (&arr)[8], int const (&src)[8], int const (&ans)[8]) {
+    namespace ns = mwg::stdm;
+    std::fill(ns::begin(arr), ns::end(arr), 0);
+    ns::copy_if(ns::begin(src), ns::end(src), ns::begin(arr), is_odd());
+    mwg_check(ns::equal(ns::begin(arr), ns::end(arr), ns::begin(ans)), "test of copy_if %s", name);
+  }
+  void test() {
+    int arr[8];
+
+    namespace ns = mwg::stdm;
+
+    {
+      int src1[] = {1, 3, 1, 5, 1, 7, 1, 9};
+      int ans1[] = {1, 3, 1, 5, 1, 7, 1, 9};
+      test_copy_if_1("#1", arr, src1, ans1);
+      int src2[] = {2, 2, 2, 2, 2, 2, 2, 2};
+      int ans2[] = {0, 0, 0, 0, 0, 0, 0, 0};
+      test_copy_if_1("#2", arr, src2, ans2);
+      int src3[] = {1, 2, 3, 2, 5, 2, 7, 2};
+      int ans3[] = {1, 3, 5, 7, 0, 0, 0, 0};
+      test_copy_if_1("#3", arr, src3, ans3);
+      int src4[] = {2, 3, 2, 5, 2, 7, 2, 9};
+      int ans4[] = {3, 5, 7, 9, 0, 0, 0, 0};
+      test_copy_if_1("#4", arr, src4, ans4);
+    }
+
+    {
+      int src[] = {1, 2, 3, 4, 5, 6, 7, 8};
+      int ans1[] = {0, 0, 0, 0, 0, 0, 0, 0};
+      int ans2[] = {1, 2, 3, 4, 5, 6, 7, 8};
+      int ans3[] = {1, 0, 0, 0, 0, 0, 0, 0};
+      int ans4[] = {1, 2, 3, 4, 0, 0, 0, 0};
+      int ans5[] = {1, 2, 3, 4, 5, 6, 7, 0};
+      std::fill(ns::begin(arr), ns::end(arr), 0);
+      ns::copy_n(ns::begin(src), 0, ns::begin(arr));
+      mwg_check(ns::equal(ns::begin(arr), ns::end(arr), ns::begin(ans1)));
+      std::fill(ns::begin(arr), ns::end(arr), 0);
+      ns::copy_n(ns::begin(src), 8, ns::begin(arr));
+      mwg_check(ns::equal(ns::begin(arr), ns::end(arr), ns::begin(ans2)));
+      std::fill(ns::begin(arr), ns::end(arr), 0);
+      ns::copy_n(ns::begin(src), 1, ns::begin(arr));
+      mwg_check(ns::equal(ns::begin(arr), ns::end(arr), ns::begin(ans3)));
+      std::fill(ns::begin(arr), ns::end(arr), 0);
+      ns::copy_n(ns::begin(src), 4, ns::begin(arr));
+      mwg_check(ns::equal(ns::begin(arr), ns::end(arr), ns::begin(ans4)));
+      std::fill(ns::begin(arr), ns::end(arr), 0);
+      ns::copy_n(ns::begin(src), 7, ns::begin(arr));
+      mwg_check(ns::equal(ns::begin(arr), ns::end(arr), ns::begin(ans5)));
+    }
+  }
+#pragma%x end_test
+
+  template<typename InputIterator, typename OutputIterator>
+  OutputIterator move(InputIterator src, InputIterator src_last, OutputIterator dst) {
+    while (src != src_last) *dst++ = stdm::move(*src++);
+    return dst;
+  }
+
+  template<typename BidirectionalIterator1, typename BidirectionalIterator2>
+  BidirectionalIterator2 move_backward(BidirectionalIterator1 src_first, BidirectionalIterator1 src_last, BidirectionalIterator2 dst_last) {
+    while (src_first != src_last) *--dst_last = stdm::move(*--src_last);
+    return dst_last;
+  }
+
+  template<typename OutputIterator, typename Size, typename T>
+  OutputIterator fill_n(OutputIterator first, Size n, const T& value) {
+    while (n--) *first++ = value;
+    return first;
+  }
+
+  template<typename OutputIterator, typename Size, typename Generator>
+  OutputIterator generate_n(OutputIterator first, Size n, Generator generator) {
+    while (n--) *first++ = generator();
+    return first;
+  }
+
+  template<typename RandomIterator, typename UniformRandomBitGenerator>
+  void shuffle(
+    RandomIterator first, RandomIterator last,
+#if mwg_has_feature(cxx_rvalue_references)
+    UniformRandomBitGenerator&& g
+#else
+    UniformRandomBitGenerator& g
+#endif
+  ) {
+    // call C++03 `std::random_shuffle` which is deprecated in C++14
+    ::std::random_shuffle(first, last, stdm::forward<URBG>(g));
+  }
+
+  template<typename InputIterator, typename UnaryPredicate>
+  bool is_partitioned(InputIterator first, InputIterator last, UnaryPredicate pred) {
+    while (first != last)
+      if (!pred(*first++))
+        return none_of(first, last, pred);
+    return true;
+  }
+
+  namespace algorithm_detail {
+    template<typename InputIterator, typename OutputIterator, typename UnaryPredicate>
+    OutputIterator swap_if(InputIterator src, InputIterator src_end, OutputIterator dst, UnaryPredicate pred) {
+      for (; src != src_end; ++src) if (pred(*src)) std::iter_swap(dst++, src);
+      return dst;
+    }
+  }
+
+  template<typename InputIterator, typename OutputIterator1, typename OutputIterator2, typename UnaryPredicate>
+  std::pair<OutputIterator1, OutputIterator2>
+  partition_copy(InputIterator first, InputIterator last, OutputIterator1 dst_true, OutputIterator2 dst_false, UnaryPredicate pred) {
+    for (; first != last; ++first) (pred(*first)? dst_true++: dst_false++) = *first;
+    return std::make_pair(dst_true, dst_false);
+  }
+
+  template<typename ForwardIterator, typename UnaryPredicate>
+  typename stdm::enable_if<
+    stdm::is_base_of<std::random_access_iterator_tag, typename std::iterator_traits<ForwardIterator>::iterator_category>::value,
+    ForwardIterator>::type
+  partition_point(ForwardIterator first, ForwardIterator last, UnaryPredicate pred) {
+    std::ptrdiff_t l = 0, u = last - first;
+    while (l < u) {
+      std::ptrdiff_t m = (l + u) / 2;
+      if (pred(first[m]))
+        l = m + 1;
+      else
+        u = m;
+    }
+    return first + l;
+  }
+
+  template<typename ForwardIterator, typename UnaryPredicate>
+  typename stdm::enable_if<
+    !stdm::is_base_of<std::random_access_iterator_tag, typename std::iterator_traits<ForwardIterator>::iterator_category>::value,
+    ForwardIterator>::type
+  partition_point(ForwardIterator first, ForwardIterator last, UnaryPredicate pred) {
+    // InputIterator で動く
+    return find_if_not(first, last, pred);
+  }
+
+  template<typename ForwardIterator, typename Compare>
+  ForwardIterator is_sorted_until(ForwardIterator first, ForwardIterator last, Compare compare) {
+    algorithm_detail::require_forward_iterator<ForwardIterator>();
+    if (first == last) return first;
+    for (;;) {
+      ForwardIterator prev = first++;
+      if (first == last || compare(*first, *prev)) return first;
+    }
+  }
+
+  template<typename ForwardIterator>
+  ForwardIterator is_sorted_until(ForwardIterator first, ForwardIterator last) {
+    algorithm_detail::require_forward_iterator<ForwardIterator>();
+    return is_sorted_until(first, last, std::less<typename std::iterator_traits<ForwardIterator>::value_type>());
+  }
+
+  template<typename ForwardIterator, typename Compare>
+  bool is_sorted(ForwardIterator first, ForwardIterator last, Compare compare) {
+    algorithm_detail::require_forward_iterator<ForwardIterator>();
+    return last == is_sorted_until(first, last, compare);
+  }
+
+  template<typename ForwardIterator>
+  bool is_sorted(ForwardIterator first, ForwardIterator last) {
+    algorithm_detail::require_forward_iterator<ForwardIterator>();
+    return last == is_sorted_until(first, last);
+  }
+
+  template<typename RandomAccessIterator, typename Compare>
+  RandomAccessIterator is_heap_until(RandomAccessIterator first, RandomAccessIterator last, Compare compare) {
+    if (first == last) return first;
+    RandomAccessIterator parent = first++;
+    for (std::size_t i = 1; first != last && !compare(*parent, *first); ++first, ++i % 2 && ++parent);
+    return first;
+  }
+
+  template<typename RandomAccessIterator>
+  RandomAccessIterator is_heap_until(RandomAccessIterator first, RandomAccessIterator last) {
+    return is_heap_until(first, last, std::less<typename std::iterator_traits<ForwardIterator>::value_type>());
+  }
+
+  template<typename RandomAccessIterator, typename Compare>
+  bool is_heap(RandomAccessIterator first, RandomAccessIterator last, Compare compare) {
+    return last == is_heap_until(first, last, compare);
+  }
+
+  template<typename RandomAccessIterator>
+  bool is_heap(RandomAccessIterator first, RandomAccessIterator last) {
+    return last == is_heap_until(first, last);
+  }
+
+}
+}
+#endif /* end of !defined(MWG_STD_CXX11) */
+
+#ifndef MWG_STD_CXX14
+# include <mwg/defs.h>
+# include <mwg/std/utility>
+# include <mwg/std/functional>
+
+// C++14
+namespace mwg {
+namespace stdm {
+  template<typename InputIterator1, typename InputIterator2, typename BinaryPredicate>
+  std::pair<InputIterator1, InputIterator2> mismatch(InputIterator1 first1, InputIterator2 last1, InputIterator2 first2, InputIterator2 last2, BinaryPredicate pred) {
+    while (first1 != last1 && first2 != last2 && pred(*first1, *first2)) ++first1, ++first2;
+    return stdm::make_pair(first1, first2);
+  }
+
+  template<typename InputIterator1, typename InputIterator2>
+  std::pair<InputIterator1, InputIterator2> mismatch(InputIterator1 first1, InputIterator2 last1, InputIterator2 first2, InputIterator2 last2) {
+    return mismatch(first1, last1, first2, last2, stdm::equal_to<>());
+  }
+
+  template<typename InputIterator1, typename InputIterator2, typename BinaryPredicate>
+  bool equal(InputIterator1 first1, InputIterator2 last1, InputIterator2 first2, InputIterator2 last2, BinaryPredicate pred) {
+    for (; first1 != last1 && first2 != last2; ++first1, ++first2)
+      if (!pred(*first1, *first2)) return false;
+  }
+
+  template<typename InputIterator1, typename InputIterator2>
+  bool equal(InputIterator1 first1, InputIterator2 last1, InputIterator2 first2, InputIterator2 last2) {
+    return equal(first1, last1, first2, last2, stdm::equal_to<>());
+  }
+
+}
+}
+#endif /* end of !defined(MWG_STD_CXX14) */
+
+#ifndef MWG_STD_CXX17
+# include <functional>
+# include <mwg/std/utility>
+# include <mwg/std/execution>
+
+// C++17
+namespace mwg {
+namespace stdm {
+  template<typename InputIterator, typename Size, typename UnaryFunction>
+  InputIterator for_each_n(InputIterator first, Size n, UnaryFunction f) {
+    while (n--) f(*first++);
+  }
+
+  template<typename ForwardIterator, typename Searcher>
+  ForwardIterator search(ForwardIterator first, ForwardIterator last, const Searcher& searcher) {
+    return searcher(first, last).first;
+  }
+
+  template<typename T, typename Compare>
+  T clamp(T const& value, T const& lower, T const& upper, Compare compare) {
+    return compare(value, lower)? lower: compare(upper, value)? upper: value;
+  }
+
+  template<typename T>
+  T clamp(T const& value, T const& lower, T const& upper) {
+    return value < lower? lower: value > upper? upper: value;
+  }
+
+  template<typename ExecutionPolicy, typename ForwardIt, typename UnaryPredicate>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, bool>::type
+  all_of(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last, UnaryPredicate p) {
+    return all_of(first, last, p);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt, typename UnaryPredicate>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, bool>::type
+  any_of(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last, UnaryPredicate p) {
+    return any_of(first, last, p);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt, typename UnaryPredicate>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, bool>::type
+  none_of(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last, UnaryPredicate p) {
+    return none_of(first, last, p);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt, typename UnaryFunction2>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, void>::type
+  for_each(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last, UnaryFunction2 f) {
+    return for_each(first, last, f);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt, typename Size, typename UnaryFunction2>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt>::type
+  for_each_n(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, Size n, UnaryFunction2 f) {
+    return for_each_n(first, n, f);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt, typename T>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, typename std::iterator_traits<ForwardIt>::difference_type>::type
+  count(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last, const T& value) {
+    return count(first, last, value);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt, typename UnaryPredicate>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, typename std::iterator_traits<ForwardIt>::difference_type>::type
+  count_if(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last, UnaryPredicate p) {
+    return count_if(first, last, p);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, std::pair<ForwardIt1, ForwardIt2> >::type
+  mismatch(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2) {
+    return mismatch(first1, last1, first2);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2, typename BinaryPredicate>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, std::pair<ForwardIt1, ForwardIt2> >::type
+  mismatch(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2, BinaryPredicate p) {
+    return mismatch(first1, last1, first2, p);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, std::pair<ForwardIt1, ForwardIt2> >::type
+  mismatch(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2, ForwardIt2 last2) {
+    return mismatch(first1, last1, first2, last2);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2, typename BinaryPredicate>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, std::pair<ForwardIt1, ForwardIt2> >::type
+  mismatch(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2, ForwardIt2 last2, BinaryPredicate p) {
+    return mismatch(first1, last1, first2, last2, p);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, bool>::type
+  equal(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2) {
+    return equal(first1, last1, first2);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2, typename BinaryPredicate>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, bool>::type
+  equal(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2, BinaryPredicate p) {
+    return equal(first1, last1, first2, p);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, bool>::type
+  equal(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2, ForwardIt2 last2) {
+    return equal(first1, last1, first2, last2);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2, typename BinaryPredicate>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, bool>::type
+  equal(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2, ForwardIt2 last2, BinaryPredicate p) {
+    return equal(first1, last1, first2, last2, p);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt, typename T>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt>::type
+  find(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last, const T& value) {
+    return find(first, last, value);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt, typename UnaryPredicate>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt>::type
+  find_if(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last, UnaryPredicate p) {
+    return find_if(first, last, p);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt, typename UnaryPredicate>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt>::type
+  find_if_not(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last, UnaryPredicate q) {
+    return find_if_not(first, last, q);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt1>::type
+  find_end(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first, ForwardIt1 last, ForwardIt2 s_first, ForwardIt2 s_last) {
+    return find_end(first, last, s_first, s_last);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2, typename BinaryPredicate>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt1>::type
+  find_end(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first, ForwardIt1 last, ForwardIt2 s_first, ForwardIt2 s_last, BinaryPredicate p) {
+    return find_end(first, last, s_first, s_last, p);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt>::type
+  adjacent_find(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last) {
+    return adjacent_find(first, last);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt, typename BinaryPredicate>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt>::type
+  adjacent_find(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last, BinaryPredicate p) {
+    return adjacent_find(first, last, p);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt1>::type
+  search(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first, ForwardIt1 last, ForwardIt2 s_first, ForwardIt2 s_last) {
+    return search(first, last, s_first, s_last);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2, typename BinaryPredicate>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt1>::type
+  search(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first, ForwardIt1 last, ForwardIt2 s_first, ForwardIt2 s_last, BinaryPredicate p) {
+    return search(first, last, s_first, s_last, p);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt, typename Size, typename T>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt>::type
+  search_n(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last, Size count, const T& value) {
+    return search_n(first, last, count, value);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt, typename Size, typename T, typename BinaryPredicate>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt>::type
+  search_n(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last, Size count, const T& value, BinaryPredicate p) {
+    return search_n(first, last, count, value, p);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt2>::type
+  copy(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first, ForwardIt1 last, ForwardIt2 d_first) {
+    return copy(first, last, d_first);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2, typename UnaryPredicate>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt2>::type
+  copy_if(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first, ForwardIt1 last, ForwardIt2 d_first, UnaryPredicate pred) {
+    return copy_if(first, last, d_first, pred);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt1, typename Size, typename ForwardIt2>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt2>::type
+  copy_n(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first, Size count, ForwardIt2 result) {
+    return copy_n(first, count, result);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt2>::type
+  move(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first, ForwardIt1 last, ForwardIt2 d_first) {
+    return move(first, last, d_first);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt, typename T>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, void>::type
+  fill(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last, const T& value) {
+    return fill(first, last, value);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt, typename Size, typename T>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt>::type
+  fill_n(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, Size count, const T& value) {
+    return fill_n(first, count, value);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2, typename UnaryOperation>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt2>::type
+  transform(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 d_first, UnaryOperation unary_op) {
+    return transform(first1, last1, d_first, unary_op);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2, typename ForwardIt3, typename BinaryOperation>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt3>::type
+  transform(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2, ForwardIt3 d_first, BinaryOperation binary_op) {
+    return transform(first1, last1, first2, d_first, binary_op);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt, typename Generator>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, void>::type
+  generate(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last, Generator g) {
+    return generate(first, last, g);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt , typename Size, typename Generator>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt>::type
+  generate_n(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, Size count, Generator g) {
+    return generate_n(first, count, g);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt, typename T>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt>::type
+  remove(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last, const T& value) {
+    return remove(first, last, value);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt, typename UnaryPredicate>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt>::type
+  remove_if(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last, UnaryPredicate p) {
+    return remove_if(first, last, p);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2, typename T>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt2>::type
+  remove_copy(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first, ForwardIt1 last, ForwardIt2 d_first, const T& value) {
+    return remove_copy(Forwfirst, last, d_first, value);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2, typename UnaryPredicate>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt2>::type
+  remove_copy_if(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first, ForwardIt1 last, ForwardIt2 d_first, UnaryPredicate p) {
+    return remove_copy_if(first, last, d_first, p);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt, typename T>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, void>::type
+  replace(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last, const T& old_value, const T& new_value) {
+    return replace(first, last, T& old_value, new_value);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt, typename UnaryPredicate, typename T>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, void>::type
+  replace_if(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last, UnaryPredicate p, const T& new_value) {
+    return replace_if(first, last, p, new_value);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2, typename T>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt2>::type
+  replace_copy(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first, ForwardIt1 last, ForwardIt2 d_first, const T& old_value, const T& new_value) {
+    return replace_copy(first, last, d_first, T& old_value, new_value);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2, typename UnaryPredicate, typename T>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt2>::type
+  replace_copy_if(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first, ForwardIt1 last, ForwardIt2 d_first, UnaryPredicate p, const T& new_value) {
+    return replace_copy_if(first, last, d_first, p, new_value);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt2>::type
+  swap_ranges(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2) {
+    return swap_ranges(first1, last1, first2);
+  }
+  template<typename ExecutionPolicy, typename BidirIt>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, void>::type
+  reverse(ExecutionPolicy mwg_forward_rvalue policy, BidirIt first, BidirIt last) {
+    return reverse(first, last);
+  }
+  template<typename ExecutionPolicy, typename BidirIt, typename ForwardIt>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt>::type
+  reverse_copy(ExecutionPolicy mwg_forward_rvalue policy, BidirIt first, BidirIt last, ForwardIt d_first) {
+    return reverse_copy(first, last, d_first);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt2>::type
+  rotate_copy(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first, ForwardIt1 n_first, ForwardIt1 last, ForwardIt2 d_first) {
+    return rotate_copy(first, n_first, last, d_first);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt>::type
+  unique(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last) {
+    return unique(first, last);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt, typename BinaryPredicate>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt>::type
+  unique(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last, BinaryPredicate p) {
+    return unique(first, last, p);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt2>::type
+  unique_copy(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first, ForwardIt1 last, ForwardIt2 d_first) {
+    return unique_copy(first, last, d_first);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2, typename BinaryPredicate>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt2>::type
+  unique_copy(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first, ForwardIt1 last, ForwardIt2 d_first, BinaryPredicate p) {
+    return unique_copy(first, last, d_first, p);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt, typename UnaryPredicate>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, bool>::type
+  is_partitioned(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last, UnaryPredicate p) {
+    return is_partitioned(first, last, p);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2, typename ForwardIt3, typename UnaryPredicate>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, std::pair<ForwardIt2, ForwardIt3> >::type
+  partition_copy(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first, ForwardIt1 last, ForwardIt2 d_first_true, ForwardIt3 d_first_false, UnaryPredicate p) {
+    return partition_copy(first, last, d_first_true, d_first_false, p);
+  }
+  template<typename ExecutionPolicy, typename BidirIt, typename UnaryPredicate>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, BidirIt>::type
+  stable_partition(ExecutionPolicy mwg_forward_rvalue policy, BidirIt first, BidirIt last, UnaryPredicate p) {
+    return stable_partition(first, last, p);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, bool>::type
+  is_sorted(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last) {
+    return is_sorted(first, last);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt, typename Compare>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, bool>::type
+  is_sorted(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last, Compare comp) {
+    return is_sorted(first, last, comp);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt>::type
+  is_sorted_until(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last) {
+    return is_sorted_until(first, last);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt, typename Compare>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt>::type
+  is_sorted_until(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last, Compare comp) {
+    return is_sorted_until(first, last, comp);
+  }
+  template<typename ExecutionPolicy, typename RandomIt>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, void>::type
+  sort(ExecutionPolicy mwg_forward_rvalue policy, RandomIt first, RandomIt last) {
+    return sort(first, last);
+  }
+  template<typename ExecutionPolicy, typename RandomIt, typename Compare>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, void>::type
+  sort(ExecutionPolicy mwg_forward_rvalue policy, RandomIt first, RandomIt last, Compare comp) {
+    return sort(first, last, comp);
+  }
+  template<typename ExecutionPolicy, typename RandomIt>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, void>::type
+  partial_sort(ExecutionPolicy mwg_forward_rvalue policy, RandomIt first, RandomIt middle, RandomIt last) {
+    return partial_sort(first, middle, last);
+  }
+  template<typename ExecutionPolicy, typename RandomIt, typename Compare>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, void>::type
+  partial_sort(ExecutionPolicy mwg_forward_rvalue policy, RandomIt first, RandomIt middle, RandomIt last, Compare comp) {
+    return partial_sort(first, middle, last, comp);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt, typename RandomIt>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, RandomIt>::type
+  partial_sort_copy(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last, RandomIt d_first, RandomIt d_last) {
+    return partial_sort_copy(first, last, d_first, d_last);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt, typename RandomIt, typename Compare>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, RandomIt>::type
+  partial_sort_copy(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last, RandomIt d_first, RandomIt d_last, Compare comp) {
+    return partial_sort_copy(first, last, d_first, d_last, comp);
+  }
+  template<typename ExecutionPolicy, typename RandomIt>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, void>::type
+  stable_sort(ExecutionPolicy mwg_forward_rvalue policy, RandomIt first, RandomIt last) {
+    return stable_sort(first, last);
+  }
+  template<typename ExecutionPolicy, typename RandomIt, typename Compare>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, void>::type
+  stable_sort(ExecutionPolicy mwg_forward_rvalue policy, RandomIt first, RandomIt last, Compare comp) {
+    return stable_sort(first, last, comp);
+  }
+  template<typename ExecutionPolicy, typename RandomIt>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, void>::type
+  nth_element(ExecutionPolicy mwg_forward_rvalue policy, RandomIt first, RandomIt nth, RandomIt last) {
+    return nth_element(first, nth, last);
+  }
+  template<typename ExecutionPolicy, typename RandomIt, typename Compare>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, void>::type
+  nth_element(ExecutionPolicy mwg_forward_rvalue policy, RandomIt first, RandomIt nth, RandomIt last, Compare comp) {
+    return nth_element(first, nth, last, comp);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2, typename ForwardIt3>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt3>::type
+  merge(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2, ForwardIt2 last2, ForwardIt3 d_first) {
+    return merge(first1, last1, first2, last2, d_first);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2, typename ForwardIt3, typename Compare>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt3>::type
+  merge(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2, ForwardIt2 last2, ForwardIt3 d_first, Compare comp) {
+    return merge(first1, last1, first2, last2, d_first, comp);
+  }
+  template<typename ExecutionPolicy, typename BidirIt>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, void>::type
+  inplace_merge(ExecutionPolicy mwg_forward_rvalue policy, BidirIt first, BidirIt middle, BidirIt last) {
+    return inplace_merge(first, middle, last);
+  }
+  template<typename ExecutionPolicy, typename BidirIt, typename Compare>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, void>::type
+  inplace_merge(ExecutionPolicy mwg_forward_rvalue policy, BidirIt first, BidirIt middle, BidirIt last, Compare comp) {
+    return inplace_merge(first, middle, last, comp);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, bool>::type
+  includes(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2, ForwardIt2 last2) {
+    return includes(first1, last1, first2, last2);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2, typename Compare>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, bool>::type
+  includes(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2, ForwardIt2 last2, Compare comp) {
+    return includes(first1, last1, first2, last2, comp);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2, typename ForwardIt3>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt3>::type
+  set_difference(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2, ForwardIt2 last2, ForwardIt3 d_first) {
+    return set_difference(first1, last1, first2, last2, d_first);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2, typename ForwardIt3, typename Compare>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt3>::type
+  set_difference(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2, ForwardIt2 last2, ForwardIt3 d_first, Compare comp) {
+    return set_difference(first1, last1, first2, last2, d_first, comp);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2, typename ForwardIt3>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt3>::type
+  set_intersection(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2, ForwardIt2 last2, ForwardIt3 d_first) {
+    return set_intersection(first1, last1, first2, last2, d_first);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2, typename ForwardIt3, typename Compare>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt3>::type
+  set_intersection(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2, ForwardIt2 last2, ForwardIt3 d_first, Compare comp) {
+    return set_intersection(first1, last1, first2, last2, d_first, comp);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2, typename ForwardIt3>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt3>::type
+  set_symmetric_difference(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2, ForwardIt2 last2, ForwardIt3 d_first) {
+    return set_symmetric_difference(first1, last1, first2, last2, d_first);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2, typename ForwardIt3, typename Compare>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt3>::type
+  set_symmetric_difference(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2, ForwardIt2 last2, ForwardIt3 d_first, Compare comp) {
+    return set_symmetric_difference(first1, last1, first2, last2, d_first, comp);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2, typename ForwardIt3>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt3>::type
+  set_union(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2, ForwardIt2 last2, ForwardIt3 d_first) {
+    return set_union(first1, last1, first2, last2, d_first);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2, typename ForwardIt3, typename Compare>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt3>::type
+  set_union(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2, ForwardIt2 last2, ForwardIt3 d_first, Compare comp) {
+    return set_union(first1, last1, first2, last2, d_first, comp);
+  }
+  template<typename ExecutionPolicy, typename RandomIt>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, bool>::type
+  is_heap(ExecutionPolicy mwg_forward_rvalue policy, RandomIt first, RandomIt last) {
+    return is_heap(first, last);
+  }
+  template<typename ExecutionPolicy, typename RandomIt, typename Compare>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, bool>::type
+  is_heap(ExecutionPolicy mwg_forward_rvalue policy, RandomIt first, RandomIt last, Compare comp) {
+    return is_heap(first, last, comp);
+  }
+  template<typename ExecutionPolicy, typename RandomIt>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, RandomIt>::type
+  is_heap_until(ExecutionPolicy mwg_forward_rvalue policy, RandomIt first, RandomIt last) {
+    return is_heap_until(first, last);
+  }
+  template<typename ExecutionPolicy, typename RandomIt, typename Compare>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, RandomIt>::type
+  is_heap_until(ExecutionPolicy mwg_forward_rvalue policy, RandomIt first, RandomIt last, Compare comp) {
+    return is_heap_until(first, last, comp);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, bool>::type
+  lexicographical_compare(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2, ForwardIt2 last2) {
+    return lexicographical_compare(first1, last1, first2, last2);
+  }
+  template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2, typename Compare>
+  typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, bool>::type
+  lexicographical_compare(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2, ForwardIt2 last2, Compare comp) {
+    return lexicographical_compare(first1, last1, first2, last2, comp);
+  }
+
+}
+}
+
+#endif /* end of !defined(MWG_STD_CXX17) */
+
+#endif /* end of MWG_STDM_ALGORITHM */
+#pragma%x begin_check
+
+int test() {
+  namespace ns = mwg::stdm;
+  return 0;
+}
+
+int main() {
+  managed_test::run_tests();
+  return test();
+}
+#pragma%x end_check

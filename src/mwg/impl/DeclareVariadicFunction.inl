@@ -2,7 +2,7 @@
 // #include <mwg/std/utility>
 
 #pragma%[ArN=10]
-#if defined(MWGCONF_STD_VARIADIC_TEMPLATES)
+#if mwg_has_feature(cxx_variadic_templates)
 #  define mwg_impl_variadic_template_decl     template<typename... Args>
 #  define mwg_impl_variadic_template_params   typename... Args
 #  define mwg_impl_variadic_template_params_r ,typename... Args

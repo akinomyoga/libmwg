@@ -7,16 +7,16 @@
  *
  * StandardHeaders=utility
  * H tr1/utility && StandardHeaders+=' tr1/utility'
- * if X -t'std::forward' std_forward "$StandardHeaders" 'int a;int b=std::forward<int&>(a);'; then
+ * if X -t'std::forward' std_forward "$StandardHeaders" 'int a; int b = std::forward<int&>(a);'; then
  *   Namespace=std
- * elif X -t'std::tr1::forward' std_forward "$StandardHeaders" 'int a;int b=std::tr1::forward<int&>(a);'; then
+ * elif X -t'std::tr1::forward' std_forward "$StandardHeaders" 'int a; int b = std::tr1::forward<int&>(a);'; then
  *   Namespace=std::tr1
  * fi
  *
  * function check_cxx11_functionality {
  *   [[ $Namespace ]] || return 1
- *   if X - '' 'int&& a=1;'; then
- *     X -t"(vcbug) $Namespace::forward<int>(1)" -o - "$StandardHeaders" "int&& a=$Namespace::forward<int>(1);" || return 1
+ *   if X - '' 'int&& a = 1;'; then
+ *     X -t"(vcbug) $Namespace::forward<int>(1)" -o - "$StandardHeaders" "int&& a = $Namespace::forward<int>(1);" || return 1
  *   fi
  *   return 0
  * }
@@ -24,26 +24,26 @@
  * check_cxx11_functionality || D MWGCONF_INVALID_HEADER_UTILITY 1
  *
  */
-#if MWGCONF_HEADER_STD>=2011&&!defined(MWGCONF_INVALID_HEADER_UTILITY)
+#if MWGCONF_HEADER_STD >= 2011 && !defined(MWGCONF_INVALID_HEADER_UTILITY)
 # include <utility>
 #else
 # include <algorithm>
 # include <utility>
 # include "type_traits"
-namespace mwg{
-namespace stdm{
+namespace mwg {
+namespace stdm {
 
-#if defined(MWGCONF_STD_RVALUE_REFERENCES)
+#if mwg_has_feature(cxx_rvalue_references)
   template<typename T>
-  T&& forward(typename stdm::remove_reference<T>::type& value){
+  T&& forward(typename stdm::remove_reference<T>::type& value) {
     return static_cast<T&&>(value);
   }
   template<typename T>
-  T&& forward(typename stdm::remove_reference<T>::type&& value){
+  T&& forward(typename stdm::remove_reference<T>::type&& value) {
     return static_cast<T&&>(value);
   }
   template<typename T>
-  typename stdm::remove_reference<T>::type&& move(T&& value){
+  typename stdm::remove_reference<T>::type&& move(T&& value) {
     return static_cast<typename stdm::remove_reference<T>::type&&>(value);
   }
 #else
@@ -57,10 +57,10 @@ namespace stdm{
   //
   template<typename T>
   typename stdx::add_const_reference<T>::type
-  forward(typename stdx::add_const_reference<T>::type value){return value;}
+  forward(typename stdx::add_const_reference<T>::type value) {return value;}
 
   template<typename T>
-  T& move(const T& value){return const_cast<T&>(value);}
+  T& move(const T& value) {return const_cast<T&>(value);}
 #endif
 }
 }
@@ -69,8 +69,8 @@ namespace stdm{
 
 //-----------------------------------------------------------------------------
 #include <mwg/std/type_traits>
-namespace mwg{
-namespace stdx{
+namespace mwg {
+namespace stdx {
 /*?lwiki
  * * 独自拡張
  *
@@ -80,14 +80,14 @@ namespace stdx{
  * -完全転送 (perfect forward) をする時のパラメータに用いる。
  *  &pre(!cpp){
  * template<typename T>
- * void func(T mwg_forward_rvalue value){
+ * void func(T mwg_forward_rvalue value) {
  *   mwg::stdm::forward<T>(value);
  * }
  * }
  * -右辺値参照を受け取る関数に用いる。
  *  但し const& による overload がない場合に限る。
  *  &pre(!cpp){
- * void func(C mwg_forward_rvalue value){ ... }
+ * void func(C mwg_forward_rvalue value) { ... }
  * }
  *  対象のパラメータは更に mwg::stdm::move を用いて別の関数に渡す事を想定している。
  *  mwg::stdm::move は C++11 では右辺値参照に変換を行い破壊的操作される可能性もある。
@@ -99,7 +99,7 @@ namespace stdx{
  * forward 擬きの実装時にその引数として使用する。
  * &pre(!cpp){
  * template<typename T>
- * T mwg_forward_rvalue my_forward(T mwg_forward_lvalue value){
+ * T mwg_forward_rvalue my_forward(T mwg_forward_lvalue value) {
  *   return reinterpret_cast<T mwg_forward_rvalue>(value);
  * }
  * }
@@ -114,15 +114,15 @@ namespace stdx{
  * ** 使用例
  *
  * &pre(!cpp){
- * template<typename T> void hoge(T mwg_forward_rvalue t){hoge_impl(mwg::stdm::forward<T>(t));}
+ * template<typename T> void hoge(T mwg_forward_rvalue t) {hoge_impl(mwg::stdm::forward<T>(t));}
  *
- * template<typename T> void hoge(T const& t){hoge_impl(t);}
+ * template<typename T> void hoge(T const& t) {hoge_impl(t);}
  * // NG: 参照が定数参照になる
  * //  ok: int -> const int&
  * //  ng: int& -> const int&
  * //  ok: const int& -> const int&
  *
- * template<typename T> void hoge(T& t){hoge_impl(t);}
+ * template<typename T> void hoge(T& t) {hoge_impl(t);}
  * // NG: 定数値を渡せない
  * //  ng: int
  * //  ok: int& -> int&
@@ -131,7 +131,7 @@ namespace stdx{
  *
  */
 
-#if defined(MWGCONF_STD_RVALUE_REFERENCES)
+#if mwg_has_feature(cxx_rvalue_references)
 #  define mwg_forward_lvalue &
 #  define mwg_forward_rvalue &&
 #else
@@ -146,14 +146,14 @@ namespace stdx{
 #pragma%x begin_check
 #include <mwg/std/utility>
 
-int main(){
-  int b=123;
-  int& b1=mwg::stdm::forward<int&>(b);
+int main() {
+  int b = 123;
+  int& b1 = mwg::stdm::forward<int&>(b);
   mwg_unused(b1);
 
-#ifdef MWGCONF_STD_RVALUE_REFERENCES
-  int&& a1=mwg::stdm::forward<int>(123);
-  int&& a2=mwg::stdm::forward<int&&>(123);
+#if mwg_has_feature(cxx_rvalue_references)
+  int&& a1 = mwg::stdm::forward<int>(123);
+  int&& a2 = mwg::stdm::forward<int&&>(123);
   mwg_unused(a1);
   mwg_unused(a2);
 #endif

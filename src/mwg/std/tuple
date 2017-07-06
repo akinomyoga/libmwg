@@ -7,8 +7,8 @@
 /*?mconf
  * #
  * # Note: g++-4.4.1: std::tuple_size<const std::tuple<...> > などが実装されていない
- * #   # X std_tuple_cv_support tuple "int a=std::tuple_size<const std::tuple<> >::value;"
- * #   # X std.tuple_size.cv_qualifiers tuple 'int a=std::tuple_size<const std::tuple<int> >::value;';
+ * #   # X std_tuple_cv_support tuple "int a = std::tuple_size<const std::tuple<> >::value;"
+ * #   # X std.tuple_size.cv_qualifiers tuple 'int a = std::tuple_size<const std::tuple<int> >::value;';
  * #
  * # Note: msc17 std::tuple は variadic templates なしに実装されている。
  * #   最大 6 個までしか対応していない。
@@ -18,12 +18,12 @@
  * #   #define _PAD_LIST0 _PAD_LIST0_5 // <xstddef>
  * #   #define _PAD_LIST0_5 (5回繰り返し) // <xstddef>
  * #
- * S -t'std::tuple<T> "sane?"' STD_TUPLE_IS_SANE tuple '
- * void test(){
+ * S -t'std::tuple<T> "sane? "' STD_TUPLE_IS_SANE tuple '
+ * void test() {
  *   (void) std::tuple_size<const std::tuple<> >::value;
  *   (void) std::tuple_size<const std::tuple<int> >::value;
  *   (void) std::tuple_size<const std::tuple<char, short, int, long, float, char, short, int, long, double> >::value;
- *   std::tuple_element<0,const std::tuple<int> >::type b = 1;
+ *   std::tuple_element<0, const std::tuple<int> >::type b = 1;
  *   std::tuple_cat();
  *   std::tuple_cat(std::tuple<int>(1));
  *   std::tuple_cat(std::tuple<int>(1), std::tuple<int>(2), std::tuple<int>(3));
@@ -31,9 +31,9 @@
  * '
  */
 
-#if MWGCONF_HEADER_STD>=2011&&MWGCONF_STD_TUPLE_IS_SANE
+#if MWGCONF_HEADER_STD >= 2011 && MWGCONF_STD_TUPLE_IS_SANE
 # include <tuple>
-// #elif MWGCONF_HEADER_STD>=2005
+// #elif MWGCONF_HEADER_STD >= 2005
 // # include <tuple>
 // #elif defined(MWGCONF_HEADER_TR1)
 // # include <tr1/tuple>
@@ -42,7 +42,7 @@ namespace mwg {
 namespace stdx {
   namespace detail {
     template<typename TT>
-    struct is_tuple_nocv: mwg::stdm::false_type{};
+    struct is_tuple_nocv: mwg::stdm::false_type {};
 #pragma%include "../impl/VariadicMacros.pp"
 #pragma%m 1
     template<typename... Args>
@@ -57,8 +57,8 @@ namespace stdx {
 
 #else
 # include "tuple.nonvariadic_tuple.inl"
-namespace mwg{
-namespace stdx{
+namespace mwg {
+namespace stdx {
   using mwg::stdm::detail::is_tuple;
 }
 }
@@ -72,155 +72,155 @@ namespace stdx{
 #include <mwg/std/tuple>
 #include <mwg/except.h>
 
-namespace stdm=mwg::stdm;
+namespace stdm = mwg::stdm;
 
-void check_tuple_size(){
-  mwg_assert((stdm::tuple_size<stdm::tuple<> >::value==0));
-  mwg_assert((stdm::tuple_size<const stdm::tuple<> >::value==0));
-  mwg_assert((stdm::tuple_size<volatile stdm::tuple<> >::value==0));
-  mwg_assert((stdm::tuple_size<const volatile stdm::tuple<> >::value==0));
-  mwg_assert((stdm::tuple_size<stdm::tuple<int> >::value==1));
-  mwg_assert((stdm::tuple_size<const stdm::tuple<int> >::value==1));
-  mwg_assert((stdm::tuple_size<volatile stdm::tuple<int> >::value==1));
-  mwg_assert((stdm::tuple_size<const volatile stdm::tuple<int> >::value==1));
-  mwg_assert((stdm::tuple_size<stdm::tuple<double[12],int(*)(int,int)> >::value==2));
-  mwg_assert((stdm::tuple_size<const stdm::tuple<double[12],int(*)(int,int)> >::value==2));
-  mwg_assert((stdm::tuple_size<volatile stdm::tuple<double[12],int(*)(int,int)> >::value==2));
-  mwg_assert((stdm::tuple_size<const volatile stdm::tuple<double[12],int(*)(int,int)> >::value==2));
-  mwg_assert((stdm::tuple_size<stdm::tuple<double,int,float,unsigned,long,bool,const char*> >::value==7));
-  mwg_assert((stdm::tuple_size<const stdm::tuple<double,int,float,unsigned,long,bool,const char*> >::value==7));
-  mwg_assert((stdm::tuple_size<volatile stdm::tuple<double,int,float,unsigned,long,bool,const char*> >::value==7));
-  mwg_assert((stdm::tuple_size<const volatile stdm::tuple<double,int,float,unsigned,long,bool,const char*> >::value==7));
-  mwg_assert((stdm::tuple_size<stdm::pair<int,char> >::value==2));
-  mwg_assert((stdm::tuple_size<const stdm::pair<int,char> >::value==2));
-  mwg_assert((stdm::tuple_size<volatile stdm::pair<int,char> >::value==2));
-  mwg_assert((stdm::tuple_size<const volatile stdm::pair<int,char> >::value==2));
+void check_tuple_size() {
+  mwg_assert((stdm::tuple_size<stdm::tuple<> >::value == 0));
+  mwg_assert((stdm::tuple_size<const stdm::tuple<> >::value == 0));
+  mwg_assert((stdm::tuple_size<volatile stdm::tuple<> >::value == 0));
+  mwg_assert((stdm::tuple_size<const volatile stdm::tuple<> >::value == 0));
+  mwg_assert((stdm::tuple_size<stdm::tuple<int> >::value == 1));
+  mwg_assert((stdm::tuple_size<const stdm::tuple<int> >::value == 1));
+  mwg_assert((stdm::tuple_size<volatile stdm::tuple<int> >::value == 1));
+  mwg_assert((stdm::tuple_size<const volatile stdm::tuple<int> >::value == 1));
+  mwg_assert((stdm::tuple_size<stdm::tuple<double[12], int(*)(int, int)> >::value == 2));
+  mwg_assert((stdm::tuple_size<const stdm::tuple<double[12], int(*)(int, int)> >::value == 2));
+  mwg_assert((stdm::tuple_size<volatile stdm::tuple<double[12], int(*)(int, int)> >::value == 2));
+  mwg_assert((stdm::tuple_size<const volatile stdm::tuple<double[12], int(*)(int, int)> >::value == 2));
+  mwg_assert((stdm::tuple_size<stdm::tuple<double, int, float, unsigned, long, bool, const char*> >::value == 7));
+  mwg_assert((stdm::tuple_size<const stdm::tuple<double, int, float, unsigned, long, bool, const char*> >::value == 7));
+  mwg_assert((stdm::tuple_size<volatile stdm::tuple<double, int, float, unsigned, long, bool, const char*> >::value == 7));
+  mwg_assert((stdm::tuple_size<const volatile stdm::tuple<double, int, float, unsigned, long, bool, const char*> >::value == 7));
+  mwg_assert((stdm::tuple_size<stdm::pair<int, char> >::value == 2));
+  mwg_assert((stdm::tuple_size<const stdm::pair<int, char> >::value == 2));
+  mwg_assert((stdm::tuple_size<volatile stdm::pair<int, char> >::value == 2));
+  mwg_assert((stdm::tuple_size<const volatile stdm::pair<int, char> >::value == 2));
 }
 
-void check_tuple_element(){
-  mwg_assert((stdm::is_same<stdm::tuple_element<0,stdm::tuple<int> >::type,int>::value));
-  mwg_assert((stdm::is_same<stdm::tuple_element<0,const stdm::tuple<int> >::type,const int>::value));
-  mwg_assert((stdm::is_same<stdm::tuple_element<0,volatile stdm::tuple<int> >::type,volatile int>::value));
-  mwg_assert((stdm::is_same<stdm::tuple_element<0,const volatile stdm::tuple<int> >::type,const volatile int>::value));
-  mwg_assert((stdm::is_same<stdm::tuple_element<0,stdm::tuple<double[12],int(*)(int,int)> >::type,double[12]>::value));
-  mwg_assert((stdm::is_same<stdm::tuple_element<1,const stdm::tuple<double[12],int(*)(int,int)> >::type,int(* const)(int,int)>::value));
-  mwg_assert((stdm::is_same<stdm::tuple_element<0,volatile stdm::tuple<double[12],int(*)(int,int)> >::type,volatile double[12]>::value));
-  mwg_assert((stdm::is_same<stdm::tuple_element<1,const volatile stdm::tuple<double[12],int(*)(int,int)> >::type,int(* const volatile)(int,int)>::value));
-  mwg_assert((stdm::is_same<stdm::tuple_element<1,stdm::tuple<double,int,float,unsigned,long,bool,const char*> >::type,int>::value));
-  mwg_assert((stdm::is_same<stdm::tuple_element<2,const stdm::tuple<double,int,float,unsigned,long,bool,const char*> >::type,const float>::value));
-  mwg_assert((stdm::is_same<stdm::tuple_element<3,volatile stdm::tuple<double,int,float,unsigned,long,bool,const char*> >::type,volatile unsigned>::value));
-  mwg_assert((stdm::is_same<stdm::tuple_element<4,const volatile stdm::tuple<double,int,float,unsigned,long,bool,const char*> >::type,const volatile long>::value));
-  mwg_assert((stdm::is_same<stdm::tuple_element<0,stdm::pair<int,float> >::type,int>::value));
-  mwg_assert((stdm::is_same<stdm::tuple_element<1,stdm::pair<int,float> >::type,float>::value));
+void check_tuple_element() {
+  mwg_assert((stdm::is_same<stdm::tuple_element<0, stdm::tuple<int> >::type, int>::value));
+  mwg_assert((stdm::is_same<stdm::tuple_element<0, const stdm::tuple<int> >::type, const int>::value));
+  mwg_assert((stdm::is_same<stdm::tuple_element<0, volatile stdm::tuple<int> >::type, volatile int>::value));
+  mwg_assert((stdm::is_same<stdm::tuple_element<0, const volatile stdm::tuple<int> >::type, const volatile int>::value));
+  mwg_assert((stdm::is_same<stdm::tuple_element<0, stdm::tuple<double[12], int(*)(int, int)> >::type, double[12]>::value));
+  mwg_assert((stdm::is_same<stdm::tuple_element<1, const stdm::tuple<double[12], int(*)(int, int)> >::type, int(* const)(int, int)>::value));
+  mwg_assert((stdm::is_same<stdm::tuple_element<0, volatile stdm::tuple<double[12], int(*)(int, int)> >::type, volatile double[12]>::value));
+  mwg_assert((stdm::is_same<stdm::tuple_element<1, const volatile stdm::tuple<double[12], int(*)(int, int)> >::type, int(* const volatile)(int, int)>::value));
+  mwg_assert((stdm::is_same<stdm::tuple_element<1, stdm::tuple<double, int, float, unsigned, long, bool, const char*> >::type, int>::value));
+  mwg_assert((stdm::is_same<stdm::tuple_element<2, const stdm::tuple<double, int, float, unsigned, long, bool, const char*> >::type, const float>::value));
+  mwg_assert((stdm::is_same<stdm::tuple_element<3, volatile stdm::tuple<double, int, float, unsigned, long, bool, const char*> >::type, volatile unsigned>::value));
+  mwg_assert((stdm::is_same<stdm::tuple_element<4, const volatile stdm::tuple<double, int, float, unsigned, long, bool, const char*> >::type, const volatile long>::value));
+  mwg_assert((stdm::is_same<stdm::tuple_element<0, stdm::pair<int, float> >::type, int>::value));
+  mwg_assert((stdm::is_same<stdm::tuple_element<1, stdm::pair<int, float> >::type, float>::value));
 }
-void test(){
+void test() {
   check_tuple_size();
   check_tuple_element();
 
   stdm::tuple<> t0m;
   mwg_unused(t0m);
   stdm::tuple<
-    int,int,int,int,int,
-    int,int,int,int,int> t10m(1,2,3,4,5,6,7,8,9,10);
+    int, int, int, int, int,
+    int, int, int, int, int> t10m(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
 
   // make_tuple, get
-  stdm::tuple<> t0a=stdm::make_tuple();
-  stdm::tuple<int> t0b=stdm::make_tuple(3);
-  mwg_assert((stdm::get<0>(t0b)==3));
-  stdm::tuple<int,int,int> t1=stdm::make_tuple(3,14,15);
-  mwg_assert((stdm::get<0>(t1)==3));
-  mwg_assert((stdm::get<1>(t1)==14));
-  mwg_assert((stdm::get<2>(t1)==15));
-  stdm::get<0>(t1)=10;
-  stdm::get<1>(t1)=20;
-  stdm::get<2>(t1)=30;
-  mwg_assert((stdm::get<0>(t1)==10));
-  mwg_assert((stdm::get<1>(t1)==20));
-  mwg_assert((stdm::get<2>(t1)==30));
-  stdm::tuple<int,const char*,double> t2=stdm::make_tuple(1,"Foo",3.14);
-  mwg_assert((stdm::get<0>(t2)==1));
-  mwg_assert((std::strcmp(stdm::get<1>(t2),"Foo")==0));
-  mwg_assert((stdm::get<2>(t2)==3.14));
-  stdm::tuple<int,int,int> const t3=stdm::make_tuple(3,14,15);
-  mwg_assert((stdm::get<0>(t3)==3));
-  mwg_assert((stdm::get<1>(t3)==14));
-  mwg_assert((stdm::get<2>(t3)==15));
-  std::pair<int,int> p1=stdm::make_pair(19,21);
-  mwg_assert((stdm::get<0>(p1)==19));
-  mwg_assert((stdm::get<1>(p1)==21));
+  stdm::tuple<> t0a = stdm::make_tuple();
+  stdm::tuple<int> t0b = stdm::make_tuple(3);
+  mwg_assert((stdm::get<0>(t0b) == 3));
+  stdm::tuple<int, int, int> t1 = stdm::make_tuple(3, 14, 15);
+  mwg_assert((stdm::get<0>(t1) == 3));
+  mwg_assert((stdm::get<1>(t1) == 14));
+  mwg_assert((stdm::get<2>(t1) == 15));
+  stdm::get<0>(t1) = 10;
+  stdm::get<1>(t1) = 20;
+  stdm::get<2>(t1) = 30;
+  mwg_assert((stdm::get<0>(t1) == 10));
+  mwg_assert((stdm::get<1>(t1) == 20));
+  mwg_assert((stdm::get<2>(t1) == 30));
+  stdm::tuple<int, const char*,double> t2 = stdm::make_tuple(1, "Foo", 3.14);
+  mwg_assert((stdm::get<0>(t2) == 1));
+  mwg_assert((std::strcmp(stdm::get<1>(t2), "Foo") == 0));
+  mwg_assert((stdm::get<2>(t2) == 3.14));
+  stdm::tuple<int, int, int> const t3 = stdm::make_tuple(3, 14, 15);
+  mwg_assert((stdm::get<0>(t3) == 3));
+  mwg_assert((stdm::get<1>(t3) == 14));
+  mwg_assert((stdm::get<2>(t3) == 15));
+  std::pair<int, int> p1 = stdm::make_pair(19, 21);
+  mwg_assert((stdm::get<0>(p1) == 19));
+  mwg_assert((stdm::get<1>(p1) == 21));
   mwg_unused(t0a);
 
-  mwg::identity<stdm::tuple_element<0,stdm::tuple<const int&> >::type> ttt1;
+  mwg::identity<stdm::tuple_element<0, stdm::tuple<const int&> >::type> ttt1;
   stdm::get<0>(stdm::tuple<const int&>(1));
   mwg_unused(ttt1);
 
   // tuple_cat
   {
-    stdm::tuple<> _t0=stdm::tuple_cat();
-    stdm::tuple<int,int,int> _t1=stdm::tuple_cat(t1);
-    stdm::tuple<int,int,int,int,int,int> _t2=stdm::tuple_cat(t1,t1);
-    stdm::tuple<int,int,int,int,int,int,int,int,int> _t3=stdm::tuple_cat(t1,t1,t1);
+    stdm::tuple<> _t0 = stdm::tuple_cat();
+    stdm::tuple<int, int, int> _t1 = stdm::tuple_cat(t1);
+    stdm::tuple<int, int, int, int, int, int> _t2 = stdm::tuple_cat(t1, t1);
+    stdm::tuple<int, int, int, int, int, int, int, int, int> _t3 = stdm::tuple_cat(t1, t1, t1);
     mwg_unused(_t0);
     mwg_unused(_t1);
     mwg_unused(_t2);
     mwg_unused(_t3);
   }
-  stdm::tuple<int,int,int> t4=stdm::tuple_cat(t1);
-  //mwg_printd("t4 = (%d %d %d)",stdm::get<0>(t4),stdm::get<1>(t4),stdm::get<2>(t4));
-  mwg_assert((stdm::get<0>(t4)==10));
-  mwg_assert((stdm::get<1>(t4)==20));
-  mwg_assert((stdm::get<2>(t4)==30));
+  stdm::tuple<int, int, int> t4 = stdm::tuple_cat(t1);
+  //mwg_printd("t4 = (%d %d %d)", stdm::get<0>(t4), stdm::get<1>(t4), stdm::get<2>(t4));
+  mwg_assert((stdm::get<0>(t4) == 10));
+  mwg_assert((stdm::get<1>(t4) == 20));
+  mwg_assert((stdm::get<2>(t4) == 30));
   {
-    stdm::tuple<const int&,const int&,const int&> t4a(t1);
-    // mwg_printd("t4a = (%d %d %d)",stdm::get<0>(t4a),stdm::get<1>(t4a),stdm::get<2>(t4a));
-    mwg_assert((stdm::get<0>(t4a)==10));
-    mwg_assert((stdm::get<1>(t4a)==20));
-    mwg_assert((stdm::get<2>(t4a)==30));
-    stdm::tuple<int,int,int> t4b(t4a);
-    // mwg_printd("t4b = (%d %d %d)",stdm::get<0>(t4b),stdm::get<1>(t4b),stdm::get<2>(t4b));
-    mwg_assert((stdm::get<0>(t4b)==10));
-    mwg_assert((stdm::get<1>(t4b)==20));
-    mwg_assert((stdm::get<2>(t4b)==30));
+    stdm::tuple<const int&, const int&, const int&> t4a(t1);
+    // mwg_printd("t4a = (%d %d %d)", stdm::get<0>(t4a), stdm::get<1>(t4a), stdm::get<2>(t4a));
+    mwg_assert((stdm::get<0>(t4a) == 10));
+    mwg_assert((stdm::get<1>(t4a) == 20));
+    mwg_assert((stdm::get<2>(t4a) == 30));
+    stdm::tuple<int, int, int> t4b(t4a);
+    // mwg_printd("t4b = (%d %d %d)", stdm::get<0>(t4b), stdm::get<1>(t4b), stdm::get<2>(t4b));
+    mwg_assert((stdm::get<0>(t4b) == 10));
+    mwg_assert((stdm::get<1>(t4b) == 20));
+    mwg_assert((stdm::get<2>(t4b) == 30));
   }
-  stdm::tuple<int,int,int,int,const char*,double> t5=stdm::tuple_cat(t1,t2);
-  mwg_assert((stdm::get<0>(t5)==10));
-  mwg_assert((stdm::get<1>(t5)==20));
-  mwg_assert((stdm::get<2>(t5)==30));
-  mwg_assert((stdm::get<3>(t5)==1));
-  mwg_assert((std::strcmp(stdm::get<4>(t5),"Foo")==0));
-  mwg_assert((stdm::get<5>(t5)==3.14));
-  stdm::tuple<int,int,int,int,const char*,double,int,int,int> t6=stdm::tuple_cat(t1,t2,t3);
-  mwg_assert((stdm::get<0>(t6)==10));
-  mwg_assert((stdm::get<1>(t6)==20));
-  mwg_assert((stdm::get<2>(t6)==30));
-  mwg_assert((stdm::get<3>(t6)==1));
-  mwg_assert((std::strcmp(stdm::get<4>(t6),"Foo")==0));
-  mwg_assert((stdm::get<5>(t6)==3.14));
-  mwg_assert((stdm::get<6>(t6)==3));
-  mwg_assert((stdm::get<7>(t6)==14));
-  mwg_assert((stdm::get<8>(t6)==15));
-  stdm::tuple<int,int,int,double,double> t7=stdm::tuple_cat(t1,stdm::make_pair(1.0,0.0));
-  mwg_assert((stdm::get<0>(t7)==10));
-  mwg_assert((stdm::get<1>(t7)==20));
-  mwg_assert((stdm::get<2>(t7)==30));
-  mwg_assert((stdm::get<3>(t7)==1.0));
-  mwg_assert((stdm::get<4>(t7)==0.0));
+  stdm::tuple<int, int, int, int, const char*,double> t5 = stdm::tuple_cat(t1, t2);
+  mwg_assert((stdm::get<0>(t5) == 10));
+  mwg_assert((stdm::get<1>(t5) == 20));
+  mwg_assert((stdm::get<2>(t5) == 30));
+  mwg_assert((stdm::get<3>(t5) == 1));
+  mwg_assert((std::strcmp(stdm::get<4>(t5), "Foo") == 0));
+  mwg_assert((stdm::get<5>(t5) == 3.14));
+  stdm::tuple<int, int, int, int, const char*,double, int, int, int> t6 = stdm::tuple_cat(t1, t2, t3);
+  mwg_assert((stdm::get<0>(t6) == 10));
+  mwg_assert((stdm::get<1>(t6) == 20));
+  mwg_assert((stdm::get<2>(t6) == 30));
+  mwg_assert((stdm::get<3>(t6) == 1));
+  mwg_assert((std::strcmp(stdm::get<4>(t6), "Foo") == 0));
+  mwg_assert((stdm::get<5>(t6) == 3.14));
+  mwg_assert((stdm::get<6>(t6) == 3));
+  mwg_assert((stdm::get<7>(t6) == 14));
+  mwg_assert((stdm::get<8>(t6) == 15));
+  stdm::tuple<int, int, int, double, double> t7 = stdm::tuple_cat(t1, stdm::make_pair(1.0, 0.0));
+  mwg_assert((stdm::get<0>(t7) == 10));
+  mwg_assert((stdm::get<1>(t7) == 20));
+  mwg_assert((stdm::get<2>(t7) == 30));
+  mwg_assert((stdm::get<3>(t7) == 1.0));
+  mwg_assert((stdm::get<4>(t7) == 0.0));
 
   // tie, ignore
   {
     int x;
     double y;
     const char* z;
-    stdm::tie(x,y,z)=stdm::make_tuple(1,3.14,"hoge");
-    mwg_assert(x==1);
-    mwg_assert(y==3.14);
-    mwg_assert(std::strcmp(z,"hoge")==0);
-    stdm::tie(x,y)=stdm::make_pair(10,2.718);
-    mwg_assert(x==10);
-    mwg_assert(y==2.718);
-    stdm::tie(x,stdm::ignore,y)=stdm::make_tuple(99,"hoge",1.618);
-    mwg_assert(x==99);
-    mwg_assert(y==1.618);
+    stdm::tie(x, y, z) = stdm::make_tuple(1, 3.14, "hoge");
+    mwg_assert(x == 1);
+    mwg_assert(y == 3.14);
+    mwg_assert(std::strcmp(z, "hoge") == 0);
+    stdm::tie(x, y) = stdm::make_pair(10, 2.718);
+    mwg_assert(x == 10);
+    mwg_assert(y == 2.718);
+    stdm::tie(x, stdm::ignore, y) = stdm::make_tuple(99, "hoge", 1.618);
+    mwg_assert(x == 99);
+    mwg_assert(y == 1.618);
   }
 
   // TODO
@@ -237,7 +237,7 @@ void test(){
   // operator>()
 }
 
-int main(){
+int main() {
   test();
   return 0;
 }

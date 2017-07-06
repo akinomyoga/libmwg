@@ -118,7 +118,7 @@ namespace fun_detail {
       mwg_check((is_contravariant<Class, Class const  >::value));
       mwg_check((is_contravariant<Class, Class      & >::value));
       mwg_check((is_contravariant<Class, Class const& >::value));
-#ifdef MWGCONF_STD_RVALUE_REFERENCES
+#if mwg_has_feature(cxx_rvalue_references)
       mwg_check((is_contravariant<Class, Class      &&>::value));
       mwg_check((is_contravariant<Class, Class const&&>::value));
 #endif
@@ -127,7 +127,7 @@ namespace fun_detail {
       mwg_check((is_contravariant<const Class, Class const  >::value));
       mwg_check((is_contravariant<const Class, Class      & >::value));
       mwg_check((is_contravariant<const Class, Class const& >::value));
-#ifdef MWGCONF_STD_RVALUE_REFERENCES
+#if mwg_has_feature(cxx_rvalue_references)
       mwg_check((is_contravariant<const Class, Class      &&>::value));
       mwg_check((is_contravariant<const Class, Class const&&>::value));
 #endif
@@ -136,7 +136,7 @@ namespace fun_detail {
       mwg_check((!is_contravariant<Class&, Class const  >::value));
       mwg_check(( is_contravariant<Class&, Class      & >::value));
       mwg_check((!is_contravariant<Class&, Class const& >::value));
-#ifdef MWGCONF_STD_RVALUE_REFERENCES
+#if mwg_has_feature(cxx_rvalue_references)
       mwg_check((!is_contravariant<Class&, Class      &&>::value));
       mwg_check((!is_contravariant<Class&, Class const&&>::value));
 #endif
@@ -145,12 +145,12 @@ namespace fun_detail {
       mwg_check((is_contravariant<const Class&, Class const  >::value));
       mwg_check((is_contravariant<const Class&, Class      & >::value));
       mwg_check((is_contravariant<const Class&, Class const& >::value));
-#ifdef MWGCONF_STD_RVALUE_REFERENCES
+#if mwg_has_feature(cxx_rvalue_references)
       mwg_check((is_contravariant<const Class&, Class      &&>::value));
       mwg_check((is_contravariant<const Class&, Class const&&>::value));
 #endif
 
-#ifdef MWGCONF_STD_RVALUE_REFERENCES
+#if mwg_has_feature(cxx_rvalue_references)
       mwg_check((!is_contravariant<Class&&, Class        >::value));
       mwg_check((!is_contravariant<Class&&, Class const  >::value));
       mwg_check((!is_contravariant<Class&&, Class      & >::value));
@@ -220,7 +220,7 @@ namespace fun_detail {
         struct c1: check_function_call_operator<F, S> {};
 #endif
 
-#if defined(MWGCONF_STD_DECLTYPE)
+#if mwg_has_feature(cxx_decltype)
 # define MWG_FUN_H_test1_declare_OpR(S, Arguments) \
         template<typename F_, bool B> struct s1 {typedef void type;};     \
         template<typename F_> struct s1<F_, true> {                       \
@@ -280,7 +280,7 @@ namespace fun_detail {
   };
 
 #define mwg_rfwd mwg_forward_rvalue
-#if defined(MWGCONF_STD_RVALUE_REFERENCES)
+#if mwg_has_feature(cxx_rvalue_references)
   template<typename T>
   T&& fwd(typename stdm::remove_reference<T>::type& value){
     return static_cast<T&&>(value);
@@ -302,7 +302,7 @@ namespace fun_detail {
   template<typename Class, typename Base>
   struct enable_fwd_ctor: stdm::enable_if<stdm::is_constructible<Class, Base>::value, stdm::nullptr_t> {};
 #endif
-#ifdef MWGCONF_STD_RVALUE_REFERENCES
+#if mwg_has_feature(cxx_rvalue_references)
 # define MWG_FUN_H_define_forward_constructor(Class, Type, Member) \
   template<typename X1> Class(X1&& func, typename enable_fwd_ctor<Type, X1&&>::type = nullptr): Member(stdm::forward<X1>(func)) {}
 #else
@@ -346,7 +346,7 @@ namespace fun_detail {
 #pragma%end
 #pragma%x variadic_expand_0toArN
 
-#ifdef MWGCONF_STD_VARIADIC_TEMPLATES
+#if mwg_has_feature(cxx_variadic_templates)
   template<class CRTP, class R, class... A>
   struct functor_interface<R (A..., ...), CRTP>: functor_interface<R (A...), CRTP> {
     typedef functor_interface<R (A...), CRTP> base;
@@ -393,7 +393,7 @@ namespace fun_detail {
     typename sig::result<XS>::type> {};
 
   namespace function_invoker {
-#ifdef MWGCONF_STD_VARIADIC_TEMPLATES
+#if mwg_has_feature(cxx_variadic_templates)
     template<typename T> struct p: type_traits::reference_parameter<T> {};
 
     template<typename S, typename CRTP>
@@ -420,7 +420,7 @@ namespace fun_detail {
     };
 #else
     template<typename XS, int Index> struct p: sig::param<XS, Index> {};
-#if defined(MWGCONF_STD_RVALUE_REFERENCES)
+#if mwg_has_feature(cxx_rvalue_references)
     template<typename S, int Index, typename X>
     typename stdm::add_rvalue_reference<typename sig::param<S, Index>::type>::type f(X&& value) {
       return fwd<typename sig::param<S, Index>::type>(value);
@@ -469,7 +469,7 @@ namespace fun_detail {
     mwg::identity<member_object_invoker::invoker<S, CRTP> > {};
 
   namespace member_function_invoker {
-#ifdef MWGCONF_STD_VARIADIC_TEMPLATES
+#if mwg_has_feature(cxx_variadic_templates)
     template<typename T> struct p: type_traits::reference_parameter<T> {};
 
     template<typename S, typename CRTP>
@@ -498,7 +498,7 @@ namespace fun_detail {
     template<typename XS> struct p0: sig::param<XS, 0> {};
     template<typename XS, std::size_t I> struct pr: sig::param<XS, 1 + I> {};
 
-# ifdef MWGCONF_STD_RVALUE_REFERENCES
+# if mwg_has_feature(cxx_rvalue_references)
     template<typename S, int Index, typename X>
     typename stdm::add_rvalue_reference<typename sig::param<S, 1 + Index>::type>::type f(X&& value) {
       return fwd<typename sig::param<S, 1 + Index>::type>(value);
@@ -634,7 +634,7 @@ namespace fun_detail {
         template<typename C> static C const         & getobj(C const         * ptr) {return *ptr;}
         template<typename C> static C       volatile& getobj(C       volatile* ptr) {return *ptr;}
         template<typename C> static C const volatile& getobj(C const volatile* ptr) {return *ptr;}
-#ifdef MWGCONF_STD_RVALUE_REFERENCES
+#if mwg_has_feature(cxx_rvalue_references)
         template<typename C> static C&& getobj(C&& obj) {return obj;}
 #else
         template<typename C> static C               & getobj(C               & obj) {return obj;}
@@ -681,7 +681,7 @@ namespace fun_detail {
         has_flag<Flags, IS_VOLATILE>::value, typename stdm::add_volatile<obj_const_t>::type, obj_const_t>::type,
       typename obj_ref_t = typename stdm::conditional<has_flag<Flags, ACCEPTS_LREF>::value,
         typename stdm::add_lvalue_reference<obj_cv_t>::type,
-#ifdef MWGCONF_STD_RVALUE_REFERENCES
+#if mwg_has_feature(cxx_rvalue_references)
         typename stdm::conditional<has_flag<Flags, ACCEPTS_RREF>::value,
           typename stdm::add_rvalue_reference<obj_cv_t>::type,
           typename stdm::add_pointer<obj_cv_t>::type>::type
@@ -694,7 +694,7 @@ namespace fun_detail {
         has_flag<Flags, IS_CONST>::value, typename stdm::add_const<T>::type, T>::type,
       typename mem_cv_t = typename stdm::conditional<
         has_flag<Flags, IS_VOLATILE>::value, typename stdm::add_volatile<mem_const_t>::type, mem_const_t>::type,
-#ifdef MWGCONF_STD_RVALUE_REFERENCES
+#if mwg_has_feature(cxx_rvalue_references)
       typename mem_ref_t = typename stdm::conditional<has_flag<Flags, ACCEPTS_RREF>::value,
         typename stdm::add_rvalue_reference<mem_cv_t>::type,
         typename stdm::add_lvalue_reference<mem_cv_t>::type>::type,
@@ -720,7 +720,7 @@ namespace fun_detail {
       typename mem_t = typename type_traits::is_member_pointer<MemObj>::member_type,
       typename obj_t = typename type_traits::is_member_pointer<MemObj>::object_type,
 
-      // ToDo @intrinsic_overload
+      // TODO @intrinsic_overload
       typename mem_lref_t = typename stdm::add_lvalue_reference<mem_t>::type,
       typename mem_cref_t = typename stdm::conditional<
         stdm::is_reference<mem_t>::value, mem_t,
@@ -770,7 +770,7 @@ namespace fun_detail {
         template<typename C> static C const         & getobj(C const         * ptr) {return *ptr;}
         template<typename C> static C       volatile& getobj(C       volatile* ptr) {return *ptr;}
         template<typename C> static C const volatile& getobj(C const volatile* ptr) {return *ptr;}
-#ifdef MWGCONF_STD_RVALUE_REFERENCES
+#if mwg_has_feature(cxx_rvalue_references)
         template<typename C> static C&& getobj(C&& obj) {return stdm::forward<C>(obj);}
 #else
         template<typename C> static C               & getobj(C               & obj) {return obj;}
@@ -799,11 +799,11 @@ namespace fun_detail {
       //   + 右辺値参照のある環境では obj_t& 及び obj_t&& の多重定義を作ることに対応するが、
       //     現状では未だ intrinsic_signature として多重定義を許す様になっていないので、
       //     取り敢えずのところは const& で修飾して内部で const_cast する様にして置く。
-      //     ToDo @intrinsic_overload
+      //     TODO @intrinsic_overload
       //
       typename obj_cref_t = typename type_traits::reference_parameter<obj_t>::type,
 
-#ifdef MWGCONF_STD_RVALUE_REFERENCES
+#if mwg_has_feature(cxx_rvalue_references)
       typename obj_lref_t = typename stdm::conditional<
         stdm::is_reference<obj_t>::value, obj_t,
         typename stdm::add_lvalue_reference<obj_t>::type>::type,
@@ -870,7 +870,7 @@ namespace fun_detail {
       struct byref_holder {
         func_t* m_fun;
 
-#ifdef MWGCONF_STD_RVALUE_REFERENCES
+#if mwg_has_feature(cxx_rvalue_references)
         template<typename X1> byref_holder(X1&& fun, typename enable_fwd_ctor<func_t*, typename stdm::remove_reference<X1>::type*>::type = nullptr): m_fun(&stdm::forward<X1>(fun)) {}
 #else
         template<typename X1> byref_holder(X1 const& fun, typename enable_fwd_ctor<func_t*, X1 const*>::type = nullptr): m_fun(&fun) {}
@@ -963,7 +963,7 @@ namespace fun_detail {
   template<typename F, typename S>
   struct as_fun: fun_detail::as_fun<F, S> {};
 
-#ifdef MWGCONF_STD_RVALUE_REFERENCES
+#if mwg_has_feature(cxx_rvalue_references)
   template<typename S, typename F>
   typename as_fun<F&&, S>::adapter
   fun(F&& value) {return typename as_fun<F&&, S>::adapter(stdm::forward<F>(value));}
@@ -1076,7 +1076,7 @@ namespace test_member {
       mwg_check((ns::check_signature_cv<int, Rect, int& (Rect*), ns::ACCEPTS_PTR>::value));
       mwg_check((ns::_switch<int Rect::*, int& (Rect*)>::value));
     }
-#ifdef MWGCONF_STD_AUTO_TYPE
+#if mwg_has_feature(cxx_auto_type)
     auto f1 = mwg::fun<int& (Rect&)>(&Rect::x);
     auto f2 = mwg::fun<int (Rect const&)>(&Rect::x);
     auto f3 = mwg::fun<int& (Rect*)>(&Rect::x);
@@ -1107,7 +1107,7 @@ namespace test_member {
 
       mwg_check((ns::_switch<int (Rect::*)() const, int (Rect const&)>::value));
     }
-#ifdef MWGCONF_STD_AUTO_TYPE
+#if mwg_has_feature(cxx_auto_type)
     auto g1 = mwg::fun<int (Rect const&)>(&Rect::right);
     auto g2 = mwg::fun<int (Rect const*)>(&Rect::right);
     auto g3 = mwg::fun<void (Rect&, int const&, int const&)>(&Rect::translate);

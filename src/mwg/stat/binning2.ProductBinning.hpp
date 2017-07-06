@@ -107,10 +107,19 @@ namespace stat{
       :data(mwg::stdm::forward<UBs>(args)...){}
     product_binning(const product_binning& other)
       :data(other.data){}
-# if defined(MWGCONF_STD_RVALUE_REFERENCES)
+# if mwg_has_feature(cxx_rvalue_references)
     product_binning(product_binning&& other)
       :data(mwg::stdm::move(other.data)){}
 # endif
+
+  public:
+    product_binning& operator=(const product_binning& rhs)
+#if mwg_has_feature(cxx_defaulted_functions)
+    = default;
+#else
+    {this->data = rhs.data;}
+#endif
+
   public:
     std::size_t size() const{
       return detail::ProductBinningImpl<sizeof...(TBs)-1>::GetBinNumber(data);
@@ -158,7 +167,7 @@ namespace stat{
     product_binning(const product_binning& other)
       :data(other.data)
     {}
-# if defined(MWGCONF_STD_RVALUE_REFERENCES)
+# if mwg_has_feature(cxx_rvalue_references)
     product_binning(product_binning&& other)
       :data(mwg::stdm::move(other.data))
     {}

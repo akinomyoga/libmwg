@@ -85,12 +85,12 @@ namespace type_traits {
 #pragma%x 2.r/QUALIFIER/const volatile/
 #pragma%end
 #pragma%x variadic_expand_0toArNm1
-#if defined(MWGCONF_STD_VARIADIC_TEMPLATES) && defined(MWGCONF_STD_REF_QUALIFIERS)
+#if mwg_has_feature(cxx_variadic_templates) && mwg_has_feature(cxx_ref_qualifiers)
 # pragma%x 2.r/QUALIFIER/\&/
 # pragma%x 2.r/QUALIFIER/const\&/
 # pragma%x 2.r/QUALIFIER/volatile\&/
 # pragma%x 2.r/QUALIFIER/const volatile\&/
-# if defined(MWGCONF_STD_RVALUE_REFERENCES)
+# if mwg_has_feature(cxx_rvalue_references)
 #  pragma%x 2.r/QUALIFIER/\&\&/
 #  pragma%x 2.r/QUALIFIER/const\&\&/
 #  pragma%x 2.r/QUALIFIER/volatile\&\&/

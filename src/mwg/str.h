@@ -651,7 +651,7 @@ public:
 //-----------------------------------------------------------------------------
 // strbase
 
-#ifdef MWGCONF_STD_INITIALIZER_LISTS
+#if mwg_has_feature(cxx_initializer_lists)
 // C++11 では auto tmp = tmpobj; が可能になるのでコピーコンストラクタを封じる。
 // 同時にインスタンスの作成には list-initialization を利用してコピーコンストラクタ呼び出しを回避する。
 # define MWG_STR_H_hidden_copy_constructors_of_temporaries
@@ -677,7 +677,7 @@ protected:
 
 public:
   strbase() {}
-#ifdef MWGCONF_STD_VARIADIC_TEMPLATES
+#if mwg_has_feature(cxx_variadic_templates)
   template<typename... As>
   strbase(As mwg_forward_rvalue... args)
     :data(mwg::stdm::forward<As>(args)...) {}
@@ -697,14 +697,14 @@ protected:
 
   // copy/move constructor is protected
   strbase(strbase const& source)
-# ifdef MWGCONF_STD_DEFAULTED_FUNCTIONS
+# if mwg_has_feature(cxx_defaulted_functions)
     = default;
 # else
     : data(source.data) {}
 # endif
-# ifdef MWGCONF_STD_RVALUE_REFERENCES
+# if mwg_has_feature(cxx_rvalue_references)
   strbase(strbase&& source)
-#  ifdef MWGCONF_STD_DEFAULTED_FUNCTIONS
+#  if mwg_has_feature(cxx_defaulted_functions)
     = default;
 #  else
     : data(stdm::move(source.data)) {}
@@ -1183,7 +1183,7 @@ public:
     mwg_check((_a("012343210").trim (_a("012")) == "343"));
     mwg_check((_a("012343210").ltrim(_a("012")) == "343210"));
     mwg_check((_a("012343210").rtrim(_a("012")) == "012343"));
-#ifdef MWGCONF_STD_LAMBDAS
+#if mwg_has_feature(cxx_lambdas)
     mwg_check((_a("012343210").trim ([](char c) {return '0' <= c && c <= '2';}) == "343"));
     mwg_check((_a("012343210").ltrim([](char c) {return '0' <= c && c <= '2';}) == "343210"));
     mwg_check((_a("012343210").rtrim([](char c) {return '0' <= c && c <= '2';}) == "012343"));
@@ -1751,7 +1751,7 @@ public:
     this->data = rhs.data;
     return *this;
   }
-#ifdef MWGCONF_STD_RVALUE_REFERENCES
+#if mwg_has_feature(cxx_rvalue_references)
   strfix(strfix&& s): base(mwg::stdm::move(s.data)) {}
   strfix& operator=(strfix&& rhs) {
     this->data = mwg::stdm::move(rhs.data);
@@ -1769,7 +1769,7 @@ public:
     return *this;
   }
 
-#ifdef MWGCONF_STD_REF_QUALIFIERS
+#if mwg_has_feature(cxx_ref_qualifiers)
   strfix      &  fix()      &  {return *this;}
   strfix const&  fix() const&  {return *this;}
   strfix      && fix()      && {return stdm::move(*this);}

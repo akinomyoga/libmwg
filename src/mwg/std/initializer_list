@@ -3,15 +3,15 @@
 #define MWG_STDM_INITIALIZER_LIST
 #include <mwg/defs.h>
 //HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
-#if MWGCONF_HEADER_STD>=2011
+#if MWGCONF_HEADER_STD >= 2011
 # include <initializer_list>
 #else
 # include <cstdlib>
 # include <vector>
-namespace mwg{
-namespace stdm{
+namespace mwg {
+namespace stdm {
   template<typename T>
-  class initializer_list{
+  class initializer_list {
     std::vector<T> data;
   public:
     typedef std::size_t size_type;
@@ -21,19 +21,19 @@ namespace stdm{
     typedef T* iterator;
     typedef const T* const_iterator;
   public:
-    std::size_t size() const{return data.size();}
-    iterator begin(){return data.begin();}
-    iterator end(){return data.end();}
-    const_iterator begin() const{return data.begin();}
-    const_iterator end() const{return data.end();}
+    std::size_t size() const {return data.size();}
+    iterator begin() {return data.begin();}
+    iterator end() {return data.end();}
+    const_iterator begin() const {return data.begin();}
+    const_iterator end() const {return data.end();}
   };
 }
 }
-namespace std{
-  template<typename T> typename mwg::stdm::initializer_list<T>::const_iterator begin(mwg::stdm::initializer_list<T> const& list){return list.begin();}
-  template<typename T> typename mwg::stdm::initializer_list<T>::const_iterator end(mwg::stdm::initializer_list<T> const& list){return list.end();}
-  template<typename T> typename mwg::stdm::initializer_list<T>::iterator begin(mwg::stdm::initializer_list<T>& list){return list.begin();}
-  template<typename T> typename mwg::stdm::initializer_list<T>::iterator end(mwg::stdm::initializer_list<T>& list){return list.end();}
+namespace std {
+  template<typename T> typename mwg::stdm::initializer_list<T>::const_iterator begin(mwg::stdm::initializer_list<T> const& list) {return list.begin();}
+  template<typename T> typename mwg::stdm::initializer_list<T>::const_iterator end(mwg::stdm::initializer_list<T> const& list) {return list.end();}
+  template<typename T> typename mwg::stdm::initializer_list<T>::iterator begin(mwg::stdm::initializer_list<T>& list) {return list.begin();}
+  template<typename T> typename mwg::stdm::initializer_list<T>::iterator end(mwg::stdm::initializer_list<T>& list) {return list.end();}
 }
 #endif
 //HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH

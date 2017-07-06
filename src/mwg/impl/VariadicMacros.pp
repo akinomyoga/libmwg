@@ -43,7 +43,7 @@
 #pragma%end
 
 #pragma%m variadic_expand_0toArN
-#ifdef MWGCONF_STD_VARIADIC_TEMPLATES
+#if mwg_has_feature(cxx_variadic_templates)
 #pragma%%x 1.r/##//
 #else
 #pragma%%x variadic_expand::with_arity.f/__arity__/0/ArN+1/
@@ -51,7 +51,7 @@
 #pragma%end
 
 #pragma%m variadic_expand_0toArNm1
-#ifdef MWGCONF_STD_VARIADIC_TEMPLATES
+#if mwg_has_feature(cxx_variadic_templates)
 #pragma%%x 1.r/##//
 #else
 #pragma%%x variadic_expand::with_arity.f/__arity__/0/ArN/
@@ -59,7 +59,7 @@
 #pragma%end
 
 #pragma%m variadic_expand_ArN
-#ifdef MWGCONF_STD_VARIADIC_TEMPLATES
+#if mwg_has_feature(cxx_variadic_templates)
 #pragma%%x 1.r/##//
 #else
 #pragma%%x variadic_expand::with_arity.r/__arity__/ArN/
@@ -67,7 +67,7 @@
 #pragma%end
 
 #pragma%m variadic_expand_ArNm1
-#ifdef MWGCONF_STD_VARIADIC_TEMPLATES
+#if mwg_has_feature(cxx_variadic_templates)
 #pragma%%x 1.r/##//
 #else
 #pragma%%x variadic_expand::with_arity.r/__arity__/ArN-1/

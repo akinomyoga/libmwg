@@ -5,102 +5,102 @@
 #include <mwg/defs.h>
 
 /*?mconf
- * X -t'std::numeric_limits<T>::lowest()'     -oMWGCONF_HAS_STD_NUMERIC_LIMITS_LOWEST        -h'limits' "int a=std::numeric_limits<double>::lowest();"
- * X -t'std::numeric_limits<T>::max_digits10' -oMWGCONF_HAS_STD_NUMERIC_LIMITS_MAX_DIGITS10  -h'limits' "int a=std::numeric_limits<double>::max_digits10;"
+ * X -t'std::numeric_limits<T>::lowest()'     -oMWGCONF_HAS_STD_NUMERIC_LIMITS_LOWEST        -h'limits' "int a = std::numeric_limits<double>::lowest();"
+ * X -t'std::numeric_limits<T>::max_digits10' -oMWGCONF_HAS_STD_NUMERIC_LIMITS_MAX_DIGITS10  -h'limits' "int a = std::numeric_limits<double>::max_digits10;"
  */
-#if !defined(MWGCONF_HAS_STD_NUMERIC_LIMITS_LOWEST)|| \
+#if !defined(MWGCONF_HAS_STD_NUMERIC_LIMITS_LOWEST) || \
   !defined(MWGCONF_HAS_STD_NUMERIC_LIMITS_MAX_DIGITS10)
 # include <climits>
 # include <cfloat>
-namespace mwg{
-namespace stdm{
+namespace mwg {
+namespace stdm {
 
-  template<typename T> struct numeric_limits:std::numeric_limits<T>{};
+  template<typename T> struct numeric_limits: std::numeric_limits<T> {};
 
-  template<> struct numeric_limits<bool>:std::numeric_limits<bool>{
-    static mwg_constexpr bool lowest(){return false;};
-    static const int max_digits10=0;
+  template<> struct numeric_limits<bool>: std::numeric_limits<bool> {
+    static mwg_constexpr bool lowest() {return false;};
+    static const int max_digits10 = 0;
   };
 
-  template<> struct numeric_limits<char>:std::numeric_limits<char>{
-    static mwg_constexpr char lowest(){return CHAR_MIN;};
-    static const int max_digits10=0;
+  template<> struct numeric_limits<char>: std::numeric_limits<char> {
+    static mwg_constexpr char lowest() {return CHAR_MIN;};
+    static const int max_digits10 = 0;
   };
-  template<> struct numeric_limits<wchar_t>:std::numeric_limits<wchar_t>{
-    static mwg_constexpr wchar_t lowest(){return WCHAR_MIN;};
-    static const int max_digits10=0;
+  template<> struct numeric_limits<wchar_t>: std::numeric_limits<wchar_t> {
+    static mwg_constexpr wchar_t lowest() {return WCHAR_MIN;};
+    static const int max_digits10 = 0;
   };
 #ifdef MWGCONF_STD_CHAR16_T
-  template<> struct numeric_limits<char16_t>:std::numeric_limits<char16_t>{
-    static mwg_constexpr char16_t lowest(){return 0;};
-    static mwg_constexpr_const bool is_integer=true;
-    static const int max_digits10=0;
+  template<> struct numeric_limits<char16_t>: std::numeric_limits<char16_t> {
+    static mwg_constexpr char16_t lowest() {return 0;};
+    static mwg_constexpr_const bool is_integer = true;
+    static const int max_digits10 = 0;
   };
 #endif
 #ifdef MWGCONF_STD_CHAR32_T
-  template<> struct numeric_limits<char32_t>:std::numeric_limits<char32_t>{
-    static mwg_constexpr char32_t lowest(){return 0;};
-    static mwg_constexpr_const bool is_integer=true;
-    static const int max_digits10=0;
+  template<> struct numeric_limits<char32_t>: std::numeric_limits<char32_t> {
+    static mwg_constexpr char32_t lowest() {return 0;};
+    static mwg_constexpr_const bool is_integer = true;
+    static const int max_digits10 = 0;
   };
 #endif
 
-  template<> struct numeric_limits<signed char>:std::numeric_limits<signed char>{
-    static mwg_constexpr signed char lowest(){return SCHAR_MIN;};
-    static const int max_digits10=0;
+  template<> struct numeric_limits<signed char>: std::numeric_limits<signed char> {
+    static mwg_constexpr signed char lowest() {return SCHAR_MIN;};
+    static const int max_digits10 = 0;
   };
-  template<> struct numeric_limits<unsigned char>:std::numeric_limits<unsigned char>{
-    static mwg_constexpr unsigned char lowest(){return 0;};
-    static const int max_digits10=0;
+  template<> struct numeric_limits<unsigned char>: std::numeric_limits<unsigned char> {
+    static mwg_constexpr unsigned char lowest() {return 0;};
+    static const int max_digits10 = 0;
   };
-  template<> struct numeric_limits<short>:std::numeric_limits<short>{
-    static mwg_constexpr short lowest(){return SHRT_MIN;};
-    static const int max_digits10=0;
+  template<> struct numeric_limits<short>: std::numeric_limits<short> {
+    static mwg_constexpr short lowest() {return SHRT_MIN;};
+    static const int max_digits10 = 0;
   };
-  template<> struct numeric_limits<unsigned short>:std::numeric_limits<unsigned short>{
-    static mwg_constexpr unsigned short lowest(){return 0;};
-    static const int max_digits10=0;
+  template<> struct numeric_limits<unsigned short>: std::numeric_limits<unsigned short> {
+    static mwg_constexpr unsigned short lowest() {return 0;};
+    static const int max_digits10 = 0;
   };
-  template<> struct numeric_limits<int>:std::numeric_limits<int>{
-    static mwg_constexpr int lowest(){return INT_MIN;};
-    static const int max_digits10=0;
+  template<> struct numeric_limits<int>: std::numeric_limits<int> {
+    static mwg_constexpr int lowest() {return INT_MIN;};
+    static const int max_digits10 = 0;
   };
-  template<> struct numeric_limits<unsigned int>:std::numeric_limits<unsigned int>{
-    static mwg_constexpr unsigned int lowest(){return 0;};
-    static const int max_digits10=0;
+  template<> struct numeric_limits<unsigned int>: std::numeric_limits<unsigned int> {
+    static mwg_constexpr unsigned int lowest() {return 0;};
+    static const int max_digits10 = 0;
   };
-  template<> struct numeric_limits<long>:std::numeric_limits<long>{
-    static mwg_constexpr long lowest(){return LONG_MIN;};
-    static const int max_digits10=0;
+  template<> struct numeric_limits<long>: std::numeric_limits<long> {
+    static mwg_constexpr long lowest() {return LONG_MIN;};
+    static const int max_digits10 = 0;
   };
-  template<> struct numeric_limits<unsigned long>:std::numeric_limits<unsigned long>{
-    static mwg_constexpr unsigned long lowest(){return 0;};
-    static const int max_digits10=0;
+  template<> struct numeric_limits<unsigned long>: std::numeric_limits<unsigned long> {
+    static mwg_constexpr unsigned long lowest() {return 0;};
+    static const int max_digits10 = 0;
   };
-  template<> struct numeric_limits<long long>:std::numeric_limits<long long>{
-    static mwg_constexpr long long lowest(){return LLONG_MIN;};
-    static const int max_digits10=0;
+  template<> struct numeric_limits<long long>: std::numeric_limits<long long> {
+    static mwg_constexpr long long lowest() {return LLONG_MIN;};
+    static const int max_digits10 = 0;
   };
-  template<> struct numeric_limits<unsigned long long>:std::numeric_limits<unsigned long long>{
-    static mwg_constexpr unsigned long long lowest(){return 0;};
-    static const int max_digits10=0;
+  template<> struct numeric_limits<unsigned long long>: std::numeric_limits<unsigned long long> {
+    static mwg_constexpr unsigned long long lowest() {return 0;};
+    static const int max_digits10 = 0;
   };
 
-  template<> struct numeric_limits<float>:std::numeric_limits<float>{
-    static mwg_constexpr float lowest(){return -FLT_MAX;};
-    static const int max_digits10=9;
-    static_assert(std::numeric_limits<float>::digits==24,"Not IEEE734 single precision"); // IEEE734
+  template<> struct numeric_limits<float>: std::numeric_limits<float> {
+    static mwg_constexpr float lowest() {return -FLT_MAX;};
+    static const int max_digits10 = 9;
+    static_assert(std::numeric_limits<float>::digits == 24, "Not IEEE734 single precision"); // IEEE734
   };
-  template<> struct numeric_limits<double>:std::numeric_limits<double>{
-    static mwg_constexpr double lowest(){return -DBL_MAX;};
-    static const int max_digits10=17;
-    static_assert(std::numeric_limits<double>::digits==53,"Not IEEE734 double precision"); // IEEE734
+  template<> struct numeric_limits<double>: std::numeric_limits<double> {
+    static mwg_constexpr double lowest() {return -DBL_MAX;};
+    static const int max_digits10 = 17;
+    static_assert(std::numeric_limits<double>::digits == 53, "Not IEEE734 double precision"); // IEEE734
   };
-#if !(defined(MWGCONF_MSC_VER)&&(MWGCONF_MSC_VER<160020506))
-  template<> struct numeric_limits<long double>:std::numeric_limits<long double>{
-    static mwg_constexpr long double lowest(){return -LDBL_MAX;};
-    static const int max_digits10=21;
-    static_assert(std::numeric_limits<long double>::digits==64,"Not IEEE734 extended double precision"); // IEEE734
+#if !(defined(MWGCONF_MSC_VER) && (MWGCONF_MSC_VER < 160020506))
+  template<> struct numeric_limits<long double>: std::numeric_limits<long double> {
+    static mwg_constexpr long double lowest() {return -LDBL_MAX;};
+    static const int max_digits10 = 21;
+    static_assert(std::numeric_limits<long double>::digits == 64, "Not IEEE734 extended double precision"); // IEEE734
   };
 #endif
 
@@ -109,4 +109,3 @@ namespace stdm{
 #endif
 
 #endif
-
