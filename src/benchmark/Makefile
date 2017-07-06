@@ -3,7 +3,7 @@
 all:
 .PHONY: all clean
 
-BASE=../../..
+BASE=../..
 include $(BASE)/mmake/vars.mk
 
 CXX=$(MWGCXX)

@@ -3,8 +3,8 @@
 /out
 /src/Makefile
 
-/src/mwg/string3/*.o
-/src/mwg/string3/*.exe
+/src/benchmark/*.o
+/src/benchmark/*.exe
 
 *.gen
 a.out
