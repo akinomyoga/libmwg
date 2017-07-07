@@ -263,33 +263,43 @@ namespace kazatsuyu {
 
   // unsigned型のNLZ
   template<typename T>
-  inline mwg_constexpr typename std11::enable_if<std11::is_unsigned<T>::value, int>::type
+  inline typename std11::enable_if<std11::is_unsigned<T>::value, int>::type
   nlz(T val) mwg_noexcept {
     typedef ntz_traits<sizeof(T)> tr;
     typedef typename tr::type type;
     return tr::nlz_table[static_cast<type>(tr::magic*get_highest_bit(val))>>tr::shift];
   }
 
-  mwg_constexpr int ndigits_impl_kazatsuyu(std11::uint32_t value) {return 32 - kazatsuyu::nlz(value);}
-  mwg_constexpr int ndigits_impl_kazatsuyu(std11::uint64_t value) {return 64 - kazatsuyu::nlz(value);}
+  int ndigits_impl_kazatsuyu(std11::uint32_t value) {return 32 - kazatsuyu::nlz(value);}
+  int ndigits_impl_kazatsuyu(std11::uint64_t value) {return 64 - kazatsuyu::nlz(value);}
 }
 using kazatsuyu::ndigits_impl_kazatsuyu;
 
 namespace debruijn {
-  inline int ndigits_impl_debruijn(std11::uint64_t value) mwg_noexcept {
-    // http://qiita.com/kazatsuyu/items/38203287c19890a2b7c6
-    static mwg_constexpr_const std11::uint64_t magic = 0x03F0A933ADCBD8D1;
-    static mwg_constexpr_const char table[127] = {
-       0,  1, -1,  2, -1, 13, -1,  3, 61, -1, 14, -1, -1, 54, -1,  4,
-      62, -1, -1, 22, -1, 15, -1, 43, -1, 25, 55, -1, -1, 29, -1,  5,
-      63, -1, 59, -1, 20, -1, 23, -1, -1, 18, 16, -1, -1, 34, -1, 44,
-      -1, 51, -1, 26, 56, -1, -1, 36, -1, 39, 30, -1, -1, 46, -1,  6,
-      64, -1, 12, -1, 60, -1, 53, -1, -1, 21, -1, 42, 24, -1, 28, -1,
-      -1, 58, 19, -1, 17, -1, 33, -1, 50, -1, -1, 35, 38, -1, 45, -1,
-      -1, 11, -1, 52, -1, 41, -1, 27, 57, -1, -1, 32, 49, -1, 37, -1,
-      10, -1, 40, -1, -1, 31, 48, -1,  9, -1, -1, 47,  8, -1,  7,
-    };
-    return table[magic * util::highest_bit(value) >> 63 - 6];
+  // http://qiita.com/kazatsuyu/items/38203287c19890a2b7c6
+  static mwg_constexpr_const std11::uint32_t magic32 = 0x07C56E99U;
+  static mwg_constexpr_const char nd_table32[63] = {
+     0,  1, -1,  2, -1, 11, -1,  3, 30, -1, 12, -1, 26, -1, -1,  4,
+    31, -1, -1, 24, -1, 13, 15, -1, -1, 27, -1, 17, -1, 20, -1,  5,
+     0, -1, 10, -1, 29, -1, 25, -1, -1, 23, -1, 14, -1, 16, 19, -1,
+    -1,  9, 28, -1, 22, -1, -1, 18,  8, -1, 21, -1,  7, -1,  6,
+  };
+  static mwg_constexpr_const std11::uint64_t magic64 = 0x03F0A933ADCBD8D1;
+  static mwg_constexpr_const char nd_table64[127] = {
+     0,  1, -1,  2, -1, 13, -1,  3, 61, -1, 14, -1, -1, 54, -1,  4,
+    62, -1, -1, 22, -1, 15, -1, 43, -1, 25, 55, -1, -1, 29, -1,  5,
+    63, -1, 59, -1, 20, -1, 23, -1, -1, 18, 16, -1, -1, 34, -1, 44,
+    -1, 51, -1, 26, 56, -1, -1, 36, -1, 39, 30, -1, -1, 46, -1,  6,
+    64, -1, 12, -1, 60, -1, 53, -1, -1, 21, -1, 42, 24, -1, 28, -1,
+    -1, 58, 19, -1, 17, -1, 33, -1, 50, -1, -1, 35, 38, -1, 45, -1,
+    -1, 11, -1, 52, -1, 41, -1, 27, 57, -1, -1, 32, 49, -1, 37, -1,
+    10, -1, 40, -1, -1, 31, 48, -1,  9, -1, -1, 47,  8, -1,  7,
+  };
+  inline mwg_constexpr int ndigits_impl_debruijn(std11::uint32_t value) mwg_noexcept {
+    return nd_table32[magic32 * util::highest_bit(value) >> 31 - 5];
+  }
+  inline mwg_constexpr int ndigits_impl_debruijn(std11::uint64_t value) mwg_noexcept {
+    return nd_table64[magic64 * util::highest_bit(value) >> 63 - 6];
   }
 }
 using debruijn::ndigits_impl_debruijn;
