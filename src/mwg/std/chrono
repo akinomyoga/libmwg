@@ -542,7 +542,11 @@ namespace chrono_detail {
     static mwg_constexpr_const bool is_ready = true;
     static time_point now() {
       struct timespec time;
+#ifdef CLOCK_MONOTONIC
+      ::clock_gettime(CLOCK_MONOTONIC, &time);
+#else
       ::clock_gettime(CLOCK_REALTIME, &time);
+#endif
       return time_point(duration((rep) time.tv_sec * stdm::nano::den + time.tv_nsec));
     }
   };

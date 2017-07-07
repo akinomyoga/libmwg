@@ -427,6 +427,38 @@ C++
   ToDo
 ------------------------------------------------------------------------------
 
+2017-07-06
+
+* <algorithm> test
+
+  std::rotate
+
+* <algorithm> std::sample
+
+  out が RandomAccessIterator の場合と
+  in が ForwardIterator の場合。
+
+  out が RandomAccessIterator の場合は比較的簡単。
+
+  in が ForwardIterator の場合は negative binomial では?
+  もう少し真面目に考えてみる。
+
+  問: 残り N 升の中から K 個の升を選んで黒く塗りつぶすやり方を考える。
+  一番初めの升が黒く塗りつぶされる確率は幾らか。
+
+  一番初めの升が黒い場合は C(N-1, K-1) 通りある。
+  一番初めの升が白い場合は C(N-1, K) 通りある。
+  全てで C(N, K) 通りある。一番初めの升が黒い確率は
+
+    P = C(N-1, K-1) / C(N, K)
+    = (N-1)! K! (N-K)! / (K-1)! (N-K)! N!
+    = K / N
+
+  となる。馬鹿らしい程簡単だった。しかもよく考えてみれば当たり前の事である。
+  全然 negative binomial ではない。
+
+* <any>
+
 2017-06-30
 
 * 謎: <algorithm> の関数の集合は不完全な気がする。例えば以下のようなものがない。
@@ -1397,6 +1429,21 @@ C++
 ------------------------------------------------------------------------------
   Done
 ------------------------------------------------------------------------------
+
+2017-07-08
+
+* <random>
+
+  C++17 <algorithm> std::sample は uniform_int_distribution を作成してからにするべき?
+
+  | typedef typename UniformRandomBitGenerator::result_type rand_t;
+  | const rand_t w = UniformRandomBitGenerator::max() - UniformRandomBitGenerator::min() + 1;
+  | mwg_check(
+  |   i < numeric_limits<rand_t>::max(),
+  |   "range of UniformRandomBitGenerator too small"); // 本当は複数の値を組み合わせてデータを生成するべき。
+  | rand_t r, filter = (w / (rand_t) (i + 1)) * (rand_t) (i + 1);
+  | do r = g() - UniformRandomBitGenerator::max(); while (r >= filter);
+  | std::size_t index = r % (i + 1);
 
 2017-07-04
 

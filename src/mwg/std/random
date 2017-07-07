@@ -1,0 +1,176 @@
+// -*- mode: c++; coding: utf-8 -*-
+#ifndef MWG_STDM_RANDOM
+#define MWG_STDM_RANDOM
+#include <mwg/defs.h>
+#pragma%include "../impl/ManagedTest.pp"
+#pragma%x begin_check
+#include <iostream>
+#include <cstdlib>
+#include <mwg/except.h>
+#include <mwg/std/random>
+#pragma%x end_check
+
+#ifdef MWG_STD_CXX11
+# include <random>
+#else
+# include <cmath>
+# include <utility>
+# include <limits>
+# include <mwg/std/type_traits>
+# include <mwg/std/cstdint>
+# include <mwg/bits/integer.nlz.h>
+namespace mwg {
+namespace stdm {
+
+  namespace random_detail {
+
+    class bitbuffer {
+      int m_nbit;
+      stdm::uintmax_t m_bits;
+    public:
+      bitbuffer(): m_nbit(0) {}
+
+      void reset() {this->m_nbit = 0;}
+
+      template<typename Unsigned, typename Generator>
+      Unsigned generate_bits(Generator& g, int nbit) {
+        int nrest = nbit;
+
+        if (nrest <= m_nbit) {
+          m_nbit -= nrest;
+          return (Unsigned) (m_bits >> m_nbit) & ((Unsigned) 1 << nbit) - 1;
+        }
+
+        Unsigned ret = m_bits;
+        nrest -= m_nbit;
+
+        typedef typename Generator::result_type uintgen_t;
+        uintgen_t const gwidth = Generator::max() - Generator::min();
+        bool const isfull = gwidth == std::numeric_limits<uintgen_t>::max();
+
+        int ngbit = isfull? std::numeric_limits<uintgen_t>::digits: mwg::integer::ndigits(gwidth + 1) - 1;
+        uintgen_t gbits;
+        for (;;) {
+          do gbits = g() - Generator::min(); while (!isfull && gbits >> ngbit);
+          if (nrest <= ngbit) break;
+          ret = ret << ngbit | gbits;
+          nrest -= ngbit;
+        }
+
+        ngbit -= nrest;
+        ret = ret << nrest | gbits >> ngbit;
+
+        m_nbit = ngbit;
+        m_bits = gbits;
+        return ret & ((Unsigned) 1 << nbit) - 1;
+      }
+
+    };
+  }
+
+  template<typename Integer = int>
+  struct uniform_int_distribution;
+
+  namespace uniform_int_distribution_detail {
+    template<typename Integer>
+    class param_type {
+      typedef typename stdm::make_unsigned<Integer>::type uint_t;
+      Integer m_min;
+      uint_t m_width;
+      int m_nbit;
+
+    public:
+      typedef uniform_int_distribution<Integer> distribution_type;
+      friend distribution_type;
+
+      param_type(Integer a = 0, Integer b = std::numeric_limits<Integer>::max()):
+        m_min(a), m_width(b - a), m_nbit(mwg::integer::ndigits(m_width)) {}
+
+      Integer a() const {return m_min;}
+      Integer b() const {return m_min + m_width;}
+      Integer min() const {return m_min;}
+      Integer max() const {return m_min + m_width;}
+      param_type param() const {return *this;}
+    };
+  }
+
+  template<typename Integer>
+  struct uniform_int_distribution: public uniform_int_distribution_detail::param_type<Integer> {
+  private:
+    typedef uniform_int_distribution_detail::param_type<Integer> base;
+    typedef typename stdm::make_unsigned<Integer>::type uint_t;
+    random_detail::bitbuffer buffer;
+
+  public:
+    typedef Integer result_type;
+    typedef base param_type;
+
+    explicit uniform_int_distribution(result_type a = 0, result_type b = std::numeric_limits<result_type>::max()): base(a, b) {}
+    explicit uniform_int_distribution(const param_type& params): base(params) {}
+
+    void reset() {this->buffer.reset();}
+
+    template<typename Generator>
+    result_type operator()(Generator& g, param_type const& params) {
+      uint_t const width = params.m_width;
+      int const nconsume = params.m_nbit;
+      for (;;) {
+        uint_t const ret = this->buffer.generate_bits<uint_t>(g, nconsume);
+        if (ret <= width) return params.min() + (result_type) ret;
+      }
+    }
+
+    template<typename Generator>
+    result_type operator()(Generator& g) {return this->operator()(g, *this);}
+  };
+
+#pragma%x begin_test
+  struct rand_generator {
+    typedef int result_type;
+    static int min() {return 0;}
+    static int max() {return RAND_MAX;}
+    result_type operator()() {return rand();}
+  };
+  void test() {
+    namespace ns = mwg::stdm;
+    int const nalpha = 10;
+    int const nsample = 100000;
+    rand_generator g;
+    ns::uniform_int_distribution<int> uni(0, nalpha - 1);
+
+    int hist[nalpha] = {0};
+    for (int i = 0; i < nsample; i++) {
+      int const value = uni(g);
+      mwg_check(0 <= value && value <= 9);
+      hist[value]++;
+    }
+
+    double sum = 0;
+    double const mean = (double) nsample / nalpha;
+    double const sigma = std::sqrt(mean);
+    for (int i = 0; i < nalpha; i++) {
+      double const normal_deviation = (hist[i] - mean) / sigma;
+      sum += normal_deviation * normal_deviation;
+      //std::cerr << i << " " << hist[i] << std::endl;
+    }
+    double const chi2_ndof = sum / (nalpha - 1);
+    mwg_check(1e-4 < std::sqrt(chi2_ndof) && std::sqrt(chi2_ndof) < 4.0);
+    std::cout << "chi2/ndeg = " << sum / (nalpha - 1) << std::endl;
+  }
+#pragma%x end_test
+
+}
+}
+#endif
+
+//HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+#endif
+#pragma%x begin_check
+#include <mwg/except.h>
+#include <mwg/std/random>
+
+int main() {
+  managed_test::run_tests();
+  return 0;
+}
+#pragma%x end_check
