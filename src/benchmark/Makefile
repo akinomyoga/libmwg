@@ -12,7 +12,7 @@ $(OBJDIR):
 
 CXX=$(MWGCXX)
 #CXXFLAGS += -I $(INS_INCDIR) -I $(INS_INCCFG) -O3
-CXXFLAGS += -I $(CPPDIR) -I $(CFGDIR)/include -O3
+CXXFLAGS += -I $(CPPDIR) -I $(CFGDIR)/include -O3 -march=native
 CPPFLAGS = -MD -MF $(@:.o=.dep)
 LIBS = -lrt
 

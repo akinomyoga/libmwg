@@ -141,90 +141,7 @@ mwg_constexpr int ndigits_impl_bsec3(Unsigned value) {
   return value? bsec::ndigits_impl_bsec3_<std::numeric_limits<Unsigned>::digits>::eval(value, 1): 0;
 }
 
-#ifdef __GNUC__
-inline mwg_constexpr int ndigits_impl_builtin(unsigned value) {
-  return value? std::numeric_limits<unsigned>::digits - __builtin_clz(value): 0;
-}
-inline mwg_constexpr int ndigits_impl_builtin(unsigned long value) {
-  return value? std::numeric_limits<unsigned long>::digits - __builtin_clzl(value): 0;
-}
-inline mwg_constexpr int ndigits_impl_builtin(unsigned long long value) {
-  return value? std::numeric_limits<unsigned long long>::digits - __builtin_clzll(value): 0;
-}
-#elif defined(_MSC_VER)
-inline mwg_constexpr int ndigits_impl_builtin(unsigned long value) {
-  if (value == 0) return 0;
-  unsigned long ret;
-  _BitScanReverse(&ret, value);
-  return (int) ret + 1;
-}
-inline mwg_constexpr int ndigits_impl_builtin(unsigned __int64 value) {
-  if (value == 0) return 0;
-  unsigned long ret;
-  _BitScanReverse64(&ret, value);
-  return (int) ret + 1;
-}
-
-// Note: MSVC では _BitScanReverse, _BitScanReverse64 が使える。
-// https://msdn.microsoft.com/ja-jp/library/fbxyd7zd.aspx
-// http://blog.jiubao.org/2015/01/gcc-bitscanforward-bitscanreverse-msvc.html
-#endif
-
-namespace kazatsuyu {
-  template<int n>
-  struct highest_bit {
-    template<typename T>
-    static inline mwg_constexpr T get(T val) mwg_noexcept {
-      return highest_bit<n/2>::get(static_cast<T>(val | (val >> n)));
-    }
-  };
-  template<>
-  struct highest_bit<1> {
-    template<typename T>
-    static inline mwg_constexpr T get_2(T val) mwg_noexcept { return static_cast<T>(val ^ (val >> 1)); }
-    template<typename T>
-    static inline mwg_constexpr T get(T val) mwg_noexcept { return get_2(static_cast<T>(val | (val >> 1))); }
-  };
-  template<typename T>
-  inline mwg_constexpr T get_highest_bit(T val) mwg_noexcept { return highest_bit<sizeof(T)*4>::get(val); }
-
-  template<int> struct ntz_traits {};
-  template<>
-  struct ntz_traits<8> {
-    typedef std11::uint64_t type;
-    static mwg_constexpr_const int shift = 57;
-    static mwg_constexpr_const type magic = 0x03F0A933ADCBD8D1ULL;
-    static const int nlz_table[127];
-  };
-
-  const int ntz_traits<8>::nlz_table[127] = {
-    64, 63, -1, 62, -1, 51, -1, 61,  3, -1, 50, -1, -1, 10, -1, 60,
-    2, -1, -1, 42, -1, 49, -1, 21, -1, 39,  9, -1, -1, 35, -1, 59,
-    1, -1,  5, -1, 44, -1, 41, -1, -1, 46, 48, -1, -1, 30, -1, 20,
-    -1, 13, -1, 38,  8, -1, -1, 28, -1, 25, 34, -1, -1, 18, -1, 58,
-    0, -1, 52, -1,  4, -1, 11, -1, -1, 43, -1, 22, 40, -1, 36, -1,
-    -1,  6, 45, -1, 47, -1, 31, -1, 14, -1, -1, 29, 26, -1, 19, -1,
-    -1, 53, -1, 12, -1, 23, -1, 37,  7, -1, -1, 32, 15, -1, 27, -1,
-    54, -1, 24, -1, -1, 33, 16, -1, 55, -1, -1, 17, 56, -1, 57,
-  };
-
-  // unsigned型のNLZ
-  template<typename T>
-  inline mwg_constexpr typename std11::enable_if<std11::is_unsigned<T>::value, int>::type
-  nlz(T val) mwg_noexcept {
-    typedef ntz_traits<sizeof(T)> tr;
-    typedef typename tr::type type;
-    return tr::nlz_table[static_cast<type>(tr::magic*get_highest_bit(val))>>tr::shift];
-  }
-
-  mwg_constexpr int ndigits_impl_kazatsuyu(std11::uint64_t value) {
-    // http://qiita.com/kazatsuyu/items/38203287c19890a2b7c6
-    return 64 - kazatsuyu::nlz(value);
-  }
-}
-using kazatsuyu::ndigits_impl_kazatsuyu;
-
-namespace debruijn {
+namespace util {
   template<std::size_t Shift>
   struct sup_pow2m1_ {
     static mwg_constexpr_const std::size_t shift = Shift / 2;
@@ -251,6 +168,114 @@ namespace debruijn {
   mwg_constexpr Unsigned highest_bit(Unsigned value) mwg_noexcept {
     return highest_bit_impl2(sup_pow2m1(value));
   }
+}
+
+#ifdef __GNUC__
+inline mwg_constexpr int ndigits_impl_builtin(unsigned value) {
+  return value? std::numeric_limits<unsigned>::digits - __builtin_clz(value): 0;
+}
+inline mwg_constexpr int ndigits_impl_builtin(unsigned long value) {
+  return value? std::numeric_limits<unsigned long>::digits - __builtin_clzl(value): 0;
+}
+inline mwg_constexpr int ndigits_impl_builtin(unsigned long long value) {
+  return value? std::numeric_limits<unsigned long long>::digits - __builtin_clzll(value): 0;
+}
+
+inline mwg_constexpr int ndigits_impl_bctz(unsigned value) {
+  return value? 1 + __builtin_ctz(util::highest_bit(value)): 0;
+}
+inline mwg_constexpr int ndigits_impl_bctz(unsigned long value) {
+  return value? 1 + __builtin_ctzl(util::highest_bit(value)): 0;
+}
+inline mwg_constexpr int ndigits_impl_bctz(unsigned long long value) {
+  return value? 1 + __builtin_ctzll(util::highest_bit(value)): 0;
+}
+
+#elif defined(_MSC_VER)
+inline mwg_constexpr int ndigits_impl_builtin(unsigned long value) {
+  if (value == 0) return 0;
+  unsigned long ret;
+  _BitScanReverse(&ret, value);
+  return (int) ret + 1;
+}
+inline mwg_constexpr int ndigits_impl_builtin(unsigned __int64 value) {
+  if (value == 0) return 0;
+  unsigned long ret;
+  _BitScanReverse64(&ret, value);
+  return (int) ret + 1;
+}
+
+// Note: MSVC では _BitScanReverse, _BitScanReverse64 が使える。
+// https://msdn.microsoft.com/ja-jp/library/fbxyd7zd.aspx
+// http://blog.jiubao.org/2015/01/gcc-bitscanforward-bitscanreverse-msvc.html
+#endif
+
+// http://qiita.com/kazatsuyu/items/38203287c19890a2b7c6
+namespace kazatsuyu {
+  template<int n>
+  struct highest_bit {
+    template<typename T>
+    static inline mwg_constexpr T get(T val) mwg_noexcept {
+      return highest_bit<n/2>::get(static_cast<T>(val | (val >> n)));
+    }
+  };
+  template<>
+  struct highest_bit<1> {
+    template<typename T>
+    static inline mwg_constexpr T get_2(T val) mwg_noexcept { return static_cast<T>(val ^ (val >> 1)); }
+    template<typename T>
+    static inline mwg_constexpr T get(T val) mwg_noexcept { return get_2(static_cast<T>(val | (val >> 1))); }
+  };
+  template<typename T>
+  inline mwg_constexpr T get_highest_bit(T val) mwg_noexcept { return highest_bit<sizeof(T)*4>::get(val); }
+
+  template<int> struct ntz_traits {};
+
+  template<> struct ntz_traits<4> {
+    typedef std11::uint32_t type;
+    static mwg_constexpr_const int shift = 26;
+    static mwg_constexpr_const type magic = 0x07C56E99U;
+    static const int nlz_table[63];
+  };
+  const int ntz_traits<4>::nlz_table[63] = {
+    32, 31, -1, 30, -1, 21, -1, 29,  2, -1, 20, -1,  6, -1, -1, 28,
+     1, -1, -1,  8, -1, 19, 17, -1, -1,  5, -1, 15, -1, 12, -1, 27,
+     0, -1, 22, -1,  3, -1,  7, -1, -1,  9, -1, 18, -1, 16, 13, -1,
+    -1, 23,  4, -1, 10, -1, -1, 14, 24, -1, 11, -1, 25, -1, 26
+  };
+
+  template<> struct ntz_traits<8> {
+    typedef std11::uint64_t type;
+    static mwg_constexpr_const int shift = 57;
+    static mwg_constexpr_const type magic = 0x03F0A933ADCBD8D1ULL;
+    static const int nlz_table[127];
+  };
+  const int ntz_traits<8>::nlz_table[127] = {
+    64, 63, -1, 62, -1, 51, -1, 61,  3, -1, 50, -1, -1, 10, -1, 60,
+     2, -1, -1, 42, -1, 49, -1, 21, -1, 39,  9, -1, -1, 35, -1, 59,
+     1, -1,  5, -1, 44, -1, 41, -1, -1, 46, 48, -1, -1, 30, -1, 20,
+    -1, 13, -1, 38,  8, -1, -1, 28, -1, 25, 34, -1, -1, 18, -1, 58,
+     0, -1, 52, -1,  4, -1, 11, -1, -1, 43, -1, 22, 40, -1, 36, -1,
+    -1,  6, 45, -1, 47, -1, 31, -1, 14, -1, -1, 29, 26, -1, 19, -1,
+    -1, 53, -1, 12, -1, 23, -1, 37,  7, -1, -1, 32, 15, -1, 27, -1,
+    54, -1, 24, -1, -1, 33, 16, -1, 55, -1, -1, 17, 56, -1, 57,
+  };
+
+  // unsigned型のNLZ
+  template<typename T>
+  inline mwg_constexpr typename std11::enable_if<std11::is_unsigned<T>::value, int>::type
+  nlz(T val) mwg_noexcept {
+    typedef ntz_traits<sizeof(T)> tr;
+    typedef typename tr::type type;
+    return tr::nlz_table[static_cast<type>(tr::magic*get_highest_bit(val))>>tr::shift];
+  }
+
+  mwg_constexpr int ndigits_impl_kazatsuyu(std11::uint32_t value) {return 32 - kazatsuyu::nlz(value);}
+  mwg_constexpr int ndigits_impl_kazatsuyu(std11::uint64_t value) {return 64 - kazatsuyu::nlz(value);}
+}
+using kazatsuyu::ndigits_impl_kazatsuyu;
+
+namespace debruijn {
   inline int ndigits_impl_debruijn(std11::uint64_t value) mwg_noexcept {
     // http://qiita.com/kazatsuyu/items/38203287c19890a2b7c6
     static mwg_constexpr_const std11::uint64_t magic = 0x03F0A933ADCBD8D1;
@@ -264,7 +289,7 @@ namespace debruijn {
       -1, 11, -1, 52, -1, 41, -1, 27, 57, -1, -1, 32, 49, -1, 37, -1,
       10, -1, 40, -1, -1, 31, 48, -1,  9, -1, -1, 47,  8, -1,  7,
     };
-    return table[magic * highest_bit(value) >> 63 - 6];
+    return table[magic * util::highest_bit(value) >> 63 - 6];
   }
 }
 using debruijn::ndigits_impl_debruijn;
@@ -272,12 +297,12 @@ using debruijn::ndigits_impl_debruijn;
 namespace de_bruijn {
 
   // use inverse Burrows-Wheeler transform (see https://en.wikipedia.org/wiki/De_Bruijn_sequence)
-  template<typename U, int ndigit, int imax = ndigit - 1, U used = 0, U result = 0, int i = -1, int pos = -1, bool = i != pos>
-  struct magic: magic<U, ndigit, imax, used | 1ull << pos, result << 1 | (pos < (imax + 1) / 2? 0: 1), i, pos * 2 % imax> {};
-  template<typename U, int ndigit, int imax, U used, U result, int i, int pos>
-  struct magic<U, ndigit, imax, used, result, i, pos, false>: magic<U, ndigit, imax, used, result, i + 1, i + 1, (used & 1ull << i + 1) == 0> {};
-  template<typename U, int ndigit, int imax, U used, U result>
-  struct magic<U, ndigit, imax, used, result, imax, imax, true>: std11::integral_constant<U, result << 1 | 1> {};
+  template<typename U, int ndigit, int imax = ndigit - 1, U visited = 0, U result = 0, int i = -1, int pos = -1, bool = i != pos>
+  struct magic: magic<U, ndigit, imax, visited | 1ull << pos, result << 1 | (pos < (imax + 1) / 2? 0: 1), i, pos * 2 % imax> {};
+  template<typename U, int ndigit, int imax, U visited, U result, int i, int pos>
+  struct magic<U, ndigit, imax, visited, result, i, pos, false>: magic<U, ndigit, imax, visited, result, i + 1, i + 1, (visited & 1ull << i + 1) == 0> {};
+  template<typename U, int ndigit, int imax, U visited, U result>
+  struct magic<U, ndigit, imax, visited, result, imax, imax, true>: std11::integral_constant<U, result << 1 | 1> {};
 
   mwg_constexpr std11::uint64_t generate_magic(int nbits) {
     int const len = 1 << nbits;
@@ -323,7 +348,7 @@ namespace de_bruijn {
   struct table {
     static mwg_constexpr_const int ndigit = 1 << nbits;
     static mwg_constexpr_const int nshift = ndigit - nbits  - 1;
-    static mwg_constexpr_const int ntable = ndigit * 2 - 1;
+    static mwg_constexpr_const int ntable = (1 << nbits + 1) - 1;
     static mwg_constexpr_const Unsigned magic = de_bruijn::magic<Unsigned, ndigit>::value;
 
     int nd_table[ntable];
@@ -335,20 +360,20 @@ namespace de_bruijn {
       nlz_table[0] = ndigit;
       for (int i = 0; i < ndigit; i++) {
         Unsigned const value = (Unsigned) 1 << i;
-        nd_table[magic * value >> nshift] = i + 1;
-        ntz_table[magic * value >> nshift] = i;
-        nlz_table[magic * value >> nshift] = ndigit - i - 1;
+        nd_table[Unsigned(magic * value) >> nshift] = i + 1;
+        ntz_table[Unsigned(magic * value) >> nshift] = i;
+        nlz_table[Unsigned(magic * value) >> nshift] = ndigit - i - 1;
       }
     }
 
     mwg_constexpr int nd(Unsigned value) const mwg_noexcept {
-      return nd_table[magic * debruijn::highest_bit(value) >> nshift];
+      return nd_table[Unsigned(magic * util::highest_bit(value)) >> nshift];
     }
     mwg_constexpr int nlz(Unsigned value) const mwg_noexcept {
-      return nlz_table[magic * debruijn::highest_bit(value) >> nshift];
+      return nlz_table[Unsigned(magic * util::highest_bit(value)) >> nshift];
     }
     mwg_constexpr int ntz(Unsigned value) const mwg_noexcept {
-      return ntz_table[magic * (value & -value) >> nshift];
+      return ntz_table[Unsigned(magic * (value & -value)) >> nshift];
     }
   };
 
@@ -386,6 +411,9 @@ void measure() {
 #endif
 #if defined(__GNUC__) || defined(_MSC_VER)
   measure_impl(builtin);
+#endif
+#if defined(__GNUC__)
+  measure_impl(bctz);
 #endif
   measure_impl(kazatsuyu);
   measure_impl(debruijn);
