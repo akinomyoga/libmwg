@@ -62,24 +62,24 @@ mwg_constexpr14 int ndigits_impl_frexp(Unsigned value) mwg_noexcept {
 #ifdef __STDC_IEC_559__
 // http://www.nminoru.jp/~nminoru/programming/bitcount.html 改変
 
-template<typename Unsigned>
-int ndigits_impl_double(Unsigned value) mwg_noexcept {
-  static_assert(std::numeric_limits<Unsigned>::digits <= 1024, "integer too big");
+template<typename Unsigned, typename Float, typename Rep>
+int ndigits_impl_float_(Unsigned value) mwg_noexcept {
+  static_assert(sizeof(Float) == sizeof(Rep), "mismatch in sizes of Float and Rep");
+  static_assert(std::numeric_limits<Unsigned>::digits <= std::numeric_limits<Float>::max_exponent, "integer too big");
   union {
-    double dbl;
-    std11::uint64_t rep;
-  } const data = {(double) value + 0.5};
-  return (data.rep >> 52) - 1022;
+    Float flt;
+    Rep rep;
+  } const data = {(Float) value + (Float) 0.5};
+  return (data.rep >> std::numeric_limits<Float>::digits - 1) + (std::numeric_limits<Float>::min_exponent - 1);
 }
 
 template<typename Unsigned>
+int ndigits_impl_double(Unsigned value) mwg_noexcept {
+  return ndigits_impl_float_<Unsigned, double, std11::uint64_t>(value);
+}
+template<typename Unsigned>
 int ndigits_impl_float(Unsigned value) mwg_noexcept {
-  static_assert(std::numeric_limits<Unsigned>::digits <= 128, "integer too big");
-  union {
-    float dbl;
-    std11::uint32_t rep;
-  } const data = {(float) value + 0.5};
-  return (data.rep >> 23) - 126;
+  return ndigits_impl_float_<Unsigned, float, std11::uint32_t>(value);
 }
 
 #endif
@@ -295,7 +295,6 @@ namespace debruijn {
 using debruijn::ndigits_impl_debruijn;
 
 namespace de_bruijn {
-
   // use inverse Burrows-Wheeler transform (see https://en.wikipedia.org/wiki/De_Bruijn_sequence)
   template<typename U, int ndigit, int imax = ndigit - 1, U visited = 0, U result = 0, int i = -1, int pos = -1, bool = i != pos>
   struct magic: magic<U, ndigit, imax, visited | 1ull << pos, result << 1 | (pos < (imax + 1) / 2? 0: 1), i, pos * 2 % imax> {};
@@ -349,7 +348,7 @@ namespace de_bruijn {
     static mwg_constexpr_const int ndigit = 1 << nbits;
     static mwg_constexpr_const int nshift = ndigit - nbits  - 1;
     static mwg_constexpr_const int ntable = (1 << nbits + 1) - 1;
-    static mwg_constexpr_const Unsigned magic = de_bruijn::magic<Unsigned, ndigit>::value;
+    static mwg_constexpr_const Unsigned sequence = de_bruijn::magic<Unsigned, ndigit>::value;
 
     int nd_table[ntable];
     int nlz_table[ntable];
@@ -359,27 +358,27 @@ namespace de_bruijn {
       ntz_table[0] = ndigit;
       nlz_table[0] = ndigit;
       for (int i = 0; i < ndigit; i++) {
-        Unsigned const value = (Unsigned) 1 << i;
-        nd_table[Unsigned(magic * value) >> nshift] = i + 1;
-        ntz_table[Unsigned(magic * value) >> nshift] = i;
-        nlz_table[Unsigned(magic * value) >> nshift] = ndigit - i - 1;
+        Unsigned const bit = (Unsigned) 1 << i;
+        nd_table[Unsigned(sequence * bit) >> nshift] = i + 1;
+        ntz_table[Unsigned(sequence * bit) >> nshift] = i;
+        nlz_table[Unsigned(sequence * bit) >> nshift] = ndigit - i - 1;
       }
     }
 
     mwg_constexpr int nd(Unsigned value) const mwg_noexcept {
-      return nd_table[Unsigned(magic * util::highest_bit(value)) >> nshift];
+      return nd_table[Unsigned(sequence * util::highest_bit(value)) >> nshift];
     }
     mwg_constexpr int nlz(Unsigned value) const mwg_noexcept {
-      return nlz_table[Unsigned(magic * util::highest_bit(value)) >> nshift];
+      return nlz_table[Unsigned(sequence * util::highest_bit(value)) >> nshift];
     }
     mwg_constexpr int ntz(Unsigned value) const mwg_noexcept {
-      return ntz_table[Unsigned(magic * (value & -value)) >> nshift];
+      return ntz_table[Unsigned(sequence * (value & -value)) >> nshift];
     }
   };
 
   static table<std11::uint32_t, 5> impl32;
   inline int ndigits_impl_debruijn2(std11::uint32_t value) mwg_noexcept {return impl32.nd(value);}
-  static table<std11::uint64_t, 6> impl64;
+  static table<std11::uint64_t, 6> impl64; // 中で宣言したら遅くなったので。
   inline int ndigits_impl_debruijn2(std11::uint64_t value) mwg_noexcept {return impl64.nd(value);}
 }
 using de_bruijn::ndigits_impl_debruijn2;
