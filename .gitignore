@@ -3,7 +3,7 @@
 /out
 /src/Makefile
 
-/src/benchmark/*.o
+/src/benchmark/.obj
 /src/benchmark/*.exe
 
 *.gen

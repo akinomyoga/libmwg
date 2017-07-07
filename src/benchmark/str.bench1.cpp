@@ -1,23 +1,7 @@
-#include <mwg/std/chrono>
 #include <mwg/str.h>
 #include <string>
 #include <iostream>
-
-namespace chrono = mwg::stdm::chrono;
-
-struct scope_stopwatch {
-  const char* message;
-  chrono::high_resolution_clock::time_point start;
-  scope_stopwatch(const char* message):
-    message(message),
-    start(chrono::high_resolution_clock::now())
-  {}
-  ~scope_stopwatch() {
-    chrono::high_resolution_clock::time_point const finish = chrono::high_resolution_clock::now();
-    chrono::microseconds const us = chrono::duration_cast<chrono::microseconds>(finish-start);
-    std::cout << message << ": " << us.count() << "us\n";
-  }
-};
+#include "measure.h"
 
 namespace string_bench {
   int test_compare1a() {
@@ -44,13 +28,13 @@ int main() {
   int a = 0;
 
   {
-    scope_stopwatch sw("test_compare1a");
+    libmwg::scope_stopwatch sw("test_compare1a");
     for(int i = 0; i < 10000; i++)
       a += string_bench::test_compare1a();
   }
 
   {
-    scope_stopwatch sw("test_compare1b");
+    libmwg::scope_stopwatch sw("test_compare1b");
     for(int i = 0; i < 10000; i++)
       a -= string_bench::test_compare1b();
   }
