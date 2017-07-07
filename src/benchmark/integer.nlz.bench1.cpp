@@ -272,12 +272,12 @@ using debruijn::ndigits_impl_debruijn;
 namespace de_bruijn {
 
   // use inverse Burrows-Wheeler transform (see https://en.wikipedia.org/wiki/De_Bruijn_sequence)
-  template<int ndigit, int imax = ndigit - 1, std11::uint64_t used = 0, std11::uint64_t result = 0, int i = -1, int pos = -1, bool = i != pos>
-  struct magic: magic<ndigit, imax, used | 1ull << pos, result << 1 | (pos < (imax + 1) / 2? 0: 1), i, pos * 2 % imax> {};
-  template<int ndigit, int imax, std11::uint64_t used, std11::uint64_t result, int i, int pos>
-  struct magic<ndigit, imax, used, result, i, pos, false>: magic<ndigit, imax, used, result, i + 1, i + 1, (used & 1ull << i + 1) == 0> {};
-  template<int ndigit, int imax, std11::uint64_t used, std11::uint64_t result>
-  struct magic<ndigit, imax, used, result, imax, imax, true>: std11::integral_constant<std11::uint64_t, result << 1 | 1> {};
+  template<typename U, int ndigit, int imax = ndigit - 1, U used = 0, U result = 0, int i = -1, int pos = -1, bool = i != pos>
+  struct magic: magic<U, ndigit, imax, used | 1ull << pos, result << 1 | (pos < (imax + 1) / 2? 0: 1), i, pos * 2 % imax> {};
+  template<typename U, int ndigit, int imax, U used, U result, int i, int pos>
+  struct magic<U, ndigit, imax, used, result, i, pos, false>: magic<U, ndigit, imax, used, result, i + 1, i + 1, (used & 1ull << i + 1) == 0> {};
+  template<typename U, int ndigit, int imax, U used, U result>
+  struct magic<U, ndigit, imax, used, result, imax, imax, true>: std11::integral_constant<U, result << 1 | 1> {};
 
   mwg_constexpr std11::uint64_t generate_magic(int nbits) {
     int const len = 1 << nbits;
@@ -298,15 +298,15 @@ namespace de_bruijn {
   }
 
   void check() {
-    mwg_check(magic<(1 << 2)>::value== generate_magic(2));
-    mwg_check(magic<(1 << 3)>::value== generate_magic(3));
-    mwg_check(magic<(1 << 4)>::value== generate_magic(4));
-    mwg_check(magic<(1 << 5)>::value== generate_magic(5));
-    mwg_check(magic<(1 << 6)>::value== generate_magic(6));
+    mwg_check((magic<std11::uint64_t, (1 << 2)>::value == generate_magic(2)));
+    mwg_check((magic<std11::uint64_t, (1 << 3)>::value == generate_magic(3)));
+    mwg_check((magic<std11::uint64_t, (1 << 4)>::value == generate_magic(4)));
+    mwg_check((magic<std11::uint64_t, (1 << 5)>::value == generate_magic(5)));
+    mwg_check((magic<std11::uint64_t, (1 << 6)>::value == generate_magic(6)));
   }
 
   void debug() {
-    std11::uint64_t magic = de_bruijn::magic<64>::value;
+    std11::uint64_t magic = de_bruijn::magic<std11::uint64_t, 64>::value;
     int nbits = 6;
     int len = 1 << nbits;
     std::cout << "magic = " << std::hex << magic << std::dec << std::endl;
@@ -319,12 +319,12 @@ namespace de_bruijn {
     }
   }
 
-  template<int nbits>
+  template<typename Unsigned, int nbits>
   struct table {
     static mwg_constexpr_const int ndigit = 1 << nbits;
     static mwg_constexpr_const int nshift = ndigit - nbits  - 1;
     static mwg_constexpr_const int ntable = ndigit * 2 - 1;
-    static mwg_constexpr_const std11::uint64_t magic = de_bruijn::magic<ndigit>::value;
+    static mwg_constexpr_const Unsigned magic = de_bruijn::magic<Unsigned, ndigit>::value;
 
     int nd_table[ntable];
     int nlz_table[ntable];
@@ -334,24 +334,27 @@ namespace de_bruijn {
       ntz_table[0] = ndigit;
       nlz_table[0] = ndigit;
       for (int i = 0; i < ndigit; i++) {
-        std11::uint64_t const value = 1ull << i;
+        Unsigned const value = (Unsigned) 1 << i;
         nd_table[magic * value >> nshift] = i + 1;
         ntz_table[magic * value >> nshift] = i;
         nlz_table[magic * value >> nshift] = ndigit - i - 1;
       }
     }
 
-    template<typename Unsigned>
     mwg_constexpr int nd(Unsigned value) const mwg_noexcept {
       return nd_table[magic * debruijn::highest_bit(value) >> nshift];
     }
-    template<typename Unsigned>
     mwg_constexpr int nlz(Unsigned value) const mwg_noexcept {
       return nlz_table[magic * debruijn::highest_bit(value) >> nshift];
     }
+    mwg_constexpr int ntz(Unsigned value) const mwg_noexcept {
+      return ntz_table[magic * (value & -value) >> nshift];
+    }
   };
 
-  static table<6> impl64;
+  static table<std11::uint32_t, 5> impl32;
+  inline int ndigits_impl_debruijn2(std11::uint32_t value) mwg_noexcept {return impl32.nd(value);}
+  static table<std11::uint64_t, 6> impl64;
   inline int ndigits_impl_debruijn2(std11::uint64_t value) mwg_noexcept {return impl64.nd(value);}
 }
 using de_bruijn::ndigits_impl_debruijn2;
@@ -390,6 +393,7 @@ void measure() {
 }
 
 int main() {
+  std::cout << "sizeof(std::size_t) = " << sizeof(std::size_t) << std::endl;
   //de_bruijn::debug();
   measure();
   // static mwg_constexpr_const int table[127] = {
