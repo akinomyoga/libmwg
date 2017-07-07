@@ -6,6 +6,8 @@
 #include <mwg/defs.h>
 #pragma%include "../impl/ManagedTest.pp"
 #pragma%x begin_check
+#include <cstdio>
+#include <list>
 #include <mwg/except.h>
 #include <mwg/std/algorithm>
 #include <mwg/std/iterator>
@@ -976,6 +978,7 @@ namespace stdm {
 # include <functional>
 # include <mwg/std/utility>
 # include <mwg/std/execution>
+# include <mwg/std/random>
 
 // C++17
 namespace mwg {
@@ -999,6 +1002,107 @@ namespace stdm {
   T clamp(T const& value, T const& lower, T const& upper) {
     return value < lower? lower: value > upper? upper: value;
   }
+
+  template<typename InputIterator, typename OutputIterator, typename Distance, typename UniformRandomBitGenerator>
+  typename stdm::enable_if<
+    stdm::is_base_of<std::random_access_iterator_tag, typename std::iterator_traits<OutputIterator>::iterator_category>::value,
+    OutputIterator>::type
+  sample(InputIterator first, InputIterator last, OutputIterator out, Distance n, UniformRandomBitGenerator mwg_forward_rvalue g_) {
+    typedef stdm::uniform_int_distribution<std::size_t> dist_t;
+    UniformRandomBitGenerator& g = const_cast<typename stdm::remove_cv<UniformRandomBitGenerator>::type&>(g_);
+    if (n <= 0) return out;
+
+    OutputIterator it = out;
+    std::size_t i = 0;
+    for (; i < (std::size_t) n; i++) {
+      if (first == last) return it;
+      *it++ = *first++;
+    }
+
+    dist_t dist;
+    for (; first != last; ++first) {
+      std::size_t const j = dist(g, dist_t::param_type(0, i++));
+      if (j < n) out[j] = *first;
+    }
+    return out + n;
+  }
+
+  template<typename ForwardIterator, typename OutputIterator, typename Distance, typename UniformRandomBitGenerator>
+  typename stdm::enable_if<
+    !stdm::is_base_of<std::random_access_iterator_tag, typename std::iterator_traits<OutputIterator>::iterator_category>::value &&
+    stdm::is_base_of<std::forward_iterator_tag, typename std::iterator_traits<ForwardIterator>::iterator_category>::value,
+    OutputIterator>::type
+  sample(ForwardIterator first, ForwardIterator last, OutputIterator out, Distance n, UniformRandomBitGenerator mwg_forward_rvalue g_) {
+    typedef stdm::uniform_int_distribution<std::size_t> dist_t;
+    UniformRandomBitGenerator& g = const_cast<typename stdm::remove_cv<UniformRandomBitGenerator>::type&>(g_);
+    if (n <= 0) return out;
+
+    dist_t dist;
+    for (std::size_t size = std::distance(first, last); size > n; --size, ++first) {
+      if (dist(g, dist_t::param_type(0, size - 1)) >= n) continue;
+      *out++ = *first;
+      if (--n == 0) return out;
+    }
+    return std::copy(first, last, out);
+  }
+
+#pragma%x begin_test
+  struct rand_generator {
+    typedef int result_type;
+    static int min() {return 0;}
+    static int max() {return RAND_MAX;}
+    result_type operator()() {return rand();}
+  };
+
+  static const int nalpha = 10;
+  static const int nsample = 5;
+  static const int nrepeat = 20000;
+  void check_sample(int (&a2)[nsample], int (&hist)[nalpha]) {
+    namespace ns = mwg::stdm;
+    std::sort(ns::begin(a2), ns::end(a2));
+    for (int i = 0; i < ns::size(a2); i++) {
+      int const value = a2[i];
+      mwg_check(1 <= value && value <= nalpha && (i == 0 || a2[i - 1] < value));
+      hist[value - 1]++;
+    }
+  }
+  void check_chi2(int (&hist)[nalpha]) {
+    double const mean = (double) nsample * nrepeat / nalpha;
+    double const sigma = std::sqrt(mean);
+    double sum = 0.0;
+    for (int i = 0; i < 10; i++) {
+      double const nvalue = (hist[i] - mean) / sigma;
+      sum += nvalue * nvalue;
+    }
+    double const chi2 = sum / (nalpha - 1);
+    std::printf("mwg::stdm::sample: chi2/ndof = %g\n", chi2);
+    mwg_check(1.5e-3 < std::sqrt(chi2) && std::sqrt(chi2) < 3.0);
+  }
+
+  void test() {
+    namespace ns = mwg::stdm;
+    int a1[nalpha] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+    int a2[nsample];
+    rand_generator g;
+    int hist[nalpha];
+    std::fill(ns::begin(hist), ns::end(hist), 0);
+    for (int j = 0; j < nrepeat; j++) {
+      mwg_check(ns::sample(ns::cbegin(a1), ns::cend(a1), ns::begin(a2), ns::size(a2), g) == ns::end(a2));
+      check_sample(a2, hist);
+    }
+    check_chi2(hist);
+
+    std::fill(ns::begin(hist), ns::end(hist), 0);
+    for (int j = 0; j < nrepeat; j++) {
+      std::list<int> a3;
+      ns::sample(ns::cbegin(a1), ns::cend(a1), std::back_inserter(a3), nsample, g);
+      mwg_check(std::distance(a3.begin(), a3.end()) == nsample, "%zu", (std::size_t) std::distance(a3.begin(), a3.end()));
+      std::copy(a3.begin(), a3.end(), ns::begin(a2));
+      check_sample(a2, hist);
+    }
+    check_chi2(hist);
+  }
+#pragma%x end_test
 
   template<typename ExecutionPolicy, typename ForwardIt, typename UnaryPredicate>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, bool>::type

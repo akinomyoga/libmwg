@@ -433,30 +433,6 @@ C++
 
   std::rotate
 
-* <algorithm> std::sample
-
-  out が RandomAccessIterator の場合と
-  in が ForwardIterator の場合。
-
-  out が RandomAccessIterator の場合は比較的簡単。
-
-  in が ForwardIterator の場合は negative binomial では?
-  もう少し真面目に考えてみる。
-
-  問: 残り N 升の中から K 個の升を選んで黒く塗りつぶすやり方を考える。
-  一番初めの升が黒く塗りつぶされる確率は幾らか。
-
-  一番初めの升が黒い場合は C(N-1, K-1) 通りある。
-  一番初めの升が白い場合は C(N-1, K) 通りある。
-  全てで C(N, K) 通りある。一番初めの升が黒い確率は
-
-    P = C(N-1, K-1) / C(N, K)
-    = (N-1)! K! (N-K)! / (K-1)! (N-K)! N!
-    = K / N
-
-  となる。馬鹿らしい程簡単だった。しかもよく考えてみれば当たり前の事である。
-  全然 negative binomial ではない。
-
 * <any>
 
 2017-06-30
@@ -1431,6 +1407,30 @@ C++
 ------------------------------------------------------------------------------
 
 2017-07-08
+
+* <algorithm> std::sample
+
+  out が RandomAccessIterator の場合と
+  in が ForwardIterator の場合。
+
+  out が RandomAccessIterator の場合は比較的簡単。
+
+  in が ForwardIterator の場合は negative binomial では?
+  もう少し真面目に考えてみる。
+
+  問: 残り N 升の中から K 個の升を選んで黒く塗りつぶすやり方を考える。
+  一番初めの升が黒く塗りつぶされる確率は幾らか。
+
+  一番初めの升が黒い場合は C(N-1, K-1) 通りある。
+  一番初めの升が白い場合は C(N-1, K) 通りある。
+  全てで C(N, K) 通りある。一番初めの升が黒い確率は
+
+    P = C(N-1, K-1) / C(N, K)
+    = (N-1)! K! (N-K)! / (K-1)! (N-K)! N!
+    = K / N
+
+  となる。馬鹿らしい程簡単だった。しかもよく考えてみれば当たり前の事である。
+  全然 negative binomial ではない。
 
 * <random>
 
