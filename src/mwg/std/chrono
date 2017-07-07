@@ -522,15 +522,51 @@ namespace chrono_detail {
   };
 
 }
+}
+}
+}
 
+#ifdef __unix__
+# define MWG_STDM_CHRONO_has_unix_clock_gettime
+# include <time.h>
+# include <mwg/std/cstdint>
+namespace mwg {
+namespace stdm {
+namespace chrono {
+namespace chrono_detail {
+  struct unix_clock_gettime {
+    typedef stdm::uintmax_t rep;
+    typedef stdm::nano period;
+    typedef stdm::chrono::duration<rep, period> duration;
+    typedef stdm::chrono::time_point<unix_clock_gettime> time_point;
+    static mwg_constexpr_const bool is_ready = true;
+    static time_point now() {
+      struct timespec time;
+      ::clock_gettime(CLOCK_REALTIME, &time);
+      return time_point(duration((rep) time.tv_sec * stdm::nano::den + time.tv_nsec));
+    }
+  };
+}
+}
+}
+}
+#endif
+
+namespace mwg {
+namespace stdm {
+namespace chrono {
   class system_clock: public chrono_detail::ctime_time {};
   class steady_clock: public chrono_detail::ctime_clock {};
+#ifdef MWG_STDM_CHRONO_has_unix_clock_gettime
+  class high_resolution_clock: public chrono_detail::unix_clock_gettime {};
+#else
   class high_resolution_clock: public chrono_detail::ctime_clock {};
+#endif
 }
 }
 }
 
-#endif
+#endif /* end of !has_header(chrono) */
 //HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 #endif
 #pragma%x begin_check

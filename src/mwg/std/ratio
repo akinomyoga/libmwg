@@ -37,9 +37,9 @@ namespace ratio_detail {
 }
   template<mwg::stdm::intmax_t Num, mwg::stdm::intmax_t Den = 1>
   struct ratio {
-    static const mwg::stdm::intmax_t num=
+    static mwg_constexpr_const mwg::stdm::intmax_t num =
       ratio_detail::intmax_sgn<Num>::value * ratio_detail::intmax_sgn<Den>::value * ratio_detail::intmax_abs<Num>::value / ratio_detail::intmax_gcd<Num, Den>::value;
-    static const mwg::stdm::intmax_t den=
+    static mwg_constexpr_const mwg::stdm::intmax_t den =
       ratio_detail::intmax_abs<Den>::value / ratio_detail::intmax_gcd<Num, Den>::value;
     typedef mwg::stdm::ratio<num, den> type;
   };
