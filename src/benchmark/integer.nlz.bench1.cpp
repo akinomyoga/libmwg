@@ -64,13 +64,14 @@ mwg_constexpr14 int ndigits_impl_frexp(Unsigned value) mwg_noexcept {
 
 template<typename Unsigned, typename Float, typename Rep>
 int ndigits_impl_float_(Unsigned value) mwg_noexcept {
-  static_assert(sizeof(Float) == sizeof(Rep), "mismatch in sizes of Float and Rep");
   static_assert(std::numeric_limits<Unsigned>::digits <= std::numeric_limits<Float>::max_exponent, "integer too big");
+  static_assert(std::numeric_limits<Float>::is_iec559, "Float is not a ISO IEC 559 (IEEE 754) floating-point number");
+  static_assert(sizeof(Float) == sizeof(Rep), "mismatch in sizes of Float and Rep");
   union {
     Float flt;
     Rep rep;
   } const data = {(Float) value + (Float) 0.5};
-  return (data.rep >> std::numeric_limits<Float>::digits - 1) + (std::numeric_limits<Float>::min_exponent - 1);
+  return (std::numeric_limits<Float>::min_exponent - 1) + (data.rep >> std::numeric_limits<Float>::digits - 1);
 }
 
 template<typename Unsigned>
@@ -210,6 +211,7 @@ inline mwg_constexpr int ndigits_impl_builtin(unsigned __int64 value) {
 // http://blog.jiubao.org/2015/01/gcc-bitscanforward-bitscanreverse-msvc.html
 #endif
 
+// http://d.hatena.ne.jp/siokoshou/20090704#p1
 // http://qiita.com/kazatsuyu/items/38203287c19890a2b7c6
 namespace kazatsuyu {
   template<int n>

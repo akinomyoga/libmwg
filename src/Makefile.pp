@@ -47,6 +47,7 @@ Makefile: Makefile.pp
 #%x AddCxxHeader.r|%file%|mwg/std/tuple.variadic_tuple.inl|
 #%x AddCxxHeader.r|%file%|mwg/std/array|
 #%x AddCxxHeader.r|%file%|mwg/std/algorithm|
+#%x AddCxxHeader.r|%file%|mwg/bits/integer.nlz.h|
 #%x AddCxxHeader.r|%file%|mwg/std/functional|
 #%x AddCxxHeader.r|%file%|mwg/std/execution|
 
