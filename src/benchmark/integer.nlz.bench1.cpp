@@ -192,7 +192,50 @@ inline mwg_constexpr int ndigits_impl_bctz(unsigned long long value) {
   return value? 1 + __builtin_ctzll(util::highest_bit(value)): 0;
 }
 
+template<typename U>
+inline int ndigits_impl_asmbsr_(U value) {
+  __asm__ ("\
+    test %0,%0 \n\
+    je 1f      \n\
+    bsr %0,%0  \n\
+    add $1,%0  \n\
+  1:" : "+r" (value));
+  return (int) value;
+}
+
+inline int ndigits_impl_asmbsr(std11::uint32_t value) {
+  return ndigits_impl_asmbsr_<std11::uint32_t>(value);
+}
+
+inline int ndigits_impl_asmbsr(std11::uint64_t value) {
+  // macros from https://sourceforge.net/p/predef/wiki/Architectures/
+# if defined(__i386__) || defined(_M_IX86) || defined(_X86_) || defined(__IA32__)
+  std11::uint32_t h = value >> 32, l = value;
+  __asm__ ("\
+    test %0,%0 \n\
+    je 1f      \n\
+    bsr %0,%0  \n\
+    add $33,%0 \n\
+    jmp 2f     \n\
+  1:           \n\
+    mov %1,%0  \n\
+    test %0,%0 \n\
+    je 2f      \n\
+    bsr %0,%0  \n\
+    add $1,%0  \n\
+  2:" : "r+" (h), "r" (l));
+  return (int) h;
+# else
+  return ndigits_impl_asmbsr_<std11::uint64_t>(value);
+# endif
+}
+
 #elif defined(_MSC_VER)
+//
+// MSVC では _BitScanReverse, _BitScanReverse64 が使える。
+//   https://msdn.microsoft.com/ja-jp/library/fbxyd7zd.aspx
+//   http://blog.jiubao.org/2015/01/gcc-bitscanforward-bitscanreverse-msvc.html
+//
 inline mwg_constexpr int ndigits_impl_builtin(unsigned long value) {
   if (value == 0) return 0;
   unsigned long ret;
@@ -205,10 +248,6 @@ inline mwg_constexpr int ndigits_impl_builtin(unsigned __int64 value) {
   _BitScanReverse64(&ret, value);
   return (int) ret + 1;
 }
-
-// Note: MSVC では _BitScanReverse, _BitScanReverse64 が使える。
-// https://msdn.microsoft.com/ja-jp/library/fbxyd7zd.aspx
-// http://blog.jiubao.org/2015/01/gcc-bitscanforward-bitscanreverse-msvc.html
 #endif
 
 // http://d.hatena.ne.jp/siokoshou/20090704#p1
@@ -420,11 +459,12 @@ void measure() {
   measure_impl(double);
   measure_impl(float);
 #endif
-#if defined(__GNUC__) || defined(_MSC_VER)
-  measure_impl(builtin);
-#endif
 #if defined(__GNUC__)
+  measure_impl(builtin);
   measure_impl(bctz);
+  measure_impl(asmbsr);
+#elif defined(_MSC_VER)
+  measure_impl(builtin);
 #endif
   measure_impl(kazatsuyu);
   measure_impl(debruijn);
