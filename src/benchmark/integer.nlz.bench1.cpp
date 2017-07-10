@@ -101,15 +101,16 @@ mwg_constexpr14 int ndigits_impl_bsec(Unsigned value) mwg_noexcept {
 }
 
 namespace bsec {
-  template<std::size_t MaxDigits, bool = MaxDigits <= 4>
-  struct ndigits_impl_bsec2_ {
-    static const std::size_t modexp = MaxDigits / 2;
+  template<std::size_t shift, typename next_t>
+  struct ndigits_impl_bsec2_eval {
     template<typename Unsigned>
     static mwg_constexpr int eval(Unsigned value, int accumulator) {
-      typedef ndigits_impl_bsec2_<MaxDigits - modexp> half_t;
-      return value >> modexp? half_t::eval(value >> modexp, accumulator + modexp): half_t::eval(value, accumulator);
+      return value >> shift? next_t::eval(value >> shift, accumulator + shift): next_t::eval(value, accumulator);
     }
   };
+  template<std::size_t MaxDigits, bool = MaxDigits <= 4>
+  struct ndigits_impl_bsec2_:
+    ndigits_impl_bsec2_eval<MaxDigits / 2, ndigits_impl_bsec2_<MaxDigits - MaxDigits / 2> > {};
   template<std::size_t MaxDigits>
   struct ndigits_impl_bsec2_<MaxDigits, true> {
     template<typename Unsigned>
@@ -125,7 +126,8 @@ mwg_constexpr int ndigits_impl_bsec2(Unsigned value) {
 
 namespace bsec {
   template<std::size_t MaxDigits, bool = MaxDigits <= 4>
-  struct ndigits_impl_bsec3_: ndigits_impl_bsec2_<MaxDigits> {};
+  struct ndigits_impl_bsec3_:
+    ndigits_impl_bsec2_eval<MaxDigits / 2, ndigits_impl_bsec3_<MaxDigits - MaxDigits / 2> > {};
   static mwg_constexpr_const int bsec3_table[] = {-1, 0, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3};
   template<std::size_t MaxDigits>
   struct ndigits_impl_bsec3_<MaxDigits, true> {
