@@ -224,7 +224,7 @@ inline int ndigits_impl_asmbsr(std11::uint64_t value) {
     je 2f      \n\
     bsr %0,%0  \n\
     add $1,%0  \n\
-  2:" : "+r" (h), "r" (l));
+  2:" : "+r" (h) : "r" (l));
   return (int) h;
 #  else
   return ndigits_impl_asmbsr_<std11::uint64_t>(value);
