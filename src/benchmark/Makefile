@@ -12,9 +12,16 @@ $(OBJDIR):
 
 CXX=$(MWGCXX)
 #CXXFLAGS += -I $(INS_INCDIR) -I $(INS_INCCFG) -O3
-CXXFLAGS += -I $(CPPDIR) -I $(CFGDIR)/include -O3 -march=native -Wall -Wextra
+ifneq ($(subst -vc-,-,$(CXXPREFIX)),$(CXXPREFIX))
+  # msvc
+  CXXFLAGS += -I $(CPPDIR) -I $(CFGDIR)/include -O3 /arch:AVX2
+  LIBS :=
+else
+  CXXFLAGS += -I $(CPPDIR) -I $(CFGDIR)/include -O3 -march=native -Wall -Wextra
+  LIBS := -lrt
+endif
+
 CPPFLAGS = -MD -MF $(@:.o=.dep)
-LIBS = -lrt
 
 -include $(OBJDIR)/*.dep
 $(OBJDIR)/%.o: %.cpp | $(OBJDIR)

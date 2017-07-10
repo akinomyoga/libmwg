@@ -12,8 +12,9 @@ sort "$file" | gawk '
     if (title != "" && count != 0) {
 
       sub(/:$/, "", title);
-      sub(/builtin/, "builtin(clz)", title);
+      sub(/^builtin$/, "builtin(clz)", title);
       sub(/bctz/, "builtin(ctz)", title);
+      sub(/builtinbsr/, "builtin(bsr)", title);
       sub(/asmbsr/, "asm(bsr)", title);
       sub(/^shift$/, "shift1", title);
       sub(/^bsec$/, "bsec1", title);

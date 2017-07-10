@@ -59,7 +59,7 @@ mwg_constexpr14 int ndigits_impl_frexp(Unsigned value) mwg_noexcept {
   return ret;
 }
 
-#ifdef __STDC_IEC_559__
+#if defined(__STDC_IEC_559__) || defined(_MSC_VER) || defined(__CYGWIN__)
 // http://www.nminoru.jp/~nminoru/programming/bitcount.html 改変
 
 template<typename Unsigned, typename Float, typename Rep>
@@ -93,7 +93,7 @@ mwg_constexpr14 int ndigits_impl_bsec(Unsigned value) mwg_noexcept {
   while (digits > 4) {
     int const modexp = digits / 2;
     // if (Unsigned const reduced = value >> modexp) value = reduced, count += modexp; // 何故か遅い
-    if (value >> modexp) value >>=modexp, count += modexp;
+    if (value >> modexp) value >>= modexp, count += modexp;
     digits -= modexp;
   }
   count += 0xFFFFAA50u >> 2 * value & 3;
@@ -238,18 +238,20 @@ inline int ndigits_impl_asmbsr(std11::uint64_t value) {
 //   https://msdn.microsoft.com/ja-jp/library/fbxyd7zd.aspx
 //   http://blog.jiubao.org/2015/01/gcc-bitscanforward-bitscanreverse-msvc.html
 //
-inline mwg_constexpr int ndigits_impl_builtin(unsigned long value) {
+inline mwg_constexpr14 int ndigits_impl_builtinbsr(unsigned long value) {
   if (value == 0) return 0;
   unsigned long ret;
   _BitScanReverse(&ret, value);
   return (int) ret + 1;
 }
-inline mwg_constexpr int ndigits_impl_builtin(unsigned __int64 value) {
+# ifdef _M_X64
+inline mwg_constexpr14 int ndigits_impl_builtinbsr(unsigned __int64 value) {
   if (value == 0) return 0;
   unsigned long ret;
   _BitScanReverse64(&ret, value);
   return (int) ret + 1;
 }
+# endif
 #endif
 
 // http://d.hatena.ne.jp/siokoshou/20090704#p1
@@ -356,7 +358,7 @@ namespace de_bruijn {
   template<typename U, int ndigit, int imax, U visited, U result>
   struct magic<U, ndigit, imax, visited, result, imax, imax, true>: std11::integral_constant<U, result << 1 | 1> {};
 
-  mwg_constexpr std11::uint64_t generate_magic(int nbits) {
+  mwg_constexpr14 std11::uint64_t generate_magic(int nbits) {
     int const len = 1 << nbits;
 
     std11::uint64_t used = 0;
@@ -441,7 +443,7 @@ void measure() {
   static const std::size_t nmeasure = 100000;
   //if (libmwg::scope_stopwatch sw = libmwg::scope_stopwatch::set_base())
   if (libmwg::scope_stopwatch sw = "base")
-    for(std::size_t i = 0; i < nmeasure; i++) a = i;
+    for(std::size_t i = 0; i < nmeasure; i++) a = (int) i;
 
 #define measure_impl(Name) do { \
     for(std::size_t i = 0; i < nmeasure; i++) \
@@ -457,7 +459,7 @@ void measure() {
   measure_impl(bsec);
   measure_impl(bsec2);
   measure_impl(bsec3);
-#ifdef __STDC_IEC_559__
+#if defined(__STDC_IEC_559__) || defined(_MSC_VER) || defined(__CYGWIN__)
   measure_impl(double);
   measure_impl(float);
 #endif
@@ -468,7 +470,7 @@ void measure() {
   measure_impl(asmbsr);
 # endif
 #elif defined(_MSC_VER)
-  measure_impl(builtin);
+  measure_impl(builtinbsr);
 #endif
   measure_impl(kazatsuyu);
   measure_impl(debruijn);
