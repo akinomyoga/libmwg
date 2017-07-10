@@ -1105,9 +1105,9 @@ namespace stdm {
     if (_x == 0.0 && _y == 0.0)
       return 0.0;
     else if (_x < _y)
-      return _y * std::sqrt(1.0 + (_x / _y) * (_x / _y));
+      return _y * std::sqrt((R) 1.0 + (_x / _y) * (_x / _y));
     else
-      return _x * std::sqrt(1.0 + (_y / _x) * (_y / _x));
+      return _x * std::sqrt((R) 1.0 + (_y / _x) * (_y / _x));
   }
   static inline float hypotf(float lhs, float rhs) {return hypot(lhs, rhs);}
   static inline long double hypotl(long double lhs, long double rhs) {return hypot(lhs, rhs);}
@@ -1130,10 +1130,10 @@ namespace stdm {
     R _x = std::abs((R) x), _y = std::abs((R) y), _z = std::abs((R) z);
     if (_x < _z) std::swap(_x, _z);
     if (_x < _y) std::swap(_x, _y);
-    if (_x == 0.0) return 0.0;
+    if (_x == 0.0) return (R) 0.0;
     _y /= _x;
     _z /= _x;
-    return _x * std::sqrt(1.0 + _y * _y + _z * _z);
+    return _x * std::sqrt((R) 1.0 + _y * _y + _z * _z);
   }
   static inline float hypotf(float a1, float a2, float a3) {return hypot(a1, a2, a3);}
   static inline long double hypotl(long double a1, long double a2, long double a3) {return hypot(a1, a2, a3);}
