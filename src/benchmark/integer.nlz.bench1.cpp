@@ -192,6 +192,8 @@ inline mwg_constexpr int ndigits_impl_bctz(unsigned long long value) {
   return value? 1 + __builtin_ctzll(util::highest_bit(value)): 0;
 }
 
+// macros from https://sourceforge.net/p/predef/wiki/Architectures/
+# if defined(__i386) || defined(__x86_64)
 template<typename U>
 inline int ndigits_impl_asmbsr_(U value) {
   __asm__ ("\
@@ -208,8 +210,7 @@ inline int ndigits_impl_asmbsr(std11::uint32_t value) {
 }
 
 inline int ndigits_impl_asmbsr(std11::uint64_t value) {
-  // macros from https://sourceforge.net/p/predef/wiki/Architectures/
-# if defined(__i386__) || defined(_M_IX86) || defined(_X86_) || defined(__IA32__)
+#  if defined(__i386)
   std11::uint32_t h = value >> 32, l = value;
   __asm__ ("\
     test %0,%0 \n\
@@ -223,12 +224,13 @@ inline int ndigits_impl_asmbsr(std11::uint64_t value) {
     je 2f      \n\
     bsr %0,%0  \n\
     add $1,%0  \n\
-  2:" : "r+" (h), "r" (l));
+  2:" : "+r" (h), "r" (l));
   return (int) h;
-# else
+#  else
   return ndigits_impl_asmbsr_<std11::uint64_t>(value);
-# endif
+#  endif
 }
+# endif
 
 #elif defined(_MSC_VER)
 //
@@ -445,7 +447,7 @@ void measure() {
     for(std::size_t i = 0; i < nmeasure; i++) \
       mwg_check(ndigits_impl_shift(i) == ndigits_impl_##Name(i), "i=%d result=%d (%d)", i, ndigits_impl_##Name(i), ndigits_impl_shift(i)); \
     if (libmwg::scope_stopwatch sw = #Name) \
-      for(std::size_t i = 0; i < nmeasure; i++) a += ndigits_impl_##Name(i); \
+      for(std::size_t i = 0; i < nmeasure; i++) a = ndigits_impl_##Name(i); \
   } while (0)
 
   measure_impl(shift);
@@ -462,7 +464,9 @@ void measure() {
 #if defined(__GNUC__)
   measure_impl(builtin);
   measure_impl(bctz);
+# if defined(__i386) || defined(__x86_64)
   measure_impl(asmbsr);
+# endif
 #elif defined(_MSC_VER)
   measure_impl(builtin);
 #endif
@@ -474,21 +478,7 @@ void measure() {
 int main() {
   std::cout << "sizeof(std::size_t) = " << sizeof(std::size_t) << std::endl;
   //de_bruijn::debug();
-  measure();
-  // static mwg_constexpr_const int table[127] = {
-  //   64, 63, -1, 62, -1, 51, -1, 61,  3, -1, 50, -1, -1, 10, -1, 60,
-  //    2, -1, -1, 42, -1, 49, -1, 21, -1, 39,  9, -1, -1, 35, -1, 59,
-  //    1, -1,  5, -1, 44, -1, 41, -1, -1, 46, 48, -1, -1, 30, -1, 20,
-  //   -1, 13, -1, 38,  8, -1, -1, 28, -1, 25, 34, -1, -1, 18, -1, 58,
-  //    0, -1, 52, -1,  4, -1, 11, -1, -1, 43, -1, 22, 40, -1, 36, -1,
-  //   -1,  6, 45, -1, 47, -1, 31, -1, 14, -1, -1, 29, 26, -1, 19, -1,
-  //   -1, 53, -1, 12, -1, 23, -1, 37,  7, -1, -1, 32, 15, -1, 27, -1,
-  //   54, -1, 24, -1, -1, 33, 16, -1, 55, -1, -1, 17, 56, -1, 57,
-  // };
-  // for (int i = 0; i < 127; i++) {
-  //   std::printf(" %3d,", table[i] == -1? -1: 64 - table[i]);
-  //   if ((i + 1) % 16 == 0) std::putchar('\n');
-  // }
 
+  for (int i = 0; i < 1000; i++) measure();
   return 0;
 }
