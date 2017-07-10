@@ -225,7 +225,7 @@ namespace mwg {
 //------------------------------------------------------------------------------
 //  __VA_ARGS__
 //------------------------------------------------------------------------------
-#if defined(_MSC_VER)? (_MSC_VER >= 1400): (defined(__GNUC__)? (__GNUC__ >= 3): 1)
+#if MWGCONF_MSC_VER? (MWGCONF_MSC_VER >= 1400): (MWGCONF_GCC_VER? (MWGCONF_GCC_VER >= 30000): 1)
 # define MWG_STD_VA_ARGS
 #endif
 //------------------------------------------------------------------------------
@@ -249,7 +249,7 @@ namespace mwg {
 #else
 # define mwg_vc_typename
 #endif
-#if defined(MWGCONF_GCC_VER) && (MWGCONF_GCC_VER >= 40200) || defined(MWGCONF_CLANG_VER) || defined(MWGCONF_ICC_VER)
+#if (MWGCONF_GCC_VER >= 40200) || MWGCONF_CLANG_VER || MWGCONF_ICC_VER
 # define MWG_STD_QUALIFIED_FUNCTION_TYPES
 #endif
 #if (MWGCONF_GCC_VER && MWGCONF_GCC_VER < 30400)

@@ -41,7 +41,7 @@ namespace type_traits {
 
     // unqualified member function pointers:
     //   一部の古いコンパイラでメンバ関数ポインタは T C::* に一致しない。
-#if defined(MWGCONF_GCC_VER) && (MWGCONF_GCC_VER < 40200) || defined(MWGCONF_MSC_VER)
+#if MWGCONF_GCC_VER && (MWGCONF_GCC_VER < 40200) || MWGCONF_MSC_VER
 #pragma%m 1
 #pragma%x 2.r/QUALIFIER//
 #pragma%end

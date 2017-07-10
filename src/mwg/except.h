@@ -475,7 +475,7 @@ namespace except_detail {
   MWG_ATTRIBUTE_UNUSED
   static bool mwg_noinline vthrow_fail(const char* expr, const char* pos, const char* func, const char* fmt, va_list arg1, va_list arg2) {
     increment_fail_count();
-#if MWG_DEBUG || !defined(NDEBUG)
+#if defined(MWG_DEBUG) || !defined(NDEBUG)
     vprint_fail_impl(expr, pos, func, fmt, arg1);
 #endif
     vthrow_fail_impl(expr, pos, func, fmt, arg2);
@@ -656,7 +656,7 @@ namespace except_detail {
 # define mwg_check         (::mwg::except_detail::mwg_check_proxy<true> ("N/A", mwg_assert_position, mwg_assert_funcname))
 #endif
 
-#if MWG_DEBUG||!defined(NDEBUG)
+#if defined(MWG_DEBUG) || !defined(NDEBUG)
 # define mwg_verify_nothrow mwg_check_nothrow
 # define mwg_verify         mwg_check
 # define mwg_assert_nothrow mwg_check_nothrow
