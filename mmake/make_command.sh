@@ -70,25 +70,29 @@ function proc/transform-source {
   [[ ! -s $file ]] && return 0
 
   local transform='cat "$file"'
+  local transform_desc="cat $file"
   local transform_set=
 
   # modify source encoding
   if [[ $CXXENC != $SRCENC ]]; then
     local sed_iconv='/-\*-.\{1,\}-\*-/s/\bcoding:[[:space:]]*'"$SRCENC"'\b/coding: '"$CXXENC"'/'
-    transform="$transform"'|sed -e "$sed_iconv"|iconv -c -f "$SRCENC" -t "$CXXENC"'
+    transform="$transform"' | sed -e "$sed_iconv" | iconv -c -f "$SRCENC" -t "$CXXENC"'
+    transform_desc="$transform_desc | sed -e $sed_iconv | iconv -c -f $SRCENC -t $CXXENC"
     transform_set=1
   fi
 
   # custrom transform
   if [[ $MMAKE_SOURCE_FILTER ]]; then
-    transform="$transform|$MMAKE_SOURCE_FILTER"
+    transform="$transform | $MMAKE_SOURCE_FILTER"
+    transform_desc="$transform_desc | $MMAKE_SOURCE_FILTER"
     transform_set=1
   fi
 
   [[ $transform_set ]] || return 0
 
   transform="$transform"' > "$file.iconv" && mv "$file.iconv" "$file"'
-  [[ $mcxx_verbose ]] && echo "$transform"
+  transform_desc="$transform_desc > $file.iconv && mv $file.iconv $file"
+  [[ $mcxx_verbose ]] && echo "$transform_desc"
   eval "$transform"
 }
 
