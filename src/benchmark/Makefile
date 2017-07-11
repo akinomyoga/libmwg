@@ -23,6 +23,8 @@ endif
 
 ifeq ($(HOSTNAME),laguerre01.ph.sophia.ac.jp)
   CXXFLAGS += -DLAGUERRE
+else ifeq ($(HOSTNAME),padparadscha)
+  CXXFLAGS += -DPADPARADSCHA
 endif
 
 CPPFLAGS = -MD -MF $(@:.o=.dep)

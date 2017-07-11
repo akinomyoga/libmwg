@@ -253,7 +253,7 @@ inline int ndigits_impl_bpopcount(unsigned __int64 value) {
 
 /* Note: [x86_64でpopcnt / tzcnt / lzcntする【ビット演算テクニック Advent Calendar 2016 5日目】 - Qiita](http://qiita.com/ocxtal/items/01c46b15cb1f2e656887)
  */
-#if defined(__GNUC__) && !defined(__clang__) && !(defined(__INTEL_COMPILER) && defined(__i386)) && !(defined(LAGUERRE) && MWGCONF_GCC_VER) || defined(_MSC_VER)
+#if defined(_MSC_VER) || defined(__GNUC__) && defined(__CYGWIN__) || MWGCONF_ICC_VER && defined(LAGUERRE)
 # define intrin_lzcnt_defined
 # ifdef __GNUC__
 #  include <x86intrin.h>
@@ -262,11 +262,11 @@ inline int ndigits_impl_bpopcount(unsigned __int64 value) {
 #  include <ammintrin.h>
 #  include <immintrin.h>
 # endif
-inline int ndigits_impl_ilzcnt(std11::uint32_t value) {
-  return std::numeric_limits<std11::uint32_t>::digits - _lzcnt_u32(value);
-}
 inline int ndigits_impl_itzcnt(std11::uint32_t value) {
   return _tzcnt_u32(~util::sup_pow2m1(value));
+}
+inline int ndigits_impl_ilzcnt(std11::uint32_t value) {
+  return std::numeric_limits<std11::uint32_t>::digits - _lzcnt_u32(value);
 }
 # if defined(_M_X64) || defined(__x86_64)
 inline int ndigits_impl_ilzcnt(std11::uint64_t value) {
@@ -319,7 +319,7 @@ inline int ndigits_impl_ibsf(unsigned __int64 value) mwg_noexcept {
 # endif
 #endif
 
-#if defined(_MSC_VER) || defined(__GNUC__) && !(defined(LAGUERRE) && (MWGCONF_GCC_VER || MWGCONF_CLANG_VER))
+#if defined(_MSC_VER) || defined(__GNUC__) && defined(__CYGWIN__) || MWGCONF_ICC_VER
 # define intrin_popcnt_defined
 # include <immintrin.h>
 inline int ndigits_impl_ipopcnt(std11::uint32_t value) {
