@@ -54,7 +54,7 @@ mwg_constexpr14 int ndigits_impl_frexp(Unsigned value) mwg_noexcept {
   // - Note: frexp は value == 0 に対して *exp = 0 を返すので気にしなくて良い。
   // - NTZ の場合の計測結果がここにある https://srad.jp/~TarZ/journal/481257/
   //   これによると frexp による実装は遅そうだ。
-  int ret;
+  int ret = 0;
   frexp((double) value, &ret);
   return ret;
 }
