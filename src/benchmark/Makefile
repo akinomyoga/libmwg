@@ -21,6 +21,10 @@ else
   LIBS := -lrt
 endif
 
+ifeq ($(HOSTNAME),laguerre01.ph.sophia.ac.jp)
+  CXXFLAGS += -DLAGUERRE
+endif
+
 CPPFLAGS = -MD -MF $(@:.o=.dep)
 
 -include $(OBJDIR)/*.dep

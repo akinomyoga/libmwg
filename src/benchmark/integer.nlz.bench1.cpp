@@ -253,7 +253,7 @@ inline int ndigits_impl_bpopcount(unsigned __int64 value) {
 
 /* Note: [x86_64でpopcnt / tzcnt / lzcntする【ビット演算テクニック Advent Calendar 2016 5日目】 - Qiita](http://qiita.com/ocxtal/items/01c46b15cb1f2e656887)
  */
-#if defined(__GNUC__) && !defined(__clang__) && !(defined(__INTEL_COMPILER) && defined(__i386)) || defined(_MSC_VER)
+#if defined(__GNUC__) && !defined(__clang__) && !(defined(__INTEL_COMPILER) && defined(__i386)) && !(defined(LAGUERRE) && MWGCONF_GCC_VER) || defined(_MSC_VER)
 # define intrin_lzcnt_defined
 # ifdef __GNUC__
 #  include <x86intrin.h>
@@ -265,14 +265,14 @@ inline int ndigits_impl_bpopcount(unsigned __int64 value) {
 inline int ndigits_impl_ilzcnt(std11::uint32_t value) {
   return std::numeric_limits<std11::uint32_t>::digits - _lzcnt_u32(value);
 }
-inline int ndigits_impl_itzcnt(unsigned int value) {
+inline int ndigits_impl_itzcnt(std11::uint32_t value) {
   return _tzcnt_u32(~util::sup_pow2m1(value));
 }
 # if defined(_M_X64) || defined(__x86_64)
 inline int ndigits_impl_ilzcnt(std11::uint64_t value) {
   return std::numeric_limits<std11::uint64_t>::digits - _lzcnt_u64(value);
 }
-inline int ndigits_impl_itzcnt(unsigned __int64 value) {
+inline int ndigits_impl_itzcnt(std11::uint64_t value) {
   return _tzcnt_u64(~util::sup_pow2m1(value));
 }
 # endif
@@ -280,7 +280,7 @@ inline int ndigits_impl_itzcnt(unsigned __int64 value) {
 
 // ibsr ibsf
 
-#if defined(_MSC_VER) || defined(__GNUC__)
+#if defined(_MSC_VER) || defined(__GNUC__) && defined(__CYGWIN__)
 # define intrin_bsr_defined
 # include <intrin.h>
 # include <immintrin.h>
@@ -288,7 +288,7 @@ inline int ndigits_impl_itzcnt(unsigned __int64 value) {
  *   https://msdn.microsoft.com/ja-jp/library/fbxyd7zd.aspx
  *   http://blog.jiubao.org/2015/01/gcc-bitscanforward-bitscanreverse-msvc.html
  *
- * 調べると一般に使える様だ。
+ * 調べると一般に使える様だ。と思ったが Linux では使えなかった。
  *   https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=BitScan
  */
 inline int ndigits_impl_ibsr(unsigned long value) mwg_noexcept {
@@ -303,9 +303,6 @@ inline int ndigits_impl_ibsf(unsigned long value) mwg_noexcept {
   _BitScanForward(&ret, util::highest_bit(value));
   return (int) ret + 1;
 }
-inline mwg_constexpr int ndigits_impl_ipopcnt(std11::uint32_t value) mwg_noexcept {
-  return _popcnt32(util::sup_pow2m1(value));
-}
 # if defined(_M_X64) || defined(__x86_64)
 inline int ndigits_impl_ibsr(unsigned __int64 value) mwg_noexcept {
   if (value == 0) return 0;
@@ -319,12 +316,21 @@ inline int ndigits_impl_ibsf(unsigned __int64 value) mwg_noexcept {
   _BitScanForward64(&ret, util::highest_bit(value));
   return (int) ret + 1;
 }
-inline mwg_constexpr int ndigits_impl_ipopcnt(std11::uint64_t value) mwg_noexcept {
+# endif
+#endif
+
+#if defined(_MSC_VER) || defined(__GNUC__) && !(defined(LAGUERRE) && (MWGCONF_GCC_VER || MWGCONF_CLANG_VER))
+# define intrin_popcnt_defined
+# include <immintrin.h>
+inline int ndigits_impl_ipopcnt(std11::uint32_t value) {
+  return _popcnt32(util::sup_pow2m1(value));
+}
+# if defined(_M_X64) || defined(__x86_64)
+inline int ndigits_impl_ipopcnt(std11::uint64_t value) {
   return _popcnt64(util::sup_pow2m1(value));
 }
 # endif
 #endif
-
 
 // asmbsr
 
@@ -637,6 +643,8 @@ void measure() {
 #ifdef intrin_bsr_defined
   measure_impl(ibsr);
   measure_impl(ibsf);
+#endif
+#ifdef intrin_popcnt_defined
   measure_impl(ipopcnt);
 #endif
 #if defined(__GNUC__) && (defined(__i386) || defined(__x86_64)) || defined(_MSC_VER)
