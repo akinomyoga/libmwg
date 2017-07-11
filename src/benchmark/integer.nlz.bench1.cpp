@@ -51,9 +51,10 @@ mwg_constexpr14 int ndigits_impl_shift8(Unsigned value) mwg_noexcept {
 
 template<typename Unsigned>
 mwg_constexpr14 int ndigits_impl_frexp(Unsigned value) mwg_noexcept {
-  // - Note: frexp は value == 0 に対して *exp = 0 を返すので気にしなくて良い。
-  // - NTZ の場合の計測結果がここにある https://srad.jp/~TarZ/journal/481257/
-  //   これによると frexp による実装は遅そうだ。
+  /* - Note: frexp は value == 0 に対して *exp = 0 を返すので気にしなくて良い。
+   * - NTZ の場合の計測結果がここにある https://srad.jp/~TarZ/journal/481257/
+   *   これによると frexp による実装は遅そうだ。
+   */
   int ret;
   frexp((double) value, &ret);
   return ret;
@@ -92,7 +93,7 @@ mwg_constexpr14 int ndigits_impl_bsec(Unsigned value) mwg_noexcept {
   int count = 1;
   while (digits > 4) {
     int const modexp = digits / 2;
-    // if (Unsigned const reduced = value >> modexp) value = reduced, count += modexp; // 何故か遅い
+    // if (Unsigned const reduced = value >> modexp) value = reduced, count += modexp; /* 何故か遅い */
     if (value >> modexp) value >>= modexp, count += modexp;
     digits -= modexp;
   }
@@ -139,8 +140,9 @@ namespace bsec {
 }
 template<typename Unsigned>
 mwg_constexpr int ndigits_impl_bsec3(Unsigned value) {
-  // bsec2 の様に即値のシフトによるテーブルにしても、
-  // bsec3 の様に配列を参照しても速度は変わらない様だ。
+  /* bsec2 の様に即値のシフトによるテーブルにしても、
+   * bsec3 の様に配列を参照しても速度は変わらない様だ。
+   */
   return value? bsec::ndigits_impl_bsec3_<std::numeric_limits<Unsigned>::digits>::eval(value, 1): 0;
 }
 
@@ -173,6 +175,12 @@ namespace util {
   }
 }
 
+/* bclz/bctz/bpopcount/bffs
+ *
+ * Note: [50168 – __builtin_ctz() and intrinsics __bsr(), __bsf() generate suboptimal code on x86_64](https://gcc.gnu.org/bugzilla/show_bug.cgi?id=50168)
+ * に __bsr()/__bsf() が存在しそうなことが書かれているが実際に検索してみるとこのページにしか見つからない。
+ * これは報告した人が勝手に変なことを書いただけなのだと思われる。
+ */
 #ifdef __GNUC__
 inline mwg_constexpr int ndigits_impl_bclz(unsigned value) {
   return value? std::numeric_limits<unsigned>::digits - __builtin_clz(value): 0;
@@ -194,13 +202,13 @@ inline mwg_constexpr int ndigits_impl_bctz(unsigned long long value) {
   return value? 1 + __builtin_ctzll(util::highest_bit(value)): 0;
 }
 
-inline mwg_constexpr int ndigits_impl_bcpop(unsigned int value) {
+inline mwg_constexpr int ndigits_impl_bpopcount(unsigned int value) {
   return __builtin_popcount(util::sup_pow2m1(value));
 }
-inline mwg_constexpr int ndigits_impl_bcpop(unsigned long value) {
+inline mwg_constexpr int ndigits_impl_bpopcount(unsigned long value) {
   return __builtin_popcountl(util::sup_pow2m1(value));
 }
-inline mwg_constexpr int ndigits_impl_bcpop(unsigned long long value) {
+inline mwg_constexpr int ndigits_impl_bpopcount(unsigned long long value) {
   return __builtin_popcountll(util::sup_pow2m1(value));
 }
 
@@ -214,6 +222,113 @@ inline mwg_constexpr int ndigits_impl_bffs(unsigned long long value) {
   return __builtin_ffsll(util::highest_bit(value));
 }
 
+#elif defined(_MSC_VER)
+# include <intrin.h>
+inline int ndigits_impl_bclz(unsigned short value) {
+  return std::numeric_limits<unsigned short>::digits - __lzcnt16(value);
+}
+inline int ndigits_impl_bclz(unsigned int value) {
+  return std::numeric_limits<unsigned int>::digits - __lzcnt(value);
+}
+# ifdef _M_X64
+inline int ndigits_impl_bclz(unsigned __int64 value) {
+  return std::numeric_limits<unsigned __int64>::digits - __lzcnt64(value);
+}
+# endif
+
+inline int ndigits_impl_bpopcount(unsigned short value) {
+  return __popcnt16(util::sup_pow2m1(value));
+}
+inline int ndigits_impl_bpopcount(unsigned int value) {
+  return __popcnt(util::sup_pow2m1(value));
+}
+# ifdef _M_X64
+inline int ndigits_impl_bpopcount(unsigned __int64 value) {
+  return __popcnt64(util::sup_pow2m1(value));
+}
+# endif
+#endif
+
+// ilzcnt/tzcnt
+
+/* Note: [x86_64でpopcnt / tzcnt / lzcntする【ビット演算テクニック Advent Calendar 2016 5日目】 - Qiita](http://qiita.com/ocxtal/items/01c46b15cb1f2e656887)
+ */
+#if defined(__GNUC__) && !defined(__clang__) && !(defined(__INTEL_COMPILER) && defined(__i386)) || defined(_MSC_VER)
+# define intrin_lzcnt_defined
+# ifdef __GNUC__
+#  include <x86intrin.h>
+# elif defined(_MSC_VER)
+#  include <intrin.h>
+#  include <ammintrin.h>
+#  include <immintrin.h>
+# endif
+inline int ndigits_impl_ilzcnt(std11::uint32_t value) {
+  return std::numeric_limits<std11::uint32_t>::digits - _lzcnt_u32(value);
+}
+inline int ndigits_impl_itzcnt(unsigned int value) {
+  return _tzcnt_u32(~util::sup_pow2m1(value));
+}
+# if defined(_M_X64) || defined(__x86_64)
+inline int ndigits_impl_ilzcnt(std11::uint64_t value) {
+  return std::numeric_limits<std11::uint64_t>::digits - _lzcnt_u64(value);
+}
+inline int ndigits_impl_itzcnt(unsigned __int64 value) {
+  return _tzcnt_u64(~util::sup_pow2m1(value));
+}
+# endif
+#endif
+
+// ibsr ibsf
+
+#if defined(_MSC_VER) || defined(__GNUC__)
+# define intrin_bsr_defined
+# include <intrin.h>
+# include <immintrin.h>
+/* MSVC では _BitScanReverse, _BitScanReverse64 が使える。
+ *   https://msdn.microsoft.com/ja-jp/library/fbxyd7zd.aspx
+ *   http://blog.jiubao.org/2015/01/gcc-bitscanforward-bitscanreverse-msvc.html
+ *
+ * 調べると一般に使える様だ。
+ *   https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=BitScan
+ */
+inline mwg_constexpr14 int ndigits_impl_ibsr(unsigned long value) {
+  if (value == 0) return 0;
+  unsigned long ret;
+  _BitScanReverse(&ret, value);
+  return (int) ret + 1;
+}
+inline mwg_constexpr14 int ndigits_impl_ibsf(unsigned long value) {
+  if (value == 0) return 0;
+  unsigned long ret;
+  _BitScanForward(&ret, util::highest_bit(value));
+  return (int) ret + 1;
+}
+inline int ndigits_impl_ipopcnt(std11::uint32_t value) {
+  return _popcnt32(util::sup_pow2m1(value));
+}
+# if defined(_M_X64) || defined(__x86_64)
+inline mwg_constexpr14 int ndigits_impl_ibsr(unsigned __int64 value) {
+  if (value == 0) return 0;
+  unsigned long ret;
+  _BitScanReverse64(&ret, value);
+  return (int) ret + 1;
+}
+inline mwg_constexpr14 int ndigits_impl_ibsf(unsigned __int64 value) {
+  if (value == 0) return 0;
+  unsigned long ret;
+  _BitScanForward64(&ret, util::highest_bit(value));
+  return (int) ret + 1;
+}
+inline int ndigits_impl_ipopcnt(std11::uint64_t value) {
+  return _popcnt64(util::sup_pow2m1(value));
+}
+# endif
+#endif
+
+
+// asmbsr
+
+#ifdef __GNUC__
 // macros from https://sourceforge.net/p/predef/wiki/Architectures/
 # if defined(__i386) || defined(__x86_64)
 template<typename U>
@@ -253,80 +368,7 @@ inline int ndigits_impl_asmbsr(std11::uint64_t value) {
 #  endif
 }
 # endif
-
-#elif defined(_MSC_VER)
-# include <intrin.h>
-# include <ammintrin.h>
-# include <immintrin.h>
-
-inline int ndigits_impl_bclz(unsigned short value) {
-  return std::numeric_limits<unsigned short>::digits - __lzcnt16(value);
-}
-inline int ndigits_impl_bclz(unsigned int value) {
-  return std::numeric_limits<unsigned int>::digits - __lzcnt(value);
-}
-# ifdef _M_X64
-inline int ndigits_impl_bclz(unsigned __int64 value) {
-  return std::numeric_limits<unsigned __int64>::digits - __lzcnt64(value);
-}
-# endif
-
-inline mwg_constexpr int ndigits_impl_bctz(unsigned int value) {
-  return value? 1 + _tzcnt_u32(util::highest_bit(value)): 0;
-}
-# ifdef _M_X64
-inline mwg_constexpr int ndigits_impl_bctz(unsigned __int64 value) {
-  return value? 1 + _tzcnt_u64(util::highest_bit(value)): 0;
-}
-# endif
-
-inline int ndigits_impl_bcpop(unsigned short value) {
-  return __popcnt16(util::sup_pow2m1(value));
-}
-inline int ndigits_impl_bcpop(unsigned int value) {
-  return __popcnt(util::sup_pow2m1(value));
-}
-# ifdef _M_X64
-inline int ndigits_impl_bcpop(unsigned __int64 value) {
-  return __popcnt64(util::sup_pow2m1(value));
-}
-# endif
-
-//
-// MSVC では _BitScanReverse, _BitScanReverse64 が使える。
-//   https://msdn.microsoft.com/ja-jp/library/fbxyd7zd.aspx
-//   http://blog.jiubao.org/2015/01/gcc-bitscanforward-bitscanreverse-msvc.html
-//
-inline mwg_constexpr14 int ndigits_impl_bbsr(unsigned long value) {
-  if (value == 0) return 0;
-  unsigned long ret;
-  _BitScanReverse(&ret, value);
-  return (int) ret + 1;
-}
-# ifdef _M_X64
-inline mwg_constexpr14 int ndigits_impl_bbsr(unsigned __int64 value) {
-  if (value == 0) return 0;
-  unsigned long ret;
-  _BitScanReverse64(&ret, value);
-  return (int) ret + 1;
-}
-# endif
-
-inline mwg_constexpr14 int ndigits_impl_bbsf(unsigned long value) {
-  if (value == 0) return 0;
-  unsigned long ret;
-  _BitScanForward(&ret, util::highest_bit(value));
-  return (int) ret + 1;
-}
-# ifdef _M_X64
-inline mwg_constexpr14 int ndigits_impl_bbsf(unsigned __int64 value) {
-  if (value == 0) return 0;
-  unsigned long ret;
-  _BitScanForward64(&ret, util::highest_bit(value));
-  return (int) ret + 1;
-}
-# endif
-
+#else
 inline int ndigits_impl_asmbsr(std11::uint32_t value) {
   __asm {
     mov  eax, value
@@ -366,7 +408,6 @@ inline int ndigits_impl_asmbsr(std11::uint64_t value) {
   }
 # endif
 }
-
 #endif
 
 // http://d.hatena.ne.jp/siokoshou/20090704#p1
@@ -570,32 +611,37 @@ void measure() {
   measure_impl(shift);
   measure_impl(shift4);
   measure_impl(shift8);
-  measure_impl(frexp);
   measure_impl(bsec);
   measure_impl(bsec2);
   measure_impl(bsec3);
+  measure_impl(kazatsuyu);
+  measure_impl(debruijn);
+  measure_impl(debruijn2);
+  measure_impl(frexp);
 #if defined(__STDC_IEC_559__) || defined(_MSC_VER) || defined(__CYGWIN__)
   measure_impl(double);
   measure_impl(float);
 #endif
 #if defined(__GNUC__) || defined(_MSC_VER)
   measure_impl(bclz);
+  measure_impl(bpopcount);
+#endif
+#ifdef __GNUC__
   measure_impl(bctz);
-  measure_impl(bcpop);
+  measure_impl(bffs);
+#endif
+#ifdef intrin_lzcnt_defined
+  measure_impl(ilzcnt);
+  measure_impl(itzcnt);
+#endif
+#ifdef intrin_bsr_defined
+  measure_impl(ibsr);
+  measure_impl(ibsf);
+  measure_impl(ipopcnt);
 #endif
 #if defined(__GNUC__) && (defined(__i386) || defined(__x86_64)) || defined(_MSC_VER)
   measure_impl(asmbsr);
 #endif
-#if defined(_MSC_VER)
-  measure_impl(bbsr);
-  measure_impl(bbsf);
-#endif
-#if defined(__GNUC__)
-  measure_impl(bffs);
-#endif
-  measure_impl(kazatsuyu);
-  measure_impl(debruijn);
-  measure_impl(debruijn2);
 }
 
 int main() {
