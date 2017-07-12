@@ -7,8 +7,7 @@ BASE=../..
 include $(BASE)/mmake/vars.mk
 
 OBJDIR = .obj
-$(OBJDIR):
-	mkdir -p $@
+directories += $(OBJDIR)
 
 CXX=$(MWGCXX)
 #CXXFLAGS += -I $(INS_INCDIR) -I $(INS_INCCFG) -O3
@@ -32,14 +31,20 @@ CPPFLAGS = -MD -MF $(@:.o=.dep)
 -include $(OBJDIR)/*.dep
 $(OBJDIR)/%.o: %.cpp | $(OBJDIR)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
+$(OBJDIR)/integer.nlz/%.o: integer.nlz/%.cpp | $(OBJDIR)/integer.nlz
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -I . -c -o $@ $<
 
 str.bench1.exe: $(OBJDIR)/str.bench1.o
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
 all: str.bench1.exe
 
-integer.nlz.bench1.exe: $(OBJDIR)/integer.nlz.bench1.o
+directories += $(OBJDIR)/integer.nlz
+integer.nlz/bench1.exe: $(OBJDIR)/integer.nlz/bench1.o
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
-all: integer.nlz.bench1.exe
+all: integer.nlz/bench1.exe
+
+$(directories):
+	mkdir -p $@
 
 clean:
-	-rm -f *.o
+	-rm -rf $(OBJDIR)

@@ -1,15 +1,14 @@
 #!/bin/bash
 
-export outdir=out/integer.nlz
+export outdir=../out/integer.nlz
 [[ -d $outdir ]] || mkdir -p "$outdir"
-
 
 function measure_and_summary {
   local name=${1:-laguerre.icc}
   
-  local file=$outdir/integer.nlz.$name.txt
+  local file=$outdir/measure.$name.txt
   if [[ $force_update || ! -e $file ]]; then
-    ./integer.nlz.bench1.exe > "$file"
+    ./bench1.exe > "$file"
   fi
   
   sort "$file" | gawk '
@@ -107,46 +106,53 @@ function measure_and_summary {
   '
 }
 
-if [[ $1 == force ]]; then
+case $1 in
+(force)
   if [[ $HOSTNAME == padparadscha ]]; then
-    touch integer.nlz.bench1.cpp
+    touch bench1.cpp
     CXXKEY=c make
     force_update=1 measure_and_summary pad.clang
-    touch integer.nlz.bench1.cpp
+    touch bench1.cpp
     CXXKEY=g make
     force_update=1 measure_and_summary pad.gcc
-    touch integer.nlz.bench1.cpp
+    touch bench1.cpp
     CXXKEY=i make
     force_update=1 measure_and_summary pad.icc
   elif [[ ${HOSTNAME%%.*} == laguerre01 ]]; then
-    touch integer.nlz.bench1.cpp
+    touch bench1.cpp
     CXXKEY=c35 make
     force_update=1 measure_and_summary laguerre.clang
-    touch integer.nlz.bench1.cpp
+    touch bench1.cpp
     CXXKEY=g710 make
     force_update=1 measure_and_summary laguerre.gcc
-    touch integer.nlz.bench1.cpp
+    touch bench1.cpp
     CXXKEY=i13 make
     force_update=1 measure_and_summary laguerre.icc
   elif [[ $HOSTNAME == magnate2016 ]]; then
-    touch integer.nlz.bench1.cpp
+    touch bench1.cpp
     CXXKEY=c make
     force_update=1 measure_and_summary mag.clang
-    touch integer.nlz.bench1.cpp
+    touch bench1.cpp
     CXXKEY=g make
     force_update=1 measure_and_summary mag.gcc
-    touch integer.nlz.bench1.cpp
+    touch bench1.cpp
     CXXKEY=v1910 make
     force_update=1 measure_and_summary mag.msc
-  fi
-fi
+  fi ;;
+(regenerate-summary)
+  measure_and_summary pad.gcc
+  measure_and_summary pad.clang
+  measure_and_summary pad.icc
+  measure_and_summary mag.gcc
+  measure_and_summary mag.clang
+  measure_and_summary mag.msc
+  measure_and_summary laguerre.gcc
+  measure_and_summary laguerre.clang
+  measure_and_summary laguerre.icc ;;
+(plot)
+  gnuplot benchmark.gp
+  ps2pdf -dEPSCrop $outdir/benchmark.eps
+  mv benchmark.pdf $outdir/
+  echo "file: ../out/integer.nlz/benchmark.pdf" >&2 ;;
+esac
 
-# measure_and_summary pad.gcc
-# measure_and_summary pad.clang
-# measure_and_summary pad.icc
-# measure_and_summary mag.gcc
-# measure_and_summary mag.clang
-# measure_and_summary mag.msc
-# measure_and_summary laguerre.gcc
-# measure_and_summary laguerre.clang
-# measure_and_summary laguerre.icc

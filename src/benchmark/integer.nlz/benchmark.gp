@@ -1,25 +1,7 @@
 #!/usr/bin/gnuplot
 # -*- mode: sh -*-
 
-outdir = 'out/integer.nlz'
-
-# plot \
-#   outdir."/hist.base.txt" w l, \
-#   outdir."/hist.shift.txt" w l, \
-#   outdir."/hist.shift4.txt" w l, \
-#   outdir."/hist.shift8.txt" w l, \
-#   outdir."/hist.bsec.txt" w l, \
-#   outdir."/hist.bsec2.txt" w l, \
-#   outdir."/hist.bsec3.txt" w l, \
-#   outdir."/hist.builtin.txt" w l, \
-#   outdir."/hist.bctz.txt" w l, \
-#   outdir."/hist.asmbsr.txt" w l, \
-#   outdir."/hist.frexp.txt" w l, \
-#   outdir."/hist.double.txt" w l, \
-#   outdir."/hist.float.txt" w l, \
-#   outdir."/hist.kazatsuyu.txt" w l, \
-#   outdir."/hist.debruijn.txt" w l, \
-#   outdir."/hist.debruijn2.txt" w l
+outdir = '../out/integer.nlz'
 
 set terminal postscript eps color size 4,4
 #set size 1.0,2.0/(1+sqrt(5))
@@ -36,8 +18,8 @@ pad_gcc_shift = 1965
 mag_gcc_shift = 509
 lag_gcc_shift = 954
 upad = 'using ($0-0.25):($3/pad_gcc_shift) pt 8'
-umag = 'using ($0+0.00):($3/mag_gcc_shift) pt 4'
-ulag = 'using ($0+0.25):($3/lag_gcc_shift) pt 6'
+umag = 'using ($0+0.25):($3/mag_gcc_shift) pt 4'
+ulag = 'using ($0+0.00):($3/lag_gcc_shift) pt 6'
 vaio_title = 'Win10 64bit (Core i5-6200U 2.3GHz)'
 mag_title  = 'Win10 64bit (Core i5-6500 3.2GHz)'
 plot \
