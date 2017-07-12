@@ -105,7 +105,7 @@ namespace bsec {
   template<std::size_t shift, typename next_t>
   struct ndigits_impl_bsec2_eval {
     template<typename Unsigned>
-    static mwg_constexpr int eval(Unsigned value, int accumulator) {
+    static mwg_constexpr int eval(Unsigned value, int accumulator) mwg_noexcept {
       return value >> shift? next_t::eval(value >> shift, accumulator + shift): next_t::eval(value, accumulator);
     }
   };
@@ -115,13 +115,13 @@ namespace bsec {
   template<std::size_t MaxDigits>
   struct ndigits_impl_bsec2_<MaxDigits, true> {
     template<typename Unsigned>
-    static mwg_constexpr int eval(Unsigned value, int accumulator) {
+    static mwg_constexpr int eval(Unsigned value, int accumulator) mwg_noexcept {
       return accumulator + (0xFFFFAA50u >> 2 * value & 3);
     }
   };
 }
 template<typename Unsigned>
-mwg_constexpr int ndigits_impl_bsec2(Unsigned value) {
+mwg_constexpr int ndigits_impl_bsec2(Unsigned value) mwg_noexcept {
   return value? bsec::ndigits_impl_bsec2_<std::numeric_limits<Unsigned>::digits>::eval(value, 1): 0;
 }
 
@@ -133,13 +133,13 @@ namespace bsec {
   template<std::size_t MaxDigits>
   struct ndigits_impl_bsec3_<MaxDigits, true> {
     template<typename Unsigned>
-    static mwg_constexpr int eval(Unsigned value, int accumulator) {
+    static mwg_constexpr int eval(Unsigned value, int accumulator) mwg_noexcept {
       return accumulator + bsec3_table[value];
     }
   };
 }
 template<typename Unsigned>
-mwg_constexpr int ndigits_impl_bsec3(Unsigned value) {
+mwg_constexpr int ndigits_impl_bsec3(Unsigned value) mwg_noexcept {
   /* bsec2 の様に即値のシフトによるテーブルにしても、
    * bsec3 の様に配列を参照しても速度は変わらない様だ。
    */
@@ -182,68 +182,68 @@ namespace util {
  * これは報告した人が勝手に変なことを書いただけなのだと思われる。
  */
 #ifdef __GNUC__
-inline mwg_constexpr int ndigits_impl_bclz(unsigned value) {
+inline mwg_constexpr int ndigits_impl_bclz(unsigned value) mwg_noexcept {
   return value? std::numeric_limits<unsigned>::digits - __builtin_clz(value): 0;
 }
-inline mwg_constexpr int ndigits_impl_bclz(unsigned long value) {
+inline mwg_constexpr int ndigits_impl_bclz(unsigned long value) mwg_noexcept {
   return value? std::numeric_limits<unsigned long>::digits - __builtin_clzl(value): 0;
 }
-inline mwg_constexpr int ndigits_impl_bclz(unsigned long long value) {
+inline mwg_constexpr int ndigits_impl_bclz(unsigned long long value) mwg_noexcept {
   return value? std::numeric_limits<unsigned long long>::digits - __builtin_clzll(value): 0;
 }
 
-inline mwg_constexpr int ndigits_impl_bctz(unsigned value) {
+inline mwg_constexpr int ndigits_impl_bctz(unsigned value) mwg_noexcept {
   return value? 1 + __builtin_ctz(util::highest_bit(value)): 0;
 }
-inline mwg_constexpr int ndigits_impl_bctz(unsigned long value) {
+inline mwg_constexpr int ndigits_impl_bctz(unsigned long value) mwg_noexcept {
   return value? 1 + __builtin_ctzl(util::highest_bit(value)): 0;
 }
-inline mwg_constexpr int ndigits_impl_bctz(unsigned long long value) {
+inline mwg_constexpr int ndigits_impl_bctz(unsigned long long value) mwg_noexcept {
   return value? 1 + __builtin_ctzll(util::highest_bit(value)): 0;
 }
 
-inline mwg_constexpr int ndigits_impl_bpopcount(unsigned int value) {
+inline mwg_constexpr int ndigits_impl_bpopcount(unsigned int value) mwg_noexcept {
   return __builtin_popcount(util::sup_pow2m1(value));
 }
-inline mwg_constexpr int ndigits_impl_bpopcount(unsigned long value) {
+inline mwg_constexpr int ndigits_impl_bpopcount(unsigned long value) mwg_noexcept {
   return __builtin_popcountl(util::sup_pow2m1(value));
 }
-inline mwg_constexpr int ndigits_impl_bpopcount(unsigned long long value) {
+inline mwg_constexpr int ndigits_impl_bpopcount(unsigned long long value) mwg_noexcept {
   return __builtin_popcountll(util::sup_pow2m1(value));
 }
 
-inline mwg_constexpr int ndigits_impl_bffs(unsigned value) {
+inline mwg_constexpr int ndigits_impl_bffs(unsigned value) mwg_noexcept {
   return __builtin_ffs(util::highest_bit(value));
 }
-inline mwg_constexpr int ndigits_impl_bffs(unsigned long value) {
+inline mwg_constexpr int ndigits_impl_bffs(unsigned long value) mwg_noexcept {
   return __builtin_ffsl(util::highest_bit(value));
 }
-inline mwg_constexpr int ndigits_impl_bffs(unsigned long long value) {
+inline mwg_constexpr int ndigits_impl_bffs(unsigned long long value) mwg_noexcept {
   return __builtin_ffsll(util::highest_bit(value));
 }
 
 #elif defined(_MSC_VER)
 # include <intrin.h>
-inline int ndigits_impl_bclz(unsigned short value) {
+inline int ndigits_impl_bclz(unsigned short value) mwg_noexcept {
   return std::numeric_limits<unsigned short>::digits - __lzcnt16(value);
 }
-inline int ndigits_impl_bclz(unsigned int value) {
+inline int ndigits_impl_bclz(unsigned int value) mwg_noexcept {
   return std::numeric_limits<unsigned int>::digits - __lzcnt(value);
 }
 # ifdef _M_X64
-inline int ndigits_impl_bclz(unsigned __int64 value) {
+inline int ndigits_impl_bclz(unsigned __int64 value) mwg_noexcept {
   return std::numeric_limits<unsigned __int64>::digits - __lzcnt64(value);
 }
 # endif
 
-inline int ndigits_impl_bpopcount(unsigned short value) {
+inline int ndigits_impl_bpopcount(unsigned short value) mwg_noexcept {
   return __popcnt16(util::sup_pow2m1(value));
 }
-inline int ndigits_impl_bpopcount(unsigned int value) {
+inline int ndigits_impl_bpopcount(unsigned int value) mwg_noexcept {
   return __popcnt(util::sup_pow2m1(value));
 }
 # ifdef _M_X64
-inline int ndigits_impl_bpopcount(unsigned __int64 value) {
+inline int ndigits_impl_bpopcount(unsigned __int64 value) mwg_noexcept {
   return __popcnt64(util::sup_pow2m1(value));
 }
 # endif
@@ -262,17 +262,17 @@ inline int ndigits_impl_bpopcount(unsigned __int64 value) {
 #  include <ammintrin.h>
 #  include <immintrin.h>
 # endif
-inline int ndigits_impl_itzcnt(std11::uint32_t value) {
+inline int ndigits_impl_itzcnt(std11::uint32_t value) mwg_noexcept {
   return _tzcnt_u32(~util::sup_pow2m1(value));
 }
-inline int ndigits_impl_ilzcnt(std11::uint32_t value) {
+inline int ndigits_impl_ilzcnt(std11::uint32_t value) mwg_noexcept {
   return std::numeric_limits<std11::uint32_t>::digits - _lzcnt_u32(value);
 }
 # if defined(_M_X64) || defined(__x86_64)
-inline int ndigits_impl_ilzcnt(std11::uint64_t value) {
+inline int ndigits_impl_ilzcnt(std11::uint64_t value) mwg_noexcept {
   return std::numeric_limits<std11::uint64_t>::digits - _lzcnt_u64(value);
 }
-inline int ndigits_impl_itzcnt(std11::uint64_t value) {
+inline int ndigits_impl_itzcnt(std11::uint64_t value) mwg_noexcept {
   return _tzcnt_u64(~util::sup_pow2m1(value));
 }
 # endif
@@ -322,11 +322,11 @@ inline int ndigits_impl_ibsf(unsigned __int64 value) mwg_noexcept {
 #if defined(_MSC_VER) || defined(__GNUC__) && defined(__CYGWIN__) || MWGCONF_ICC_VER
 # define intrin_popcnt_defined
 # include <immintrin.h>
-inline int ndigits_impl_ipopcnt(std11::uint32_t value) {
+inline int ndigits_impl_ipopcnt(std11::uint32_t value) mwg_noexcept {
   return _popcnt32(util::sup_pow2m1(value));
 }
 # if defined(_M_X64) || defined(__x86_64)
-inline int ndigits_impl_ipopcnt(std11::uint64_t value) {
+inline int ndigits_impl_ipopcnt(std11::uint64_t value) mwg_noexcept {
   return _popcnt64(util::sup_pow2m1(value));
 }
 # endif
@@ -338,7 +338,7 @@ inline int ndigits_impl_ipopcnt(std11::uint64_t value) {
 // macros from https://sourceforge.net/p/predef/wiki/Architectures/
 # if defined(__i386) || defined(__x86_64)
 template<typename U>
-inline int ndigits_impl_asmbsr_(U value) {
+inline int ndigits_impl_asmbsr_(U value) mwg_noexcept {
   __asm__ ("\
     test %0,%0 \n\
     je 1f      \n\
@@ -348,11 +348,11 @@ inline int ndigits_impl_asmbsr_(U value) {
   return (int) value;
 }
 
-inline int ndigits_impl_asmbsr(std11::uint32_t value) {
+inline int ndigits_impl_asmbsr(std11::uint32_t value) mwg_noexcept {
   return ndigits_impl_asmbsr_<std11::uint32_t>(value);
 }
 
-inline int ndigits_impl_asmbsr(std11::uint64_t value) {
+inline int ndigits_impl_asmbsr(std11::uint64_t value) mwg_noexcept {
 #  if defined(__i386)
   std11::uint32_t h = value >> 32, l = value;
   __asm__ ("\
@@ -375,7 +375,7 @@ inline int ndigits_impl_asmbsr(std11::uint64_t value) {
 }
 # endif
 #else
-inline int ndigits_impl_asmbsr(std11::uint32_t value) {
+inline int ndigits_impl_asmbsr(std11::uint32_t value) mwg_noexcept {
   __asm {
     mov  eax, value
     test eax, eax
@@ -385,7 +385,7 @@ inline int ndigits_impl_asmbsr(std11::uint32_t value) {
   label1:
   }
 }
-inline int ndigits_impl_asmbsr(std11::uint64_t value) {
+inline int ndigits_impl_asmbsr(std11::uint64_t value) mwg_noexcept {
 # ifdef _M_X64
   __asm {
     mov  rax, value
