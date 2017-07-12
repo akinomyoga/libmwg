@@ -72,7 +72,7 @@ int ndigits_impl_float_(Unsigned value) mwg_noexcept {
     Float flt;
     Rep rep;
   } const data = {(Float) value + (Float) 0.5};
-  return (std::numeric_limits<Float>::min_exponent - 1) + (data.rep >> std::numeric_limits<Float>::digits - 1);
+  return (std::numeric_limits<Float>::min_exponent - 1) + (data.rep >> (std::numeric_limits<Float>::digits - 1));
 }
 
 template<typename Unsigned>
@@ -482,7 +482,7 @@ namespace kazatsuyu {
 }
 using kazatsuyu::ndigits_impl_kazatsuyu;
 
-namespace debruijn {
+namespace kazatsuyu {
   // http://qiita.com/kazatsuyu/items/38203287c19890a2b7c6
   static mwg_constexpr_const std11::uint32_t magic32 = 0x07C56E99U;
   static mwg_constexpr_const char nd_table32[63] = {
@@ -503,20 +503,20 @@ namespace debruijn {
     10, -1, 40, -1, -1, 31, 48, -1,  9, -1, -1, 47,  8, -1,  7,
   };
   inline mwg_constexpr int ndigits_impl_debruijn(std11::uint32_t value) mwg_noexcept {
-    return nd_table32[magic32 * util::highest_bit(value) >> 31 - 5];
+    return nd_table32[magic32 * util::highest_bit(value) >> ntz_traits<4>::shift];
   }
   inline mwg_constexpr int ndigits_impl_debruijn(std11::uint64_t value) mwg_noexcept {
-    return nd_table64[magic64 * util::highest_bit(value) >> 63 - 6];
+    return nd_table64[magic64 * util::highest_bit(value) >> ntz_traits<8>::shift];
   }
 }
-using debruijn::ndigits_impl_debruijn;
+using kazatsuyu::ndigits_impl_debruijn;
 
 namespace de_bruijn {
   // use inverse Burrows-Wheeler transform (see https://en.wikipedia.org/wiki/De_Bruijn_sequence)
   template<typename U, int ndigit, int imax = ndigit - 1, U visited = 0, U result = 0, int i = -1, int pos = -1, bool = i != pos>
   struct magic: magic<U, ndigit, imax, visited | 1ull << pos, result << 1 | (pos < (imax + 1) / 2? 0: 1), i, pos * 2 % imax> {};
   template<typename U, int ndigit, int imax, U visited, U result, int i, int pos>
-  struct magic<U, ndigit, imax, visited, result, i, pos, false>: magic<U, ndigit, imax, visited, result, i + 1, i + 1, (visited & 1ull << i + 1) == 0> {};
+  struct magic<U, ndigit, imax, visited, result, i, pos, false>: magic<U, ndigit, imax, visited, result, i + 1, i + 1, (visited & 1ull << (i + 1)) == 0> {};
   template<typename U, int ndigit, int imax, U visited, U result>
   struct magic<U, ndigit, imax, visited, result, imax, imax, true>: std11::integral_constant<U, result << 1 | 1> {};
 
@@ -530,7 +530,7 @@ namespace de_bruijn {
       int pos = start;
       do {
         used |= 1 << pos;
-        result = result << 1 | pos >= len / 2;
+        result = result << 1 | (pos >= len / 2);
         pos = pos * 2 % (len - 1);
       } while (pos != start);
     }
@@ -552,7 +552,7 @@ namespace de_bruijn {
     int len = 1 << nbits;
     std::cout << "magic = " << std::hex << magic << std::dec << std::endl;
     for (int i = 0; i < len; i++) {
-      std11::uint64_t const value = magic << i >> len - nbits; // | magic >> len - nbits >> len - i;
+      std11::uint64_t const value = magic << i >> (len - nbits); // | magic >> len - nbits >> len - i;
       std::cout << std::setw(2) << value << " ";
       for (int j = nbits; --j >= 0; )
         std::cout << (value >> j & 1);
@@ -564,7 +564,7 @@ namespace de_bruijn {
   struct table {
     static mwg_constexpr_const int ndigit = 1 << nbits;
     static mwg_constexpr_const int nshift = ndigit - nbits  - 1;
-    static mwg_constexpr_const int ntable = (1 << nbits + 1) - 1;
+    static mwg_constexpr_const int ntable = (1 << (nbits + 1)) - 1;
     static mwg_constexpr_const Unsigned sequence = de_bruijn::magic<Unsigned, ndigit>::value;
 
     int nd_table[ntable];
