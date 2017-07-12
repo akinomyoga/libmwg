@@ -20,13 +20,14 @@ function measure_and_summary {
         sub(/^bcpop$/, "bpopcount", title);
         sub(/^bbsr$/, "ibsr", title);
         sub(/^bbsf$/, "ibsf", title);
+        sub(/^debruijn$/, "kazatsuyund", title);
   
         name = title;
         sub(/^base$/, "空ループ", name);
         sub(/^shift$/, "shift1", name);
         sub(/^bsec$/, "bsec1", name);
         sub(/^kazatsuyu$/, "kazatsuyu(nlz)", name);
-        sub(/^debruijn$/, "kazatsuyu(nd)", name);
+        sub(/^kazatsuyund$/, "kazatsuyu(nd)", name);
         sub(/^bclz$/, "builtin(ctz)", name);
         sub(/^bctz$/, "builtin(clz)", name);
         sub(/^bpopcount$/, "builtin(popcnt)", name);

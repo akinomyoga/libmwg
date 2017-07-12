@@ -130,72 +130,6 @@ mwg_constexpr14 int ntz_impl_shift8fx(Unsigned value) mwg_noexcept {
 }
 
 //-----------------------------------------------------------------------------
-// floating-point numbers
-
-template<typename Unsigned>
-mwg_constexpr14 int ndigits_impl_frexp(Unsigned value) mwg_noexcept {
-  /* - Note: frexp は value == 0 に対して *exp = 0 を返すので気にしなくて良い。
-   * - NTZ の場合の計測結果がここにある https://srad.jp/~TarZ/journal/481257/
-   *   これによると frexp による実装は遅そうだ。
-   */
-  int ret = 0;
-  frexp((double) value, &ret);
-  return ret;
-}
-
-template<typename Unsigned>
-mwg_constexpr14 int ntz_impl_frexp(Unsigned value) mwg_noexcept {
-  if (value == 0) return std::numeric_limits<Unsigned>::digits;
-  int ret = 0;
-  frexp((double) (value & -value), &ret);
-  return ret - 1;
-}
-
-#if defined(__STDC_IEC_559__) || defined(_MSC_VER) || defined(__CYGWIN__)
-// http://www.nminoru.jp/~nminoru/programming/bitcount.html 改変
-
-template<typename Unsigned, typename Float, typename Rep>
-int ndigits_impl_float_(Unsigned value) mwg_noexcept {
-  static_assert(std::numeric_limits<Unsigned>::digits <= std::numeric_limits<Float>::max_exponent, "integer too big");
-  static_assert(std::numeric_limits<Float>::is_iec559, "Float is not a ISO IEC 559 (IEEE 754) floating-point number");
-  static_assert(sizeof(Float) == sizeof(Rep), "mismatch in sizes of Float and Rep");
-  union {
-    Float flt;
-    Rep rep;
-  } const data = {(Float) value + (Float) 0.5};
-  return (std::numeric_limits<Float>::min_exponent - 1) + (data.rep >> (std::numeric_limits<Float>::digits - 1));
-}
-
-template<typename Unsigned, typename Float, typename Rep>
-int ntz_impl_float_(Unsigned value) mwg_noexcept {
-  if (value == 0) return std::numeric_limits<Unsigned>::digits;
-  static_assert(std::numeric_limits<Unsigned>::digits <= std::numeric_limits<Float>::max_exponent, "integer too big");
-  static_assert(std::numeric_limits<Float>::is_iec559, "Float is not a ISO IEC 559 (IEEE 754) floating-point number");
-  static_assert(sizeof(Float) == sizeof(Rep), "mismatch in sizes of Float and Rep");
-  union {Float flt; Rep rep;} const data = {value & -value};
-  return (std::numeric_limits<Float>::min_exponent - 2) + (data.rep >> (std::numeric_limits<Float>::digits - 1));
-}
-
-template<typename Unsigned>
-int ndigits_impl_double(Unsigned value) mwg_noexcept {
-  return ndigits_impl_float_<Unsigned, double, std11::uint64_t>(value);
-}
-template<typename Unsigned>
-int ndigits_impl_float(Unsigned value) mwg_noexcept {
-  return ndigits_impl_float_<Unsigned, float, std11::uint32_t>(value);
-}
-template<typename Unsigned>
-int ntz_impl_double(Unsigned value) mwg_noexcept {
-  return ntz_impl_float_<Unsigned, double, std11::uint64_t>(value);
-}
-template<typename Unsigned>
-int ntz_impl_float(Unsigned value) mwg_noexcept {
-  return ntz_impl_float_<Unsigned, float, std11::uint32_t>(value);
-}
-
-#endif
-
-//-----------------------------------------------------------------------------
 // binary section
 
 template<typename Unsigned>
@@ -262,46 +196,6 @@ mwg_constexpr14 int ntz_impl_bsec1x(Unsigned value) mwg_noexcept {
 }
 
 namespace bsec {
-  // CRTP にすればもっと簡単になるのでは?
-  template<std::size_t shift, typename next_t>
-  struct ndigits_impl_bsec2_eval {
-    template<typename Unsigned>
-    static mwg_constexpr int eval(Unsigned value, int accumulator) mwg_noexcept {
-      return value >> shift? next_t::eval(value >> shift, accumulator + shift): next_t::eval(value, accumulator);
-    }
-  };
-  template<std::size_t MaxDigits, bool = MaxDigits <= 4>
-  struct ndigits_impl_bsec2_:
-    ndigits_impl_bsec2_eval<MaxDigits / 2, ndigits_impl_bsec2_<MaxDigits - MaxDigits / 2> > {};
-  template<std::size_t MaxDigits>
-  struct ndigits_impl_bsec2_<MaxDigits, true> {
-    template<typename Unsigned>
-    static mwg_constexpr int eval(Unsigned value, int accumulator) mwg_noexcept {
-      return accumulator + (0xFFFFAA50u >> 2 * value & 3);
-    }
-  };
-  template<typename Unsigned>
-  mwg_constexpr int ndigits_impl_bsec2(Unsigned value) mwg_noexcept {
-    return value? bsec::ndigits_impl_bsec2_<std::numeric_limits<Unsigned>::digits>::eval(value, 1): 0;
-  }
-
-  template<std::size_t MaxDigits, bool = MaxDigits <= 4>
-  struct ndigits_impl_bsec3_:
-    ndigits_impl_bsec2_eval<MaxDigits / 2, ndigits_impl_bsec3_<MaxDigits - MaxDigits / 2> > {};
-  static mwg_constexpr_const int bsec3_table[] = {-1, 0, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3};
-  template<std::size_t MaxDigits>
-  struct ndigits_impl_bsec3_<MaxDigits, true> {
-    template<typename Unsigned>
-    static mwg_constexpr int eval(Unsigned value, int accumulator) mwg_noexcept {
-      return accumulator + bsec3_table[value];
-    }
-  };
-  template<typename Unsigned>
-  mwg_constexpr int ndigits_impl_bsec3(Unsigned value) mwg_noexcept {
-    /* bsec2 の様に即値のシフトによるテーブルにしても、bsec3 の様に配列を参照しても速度は変わらない様だ。 */
-    return value? ndigits_impl_bsec3_<std::numeric_limits<Unsigned>::digits>::eval(value, 1): 0;
-  }
-
   template<std::size_t width, typename last_t, bool = (width > last_t::max_width)>
   struct impl_shift {
     static mwg_constexpr_const std::size_t shift = width / 2;
@@ -327,6 +221,34 @@ namespace bsec {
   };
   template<std::size_t width, typename last_t>
   struct impl_shift_zero<width, last_t, false>: last_t {};
+
+  // ndigits_bsec2
+  struct ndigits_bsec2_last {
+    static mwg_constexpr_const std::size_t max_width = 4;
+    template<typename Unsigned>
+    static mwg_constexpr int eval(Unsigned value, int accumulator) mwg_noexcept {
+      return accumulator + (0xFFFFAA50u >> 2 * value & 3);
+    }
+  };
+  template<typename Unsigned>
+  mwg_constexpr int ndigits_impl_bsec2(Unsigned value) mwg_noexcept {
+    return value? impl_shift<std::numeric_limits<Unsigned>::digits, ndigits_bsec2_last>::eval(value, 1): 0;
+  }
+
+  // ndigits_bsec3
+  static mwg_constexpr_const int bsec3_table[] = {-1, 0, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3};
+  struct ndigits_bsec3_last {
+    static mwg_constexpr_const std::size_t max_width = 4;
+    template<typename Unsigned>
+    static mwg_constexpr int eval(Unsigned value, int accumulator) mwg_noexcept {
+      return accumulator + bsec3_table[value];
+    }
+  };
+  template<typename Unsigned>
+  mwg_constexpr int ndigits_impl_bsec3(Unsigned value) mwg_noexcept {
+    /* bsec2 の様に即値のシフトによるテーブルにしても、bsec3 の様に配列を参照しても速度は変わらない様だ。 */
+    return value? impl_shift<std::numeric_limits<Unsigned>::digits, ndigits_bsec3_last>::eval(value, 1): 0;
+  }
 
   // ntz_bsec2
   struct ntz_impl_bsec2_last {
@@ -380,6 +302,72 @@ using bsec::ndigits_impl_bsec3;
 using bsec::ntz_impl_bsec2;
 using bsec::ntz_impl_bsec3;
 using bsec::ntz_impl_bsec2x;
+
+//-----------------------------------------------------------------------------
+// floating-point numbers
+
+template<typename Unsigned>
+mwg_constexpr14 int ndigits_impl_frexp(Unsigned value) mwg_noexcept {
+  /* - Note: frexp は value == 0 に対して *exp = 0 を返すので気にしなくて良い。
+   * - NTZ の場合の計測結果がここにある https://srad.jp/~TarZ/journal/481257/
+   *   これによると frexp による実装は遅そうだ。
+   */
+  int ret = 0;
+  frexp((double) value, &ret);
+  return ret;
+}
+
+template<typename Unsigned>
+mwg_constexpr14 int ntz_impl_frexp(Unsigned value) mwg_noexcept {
+  if (value == 0) return std::numeric_limits<Unsigned>::digits;
+  int ret = 0;
+  frexp((double) (value & -value), &ret);
+  return ret - 1;
+}
+
+#if defined(__STDC_IEC_559__) || defined(_MSC_VER) || defined(__CYGWIN__)
+// http://www.nminoru.jp/~nminoru/programming/bitcount.html 改変
+
+template<typename Unsigned, typename Float, typename Rep>
+int ndigits_impl_float_(Unsigned value) mwg_noexcept {
+  static_assert(std::numeric_limits<Unsigned>::digits <= std::numeric_limits<Float>::max_exponent, "integer too big");
+  static_assert(std::numeric_limits<Float>::is_iec559, "Float is not a ISO IEC 559 (IEEE 754) floating-point number");
+  static_assert(sizeof(Float) == sizeof(Rep), "mismatch in sizes of Float and Rep");
+  union {
+    Float flt;
+    Rep rep;
+  } const data = {(Float) value + (Float) 0.5};
+  return (std::numeric_limits<Float>::min_exponent - 1) + (data.rep >> (std::numeric_limits<Float>::digits - 1));
+}
+
+template<typename Unsigned, typename Float, typename Rep>
+int ntz_impl_float_(Unsigned value) mwg_noexcept {
+  if (value == 0) return std::numeric_limits<Unsigned>::digits;
+  static_assert(std::numeric_limits<Unsigned>::digits <= std::numeric_limits<Float>::max_exponent, "integer too big");
+  static_assert(std::numeric_limits<Float>::is_iec559, "Float is not a ISO IEC 559 (IEEE 754) floating-point number");
+  static_assert(sizeof(Float) == sizeof(Rep), "mismatch in sizes of Float and Rep");
+  union {Float flt; Rep rep;} const data = {value & -value};
+  return (std::numeric_limits<Float>::min_exponent - 2) + (data.rep >> (std::numeric_limits<Float>::digits - 1));
+}
+
+template<typename Unsigned>
+int ndigits_impl_double(Unsigned value) mwg_noexcept {
+  return ndigits_impl_float_<Unsigned, double, std11::uint64_t>(value);
+}
+template<typename Unsigned>
+int ndigits_impl_float(Unsigned value) mwg_noexcept {
+  return ndigits_impl_float_<Unsigned, float, std11::uint32_t>(value);
+}
+template<typename Unsigned>
+int ntz_impl_double(Unsigned value) mwg_noexcept {
+  return ntz_impl_float_<Unsigned, double, std11::uint64_t>(value);
+}
+template<typename Unsigned>
+int ntz_impl_float(Unsigned value) mwg_noexcept {
+  return ntz_impl_float_<Unsigned, float, std11::uint32_t>(value);
+}
+
+#endif
 
 //-----------------------------------------------------------------------------
 // intrinsic functions
@@ -731,6 +719,7 @@ namespace kazatsuyu {
     static mwg_constexpr_const type magic = 0x07C56E99U;
     static const int ntz_table[63];
     static const int nlz_table[63];
+    static const int nd_table[63];
   };
   const int ntz_traits<4>::ntz_table[63] = {
     32,  0, -1,  1, -1, 10, -1,  2, 29, -1, 11, -1, 25, -1, -1,  3,
@@ -744,6 +733,12 @@ namespace kazatsuyu {
      0, -1, 22, -1,  3, -1,  7, -1, -1,  9, -1, 18, -1, 16, 13, -1,
     -1, 23,  4, -1, 10, -1, -1, 14, 24, -1, 11, -1, 25, -1, 26
   };
+  const int ntz_traits<4>::nd_table[63] = {
+     0,  1, -1,  2, -1, 11, -1,  3, 30, -1, 12, -1, 26, -1, -1,  4,
+    31, -1, -1, 24, -1, 13, 15, -1, -1, 27, -1, 17, -1, 20, -1,  5,
+     0, -1, 10, -1, 29, -1, 25, -1, -1, 23, -1, 14, -1, 16, 19, -1,
+    -1,  9, 28, -1, 22, -1, -1, 18,  8, -1, 21, -1,  7, -1,  6,
+  };
 
   template<> struct ntz_traits<8> {
     typedef std11::uint64_t type;
@@ -751,6 +746,7 @@ namespace kazatsuyu {
     static mwg_constexpr_const type magic = 0x03F0A933ADCBD8D1ULL;
     static const int ntz_table[127];
     static const int nlz_table[127];
+    static const int nd_table[127];
   };
   const int ntz_traits<8>::ntz_table[127] = {
     64,  0, -1,  1, -1, 12, -1,  2, 60, -1, 13, -1, -1, 53, -1,  3,
@@ -772,6 +768,16 @@ namespace kazatsuyu {
     -1, 53, -1, 12, -1, 23, -1, 37,  7, -1, -1, 32, 15, -1, 27, -1,
     54, -1, 24, -1, -1, 33, 16, -1, 55, -1, -1, 17, 56, -1, 57,
   };
+  const int ntz_traits<8>::nd_table[127] = {
+     0,  1, -1,  2, -1, 13, -1,  3, 61, -1, 14, -1, -1, 54, -1,  4,
+    62, -1, -1, 22, -1, 15, -1, 43, -1, 25, 55, -1, -1, 29, -1,  5,
+    63, -1, 59, -1, 20, -1, 23, -1, -1, 18, 16, -1, -1, 34, -1, 44,
+    -1, 51, -1, 26, 56, -1, -1, 36, -1, 39, 30, -1, -1, 46, -1,  6,
+    64, -1, 12, -1, 60, -1, 53, -1, -1, 21, -1, 42, 24, -1, 28, -1,
+    -1, 58, 19, -1, 17, -1, 33, -1, 50, -1, -1, 35, 38, -1, 45, -1,
+    -1, 11, -1, 52, -1, 41, -1, 27, 57, -1, -1, 32, 49, -1, 37, -1,
+    10, -1, 40, -1, -1, 31, 48, -1,  9, -1, -1, 47,  8, -1,  7,
+  };
 
   // unsigned型のNTZ。例の黒魔術
   template<typename T>
@@ -789,47 +795,26 @@ namespace kazatsuyu {
     typedef typename tr::type type;
     return tr::nlz_table[static_cast<type>(tr::magic*get_highest_bit(val))>>tr::shift];
   }
+  template<typename T>
+  inline typename std11::enable_if<std11::is_unsigned<T>::value, int>::type
+  nd(T value) mwg_noexcept {
+    typedef ntz_traits<sizeof(T)> tr;
+    return tr::nd_table[tr::magic * get_highest_bit(value) >> tr::shift];
+  }
 
-  int ndigits_impl_kazatsuyu(std11::uint32_t value) {return 32 - kazatsuyu::nlz(value);}
-  int ndigits_impl_kazatsuyu(std11::uint64_t value) {return 64 - kazatsuyu::nlz(value);}
-  int nlz_impl_kazatsuyu(std11::uint32_t value) {return kazatsuyu::nlz(value);}
-  int nlz_impl_kazatsuyu(std11::uint64_t value) {return kazatsuyu::nlz(value);}
-  int ntz_impl_kazatsuyu(std11::uint32_t value) {return kazatsuyu::ntz(value);}
-  int ntz_impl_kazatsuyu(std11::uint64_t value) {return kazatsuyu::ntz(value);}
+  int ndigits_impl_kazatsuyu(std11::uint32_t value) {return 32 - nlz(value);}
+  int ndigits_impl_kazatsuyu(std11::uint64_t value) {return 64 - nlz(value);}
+  int ndigits_impl_kazatsuyund(std11::uint32_t value) {return nd(value);}
+  int ndigits_impl_kazatsuyund(std11::uint64_t value) {return nd(value);}
+  int nlz_impl_kazatsuyu(std11::uint32_t value) {return nlz(value);}
+  int nlz_impl_kazatsuyu(std11::uint64_t value) {return nlz(value);}
+  int ntz_impl_kazatsuyu(std11::uint32_t value) {return ntz(value);}
+  int ntz_impl_kazatsuyu(std11::uint64_t value) {return ntz(value);}
 }
 using kazatsuyu::ndigits_impl_kazatsuyu;
+using kazatsuyu::ndigits_impl_kazatsuyund;
 using kazatsuyu::ntz_impl_kazatsuyu;
 using kazatsuyu::nlz_impl_kazatsuyu;
-
-//TODO 上とくっつける。
-namespace kazatsuyu {
-  // http://qiita.com/kazatsuyu/items/38203287c19890a2b7c6
-  static mwg_constexpr_const std11::uint32_t magic32 = 0x07C56E99U;
-  static mwg_constexpr_const char nd_table32[63] = {
-     0,  1, -1,  2, -1, 11, -1,  3, 30, -1, 12, -1, 26, -1, -1,  4,
-    31, -1, -1, 24, -1, 13, 15, -1, -1, 27, -1, 17, -1, 20, -1,  5,
-     0, -1, 10, -1, 29, -1, 25, -1, -1, 23, -1, 14, -1, 16, 19, -1,
-    -1,  9, 28, -1, 22, -1, -1, 18,  8, -1, 21, -1,  7, -1,  6,
-  };
-  static mwg_constexpr_const std11::uint64_t magic64 = 0x03F0A933ADCBD8D1;
-  static mwg_constexpr_const char nd_table64[127] = {
-     0,  1, -1,  2, -1, 13, -1,  3, 61, -1, 14, -1, -1, 54, -1,  4,
-    62, -1, -1, 22, -1, 15, -1, 43, -1, 25, 55, -1, -1, 29, -1,  5,
-    63, -1, 59, -1, 20, -1, 23, -1, -1, 18, 16, -1, -1, 34, -1, 44,
-    -1, 51, -1, 26, 56, -1, -1, 36, -1, 39, 30, -1, -1, 46, -1,  6,
-    64, -1, 12, -1, 60, -1, 53, -1, -1, 21, -1, 42, 24, -1, 28, -1,
-    -1, 58, 19, -1, 17, -1, 33, -1, 50, -1, -1, 35, 38, -1, 45, -1,
-    -1, 11, -1, 52, -1, 41, -1, 27, 57, -1, -1, 32, 49, -1, 37, -1,
-    10, -1, 40, -1, -1, 31, 48, -1,  9, -1, -1, 47,  8, -1,  7,
-  };
-  inline mwg_constexpr int ndigits_impl_debruijn(std11::uint32_t value) mwg_noexcept {
-    return nd_table32[magic32 * util::highest_bit(value) >> ntz_traits<4>::shift];
-  }
-  inline mwg_constexpr int ndigits_impl_debruijn(std11::uint64_t value) mwg_noexcept {
-    return nd_table64[magic64 * util::highest_bit(value) >> ntz_traits<8>::shift];
-  }
-}
-using kazatsuyu::ndigits_impl_debruijn;
 
 namespace de_bruijn {
   // use inverse Burrows-Wheeler transform (see https://en.wikipedia.org/wiki/De_Bruijn_sequence)
@@ -839,6 +824,56 @@ namespace de_bruijn {
   struct magic<U, ndigit, imax, visited, result, i, pos, false>: magic<U, ndigit, imax, visited, result, i + 1, i + 1, (visited & 1ull << (i + 1)) == 0> {};
   template<typename U, int ndigit, int imax, U visited, U result>
   struct magic<U, ndigit, imax, visited, result, imax, imax, true>: std11::integral_constant<U, result << 1 | 1> {};
+
+  template<typename Unsigned, int nbits>
+  struct table {
+    static mwg_constexpr_const int ndigit = 1 << nbits;
+    static mwg_constexpr_const int nshift = ndigit - nbits  - 1;
+    static mwg_constexpr_const int ntable = (1 << (nbits + 1)) - 1;
+    static mwg_constexpr_const Unsigned sequence = de_bruijn::magic<Unsigned, ndigit>::value;
+
+    static int nd_table[ntable];
+    static int nlz_table[ntable];
+    static int ntz_table[ntable];
+    table() {
+      nd_table[0] = 0;
+      ntz_table[0] = ndigit;
+      nlz_table[0] = ndigit;
+      for (int i = 0; i < ndigit; i++) {
+        Unsigned const bit = (Unsigned) 1 << i;
+        nd_table[Unsigned(sequence * bit) >> nshift] = i + 1;
+        ntz_table[Unsigned(sequence * bit) >> nshift] = i;
+        nlz_table[Unsigned(sequence * bit) >> nshift] = ndigit - i - 1;
+      }
+    }
+
+    static mwg_constexpr int nd(Unsigned value) mwg_noexcept {
+      return nd_table[Unsigned(sequence * util::highest_bit(value)) >> nshift];
+    }
+    static mwg_constexpr int nlz(Unsigned value) mwg_noexcept {
+      return nlz_table[Unsigned(sequence * util::highest_bit(value)) >> nshift];
+    }
+    static mwg_constexpr int ntz(Unsigned value) mwg_noexcept {
+      return ntz_table[Unsigned(sequence * (value & -value)) >> nshift];
+    }
+  };
+  template<typename Unsigned, int nbits>
+  int table<Unsigned, nbits>::nd_table[table<Unsigned, nbits>::ntable];
+  template<typename Unsigned, int nbits>
+  int table<Unsigned, nbits>::nlz_table[table<Unsigned, nbits>::ntable];
+  template<typename Unsigned, int nbits>
+  int table<Unsigned, nbits>::ntz_table[table<Unsigned, nbits>::ntable];
+
+  // 中で宣言したら遅くなったので。
+  static table<std11::uint32_t, 5> impl32;
+  static table<std11::uint64_t, 6> impl64;
+
+  inline int ndigits_impl_debruijn2(std11::uint32_t value) mwg_noexcept {return impl32.nd(value);}
+  inline int ndigits_impl_debruijn2(std11::uint64_t value) mwg_noexcept {return impl64.nd(value);}
+  inline int ntz_impl_debruijn2(std11::uint32_t value) mwg_noexcept {return impl32.ntz(value);}
+  inline int ntz_impl_debruijn2(std11::uint64_t value) mwg_noexcept {return impl64.ntz(value);}
+  inline int nlz_impl_debruijn2(std11::uint32_t value) mwg_noexcept {return impl32.nlz(value);}
+  inline int nlz_impl_debruijn2(std11::uint64_t value) mwg_noexcept {return impl64.nlz(value);}
 
   mwg_constexpr14 std11::uint64_t generate_magic(int nbits) {
     int const len = 1 << nbits;
@@ -858,7 +893,7 @@ namespace de_bruijn {
     return result;
   }
 
-  void check() {
+  void check_magic() {
     mwg_check((magic<std11::uint64_t, (1 << 2)>::value == generate_magic(2)));
     mwg_check((magic<std11::uint64_t, (1 << 3)>::value == generate_magic(3)));
     mwg_check((magic<std11::uint64_t, (1 << 4)>::value == generate_magic(4)));
@@ -879,50 +914,6 @@ namespace de_bruijn {
       std::cout << std::endl;
     }
   }
-
-  template<typename Unsigned, int nbits>
-  struct table {
-    static mwg_constexpr_const int ndigit = 1 << nbits;
-    static mwg_constexpr_const int nshift = ndigit - nbits  - 1;
-    static mwg_constexpr_const int ntable = (1 << (nbits + 1)) - 1;
-    static mwg_constexpr_const Unsigned sequence = de_bruijn::magic<Unsigned, ndigit>::value;
-
-    int nd_table[ntable];
-    int nlz_table[ntable];
-    int ntz_table[ntable];
-    table() {
-      nd_table[0] = 0;
-      ntz_table[0] = ndigit;
-      nlz_table[0] = ndigit;
-      for (int i = 0; i < ndigit; i++) {
-        Unsigned const bit = (Unsigned) 1 << i;
-        nd_table[Unsigned(sequence * bit) >> nshift] = i + 1;
-        ntz_table[Unsigned(sequence * bit) >> nshift] = i;
-        nlz_table[Unsigned(sequence * bit) >> nshift] = ndigit - i - 1;
-      }
-    }
-
-    mwg_constexpr int nd(Unsigned value) const mwg_noexcept {
-      return nd_table[Unsigned(sequence * util::highest_bit(value)) >> nshift];
-    }
-    mwg_constexpr int nlz(Unsigned value) const mwg_noexcept {
-      return nlz_table[Unsigned(sequence * util::highest_bit(value)) >> nshift];
-    }
-    mwg_constexpr int ntz(Unsigned value) const mwg_noexcept {
-      return ntz_table[Unsigned(sequence * (value & -value)) >> nshift];
-    }
-  };
-
-  // 中で宣言したら遅くなったので。
-  static table<std11::uint32_t, 5> impl32;
-  static table<std11::uint64_t, 6> impl64;
-
-  inline int ndigits_impl_debruijn2(std11::uint32_t value) mwg_noexcept {return impl32.nd(value);}
-  inline int ndigits_impl_debruijn2(std11::uint64_t value) mwg_noexcept {return impl64.nd(value);}
-  inline int ntz_impl_debruijn2(std11::uint32_t value) mwg_noexcept {return impl32.ntz(value);}
-  inline int ntz_impl_debruijn2(std11::uint64_t value) mwg_noexcept {return impl64.ntz(value);}
-  inline int nlz_impl_debruijn2(std11::uint32_t value) mwg_noexcept {return impl32.nlz(value);}
-  inline int nlz_impl_debruijn2(std11::uint64_t value) mwg_noexcept {return impl64.nlz(value);}
 }
 using de_bruijn::ndigits_impl_debruijn2;
 using de_bruijn::ntz_impl_debruijn2;
@@ -930,127 +921,133 @@ using de_bruijn::nlz_impl_debruijn2;
 
 //-----------------------------------------------------------------------------
 
+#if defined(__STDC_IEC_559__) || defined(_MSC_VER) || defined(__CYGWIN__)
+# define bench1_if_iec559(x) x
+#else
+# define bench1_if_iec559(x)
+#endif
+
+#if defined(__GNUC__)
+# define bench1_if_gnu(x) x
+#else
+# define bench1_if_gnu(x)
+#endif
+
+#if defined(_MSC_VER)
+# define bench1_if_msc(x) x
+#else
+# define bench1_if_msc(x)
+#endif
+
+#ifdef intrin_lzcnt_defined
+# define bench1_if_ilzcnt(x) x
+#else
+# define bench1_if_ilzcnt(x)
+#endif
+
+#ifdef intrin_bsr_defined
+# define bench1_if_ibsr(x) x
+#else
+# define bench1_if_ibsr(x)
+#endif
+
+#ifdef intrin_popcnt_defined
+# define bench1_if_ipopcnt(x) x
+#else
+# define bench1_if_ipopcnt(x)
+#endif
+
+#if defined(__GNUC__) && (defined(__i386) || defined(__x86_64)) || defined(_MSC_VER)
+# define bench1_if_asmbsr(x) x
+#else
+# define bench1_if_asmbsr(x)
+#endif
+
 volatile int a = 0;
 
-void measure_nd() {
-  static const std::size_t nmeasure = 100000;
-  //if (libmwg::scope_stopwatch sw = libmwg::scope_stopwatch::set_base())
-  if (libmwg::scope_stopwatch sw = "base")
-    for(std::size_t i = 0; i < nmeasure; i++) a = (int) i;
-
-#define measure_impl(Name) do { \
-    for(std::size_t i = 0; i < nmeasure; i++) \
-      mwg_check(ndigits_impl_shift(i) == ndigits_impl_##Name(i), "i=%d result=%d (%d)", i, ndigits_impl_##Name(i), ndigits_impl_shift(i)); \
-    if (libmwg::scope_stopwatch sw = #Name) \
-      for(std::size_t i = 0; i < nmeasure; i++) a = ndigits_impl_##Name(i); \
-  } while (0)
-
-  measure_impl(shift);
-  measure_impl(shift4);
-  measure_impl(shift8);
-  measure_impl(bsec);
-  measure_impl(bsec2);
-  measure_impl(bsec3);
-  measure_impl(kazatsuyu);
-  measure_impl(debruijn);
-  measure_impl(debruijn2);
-  measure_impl(frexp);
-#if defined(__STDC_IEC_559__) || defined(_MSC_VER) || defined(__CYGWIN__)
-  measure_impl(double);
-  measure_impl(float);
-#endif
-#if defined(__GNUC__) || defined(_MSC_VER)
-  measure_impl(bclz);
-  measure_impl(bpopcount);
-#endif
-#ifdef __GNUC__
-  measure_impl(bctz);
-  measure_impl(bffs);
-#endif
-#ifdef intrin_lzcnt_defined
-  measure_impl(ilzcnt);
-  measure_impl(itzcnt);
-#endif
-#ifdef intrin_bsr_defined
-  measure_impl(ibsr);
-  measure_impl(ibsf);
-#endif
-#ifdef intrin_popcnt_defined
-  measure_impl(ipopcnt);
-#endif
-#if defined(__GNUC__) && (defined(__i386) || defined(__x86_64)) || defined(_MSC_VER)
-  measure_impl(asmbsr);
-#endif
-#undef measure_impl
-}
-
-#ifdef intrin_lzcnt_defined
-# define measure_list_itzcnt  measure_impl(itzcnt)
-#else
-# define measure_list_itzcnt
-#endif
-#if defined(__GNUC__) || defined(_MSC_VER)
-# define measure_list_bpopcount measure_impl(bpopcount)
-#else
-# define measure_list_bpopcount
-#endif
-#ifdef __GNUC__
-# define measure_list_bctz measure_impl(bctz)
-#else
-# define measure_list_bctz
-#endif
-#ifdef intrin_popcnt_defined
-# define measure_list_ipopcnt measure_impl(ipopcnt)
-#else
-# define measure_list_ipopcnt
-#endif
-
-#define measure_list \
-  measure_impl(shift1f)                         \
-  measure_impl(shift4f)                         \
-  measure_impl(shift8f)                         \
-  measure_impl(shift4fx)                        \
-  measure_impl(shift8fx)                        \
-  measure_impl(bsec1)                           \
-  measure_impl(bsec2)                           \
-  measure_impl(bsec3)                           \
-  measure_impl(bsec1x)                          \
-  measure_impl(bsec2x)                          \
-  measure_impl(frexp)                           \
-  measure_impl(double)                          \
-  measure_impl(float)                           \
-  measure_impl(kazatsuyu)                       \
-  measure_impl(debruijn2)                       \
-  measure_list_bctz                             \
-  measure_list_itzcnt                           \
-  measure_list_bpopcount                        \
-  measure_list_ipopcnt
-
-void measure_ntz_base(std::size_t const nloop) {
+void measure_base(std::size_t const nloop) {
+  //libmwg::scope_stopwatch sw = libmwg::scope_stopwatch::set_base()
   libmwg::scope_stopwatch sw = "base";
   for(std::size_t i = 0; i < nloop; i++) a = (int) i;
 }
 
-#define measure_impl(Name) \
-void check_ntz_##Name(std::size_t const nloop) { \
+#define declare_measure_function(Name, function, function_impl_normal) \
+void check_##function##_##Name(std::size_t const nloop) { \
   for(std::size_t i = 0; i < nloop; i++) \
-    mwg_check(ntz_impl_shift1f(i) == ntz_impl_##Name(i), "i=%d result=%d (%d)", i, ntz_impl_##Name(i), ntz_impl_shift1f(i)); \
+    mwg_check(function_impl_normal(i) == function##_impl_##Name(i), "i=%d result=%d (%d)", i, function##_impl_##Name(i), function_impl_normal(i)); \
 } \
-void measure_ntz_##Name(std::size_t const nloop) { \
+void measure_##function##_##Name(std::size_t const nloop) { \
   libmwg::scope_stopwatch sw = #Name; \
-  for(std::size_t i = 0; i < nloop; i++) a = ntz_impl_##Name(i); \
+  for(std::size_t i = 0; i < nloop; i++) a = function##_impl_##Name(i); \
 }
-measure_list
+
+#define list_ndigits_impl \
+  measure_impl(shift) \
+  measure_impl(shift4) \
+  measure_impl(shift8) \
+  measure_impl(bsec) \
+  measure_impl(bsec2) \
+  measure_impl(bsec3) \
+  measure_impl(kazatsuyu) \
+  measure_impl(kazatsuyund) \
+  measure_impl(debruijn2) \
+  measure_impl(frexp) \
+  bench1_if_iec559(measure_impl(double) measure_impl(float)) \
+  bench1_if_msc(measure_impl(bclz) measure_impl(bpopcount)) \
+  bench1_if_gnu(measure_impl(bclz) measure_impl(bpopcount) measure_impl(bctz) measure_impl(bffs)) \
+  bench1_if_ilzcnt(measure_impl(ilzcnt) measure_impl(itzcnt)) \
+  bench1_if_ibsr(measure_impl(ibsr) measure_impl(ibsf)) \
+  bench1_if_ipopcnt(measure_impl(ipopcnt)) \
+  bench1_if_asmbsr(measure_impl(asmbsr))
+
+#define measure_impl(Name) declare_measure_function(Name, ndigits, ndigits_impl_shift)
+list_ndigits_impl
+#undef measure_impl
+
+void measure_nd() {
+  static const std::size_t nloop = 100000;
+  std::vector<void(*)(std::size_t)> list;
+
+  list.push_back(&measure_base);
+#define measure_impl(Name) check_ndigits_##Name(nloop); list.push_back(&measure_ndigits_##Name);
+  list_ndigits_impl;
+#undef measure_impl
+
+  for (std::vector<void(*)(std::size_t)>::const_iterator i = list.begin(); i != list.end(); ++i) (*i)(nloop);
+}
+
+#define list_ntz_impl                                       \
+  measure_impl(shift1f)                                     \
+  measure_impl(shift4f)                                     \
+  measure_impl(shift8f)                                     \
+  measure_impl(shift4fx)                                    \
+  measure_impl(shift8fx)                                    \
+  measure_impl(bsec1)                                       \
+  measure_impl(bsec2)                                       \
+  measure_impl(bsec3)                                       \
+  measure_impl(bsec1x)                                      \
+  measure_impl(bsec2x)                                      \
+  measure_impl(frexp)                                       \
+  measure_impl(double)                                      \
+  measure_impl(float)                                       \
+  measure_impl(kazatsuyu)                                   \
+  measure_impl(debruijn2)                                   \
+  bench1_if_gnu(measure_impl(bctz) measure_impl(bpopcount)) \
+  bench1_if_msc(measure_impl(bpopcount))                    \
+  bench1_if_ilzcnt(measure_impl(itzcnt))                    \
+  bench1_if_ipopcnt(measure_impl(ipopcnt))
+
+#define measure_impl(Name) declare_measure_function(Name, ntz, ntz_impl_shift1f)
+list_ntz_impl
 #undef measure_impl
 
 void measure_ntz() {
   static const std::size_t nloop = 100000;
-
   std::vector<void(*)(std::size_t)> list;
 
-  list.push_back(&measure_ntz_base);
+  list.push_back(&measure_base);
 #define measure_impl(Name) check_ntz_##Name(nloop); list.push_back(&measure_ntz_##Name);
-  measure_list;
+  list_ntz_impl;
 #undef measure_impl
 
   for (std::vector<void(*)(std::size_t)>::const_iterator i = list.begin(); i != list.end(); ++i) (*i)(nloop);
