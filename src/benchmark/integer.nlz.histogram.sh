@@ -94,7 +94,14 @@ function measure_and_summary {
       n = split("shift shift4 shift8 bsec bsec2 bsec3 kazatsuyu debruijn debruijn2 frexp double float bclz ilzcnt ibsr asmbsr bctz bffs itzcnt ibsf bpopcount ipopcnt", g_titles);
       for (i = 1; i <= n; i++) {
         k = g_titles[i];
-        print k, (g_medians[k] - base) / shift > fname;
+        time = g_medians[k] - base;
+        if (time >= 0)
+          ratio = time / shift;
+        else {
+          time = "NaN";
+          ratio = "NaN";
+        }
+        print k, ratio, time > fname;
       }
     }
   '
@@ -134,10 +141,12 @@ if [[ $1 == force ]]; then
   fi
 fi
 
-# measure_and_summary vaio.gcc
-# measure_and_summary vaio.clang
-# measure_and_summary vaio.msc
+# measure_and_summary pad.gcc
+# measure_and_summary pad.clang
+# measure_and_summary pad.icc
+# measure_and_summary mag.gcc
+# measure_and_summary mag.clang
+# measure_and_summary mag.msc
 # measure_and_summary laguerre.gcc
 # measure_and_summary laguerre.clang
 # measure_and_summary laguerre.icc
-
