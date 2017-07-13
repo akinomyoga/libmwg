@@ -7,6 +7,7 @@
 #include <mwg/except.h>
 #include <mwg/std/cstdint>
 #include <mwg/std/cmath>
+#include <mwg/std/algorithm>
 #include "measure.h"
 
 // ndigits()
@@ -971,7 +972,7 @@ void measure_base(std::size_t const nloop) {
   for(std::size_t i = 0; i < nloop; i++) a = (int) i;
 }
 
-#define declare_measure_function(Name, function, function_impl_normal) \
+#define bench1_declare_measure_function(Name, function, function_impl_normal) \
 void check_##function##_##Name(std::size_t const nloop) { \
   for(std::size_t i = 0; i < nloop; i++) \
     mwg_check(function_impl_normal(i) == function##_impl_##Name(i), "i=%d result=%d (%d)", i, function##_impl_##Name(i), function_impl_normal(i)); \
@@ -981,74 +982,88 @@ void measure_##function##_##Name(std::size_t const nloop) { \
   for(std::size_t i = 0; i < nloop; i++) a = function##_impl_##Name(i); \
 }
 
-#define list_ndigits_impl \
-  measure_impl(shift) \
-  measure_impl(shift4) \
-  measure_impl(shift8) \
-  measure_impl(bsec) \
-  measure_impl(bsec2) \
-  measure_impl(bsec3) \
-  measure_impl(kazatsuyu) \
-  measure_impl(kazatsuyund) \
-  measure_impl(debruijn2) \
-  measure_impl(frexp) \
-  bench1_if_iec559(measure_impl(double) measure_impl(float)) \
-  bench1_if_msc(measure_impl(bclz) measure_impl(bpopcount)) \
-  bench1_if_gnu(measure_impl(bclz) measure_impl(bpopcount) measure_impl(bctz) measure_impl(bffs)) \
-  bench1_if_ilzcnt(measure_impl(ilzcnt) measure_impl(itzcnt)) \
-  bench1_if_ibsr(measure_impl(ibsr) measure_impl(ibsf)) \
-  bench1_if_ipopcnt(measure_impl(ipopcnt)) \
-  bench1_if_asmbsr(measure_impl(asmbsr))
+#define bench1_list_ndigits_impl \
+  bench1_proc(shift) \
+  bench1_proc(shift4) \
+  bench1_proc(shift8) \
+  bench1_proc(bsec) \
+  bench1_proc(bsec2) \
+  bench1_proc(bsec3) \
+  bench1_proc(kazatsuyu) \
+  bench1_proc(kazatsuyund) \
+  bench1_proc(debruijn2) \
+  bench1_proc(frexp) \
+  bench1_if_iec559(bench1_proc(double) bench1_proc(float)) \
+  bench1_if_msc(bench1_proc(bclz) bench1_proc(bpopcount)) \
+  bench1_if_gnu(bench1_proc(bclz) bench1_proc(bpopcount) bench1_proc(bctz) bench1_proc(bffs)) \
+  bench1_if_ilzcnt(bench1_proc(ilzcnt) bench1_proc(itzcnt)) \
+  bench1_if_ibsr(bench1_proc(ibsr) bench1_proc(ibsf)) \
+  bench1_if_ipopcnt(bench1_proc(ipopcnt)) \
+  bench1_if_asmbsr(bench1_proc(asmbsr))
 
-#define measure_impl(Name) declare_measure_function(Name, ndigits, ndigits_impl_shift)
-list_ndigits_impl
-#undef measure_impl
+#define bench1_proc(Name) bench1_declare_measure_function(Name, ndigits, ndigits_impl_shift)
+bench1_list_ndigits_impl
+#undef bench1_proc
 
+void check_nd() {
+  static const std::size_t nloop = 100000;
+#define bench1_proc(Name) check_ndigits_##Name(nloop);
+  bench1_list_ndigits_impl;
+#undef bench1_proc
+}
 void measure_nd() {
   static const std::size_t nloop = 100000;
-  std::vector<void(*)(std::size_t)> list;
+  typedef std::vector<void(*)(std::size_t)> list_t;
+  list_t list;
 
   list.push_back(&measure_base);
-#define measure_impl(Name) check_ndigits_##Name(nloop); list.push_back(&measure_ndigits_##Name);
-  list_ndigits_impl;
-#undef measure_impl
+#define bench1_proc(Name) list.push_back(&measure_ndigits_##Name);
+  bench1_list_ndigits_impl;
+#undef bench1_proc
 
-  for (std::vector<void(*)(std::size_t)>::const_iterator i = list.begin(); i != list.end(); ++i) (*i)(nloop);
+  for (list_t::const_iterator i = list.begin(); i != list.end(); ++i) (*i)(nloop);
+  //std11::shuffle(list.begin(), list.end(), );
 }
 
-#define list_ntz_impl                                       \
-  measure_impl(shift1f)                                     \
-  measure_impl(shift4f)                                     \
-  measure_impl(shift8f)                                     \
-  measure_impl(shift4fx)                                    \
-  measure_impl(shift8fx)                                    \
-  measure_impl(bsec1)                                       \
-  measure_impl(bsec2)                                       \
-  measure_impl(bsec3)                                       \
-  measure_impl(bsec1x)                                      \
-  measure_impl(bsec2x)                                      \
-  measure_impl(frexp)                                       \
-  measure_impl(double)                                      \
-  measure_impl(float)                                       \
-  measure_impl(kazatsuyu)                                   \
-  measure_impl(debruijn2)                                   \
-  bench1_if_gnu(measure_impl(bctz) measure_impl(bpopcount)) \
-  bench1_if_msc(measure_impl(bpopcount))                    \
-  bench1_if_ilzcnt(measure_impl(itzcnt))                    \
-  bench1_if_ipopcnt(measure_impl(ipopcnt))
+#define bench1_list_ntz_impl                               \
+  bench1_proc(shift1f)                                     \
+  bench1_proc(shift4f)                                     \
+  bench1_proc(shift8f)                                     \
+  bench1_proc(shift4fx)                                    \
+  bench1_proc(shift8fx)                                    \
+  bench1_proc(bsec1)                                       \
+  bench1_proc(bsec2)                                       \
+  bench1_proc(bsec3)                                       \
+  bench1_proc(bsec1x)                                      \
+  bench1_proc(bsec2x)                                      \
+  bench1_proc(frexp)                                       \
+  bench1_proc(double)                                      \
+  bench1_proc(float)                                       \
+  bench1_proc(kazatsuyu)                                   \
+  bench1_proc(debruijn2)                                   \
+  bench1_if_gnu(bench1_proc(bctz) bench1_proc(bpopcount))  \
+  bench1_if_msc(bench1_proc(bpopcount))                    \
+  bench1_if_ilzcnt(bench1_proc(itzcnt))                    \
+  bench1_if_ipopcnt(bench1_proc(ipopcnt))
 
-#define measure_impl(Name) declare_measure_function(Name, ntz, ntz_impl_shift1f)
-list_ntz_impl
-#undef measure_impl
+#define bench1_proc(Name) bench1_declare_measure_function(Name, ntz, ntz_impl_shift1f)
+bench1_list_ntz_impl
+#undef bench1_proc
 
+void check_ntz() {
+  static const std::size_t nloop = 100000;
+#define bench1_proc(Name) check_ntz_##Name(nloop);
+  bench1_list_ntz_impl;
+#undef bench1_proc
+}
 void measure_ntz() {
   static const std::size_t nloop = 100000;
   std::vector<void(*)(std::size_t)> list;
 
   list.push_back(&measure_base);
-#define measure_impl(Name) check_ntz_##Name(nloop); list.push_back(&measure_ntz_##Name);
-  list_ntz_impl;
-#undef measure_impl
+#define bench1_proc(Name) list.push_back(&measure_ntz_##Name);
+  bench1_list_ntz_impl;
+#undef bench1_proc
 
   for (std::vector<void(*)(std::size_t)>::const_iterator i = list.begin(); i != list.end(); ++i) (*i)(nloop);
 }
@@ -1057,9 +1072,11 @@ int main(int argc, char** argv) {
   if (argc >= 2){
     int const nmeasure = 2 < argc? atoi(argv[2]): 1;
     if (std::strcmp(argv[1], "ntz") == 0) {
+      check_ntz();
       for (int i = 0; i < nmeasure; i++) measure_ntz();
       return 0;
     } else if (std::strcmp(argv[1], "nd") == 0) {
+      check_nd();
       for (int i = 0; i < nmeasure; i++) measure_nd();
       return 0;
     }
