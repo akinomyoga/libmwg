@@ -75,14 +75,19 @@
  *
  */
 #if MWGCONF_HEADER_STD >= 2011 && !defined(MWGCONF_INVALID_HEADER_TYPE_TRAITS)
+# define MWG_STDM_TYPE_TRAITS_has_std_type_traits
 # include <type_traits>
-
-#if defined(_MSC_VER) && (_MSC_VER == 1900 || _MSC_VER == 1910)
-# include "type_traits.is_convertible.inl"
+# if defined(_MSC_VER) && (_MSC_VER == 1900 || _MSC_VER == 1910)
+#  include "type_traits.is_convertible.inl"
+# endif
+#elif MWGCONF_HEADER_STD >= 2005
+# define MWG_STDM_TYPE_TRAITS_has_tr1_type_traits
+# include <type_traits>
+#elif defined(MWGCONF_HEADER_TR1)
+# define MWG_STDM_TYPE_TRAITS_has_tr1_type_traits
+# include <tr1/type_traits>
 #endif
 
-#else
-//HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 #pragma%include ../impl/VariadicMacros.pp
 #pragma%x begin_check
 #include <mwg/except.h>
@@ -96,14 +101,8 @@ struct U : public T {};
 
 #pragma%x end_check
 
-// load TR1 library
-#if MWGCONF_HEADER_STD >= 2005
-# include <type_traits>
-# define MWG_STDM_TYPE_TRAITS_WithTr1Header
-#elif defined(MWGCONF_HEADER_TR1)
-# include <tr1/type_traits>
-# define MWG_STDM_TYPE_TRAITS_WithTr1Header
-#endif
+#ifndef MWG_STDM_TYPE_TRAITS_has_std_type_traits
+//HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 
 #include <cstddef>
 #include <mwg/concept.h>
@@ -119,7 +118,7 @@ namespace stdm {
   //
   //  integral_constant
   //
-#ifdef MWG_STDM_TYPE_TRAITS_WithTr1Header
+#ifdef MWG_STDM_TYPE_TRAITS_has_tr1_type_traits
   using ::std::tr1::integral_constant;
   using ::std::tr1::true_type;
   using ::std::tr1::false_type;
@@ -138,7 +137,7 @@ namespace stdm {
   //
   // is_same
   //
-#ifdef MWG_STDM_TYPE_TRAITS_WithTr1Header
+#ifdef MWG_STDM_TYPE_TRAITS_has_tr1_type_traits
   using ::std::tr1::is_same;
 #else
   template<typename T, typename U>
@@ -208,7 +207,7 @@ namespace stdm {
 # if mwg_has_feature(cxx_rvalue_references)
   template<typename T> struct is_rvalue_reference<T&&>: true_type {};
 # endif
-#ifdef MWG_STDM_TYPE_TRAITS_WithTr1Header
+#ifdef MWG_STDM_TYPE_TRAITS_has_tr1_type_traits
   using ::std::tr1::is_reference;
 #else
   template<typename T> struct is_reference:
@@ -220,7 +219,7 @@ namespace stdm {
   //
   //    requires is_reference
   //
-#if defined(MWG_STDM_TYPE_TRAITS_WithTr1Header) && !defined(MWGCONF_INVALID_STD_IS_CONST)
+#if defined(MWG_STDM_TYPE_TRAITS_has_tr1_type_traits) && !defined(MWGCONF_INVALID_STD_IS_CONST)
   using ::std::tr1::is_const;
   using ::std::tr1::is_volatile;
   using ::std::tr1::add_const;
@@ -291,7 +290,7 @@ namespace stdm {
   //
   //  requires: remove_cv
   //
-#ifdef MWG_STDM_TYPE_TRAITS_WithTr1Header
+#ifdef MWG_STDM_TYPE_TRAITS_has_tr1_type_traits
   using ::std::tr1::is_void;
 #else
   template<typename T> struct is_void: is_same<typename remove_cv<T>::type, void> {};
@@ -381,7 +380,7 @@ namespace stdm {
   //
   //   requires: is_reference, is_void, is_function
   //
-#ifdef MWG_STDM_TYPE_TRAITS_WithTr1Header
+#ifdef MWG_STDM_TYPE_TRAITS_has_tr1_type_traits
   using ::std::tr1::remove_reference;
 #else
   template<typename T> struct remove_reference: mwg::identity<T> {};
@@ -390,7 +389,7 @@ namespace stdm {
   template<typename T> struct remove_reference<T&&>: mwg::identity<T> {};
 # endif
 #endif
-#if (defined(MWG_STDM_TYPE_TRAITS_WithTr1Header) \
+#if (defined(MWG_STDM_TYPE_TRAITS_has_tr1_type_traits) \
   &&defined(MWGCONF_HAS_STD_TR1_ADD_REFERENCE) && !defined(MWGCONF_INVALID_STD_TR1_ADD_REFERENCE))
 
 # if !defined(MWGCONF_HAS_ADD_LVALUE_REFERENCE)
@@ -449,7 +448,7 @@ namespace stdm {
   //   is_floating_point
   //   is_integral
   //
-#ifdef MWG_STDM_TYPE_TRAITS_WithTr1Header
+#ifdef MWG_STDM_TYPE_TRAITS_has_tr1_type_traits
   using ::std::tr1::is_arithmetic;
   using ::std::tr1::is_floating_point;
   using ::std::tr1::is_integral;
@@ -727,7 +726,7 @@ namespace stdm {
   //   is_member_function_pointer
   //   is_member_object_pointer
   //
-#ifdef MWG_STDM_TYPE_TRAITS_WithTr1Header
+#ifdef MWG_STDM_TYPE_TRAITS_has_tr1_type_traits
 namespace mwg {
 namespace stdm {
   using ::std::tr1::is_pointer;
@@ -802,7 +801,7 @@ namespace stdm {
   //   extent
   //   rank
   //
-#ifdef MWG_STDM_TYPE_TRAITS_WithTr1Header
+#ifdef MWG_STDM_TYPE_TRAITS_has_tr1_type_traits
   using ::std::tr1::is_array;
   using ::std::tr1::remove_extent;
   using ::std::tr1::remove_all_extents;
@@ -854,7 +853,7 @@ namespace stdm {
   // is_class
   // is_union
   //
-#ifdef MWG_STDM_TYPE_TRAITS_WithTr1Header
+#ifdef MWG_STDM_TYPE_TRAITS_has_tr1_type_traits
   using ::std::tr1::is_union;
   using ::std::tr1::is_class;
 #else
@@ -883,7 +882,7 @@ namespace stdm {
   //
   // is_base_of
   //
-#ifdef MWG_STDM_TYPE_TRAITS_WithTr1Header
+#ifdef MWG_STDM_TYPE_TRAITS_has_tr1_type_traits
   using ::std::tr1::is_base_of;
 #else
 # if defined(_MSC_VER) && _MSC_FULL_VER >= 140050215 || MWGCONF_GCC_VER >= 40300
@@ -945,7 +944,7 @@ namespace stdm {
   //
   // is_convertible
   //
-#if (defined(MWG_STDM_TYPE_TRAITS_WithTr1Header) && \
+#if (defined(MWG_STDM_TYPE_TRAITS_has_tr1_type_traits) && \
   defined(MWGCONF_HAS_VALID_IS_CONVERTIBLE))
   using ::std::tr1::is_convertible;
 #else
@@ -1119,7 +1118,7 @@ namespace stdm {
   //   is_scalar
   //     is_enum
   //
-#ifdef MWG_STDM_TYPE_TRAITS_WithTr1Header
+#ifdef MWG_STDM_TYPE_TRAITS_has_tr1_type_traits
   using ::std::tr1::is_enum;
   using ::std::tr1::is_scalar;
   using ::std::tr1::is_object;
@@ -1157,7 +1156,7 @@ namespace stdm {
   // is_fundamental
   // is_compound
   //
-#ifdef MWG_STDM_TYPE_TRAITS_WithTr1Header
+#ifdef MWG_STDM_TYPE_TRAITS_has_tr1_type_traits
   using ::std::tr1::is_fundamental;
   using ::std::tr1::is_compound;
 #else
@@ -1319,7 +1318,7 @@ namespace stdm {
   //
   // is_empty
   //
-#ifdef MWG_STDM_TYPE_TRAITS_WithTr1Header
+#ifdef MWG_STDM_TYPE_TRAITS_has_tr1_type_traits
   using ::std::tr1::is_empty;
 #else
 # if defined(_MSC_VER) || MWGCONF_GCC_VER >= 40300
@@ -1334,7 +1333,7 @@ namespace stdm {
   //
   // is_pod
   //
-#ifdef MWG_STDM_TYPE_TRAITS_WithTr1Header
+#ifdef MWG_STDM_TYPE_TRAITS_has_tr1_type_traits
   using ::std::tr1::is_pod;
 #else
   namespace detail {
@@ -1368,7 +1367,20 @@ namespace stdm {
 # pragma clang diagnostic pop
 #endif
 
+#endif /* end of !defined(MWG_STDM_TYPE_TRAITS_has_std_type_traits) */
+
+#ifndef MWG_STD_CXX14
+namespace mwg {
+namespace stdm {
+# if mwg_has_feature(cxx_alias_templates)
+  template<bool B> using bool_constant = stdm::integral_constant<bool, B>;
+# else
+  template<bool B> struct bool_constant: stdm::integral_constant<bool, B> {};
+# endif
+}
+}
 #endif
+
 //HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 // mwg::stdx : mwg extension
 //-----------------------------------------------------------------------------

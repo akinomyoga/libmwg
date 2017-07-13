@@ -3,6 +3,7 @@
 #define MWG_BITS_MPL_INTEGER_H
 #include <cstddef>
 #include <climits>
+#include <limits>
 #include <mwg/std/type_traits>
 namespace mwg {
 namespace mpl {
@@ -23,68 +24,79 @@ namespace mpl {
   // template<unsigned I> struct impl_add_nibbles: impl_add_bytes<(I & 0x0f0f0f0f)+(I >> 4 & 0x0f0f0f0f)> {};
   // template<unsigned I> struct count_bits: impl_add_nibbles<(I & 0x11111111)+(I >> 1 & 0x11111111)+(I >> 2 & 0x11111111)+(I >> 3 & 0x11111111)> {};
 
-  template<int I> struct is_power_of_2;
-  template<>      struct is_power_of_2<0>  : mwg::stdm::false_type {};
-  template<>      struct is_power_of_2<1>  : mwg::stdm::true_type {};
-  template<>      struct is_power_of_2<2>  : mwg::stdm::true_type {};
-  template<>      struct is_power_of_2<4>  : mwg::stdm::true_type {};
-  template<>      struct is_power_of_2<8>  : mwg::stdm::true_type {};
-  template<>      struct is_power_of_2<16> : mwg::stdm::true_type {};
-  template<>      struct is_power_of_2<32> : mwg::stdm::true_type {};
-  template<>      struct is_power_of_2<64> : mwg::stdm::true_type {};
-  template<>      struct is_power_of_2<128>: mwg::stdm::true_type {};
-  template<int I> struct is_power_of_2: mwg::stdm::integral_constant<bool,
-    (I % 256 == 0 && is_power_of_2<I / 256>::value)
-    > {};
+  namespace is_pow2_detail {
+
+    template<typename UIntType, UIntType value, std::size_t width = std::numeric_limits<UIntType>::digits, std::size_t shift = (width + 1) / 2>
+    struct for_unsigned: for_unsigned<
+      UIntType,
+      value % ((UIntType) 1 << shift) == 0? value >> shift: value,
+      width - shift> {};
+    template<typename UIntType, UIntType value, std::size_t shift>
+    struct for_unsigned<UIntType, value, 0, shift>: stdm::bool_constant<value == 1>::type {};
+
+    template<typename IntType, IntType value, typename UIntType = typename stdm::make_unsigned<IntType>::type, bool = (value >= 0)>
+    struct for_signed: for_unsigned<UIntType, (UIntType) value> {};
+    template<typename IntType, IntType value, typename UIntType>
+    struct for_signed<IntType, value, UIntType, false>: stdm::false_type {};
+
+    template<typename Integer, Integer value, typename = void> struct impl: stdm::false_type {};
+    template<typename IntType, IntType value>
+    struct impl<IntType, value, typename stdm::enable_if<stdm::is_signed<IntType>::value>::type>: for_signed<IntType, value> {};
+    template<typename UIntType, UIntType value>
+    struct impl<UIntType, value, typename stdm::enable_if<stdm::is_unsigned<UIntType>::value>::type>: for_unsigned<UIntType, value> {};
+  }
+
+  template<typename Integer, Integer value> struct is_pow2: is_pow2_detail::impl<Integer, value> {};
+
 
 #pragma%x begin_check
 #include <cstdio>
 #include <mwg/bits/mpl.integer.h>
 #include <mwg/except.h>
 
-void test_is_power_of_2() {
-  mwg_check(( mwg::mpl::is_power_of_2<1>::value));
-  mwg_check(( mwg::mpl::is_power_of_2<2>::value));
-  mwg_check(( mwg::mpl::is_power_of_2<4>::value));
-  mwg_check(( mwg::mpl::is_power_of_2<8>::value));
-  mwg_check((!mwg::mpl::is_power_of_2<0>::value));
-  mwg_check((!mwg::mpl::is_power_of_2<3>::value));
-  mwg_check((!mwg::mpl::is_power_of_2<5>::value));
-  mwg_check((!mwg::mpl::is_power_of_2<6>::value));
-  mwg_check((!mwg::mpl::is_power_of_2<7>::value));
-  mwg_check((!mwg::mpl::is_power_of_2<9>::value));
+void test_is_pow2() {
+  mwg_check(( mwg::mpl::is_pow2<int, 1>::value));
+  mwg_check(( mwg::mpl::is_pow2<int, 2>::value));
+  mwg_check(( mwg::mpl::is_pow2<int, 4>::value));
+  mwg_check(( mwg::mpl::is_pow2<int, 8>::value));
+  mwg_check((!mwg::mpl::is_pow2<int, 0>::value));
+  mwg_check((!mwg::mpl::is_pow2<int, 3>::value));
+  mwg_check((!mwg::mpl::is_pow2<int, 5>::value));
+  mwg_check((!mwg::mpl::is_pow2<int, 6>::value));
+  mwg_check((!mwg::mpl::is_pow2<int, 7>::value));
+  mwg_check((!mwg::mpl::is_pow2<int, 9>::value));
 
-  mwg_check(( mwg::mpl::is_power_of_2<16>::value));
-  mwg_check(( mwg::mpl::is_power_of_2<32>::value));
-  mwg_check(( mwg::mpl::is_power_of_2<64>::value));
-  mwg_check((!mwg::mpl::is_power_of_2<23>::value));
-  mwg_check((!mwg::mpl::is_power_of_2<43>::value));
-  mwg_check((!mwg::mpl::is_power_of_2<61>::value));
-  mwg_check((!mwg::mpl::is_power_of_2<23>::value));
-  mwg_check((!mwg::mpl::is_power_of_2<98>::value));
+  mwg_check(( mwg::mpl::is_pow2<int, 16>::value));
+  mwg_check(( mwg::mpl::is_pow2<int, 32>::value));
+  mwg_check(( mwg::mpl::is_pow2<int, 64>::value));
+  mwg_check((!mwg::mpl::is_pow2<int, 23>::value));
+  mwg_check((!mwg::mpl::is_pow2<int, 43>::value));
+  mwg_check((!mwg::mpl::is_pow2<int, 61>::value));
+  mwg_check((!mwg::mpl::is_pow2<int, 23>::value));
+  mwg_check((!mwg::mpl::is_pow2<int, 98>::value));
 
-  mwg_check(( mwg::mpl::is_power_of_2<128>::value));
-  mwg_check(( mwg::mpl::is_power_of_2<256>::value));
-  mwg_check(( mwg::mpl::is_power_of_2<512>::value));
-  mwg_check((!mwg::mpl::is_power_of_2<122>::value));
-  mwg_check((!mwg::mpl::is_power_of_2<132>::value));
-  mwg_check((!mwg::mpl::is_power_of_2<432>::value));
-  mwg_check((!mwg::mpl::is_power_of_2<327>::value));
-  mwg_check((!mwg::mpl::is_power_of_2<243>::value));
+  mwg_check(( mwg::mpl::is_pow2<int, 128>::value));
+  mwg_check(( mwg::mpl::is_pow2<int, 256>::value));
+  mwg_check(( mwg::mpl::is_pow2<int, 512>::value));
+  mwg_check((!mwg::mpl::is_pow2<int, 122>::value));
+  mwg_check((!mwg::mpl::is_pow2<int, 132>::value));
+  mwg_check((!mwg::mpl::is_pow2<int, 432>::value));
+  mwg_check((!mwg::mpl::is_pow2<int, 327>::value));
+  mwg_check((!mwg::mpl::is_pow2<int, 243>::value));
 
-  mwg_check(( mwg::mpl::is_power_of_2<1024>::value));
-  mwg_check(( mwg::mpl::is_power_of_2<2048>::value));
-  mwg_check(( mwg::mpl::is_power_of_2<4096>::value));
-  mwg_check(( mwg::mpl::is_power_of_2<8192>::value));
-  mwg_check((!mwg::mpl::is_power_of_2<1536>::value));
-  mwg_check((!mwg::mpl::is_power_of_2<9999>::value));
-  mwg_check((!mwg::mpl::is_power_of_2<2134>::value));
-  mwg_check((!mwg::mpl::is_power_of_2<4321>::value));
-  mwg_check((!mwg::mpl::is_power_of_2<3192>::value));
-  mwg_check((!mwg::mpl::is_power_of_2<3928>::value));
-  mwg_check((!mwg::mpl::is_power_of_2<4329>::value));
-  mwg_check((!mwg::mpl::is_power_of_2<3412>::value));
-  mwg_check((!mwg::mpl::is_power_of_2<8888>::value));
+  mwg_check(( mwg::mpl::is_pow2<int, 1024>::value));
+  mwg_check(( mwg::mpl::is_pow2<int, 2048>::value));
+  mwg_check(( mwg::mpl::is_pow2<int, 4096>::value));
+  mwg_check(( mwg::mpl::is_pow2<int, 8192>::value));
+  mwg_check((!mwg::mpl::is_pow2<int, 1536>::value));
+  mwg_check((!mwg::mpl::is_pow2<int, 9999>::value));
+  mwg_check((!mwg::mpl::is_pow2<int, 2134>::value));
+  mwg_check((!mwg::mpl::is_pow2<int, 4321>::value));
+  mwg_check((!mwg::mpl::is_pow2<int, 3192>::value));
+  mwg_check((!mwg::mpl::is_pow2<int, 3928>::value));
+  mwg_check((!mwg::mpl::is_pow2<int, 4329>::value));
+  mwg_check((!mwg::mpl::is_pow2<int, 3412>::value));
+  mwg_check((!mwg::mpl::is_pow2<int, 8888>::value));
 }
 #pragma%x end_check
 
@@ -316,7 +328,7 @@ void test_integral_minmax() {
 #endif
 #pragma%x begin_check
 int main() {
-  test_is_power_of_2();
+  test_is_pow2();
   test_integral_minmax();
   return 0;
 }
