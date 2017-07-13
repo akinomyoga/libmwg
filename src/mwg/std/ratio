@@ -22,7 +22,7 @@
 # define MWG_STDM_RATIO_EMULATED
 # include "cstdint"
 # include "type_traits"
-# include <mwg/mpl.h>
+# include <mwg/bits/mpl.integer.h>
 namespace mwg {
 namespace stdm {
 namespace ratio_detail {

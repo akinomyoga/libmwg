@@ -1,6 +1,6 @@
 // -*- mode: c++; coding: utf-8 -*-
-#ifndef MWG_MPL_H
-#define MWG_MPL_H
+#ifndef MWG_BITS_MPL_INTEGER_H
+#define MWG_BITS_MPL_INTEGER_H
 #include <cstddef>
 #include <climits>
 #include <mwg/std/type_traits>
@@ -14,13 +14,6 @@ namespace mpl {
   //   template<typename T>
   //   operator T&(){return *reinterpret_cast<T*>(d);}
   // };
-
-//-----------------------------------------------------------------------------
-// macro mwg_mpl_nullref
-//
-// #define mwg_mpl_nullref(T) (*reinterpret_cast<typename mwg::identity<T>::type*>(0))
-//   mwg_mpl_nullref(const T) -> mwg::declval<T>()
-//   mwg_mpl_nullref(T)       -> mwg::declval<T&>()
 
 //*****************************************************************************
 //  整数テンプレート
@@ -46,7 +39,7 @@ namespace mpl {
 
 #pragma%x begin_check
 #include <cstdio>
-#include <mwg/mpl.h>
+#include <mwg/bits/mpl.integer.h>
 #include <mwg/except.h>
 
 void test_is_power_of_2() {
@@ -106,10 +99,16 @@ void test_is_power_of_2() {
     template<typename I, I Z1>
     struct integral_sgn: mwg::stdm::integral_constant<I, (Z1 < 0? -1: 1)> {};
 
+    /* template<typename IntType> struct integral_limits;
+     *
+     * std::numeric_limits<I>::min(), max() は C++03 では constant expression ではないので、
+     * integral_limits<I>::min_value, integral_limits<I>::max_value として最小値・最大値を提供する。
+     */
+
     template<typename I, I ZMin, I ZMax>
     struct integral_limits_impl {
-      static const I min_value=ZMin;
-      static const I max_value=ZMax;
+      static mwg_constexpr_const I min_value = ZMin;
+      static mwg_constexpr_const I max_value = ZMax;
     };
 
     template<typename I> struct integral_limits {};
@@ -228,32 +227,32 @@ void test_is_power_of_2() {
 #else
     template<
       typename I,
-      I Z0=integral_limits<I>::min_value,
-      I Z1=integral_limits<I>::min_value,
-      I Z2=integral_limits<I>::min_value,
-      I Z3=integral_limits<I>::min_value,
-      I Z4=integral_limits<I>::min_value,
-      I Z5=integral_limits<I>::min_value,
-      I Z6=integral_limits<I>::min_value,
-      I Z7=integral_limits<I>::min_value,
-      I Z8=integral_limits<I>::min_value,
-      I Z9=integral_limits<I>::min_value >
-    struct integral_max
-      :integral_max<I, (Z0 > Z1? Z0: Z1), Z2, Z3, Z4, Z5, Z6, Z7, Z8, Z9> {};
+      I Z0 = integral_limits<I>::min_value,
+      I Z1 = integral_limits<I>::min_value,
+      I Z2 = integral_limits<I>::min_value,
+      I Z3 = integral_limits<I>::min_value,
+      I Z4 = integral_limits<I>::min_value,
+      I Z5 = integral_limits<I>::min_value,
+      I Z6 = integral_limits<I>::min_value,
+      I Z7 = integral_limits<I>::min_value,
+      I Z8 = integral_limits<I>::min_value,
+      I Z9 = integral_limits<I>::min_value >
+    struct integral_max:
+      integral_max<I, (Z0 > Z1? Z0: Z1), Z2, Z3, Z4, Z5, Z6, Z7, Z8, Z9> {};
     template<
       typename I,
-      I Z0=integral_limits<I>::max_value,
-      I Z1=integral_limits<I>::max_value,
-      I Z2=integral_limits<I>::max_value,
-      I Z3=integral_limits<I>::max_value,
-      I Z4=integral_limits<I>::max_value,
-      I Z5=integral_limits<I>::max_value,
-      I Z6=integral_limits<I>::max_value,
-      I Z7=integral_limits<I>::max_value,
-      I Z8=integral_limits<I>::max_value,
-      I Z9=integral_limits<I>::max_value >
-    struct integral_min
-      :integral_min<I, (Z0 < Z1? Z0: Z1), Z2, Z3, Z4, Z5, Z6, Z7, Z8, Z9> {};
+      I Z0 = integral_limits<I>::max_value,
+      I Z1 = integral_limits<I>::max_value,
+      I Z2 = integral_limits<I>::max_value,
+      I Z3 = integral_limits<I>::max_value,
+      I Z4 = integral_limits<I>::max_value,
+      I Z5 = integral_limits<I>::max_value,
+      I Z6 = integral_limits<I>::max_value,
+      I Z7 = integral_limits<I>::max_value,
+      I Z8 = integral_limits<I>::max_value,
+      I Z9 = integral_limits<I>::max_value >
+    struct integral_min:
+      integral_min<I, (Z0 < Z1? Z0: Z1), Z2, Z3, Z4, Z5, Z6, Z7, Z8, Z9> {};
 
 /*---- WORKAROUND -------------------------------------------------------------
  * 特殊化の際、既定テンプレート引数が他のテンプレートパラメータ I を含む事はできない
@@ -310,43 +309,6 @@ void test_integral_minmax() {
   mwg_check(( mwg::mpl::integral_max<int, -1, -22, -3, -34, -15>::value ==  -1));
 }
 #pragma%x end_check
-
-//*****************************************************************************
-//  型に関する判定
-/*
- * //-----------------------------------------------------------------------------
- * // mustbe_type<T, mem> : mem の型が T でなかったら適用失敗
- * //-----------------------------------------------------------------------------
- *   template<class T, T mem>
- *   struct mustbe_type {typedef mwg::stdm::true_type type;};
- * //----------------------------------------------------------------------------
- * // mwg_mpl_is_assignable(T, expr) : expr を T 型の変数に代入可能か否かの判定
- * //----------------------------------------------------------------------------
- *   template<typename T>
- *   struct is_assignable_impl {
- *     static mwg::mpl::true_t eval(T v);
- *     static mwg::mpl::false_t eval(...);
- *   };
- * #define mwg_mpl_is_assignable(T, expr) \
- *   (sizeof(mwg::mpl::true_t) == sizeof(mwg::mpl::is_assignable_impl<T>::eval(mwg_mpl_void2iarr(expr))))
- */
-
-  //============================================================================
-  //  type_for_arg<T>::type : 関数の引数として適当な物を選択
-  //    (値渡し or const 参照渡し)
-  //----------------------------------------------------------------------------
-  template<typename T, bool B=mwg::stdm::is_scalar<T>::value> struct type_for_arg;
-  template<typename T> struct type_for_arg<T, true>: identity<T> {};
-  template<typename T> struct type_for_arg<T, false>: identity<const T&> {};
-  // long double → サイズが大きいので参照で渡す様にする?
-  // 参照 → 参照の参照は参照なので OK
-  // 関数ポインタ → 自動的にポインタとして扱われる? ので大丈夫?
-  // メンバへのポインタ → is_scalar が対応しているので OK
-  // 配列 → 配列は要素数情報の保存も考えて参照で受け取れた方が良いと思う。
-  template<typename T, std::size_t N, bool B>
-  struct type_for_arg<T[N], B>: identity<T(&)[N]> {};
-  template<typename T, bool B>
-  struct type_for_arg<T[], B>: identity<T*> {};
 
 //NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN
 } /* endof namespace mpl */

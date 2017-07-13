@@ -21,7 +21,8 @@ Makefile: Makefile.pp
 #%x AddCxxHeader.r|%file%|mwg/std/type_traits.is_constructible.h|
 #%x AddCxxHeader.r|%file%|mwg/std/type_traits.is_convertible.inl|
 
-#%x AddCxxHeader.r|%file%|mwg/mpl.h|
+#%x AddCxxHeader.r|%file%|mwg/bits/mpl.integer.h|
+#%x AddCxxHeader.r|%file%|mwg/bits/mpl.util.h|
 #%x AddCxxHeader.r|%file%|mwg/range.h|
 
 #%x AddCxxHeader.r|%file%|mwg/impl/warning_push.inl|
