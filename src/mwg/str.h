@@ -781,7 +781,7 @@ public:
   strfix<char_type> operator->() const {return *this;}
 
 #pragma%x begin_test
-#ifdef MWGCONF_CLANG_VER
+#if MWGCONF_CLANG_VER
 # pragma clang diagnostic ignored "-Wformat-security"
 #endif
   void test() {
