@@ -51,10 +51,10 @@ namespace stdm {
     // TODO: Sseq が seed sequence でない時には overload resolution から外れる。
     template<class Sseq> void seed(Sseq& q) {
       static mwg_constexpr_const int k = (mwg::mpl::integral_ndigits<UIntType, m - 1>::value + 31) / 32;
-      std::uint_least32_t a[k + 3];
-      q.generate(stdm::begin(buffer), stdm::end(buffer));
+      stdm::uint_least32_t arr[k + 3];
+      q.generate(stdm::begin(arr), stdm::end(arr));
       m_state = 0;
-      for (int j = 0; j < k; j++) m_state |= (UIntType) a[j + 3] << 32 * j;
+      for (int j = 0; j < k; j++) m_state |= (UIntType) arr[j + 3] << 32 * j;
       if (c % m == 0 && m_state % m == 0) m_state = 1u;
     }
 
@@ -124,7 +124,7 @@ namespace stdm {
 
     public:
       typedef uniform_int_distribution<Integer> distribution_type;
-      friend distribution_type;
+      friend class uniform_int_distribution<Integer>;
 
       param_type(Integer a = 0, Integer b = std::numeric_limits<Integer>::max()):
         m_min(a), m_width(b - a), m_nbit(mwg::integer::ndigits(m_width)) {}
@@ -158,7 +158,7 @@ namespace stdm {
       uint_t const width = params.m_width;
       int const nconsume = params.m_nbit;
       for (;;) {
-        uint_t const ret = this->buffer.generate_bits<uint_t>(g, nconsume);
+        uint_t const ret = this->buffer.template generate_bits<uint_t>(g, nconsume);
         if (ret <= width) return params.min() + (result_type) ret;
       }
     }

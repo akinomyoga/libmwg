@@ -29,7 +29,7 @@ namespace mpl {
     template<typename UIntType, UIntType value, std::size_t width = std::numeric_limits<UIntType>::digits, std::size_t shift = (width + 1) / 2>
     struct for_unsigned: for_unsigned<
       UIntType,
-      value % ((UIntType) 1 << shift) == 0? value >> shift: value,
+      (value % ((UIntType) 1 << shift) == 0? value >> shift: value),
       width - shift> {};
     template<typename UIntType, UIntType value, std::size_t shift>
     struct for_unsigned<UIntType, value, 0, shift>: stdm::bool_constant<value == 1>::type {};

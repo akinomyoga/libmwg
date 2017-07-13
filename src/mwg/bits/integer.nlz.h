@@ -12,8 +12,8 @@ namespace mpl {
       std::size_t shift = (width + 1) / 2>
     struct for_nonzero_unsigned: for_nonzero_unsigned<
       UIntType,
-      value >> shift? value >> shift: value,
-      value >> shift? accumulator + shift: accumulator,
+      (value >> shift? value >> shift: value),
+      (value >> shift? accumulator + shift: accumulator),
       width - shift> {};
     template<typename UIntType, UIntType value, int accumulator, std::size_t shift>
     struct for_nonzero_unsigned<UIntType, value, accumulator, 0, shift>: stdm::integral_constant<int, accumulator> {};
@@ -54,7 +54,7 @@ namespace integer {
       static_assert(std::numeric_limits<Float>::is_iec559, "Float is not a ISO IEC 559 (IEEE 754) floating-point number");
       static_assert(sizeof(Float) == sizeof(Rep), "mismatch in sizes of Float and Rep");
       union {Float flt; Rep rep;} const data = {(Float) value + (Float) 0.5};
-      return (std::numeric_limits<Float>::min_exponent - 1) + (data.rep >> std::numeric_limits<Float>::digits - 1);
+      return (std::numeric_limits<Float>::min_exponent - 1) + (data.rep >> (std::numeric_limits<Float>::digits - 1));
     }
   }
 
