@@ -656,6 +656,7 @@ namespace stdm {
 #else
 # include <mwg/std/utility>
 # include <mwg/std/functional>
+# include <mwg/std/random>
 
 // C++11
 namespace mwg {
@@ -824,17 +825,29 @@ namespace stdm {
     return first;
   }
 
-  template<typename RandomIterator, typename UniformRandomBitGenerator>
-  void shuffle(
-    RandomIterator first, RandomIterator last,
-#if mwg_has_feature(cxx_rvalue_references)
-    UniformRandomBitGenerator&& g
-#else
-    UniformRandomBitGenerator& g
-#endif
-  ) {
+  namespace detail {
+    template<typename RandomIterator, typename URBG>
+    struct shuffle_random_function {
+      typedef typename std::iterator_traits<RandomIterator>::size_type size_type;
+      typedef typename std::iterator_traits<RandomIterator>::difference_type difference_type;
+      typedef stdm::uniform_int_distribution<difference_type> distribution_type;
+      typedef typename stdm::remove_const<URBG>::type UniformRandomBitGenerator;
+
+      distribution_type dist;
+      UniformRandomBitGenerator& g;
+
+      shuffle_random_function(URBG& g): g(const_cast<UniformRandomBitGenerator&>(g)) {}
+      void operator()(size_type size) {
+        return dist(g, distribution_type::param_type(0, size - 1));
+      }
+    };
+  }
+
+  template<typename RandomIterator, typename URBG>
+  void shuffle(RandomIterator first, RandomIterator last, URBG mwg_forward_rvalue g) {
     // call C++03 `std::random_shuffle` which is deprecated in C++14
-    ::std::random_shuffle(first, last, stdm::forward<URBG>(g));
+    detail::shuffle_random_function<RandomIterator, URBG> func(g);
+    ::std::random_shuffle(first, last, func);
   }
 
   template<typename InputIterator, typename UnaryPredicate>
