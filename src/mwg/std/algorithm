@@ -828,7 +828,6 @@ namespace stdm {
   namespace detail {
     template<typename RandomIterator, typename URBG>
     struct shuffle_random_function {
-      typedef typename std::iterator_traits<RandomIterator>::size_type size_type;
       typedef typename std::iterator_traits<RandomIterator>::difference_type difference_type;
       typedef stdm::uniform_int_distribution<difference_type> distribution_type;
       typedef typename stdm::remove_const<URBG>::type UniformRandomBitGenerator;
@@ -837,7 +836,7 @@ namespace stdm {
       UniformRandomBitGenerator& g;
 
       shuffle_random_function(URBG& g): g(const_cast<UniformRandomBitGenerator&>(g)) {}
-      void operator()(size_type size) {
+      difference_type operator()(std::size_t size) {
         return dist(g, distribution_type::param_type(0, size - 1));
       }
     };
@@ -846,9 +845,22 @@ namespace stdm {
   template<typename RandomIterator, typename URBG>
   void shuffle(RandomIterator first, RandomIterator last, URBG mwg_forward_rvalue g) {
     // call C++03 `std::random_shuffle` which is deprecated in C++14
-    detail::shuffle_random_function<RandomIterator, URBG> func(g);
+    detail::shuffle_random_function<RandomIterator, URBG> func(const_cast<URBG&>(g));
     ::std::random_shuffle(first, last, func);
   }
+
+#pragma%x begin_test
+  void test() {
+    namespace ns = mwg::stdm;
+    ns::minstd_rand g;
+    g.discard(100);
+    int arr1[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+    ns::shuffle(ns::begin(arr1), ns::end(arr1), g);
+    std::printf("shuffle:");
+    for (int i = 0; i < ns::size(arr1); i++) std::printf(" %d", arr1[i]);
+    std::printf("\n");
+  }
+#pragma%x end_test
 
   template<typename InputIterator, typename UnaryPredicate>
   bool is_partitioned(InputIterator first, InputIterator last, UnaryPredicate pred) {
