@@ -106,11 +106,6 @@ struct U : public T {};
 
 #include <cstddef>
 #include <mwg/concept.h>
-#ifdef __clang__
-# pragma clang diagnostic push
-# pragma clang diagnostic ignored "-Wbitwise-op-parentheses"
-# pragma clang diagnostic ignored "-Wlogical-op-parentheses"
-#endif
 
 namespace mwg {
 namespace stdm {
@@ -1362,10 +1357,6 @@ namespace stdm {
 
 }
 }
-
-#ifdef __clang__
-# pragma clang diagnostic pop
-#endif
 
 #endif /* end of !defined(MWG_STDM_TYPE_TRAITS_has_std_type_traits) */
 
