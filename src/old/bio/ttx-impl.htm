@@ -1,0 +1,1262 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>TTX Implementation</title>
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <link rel="stylesheet" type="text/css" charset="utf-8" href="http://padparadscha/agh/mwg.slide.css"/>
+  <link rel="stylesheet" type="text/css" charset="utf-8" href="http://padparadscha/agh/prog.std.css"/>
+  <meta name="agh-fly-type" content="color" />
+  <script type="text/javascript" charset="utf-8" src="http://padparadscha/agh/agh.fly.js"></script>
+</head>
+<body>
+<h1>TTX 実装について</h1>
+<!--########################################################################-->
+<h2>方針0. この実装が目指す物 2011/09/09</h2>
+<h3>XML 簡易版</h3>
+<ul>
+<li>plain text の次に簡単な形式。</li>
+<li>極力単純なオブジェクトモデル
+  <ul>
+  <li>名前空間だとか、そういう拡張性だとかについては気にしない。</li>
+  </ul>
+</li>
+<li>単純でコンパクトな表記法
+  <ul>
+  <li>xml や json 等、他の形式との相互変換</li>
+  </ul>
+</li>
+<li>文字コードは utf-8 を想定
+  <p>主に ASCII しか扱わないので。それでも Unicode を使いたければ utf-8 で使えという事。</p>
+  <p>他の文字符号化方法を用いるのであれば、パーサに通す前に変換を実行すれば良い。</p>
+  <p>という事で、全部 std::string などで処理を行う。 (std::wstring は使わない。)</p>
+</li>
+</ul>
+
+<h3>既存の実装について</h3>
+<p>既存の xml の実装は参考になる。(要するに、車輪の再開発をしようとしている訳だ…。)</p>
+<ul>
+<li><a href="http://www.nbrains.net/php/pukiwiki/index.php?link%BD%B8%2F%A5%E9%A5%A4%A5%D6%A5%E9%A5%EA%B7%CF%2FC%2B%2B#Parser_XML">XML(eXtensible Markup Language)</a></li>
+<li><a href="http://tsuyuguchi.com/masaaki/mt/archives/2007/10/15-0051.php">libxml++ を使ってみる - 私の日常</a></li>
+<li><a href=""></a></li>
+<li><a href=""></a></li>
+<li>というか、他にも似た様な事を考える人は沢山居て、一連の言語は
+  <a href="http://ja.wikipedia.org/wiki/%E8%BB%BD%E9%87%8F%E3%83%9E%E3%83%BC%E3%82%AF%E3%82%A2%E3%83%83%E3%83%97%E8%A8%80%E8%AA%9E">軽量マークアップ言語</a>
+  と呼ばれているらしい。
+  <ul>
+  <li>BBCode, Markdown, POD, reStructuredText, RD: これらは HTML の様にテキストをマークアップする事を主眼としている。
+    今回の目標とは関係ない。
+    <p>というか Wikipedia には書いていないが、roff/nroff/troff の類もこれに属するのではないか??
+    (というか roff は可読性などの面から全然軽量でないという事か 2013-05-25 17:31:13)</p>
+  </li>
+  <li>一方で、JSON, YAML 等、聞いたことがあるような気がする物はデータシリアライズの為の言葉。
+    <p>今回はこれを目指す。JSON は JavaScript に引きずられて多少文法が厳しい。</p>
+  </li>
+  </ul>
+</li>
+</ul>
+
+<h3>目次</h3>
+<ul>
+<li></li>
+<li><a href="#sec.M1">設計1</a>. 列挙型のモデルについて</li>
+<li><a href="#sec.M2">設計2</a>. XmlElement 参照の管理について</li>
+<li><a href="#sec.M3">設計3</a>. ToString のモデルについて [2011/09/09]</li>
+<li><a href="#sec.P1">計画1</a>. [再構成] XML から TTX へ [2011/09/14]</li>
+<li>再構成. 名前付け規則について</li>
+</ul>
+
+<!--########################################################################-->
+<h2 id="sec.M1">設計1. 列挙型のモデルについて [2011/08/30]</h2>
+<p>この形式では xml の getElementsByTagName 等の様に、
+特定の要素について列挙したいという操作が主要になると思われる。
+列挙操作を実装するに当たって、汎用的に利用出来る物を選択したい。
+その為に、どのような形式が可能か考えその中で良さそうな物を選択する。
+</p>
+<ol>
+<li>enumerator (.NET Framework)
+<pre class="agh-prog-cpp">
+template&lt;typename T&gt;
+struct enumerator{
+  bool next();
+  T&amp; value() const;
+};
+
+for(enumerator e=a.getenum();e.next();){
+  e.value() を使った操作; ""
+}
+</pre>
+  <p>△ 文法的に使い慣れない形をしている?</p>
+  <p>または演算子を用いて</p>
+<pre class="agh-prog-cpp">
+template&lt;typename T&gt;
+struct enumerator{
+  enumerator operator++();
+  operator bool() const;
+  T&amp; operator*() const;
+};
+
+for(enumerator e=a.getenum();++e;){
+  *e を使った操作;
+}
+</pre>
+  <p>こちらの方が直感的である。</p>
+  <p>△ が、やはり使い慣れない形である事に代わりはない。
+  ++e ではなく --e 等にすれば、まあまあ存在するパターンの様な気がするが、
+  iterator 的に考えると進む向きが逆である。</p>
+</li>
+<li>iterator (c++ standard library)
+<pre class="agh-prog-cpp">
+for(iterator i=a.begin();i!=a.end();++i){
+  *i を使った操作;
+}
+</pre>
+  <p>△ end に対応する関数を一々準備しなくてはならないので面倒である。</p>
+  <p>○ 既存の色々のアルゴリズム関数にそのまま渡す事ができる。</p>
+</li>
+<li>range
+  <p>これは iterator のペアを提供する。begin/end メソッドを持つオブジェクト。</p>
+<pre class="agh-prog-cpp">
+for(item&amp; v:a){
+  v を使った操作;
+}
+</pre>
+  <p>× 一つのオブジェクトに対して一つの列挙の仕方しかない場合には問題は起こらない。
+    でも、一つのオブジェクトに対して色々な列挙の仕方を提供したい場合には、
+    列挙の仕方毎に range オブジェクトを作成して返さなければならない。面倒。
+  </p>
+</li>
+<li>或いは、全部混ぜてしまう。
+<pre class="agh-prog-cpp">
+template&lt;typename T&gt;
+class ienumerator{
+public:
+  virtual ienumerator&amp; operator++()=0;
+  virtual operator bool() const=0;
+  virtual T&amp; operator*() const=0;
+  virtual ~ienumerator(){}
+public:
+  // input_iterator
+  typedef std::ptrdiff_t difference_type;
+  typedef T value_type;
+  typedef T* pointer;
+  typedef T&amp; reference;
+  typedef std::input_iterator_tag iterator_category;
+  T* operator++(int){
+    T* ret=&amp;this-&gt;operator*();
+    this->operator++();
+    return ret;
+  }
+  T* operator-&gt;() const{return &amp;this->operator*();}
+  bool operator==(const ienumerator&amp; r) const{
+    bool ll=this->operator bool();
+    bool rr=r.operator bool()
+    if(ll&amp;&amp;rr)
+      return this==&amp;r; // 適当...
+    else
+      return ll==rr;
+  }
+  bool operator!=(const ienumerator&amp; r) const{
+    return !this->operator==(r);
+  }
+public:
+  // range
+  class null_enumerator:public ienumerator{
+  public:
+    virtual ienumerator&amp; operator++(){return *this;}
+    virtual operator bool() const{return false;}
+    virtual T&amp; operator*() const{
+      throw std::logic_error("invalid operation");
+    }
+  };
+  
+  ienumerator&amp; begin(){
+    return *this;
+  }
+  null_enumerator end(){
+    return null_enumerator();
+  }
+};
+
+// enumerator として
+for(enumerator e=a.enumerate();e;++e){
+  *e を使った操作;
+}
+
+// iterator として
+for(enumerator e=a.begin();e!=a.end();++e){
+  *e を使った操作;
+}
+
+// range として
+for(T&amp; v:a.enumerate()){
+  v を使った操作;
+}
+</pre>
+</li>
+</ol>
+<p>→ mwg::exp::ienumerator に上の 4. の形式をより改良した形で実装した。</p>
+<h3>類似のライブラリ</h3>
+<ul>
+<li>Boost.Iterator</li>
+<li>Boost.Range</li>
+<li>PStade.Oven <a href="http://p-stade.sourceforge.net/oven/doc/html/index.html">Chapter 1. Oven 1.00.1</a></li>
+</ul>
+<!--########################################################################-->
+<h2 id="sec.M2">設計2. XmlNode の実装 [2011/08/31]</h2>
+<p>ポインタとしての扱いが面倒である。</p>
+<ol>
+<li>裸のポインタで扱う。
+  <ul>
+  <li>○ 動作が高速である。無駄な操作が一切入らない。</li>
+  <li>△ これは、変な操作をしてしまわないか心配になる。</li>
+  <li>△ オブジェクトの管理は誰が行えばよいのか不明瞭である。</li>
+  </ul>
+</li>
+<li>常に shared_ptr に入れて扱う
+  <ul>
+  <li>△ 参照カウントの分だけ遅くなってしまう。</li>
+  <li>△ 単なるポインタによる使用と混ぜようとすると、操作が煩雑になる。記述が煩雑になる。</li>
+  <li>→ shared_ptr&lt;hoge&gt; で typedef してしまえば良いだけでは?</li>
+  </ul>
+</li>
+<li>shared_ptr を用いた PImpl で実装。
+  <ul>
+  <li>△ 結局参照カウントのオーバーヘッドが存在する。</li>
+  <li>○ 記述は楽になる。自然になる。</li>
+  <li>△ メンバを全て二回ずつ定義しなければならず面倒くさい。</li>
+  <li>○ 実装を隠す事ができるので、ヘッダはすっきりするかも知れない。</li>
+  </ul>
+</li>
+</ol>
+<p>取り敢えず実装の方針としては、初めは 1 で実装する事にすればよい。
+後で、問題が発生する様であれば 2 または 3 に移る。
+<del>移行が簡単になる様に、裸のポインタを typedef した物を用いて記述すると良い。</del>
+やはり、気持ち悪いので、typedef はしない。
+</p>
+<p>→何だかんだで変遷を経た後、やはりポインタで実装する事にした。
+「現在の所有者＝親要素」を明確にしている限りは、メモリリークなどの心配は生じない様だという事が分かった。
+(但し、ライブラリの使い手が理解していないで使うと、やはり危険性が残る。そう言う意味で良いライブラリとは言えないのかも知れない。)
+</p>
+<!--************************************************************************-->
+<h3>参照型と値型と型名について思う事</h3>
+<p>PImpl (shared_ptr で実装した時) にした場合でも、
+shared_ptr を typedef した場合でも、
+型名で宣言した物はポインタに相当する物になってしまっている。
+これは　C++ 的には余り直感的でない。C++ 的にはポインタでない限りは代入のセマンティクスは参照の複製ではなく「値コピー」であり、
+一方で、typedef したり PImpl にしてしまったりすると「参照コピー」になってしまうからである。
+</p>
+<p>しかし、一方で C# では struct (値型) と class (参照型) があって、
+値コピーの型と参照コピーの型が混在している。
+(逆に言えば、時々使っている型が struct か class かを調べないと行けない事がある。
+でも、Visual Studio で書いていると型名にマウスカーソルを翳せば struct か class か分かるのでそれ程気にはならない。
+C# において開発環境の力は偉大である。開発環境の力がなかったら C#/.NET は使いやすい言語とは言えなかったかも知れない。)
+</p>
+<p>また、C++ でも PImpl で参照コピーのセマンティクスを採用しているライブラリは存在するだろう。
+そういうライブラリを使用する場合には結局、二種類のコピーのされ方について慣れなければならない。
+</p>
+<p>一番綺麗な解決法と思われるのは C++/CLI で行われている方法である。
+この言語では、ポインタ型の表記を改造して、文法的に「異なる種類のポインタ型」の様な物を作ってしまっている。
+結局やっていることは、gc_handle&lt;Hoge&gt; 的な存在 (今回の C++ の実装では shared_ptr&lt;Hoge&gt; が対応)
+を typedef 等せずにそのまま使う事と同じだが、
+これを (Hoge* ならぬ) Hoge^ と記述できるようにすることによってとてもすっきりした感じになっている。
+そして、参照型と値型を自然に区別できるようになっていて良い。
+</p>
+<p>C++ も似た様な拡張をすればよいのにというのは、いつも考えている事である。
+具体的には、好きな一引数テンプレート型を ^ (または + - % etc.) に関連付ける using を作る。
+(using の効く範囲だけで有効にし、使いたい人が使いたい所で using をするのである。
+序でに行儀の悪い人 (ライブラリヘッダの中で using しちゃう人とか) がでない為にグローバルでは定義出来ない様に制限を加えても良い。)
+</p>
+<p>或いは、そういう書換をする為のプリプロセッサを書くというのも手である。
+但し、C++ の構文解析をする為には識別子が型名か変数名か判断しなければならず、
+その為にはヘッダを全て読み込まなければならない。尋常じゃなく面倒である。
+</p>
+<!--########################################################################-->
+<h2 id="sec.M3">設計3. ToString のモデルについて [2011/09/09]</h2>
+<p>ToString に類する機能も汎用的に定義したい所である。</p>
+<ol>
+<li>.NET Fx 的
+  <p>つまり virtual string ToString(); 関数を定義する方法である。
+  これは、文字列で結果を返すと決め打ちにした方法であるので、
+  C++ で行う場合には、std::ostream に対して出力する形に修正しても良い。
+  </p>
+  <p>また、.NET では virtual string ToString(FormatProvider); という関数も用意して、
+  色々な種類の形式で文字列に変換する事ができる。
+  これも便利な機能であり、また、必須の機能である。
+  (例えば、整数を十進数で出力するか十六進数で出力するかなどの情報は此処に指定する。)
+  </p>
+<pre class="agh-prog-cpp">
+class istrformat{
+  // 形式に関する情報
+};
+
+// 文字列を返す関数
+class itostring{
+  virtual std::string ToString();
+  virtual std::string ToString(const iformat&amp;);
+};
+
+// でも C++ 的には stream に流し込む方が普通
+class itostream{
+  virtual void to_stream(std::ostream&amp;) const;
+  virtual void to_stream(std::ostream&amp;,const iformat&amp;) const;
+};
+std::ostream&amp; operator&lt;&lt;(std::ostream&amp; ostr,const itostream&amp; obj){
+  obj.tostream(ostr);
+  return ostr;
+}
+struct formatted_ostream_temporary_object{
+  std::ostream&amp;     ostr;
+  const istrformat&amp; fmt;
+public:
+  std::ostream&amp; operator&lt;&lt;(const itostream&amp; obj) const{
+    obj.tostream(ostr,fmt);
+    return ostr;
+  }
+};
+formatted_ostream_temporary_object operator&lt;&lt;(std::ostream&amp; ostr,const istrformat&amp; fmt){
+  return formatted_ostream_temporary_object(ostr,fmt);
+}
+</pre>
+</li>
+<li>C++ 的方法
+  <p>operator&lt;&lt; を実装する。</p>
+  <p>これは、左辺が既存の型で右辺が自分で定義する型なので、
+  メンバ関数として定義出来ない。
+  従って、仮想関数にする事ができないので不便。
+  </p>
+  <p>更に、format を指定する方法が面倒である。
+  ostr&lt;&lt;format で、書式付きの出力をする為のクラスを返すとしても、
+  結局、
+  </p>
+  <ol class="select">
+  <li>インターフェイスから派生するか、</li>
+  <li>SFINAE でフォーマットを受け付けるメンバ関数を持つ物を選択するか</li>
+  </ol>
+  <p class="resume">しないといけないので、1. と同じ事になってしまう。</p>
+</li>
+<li>1. の様な形式は魅力的だが、
+  テンプレートを利用して、静的に出力の形式を指定する事はできないだろうか?
+  <p>これを仮想関数にする事はできないので、仮想関数で実現する事は考えない。
+  各クラスで format を受け取るのと同じ様なシグニチャで定義する。
+  </p>
+<pre class="agh-prog-cpp">
+class sample{
+  virtual void to_stream(std::ostream&amp;) const;
+  virtual void to_stream(std::ostream&amp;,const iformat&amp;) const;
+  
+  template&lt;typename fmt_tag&gt;
+  void tostream(std::ostream&amp;,fmt_tag* =nullptr) const;
+};
+
+static struct fmt_plain_tag *const fmt_plain=nullptr;
+static struct fmt_xml_tag *const fmt_xml=nullptr;
+
+template&lt;&gt;
+void sample::tostream&lt;fmt_xml_tag&gt;(std::ostream&amp;,fmt_xml_tag*){
+  ....;
+}
+</pre>
+  <p class="resume">的な感じに。問題は、これが本当に便利かどうかと言う事である…。</p>
+</li>
+</ol>
+<!--************************************************************************-->
+<h3>template の tostream (上の 3.) について - 現実的か</h3>
+<!--========================================================================-->
+<h4>実装可能か</h4>
+<p>先ず、ちゃんと実装出来るかどうかの確認。
+テンプレート引数に対する書式指定と、
+ダミー引数 (二番目の引数) に対する書式指定のどちらでも受け入れられる様に実装したい。
+これは可能であろうか?
+</p>
+<pre class="agh-prog-cpp">
+#include &lt;cstdio&gt;
+
+struct test_class{
+  void function(int i){
+    std::printf("test_class::function: %d\n",i);
+  }
+  template&lt;typename A&gt;
+  void function(int i,A* =0);
+};
+
+template&lt;&gt;
+void test_class::function&lt;int&gt;(int i,int*){
+  std::printf("test_class::function&lt;int&gt;: %d\n",i);
+}
+
+int main(){
+  int a;
+  test_class c;
+  c.function(100);      // デフォルト (非テンプレート)
+  c.function&lt;int&gt;(100); // 明示的な指定
+  c.function(100,&amp;a);   // 引数に対する指定
+  return 0;
+}
+</pre>
+<p>結果</p>
+<ul>
+<li>g++4
+  <p>ちゃんとコンパイルも通るし、期待した動作になっている。
+  (default argument を指定しているので、
+  non-template の function と overload 解決で問題が生じるかも知れないと思ったが、
+  そういう事はないようである。良かった。)
+  </p>
+</li>
+<li>vc10
+  <p>謎のエラー…?
+  デフォルト引数の =0 が、テンプレートのインスタンス化よりも前に A* 型(?) に勝手にキャストされているのだろうか。
+  </p>
+<pre class="result">
+Microsoft (R) 32-bit C/C++ Optimizing Compiler Version 16.00.21003.01 for 80x86
+Copyright (C) Microsoft Corporation.  All rights reserved.
+
+cpp-template_member_function_overloads.cpp
+cpp-template_member_function_overloads.cpp(21) : error C2440: 'default argument' : 'A *' から 'int *' に変換できません。
+        指示された型は関連がありません。変換には reinterpret_cast、C スタイル キャストまたは関数スタイルのキャストが必要です。
+</pre>
+  <p>以下の様に書き換えたら、コンパイルが通った。うーん vc…。
+  (nullptr で試しても見たが、0 と指定した時と全く同じ動作。結局 (A*) は入れないといけない。)
+  </p>
+<pre class="agh-prog-cpp">
+  template&lt;typename A&gt;
+  void function(int i,A* =(A*)0);
+</pre>
+  <p>※ 上ので OK と思っていたら、特殊化を二個以上作成すると同様のエラーが出てしまうという事が分かった。
+  例えば、int の特殊化と char の特殊化を作成して使用しようとすると、
+  int * から char * に変換出来ませんと表示されるのである。
+  </p>
+</li>
+</ul>
+<!--========================================================================-->
+<h4>template クラスの tostream を定義出来るか?</h4>
+<pre class="agh-prog-cpp">
+template&lt;typename T&gt;
+struct test_class2{
+  void tostream(int i) const{
+    std::printf("test_class2&lt;T&gt;::tostream: %d\n",i);
+  }
+  template&lt;typename A&gt;
+  void tostream(int i,A* =(A*)nullptr) const;
+};
+
+template&lt;typename T&gt;
+template&lt;&gt; /* ERROR */
+void test_class2&lt;T&gt;::tostream&lt;int&gt;(int i,int* =(int*)nullptr){
+  std::printf("test_class&lt;T&gt;::tostream&lt;int&gt;: %d\n",i);
+}
+</pre>
+<p>やっぱり、外部定義ができない…。
+test_class2&lt;T&gt; が確定しない (特殊化があるかも) ので、
+template tostream があるかも確定していないのだ。
+(何も書かなければ primary template に対する物だと解釈して欲しいのだけれど。)
+うーん。でも全部中で定義すれば良いというだけか…?
+</p>
+<pre class="agh-prog-cpp">
+template&lt;typename T&gt;
+struct test_class2{
+  void tostream(int i) const{
+    std::printf("test_class2&lt;T&gt;::tostream: %d\n",i);
+  }
+  template&lt;typename A&gt;
+  void tostream(int i,A* =(A*)nullptr) const;
+
+  template&lt;&gt; /* ERROR */
+  void tostream&lt;int&gt;(int i,int*) const{
+    std::printf("test_class2&lt;T&gt;::tostream&lt;int&gt;: %d\n",i);
+  }
+};
+</pre>
+<p>できなかった…。上もコンパイルが通らない。メンバの特殊化は外に書かなくちゃ行けないのだ。</p>
+<pre class="agh-prog-cpp">
+template&lt;typename T,typename TFmt&gt;
+struct tostream_impl{};
+
+template&lt;typename T&gt;
+struct test_class2{
+  void tostream(int i) const{
+    std::printf("test_class2&lt;T&gt;::tostream: %d\n",i);
+  }
+
+  template&lt;typename A&gt;
+  typename tostream_impl&lt;test_class2,A&gt;::return_type tostream(int i,A* =(A*)nullptr) const{
+    return tostream_impl&lt;test_class2,A&gt;::exec(this,i);
+  }
+};
+
+template&lt;typename T&gt;
+struct tostream_impl&lt;test_class2&lt;T&gt;,int&gt;{
+  typedef void return_type;
+  static return_type exec(test_class2&lt;T&gt; const*,int i){
+    std::printf("test_class2&lt;T&gt;::tostream&lt;int&gt;: %d\n",i);
+  }
+};
+</pre>
+<p>確実に特殊化を定義出来るクラスの中で実装すれば、まあ実装出来ない事は無い。が、面倒くさい。</p>
+<p>結論: 実装可能だが存外面倒である。</p>
+<!--========================================================================-->
+<h4>[VC] デフォルト引数のあるテンプレート関数を特殊化できない事に対して</h4>
+<p>これはどうも VC のバグとしか思われない。</p>
+<ul>
+<li>VS のバグの報告は何処でするのかと思って探したら、以下の場所があったので其処に投稿してみる事にした。
+  <p><a href="http://social.msdn.microsoft.com/Forums/ja-JP/vsfeedbackja/threads">Visual Studio フィードバック フォーラム</a></p>
+</li>
+<li>後で分かった事だが、コンパイラのバグに関してはこちらに報告した方が良かったのかも知れない。
+  <ul>
+  <li><a href="http://connect.microsoft.com/VisualStudioJapan">Visual Studio & .NET Framework Japan | Microsoft Connect</a></li>
+  <li><a href="https://connect.microsoft.com/VisualStudio/">Visual Studio and .NET Framework | Microsoft Connect</a></li>
+  </ul>
+</li>
+<li>上の Microsoft Connect で探すと似た様な状況で変な動作をしているという報告があった。次回の release で修正される予定の様だ。
+  <p><a href="https://connect.microsoft.com/VisualStudio/feedback/details/642766/c-bug-when-using-template-member-functions-with-a-default-parameter">c++Bug, when using template member functions with a default parameter</a></p>
+  <p>これは、デフォルト引数のテンプレートでコンパイルすると、
+  コード生成の段階で変なコードが出力されるという物である。
+  具体的には、スタック上に異なるデータ幅で引数が確保されるのだそうだ。
+  最終的にはスタックの破壊を起こして、プログラムは異常終了する。
+  </p>
+  <p>デフォルト引数の型の異常という意味で似ていると思われる。</p>
+</li>
+</ul>
+<h5>解決法</h5>
+<p>さて、これを回避するにはどうしたら良いだろうか。→引数を受け取る版と、引数を受け取らない版の両方を定義してしまえばよい。</p>
+<pre class="agh-prog-cpp">
+class myclassC:public itostream{
+  int x;
+  int y;
+public:
+  myclassC(int x,int y):x(x),y(y){}
+  virtual void tostream(std::ostream&amp; ostr) const{
+    ostr&lt;&lt;"(this is myclassC!)";
+  }
+  virtual void tostream(std::ostream&amp; ostr,const iformat&amp; fmt) const;
+
+#ifdef _MSC_VER
+  template&lt;typename T&gt;
+  void tostream(std::ostream&amp; ostr,T*) const;
+  template&lt;typename T&gt;
+  void tostream(std::ostream&amp; ostr) const;
+#else
+  template&lt;typename T&gt;
+  void tostream(std::ostream&amp; ostr,T* =nullptr) const;
+#endif
+};
+
+template&lt;&gt;
+void myclassC::tostream&lt;fmttag_xml&gt;(std::ostream&amp; ostr,fmttag_xml*) const{
+  ostr&lt;&lt;"&lt;myclassC x=\""&lt;&lt;x&lt;&lt;"\" y=\""&lt;&lt;y&lt;&lt;"\" /&gt;";
+}
+template&lt;&gt;
+void myclassC::tostream&lt;fmttag_json&gt;(std::ostream&amp; ostr,fmttag_json*) const{
+  ostr&lt;&lt;"{type:\"myclassC\",x:"&lt;&lt;x&lt;&lt;",y:"&lt;&lt;y&lt;&lt;"}";
+}
+#ifdef _MSC_VER
+template&lt;typename T&gt;
+void myclassC::tostream(std::ostream&amp; ostr) const{
+  this-&gt;tostream&lt;T&gt;(ostr,nullptr);
+}
+#endif
+</pre>
+<!--========================================================================-->
+<h4>fmt_tag を iformat から派生させたい</h4>
+<ol class="select">
+<li>条件によって引数に与える型を変更したい事もある。
+  その為に、format も継承したらどうか?
+<pre class="agh-prog-cpp">
+hoge.tostream(std::cout,condition?fmt_xml:fmt_json); // 的な
+</pre>
+  <ul>
+  <li>× 異なる型で条件演算子を使用しようとするとコンパイル出来ない。
+    例え両方とも同じインターフェイスから派生しているとしても。
+  </li>
+  <li>× fmt_xml やら fmt_json やらは定数として宣言する為にポインタにしている。
+    iformat から derive したとしても、const iformat&amp; に渡す事はできないので、
+    わざわざ dereference する (* を書く) 必要がある。
+  </li>
+  <li>× よく考えたら継承したとしても nullptr で初期化しているポインタでは、
+    型の情報を持つ事ができない。
+    dereference して iformat として渡したとしても、
+    受け取った側では元々それが何の nullptr だったかの情報を得る事はできない。
+  </li>
+  </ul>
+  <p>上記の問題を克服する為には以下の様に書かなければならない。面倒すぎる…。</p>
+<pre class="agh-prog-cpp">
+hoge.tostream(std::cout,condition?(const iformat&amp;)fmt_xml_tag():(const iformat&amp;)fmt_json_tag());
+</pre>
+</li>
+<li>別の format クラスで?
+  <p>fmt_*_tag 等の型で直接指定できるようにする方法は諦めた方が良いだろう。
+  iformat を継承する異なるクラスを定義した方が賢明である。
+  わざわざ typeid の参照などをしなくても良くなるし。
+  (typeid はできるだけ触りたくない。)
+  </p>
+<pre class="agh-prog-cpp">
+template&lt;int ID&gt;
+struct structured_text_fmttag{static const int id=ID;};
+typedef structured_text_fmttag&lt;1&gt; fmttag_xml;
+typedef structured_text_fmttag&lt;2&gt; fmttag_json;
+static fmttag_xml *const fmt_xml=nullptr;
+static fmttag_json *const fmt_json=nullptr;
+struct structured_text_format:public iformat{
+  int id;
+  structured_text_format(int id):id(id){}
+};
+
+/* (中略 myclassC の定義) */
+
+a.tostream(std::cout,structured_text_format(condition?fmttag_json::id:fmttag_xml::id));
+</pre>
+  <p class="marked">→ 実のところこれは余り簡単になっていない。覚える物が増えて逆に良くない様な気がする。</p>
+</li>
+<li>「条件によって引数を変える」という事を諦めれば、
+  一々面倒な事を考えなくても済むのではないか?
+  単純に fmttag が iformat から派生するだけでよい。
+  <p>また「テンプレート引数で指定する事もできる様にする」というのも不要な機能である。
+  指定の仕方は一つだけでよい。
+  </p>
+  <ol>
+  <li>第二引数にダミー引数を渡す方法
+<pre class="agh-prog-cpp">
+struct C:public iprint{
+  typedef iprint base;
+  void print(std::ostream&amp; ostr,mwg::exp::sfmt::xml_t*) const{
+    ostr<<"&lt;C /&gt;";
+  }
+  void print(std::ostream&amp; ostr,mwg::exp::sfmt::ttx_t*) const{
+    ostr<<"C{},";
+  }
+  virtual void print(std::ostream&amp; ostr,const iformat&amp; fmt) const{
+    if(typeid(fmt)==typeid(mwg::exp::sfmt::xml_t))
+      this->print(ostr,mwg::exp::sfmt::xml);
+    else if(typeid(fmt)==typeid(mwg::exp::sfmt::ttx_t))
+      this->print(ostr,mwg::exp::sfmt::ttx);
+    else
+      this->base::print(ostr,fmt);
+  }
+};
+</pre>
+    <p>print(ostr,xml_t) を仮想関数にするべきか否か</p>
+    <ul>
+    <li>○ 仮想関数にしないと、
+    派生した先で print(ostr,xml_t) を定義する度に、
+    print(ostr,fmt) の方も修正しなければならない。
+    <p class="marked">→ しかし、これはこれで、print(ostr,fmt_tag*) を実装したら
+    必ず print(ostr,fmt) も override するというルールになって分かり易いとも言える。
+    (どうせ、新しい種類のフォーマットに対応する時には、必ず print(ostr,fmt) を override しなければならないのだから。)
+    </p>
+    </li>
+    <li>△ 仮想関数にすると、呼出のオーバーヘッドが生じる。
+      <ul>
+      <li>しかし、元々入出力というのは処理に時間が掛かる物であり、
+        仮想関数の呼出ごときのオーバーヘッドを気にする必要はないとも考えられる。
+        <p>でも、stringstream 等に対して実行する時には I/O は絡んでいない。
+        iostream は元々遅いという話もあるが、
+        遅いのはバッファに関連する物であるという説もある
+        (バッファサイズを大きくしたら printf とも遜色のない速度が出たという話。本当かは知らない)
+        ので、stringstream は遅くないのではないか?
+        (stringstream がどういう設計になっているか知らないが
+        バッファサイズとかは余り関係なさそうな気がする。)
+        結局分からない…
+        </p>
+      </li>
+      <li>元々、何故 fmttag による実装にしたかというと、
+      フォーマット指定を静的に行いたいからであった。
+      それなのに仮想関数にしてしまっては、
+      その元々の目的の効果が半減してしまう様な気がする。
+      気分としては仮想関数にはしたくないのである。
+      </li>
+      </ul>
+    </li>
+    </ul>
+    <p>結局仮想関数にする必要はない様な気がする。</p>
+  </li>
+  <li>テンプレート引数に指定する方法
+    <p>通常の print(ostream&amp;) と競合するのではないか?
+      →試して見たらオーバーロードする事が可能であるという事が分かった。
+        オーバーロード解決は、非テンプレート関数の方が優先される。
+    </p>
+<pre class="agh-prog-cpp">
+struct C:public iprint{
+  typedef iprint base;
+  using base::print;
+  
+  template&lt;typename T&gt;
+  void print(std::ostream&amp; ostr) const{}
+  
+  virtual void print(std::ostream&amp; ostr,const iformat&amp; fmt) const{
+    if(typeid(fmt)==typeid(mwg::exp::sfmt::xml_t))
+      this->print(ostr,mwg::exp::sfmt::xml);
+    else if(typeid(fmt)==typeid(mwg::exp::sfmt::ttx_t))
+      this->print(ostr,mwg::exp::sfmt::ttx);
+    else
+      this->base::print(ostr,fmt);
+  }
+};
+template&lt;&gt;
+void C::print&lt;mwg::exp::sfmt::xml&gt;(std::ostream&amp; ostr) const{
+  ostr<<"&lt;C /&gt;";
+}
+template&lt;&gt;
+void C::print&lt;mwg::exp::sfmt::ttx&gt;(std::ostream&amp; ostr) const{
+  ostr<<"C{},";
+}
+inline void C::print(std::ostream&amp; ostr,const iformat&amp; fmt) const{
+  if(typeid(fmt)==typeid(mwg::exp::sfmt::xml))
+    this->print&lt;mwg::exp::sfmt::xml&gt;(ostr);
+  else if(typeid(fmt)==typeid(mwg::exp::sfmt::ttx))
+    this->print&lt;mwg::exp::sfmt::xml&gt;(ostr);
+  else
+    this->base::print(ostr,fmt);
+}
+
+</pre>
+    <ul>
+    <li>△ 実装が面倒である。
+      関数テンプレートの特殊化は全て外部定義にしなければならないし、
+      一番最後に print(ostream,iformat) の定義を書かなければならない
+      (インスタンス化は特殊化よりも後なので)。
+    </li>
+    <li>× 基底クラスの関数テンプレート版 print を利用する事ができない。
+      一々全て移譲する様な特殊化を書かなければならない?
+      <p>でも、この問題は結局 print(ostr,fmt) の実装でも起こる。
+      各フォーマットに対して定義された関数は仮想関数ではないので、
+      print(ostr,fmt) を定義したクラスの関数が呼ばれてしまう。
+      </p>
+    </li>
+    </ul>
+  </li>
+  </ol>
+</li>
+</ol>
+<!--========================================================================-->
+<h4>結論</h4>
+<ul>
+<li>インターフェイスは iprint で、関数名は print とする事にした。
+  <p>既に同じシグニチャのメンバ関数を定義しているクラスが在れば、
+  間違いなく用途的に iprint::print と一致する物であろう。</p>
+</li>
+<li>テンプレートとして各フォーマットの実装を提供するのは止める。
+  <pre class="agh-prog-cpp">a.print&lt;sfmt::xml_t&gt;(ostr); // この形式は対応しない</pre>
+</li>
+<li>単に、ダミー引数を持ったオーバーロードで対応する。
+  <pre class="agh-prog-cpp">a.print(ostr,sfmt::xml);</pre>
+</li>
+<li>条件演算子などを使って「簡単に」指定できるようにする事は諦める。
+  <pre class="agh-prog-cpp">a.print(ostr,condition?sfmt::xml_t()?sfmt::json_t()); // 的な形式は対応しない</pre>
+</li>
+<li>iformat を継承させる案には賛成である。
+  <p>これにより基本クラスにキャストしていても、
+  正しい関数が呼び出せるようにできる。</p>
+<pre class="agh-prog-cpp">
+iprint&amp; p(...);
+p.print(std::cout,sfmt::xml_t());
+</pre>
+  <p>但し、その為には意識して呼び出さなければならない。</p>
+<pre class="agh-prog-cpp">
+C c;
+B&amp; b(c);
+b.print(std::cout,sfmt::xml_t()); // C::print が呼び出される。
+b.print(std::cout,sfmt::xml);     // B::print が呼び出される。
+</pre>
+</li>
+<li>他に struct sfmt_tag 等から派生させて、ストリーム演算子を用いた指定方法も可能にする。
+  <pre class="agh-prog-cpp">ostr&lt;&lt;sfmt::xml&lt;&lt;a;</pre>
+<pre class="agh-prog-cpp">
+template&lt;typename T&gt;
+typename std::enable_if&lt;std::is_base_of&lt;sfmt::sfmt_tag,T&gt;::value,std::ostream&amp;&gt;::type
+operator&lt;&lt;(std::ostream&amp;,T*);
+</pre>
+</li>
+</ul>
+<!--########################################################################-->
+<h2 id="sec.P1">計画1. [再構成] XML から TTX へ [2011/09/14]</h2>
+<div class="note">
+<pre>
+xml についてだったらより良い実装は幾らでもある。
+また、現在の使用目的からすると xml はオーバースペックである。
+(元々 plain text の拡張として使用したいだけだから。)
+
+それならば、今回の実装ではより単純な形式を目指すべきである。
+という事で、オブジェクトのモデルを簡単化する。
+これにより、
+1. 今迄参照をどう保持するべきかだとかの面倒な考察からも解放されるし、
+2. 仮想関数などを使わずに済むので、速度も向上出来ると期待する。
+
+形式の名前は ttx (tree txt) という事にする。
+
+先ず、node の種類は全部 XmlElement と同じ役割を持ち、
+XmlAttribute は node ではなくする。
+
+ttx_node: XmlElement に相当
+ttx_attr: XmlAttribute に相当
+</pre>
+</div>
+<p>少し実装してみて、大体の所どのような物が欲しいのかと言う事が固まってきたので再度整理を行う。</p>
+<ul>
+<li>欲しいのは xml の様な高機能な物ではなくて、テキストを単に樹状に構成した物である。</li>
+<li>XML と名乗ると XML DOM を実装しなければならなくなりこれは C++ には余り適合しない。
+無理矢理適合する様にしようとすると、参照の管理などの問題で効率を犠牲にしなければならなくなる。
+</li>
+</ul>
+<p>以上の点から、今迄「xml」を実装するという風にしていたのを「ttx」を実装するという風に変更する事にする。
+「ttx」というのは適当に名付けた名前である。
+</p>
+<ul>
+<li>plain text を少しだけ変えて "tree-structured text" という事にする。</li>
+<li>.txt (plain text) を「少しだけ」構造化した物という意味で .ttx という拡張子にする。</li>
+</ul>
+
+<p>以下、ttx 形式についてのまとめ</p>
+<ul>
+<li>殆ど JSON に近いが、以下の点で異なる。
+  <ul>
+  <li>何しろ単なるテキストなので文法が緩い</li>
+  <li>型は指定しない (というか全て文字列。使用する側で自由な型に変換できる/適切な型に変換しなければならない)</li>
+  <li>xml との互換性を考えて識別子名に簡単に : を含められる様にしたい。その為に、キー・値区切を : ではなく = にする。</li>
+  </ul>
+</li>
+<li>文法 (雰囲気)
+  <ul>
+  <li>ttx := <code>/[\s,]*(:{key}\s*=?\s*:{value}[\s,]*)*/</code></li>
+  <li>key := double_quoted_string <strong>|</strong> single_quoted_string <strong>|</strong> identifier <strong>|</strong> /[^\s={,}"']/ <strong>| ε</strong>
+    <p>キーを省略した時は、対応する値が {...} の場合は "xml" と解釈され、それ以外の時は "data" と解釈される。</p>
+  </li>
+  <li>value := <strong>ε |</strong> value_component <strong>(</strong> \s* value_component <strong> )+ |</strong> '{' ttx '}'
+    <p>{...} の形式の場合は、中に ttx 構造を持つ。</p>
+    <p>それ以外の場合は、単なる文字列である。値の中に含まれる空白はそのまま文字列の構成文字と解釈される。</p>
+  </li>
+  <li>value_component := <code>/:{double_quoted_string}|:{single_quoted_string}|[^,'"{}\s]/</code>
+    <p>double_quoted_string/single_quoted_string は囲まれた中身が値の一部と解釈される。</p>
+    <p>それ以外の文字は直接値の一部と解釈される。</p>
+  </li>
+  <li>double_quoted_string := <code>/"([^"\\]|\\.)*"/</code></li>
+  <li>single_quoted_string := <code>/'([^'\\]|\\.)*'/</code></li>
+  <li>identifier := <code>/[a-zA-Z_0-9\-:.+]+/</code></li>
+  </ul>
+</li>
+<li>ttx を出力するコードは容易に書く事ができる。
+  <ul>
+  <li>テキストを出力するのと同じように出力できる</li>
+  <li>文法が簡単なので直ぐに覚えられる/出力のコードが比較的簡潔である</li>
+  <li>.xml に変換して出力する事もできる。.xml を出力したい時にも、一旦 .ttx を経てから出力する事が可能である。</li>
+  </ul>
+</li>
+</ul>
+<!--########################################################################-->
+<h2 class="prog-item-hfile">Doc. API Documentation &lt;mwg/bio/ttx-exp1.h&gt; [obsoleted]</h2>
+<ul>
+<li class="prog-decl-class"><code class="agh-prog-cpp">class ttx_attr;</code>
+  <ul>
+  <li class="prog-decl-var"><code class="agh-prog-cpp">std::string name;</code></li>
+  <li class="prog-decl-var"><code class="agh-prog-cpp">std::string value;</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">template&lt;typename A1,typename A2&gt; ttx_attr(A1&amp;&amp; name,A2&amp;&amp; value);</code></li>
+  </ul>
+</li>
+<li class="prog-decl-class"><code class="agh-prog-cpp">class ttx_node;</code>
+  <ul>
+  <li class="prog-decl-var"><code class="agh-prog-cpp">std::string name;</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">ttx_node* get_parent() const;</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">int get_index() const;</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">const std::string&amp; get_name() const;</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">ttx_node(const char* name);</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">ttx_node(const std::string&amp; name);</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">ttx_node(std::string&amp;&amp; name);</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">ttx_node(const ttx_node&amp; src);</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">~ttx_node();</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">void add_merge(const ttx_node&amp; n1,const ttx_node&amp; n2);</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">static ttx_node* clone(const ttx_node&amp; n1);</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">static ttx_node* merge(const ttx_node&amp; n1,const ttx_node&amp; n2);</code></li>
+  </ul>
+  <p>children</p>
+  <ul>
+  <li class="prog-decl-var"><code class="agh-prog-cpp">protected: std::vector&lt;ttx_node*&gt; children;</code></li>
+  <li class="prog-decl-type"><code class="agh-prog-cpp">typedef std::vector&lt;ttx_node*&gt;::const_iterator node_iterator;</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">const std::vector&lt;ttx_node*&gt;&amp; get_children() const{return children;}</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">ttx_node* release_node(int index);</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">ttx_node* release_node(ttx_node* node);</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">ttx_node* add_node(ttx_node* node);</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">ttx_node* create_node(const char* name);</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">ttx_node* create_node(const std::string&amp; name);</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">void remove_node(int index);</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">void remove_node(ttx_node* node);</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">mwg::exp::enumerator&lt;ttx_node*&gt; enumNodes(bool recursive=false);</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">mwg::exp::enumerator&lt;ttx_node*&gt; enumNodesByName(const char* name,bool recursive=false);</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">mwg::exp::enumerator&lt;ttx_node*&gt; enumNodesByName(const std::string&amp; name,bool recursive=false);</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">ttx_node* getNodeByName(const char* name,bool recursive=false) const;</code></li>
+  </ul>
+  <p>attributes</p>
+  <ul>
+  <li class="prog-decl-var"><code class="agh-prog-cpp">protected: std::vector&lt;ttx_attr&gt; attributes;</code></li>
+  <li class="prog-decl-type"><code class="agh-prog-cpp">typedef std::vector&lt;ttx_attr&gt;::const_iterator attr_iterator;</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">const std::vector&lt;ttx_attr&gt;&amp; get_attributes() const{return attributes;}</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">const std::string&amp; get_attr(const std::string&amp; name) const;</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">bool has_attr(const std::string&amp; name) const;</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">void set_attr(const std::string&amp; name,const std::string&amp; value);</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">template&lt;typename T&gt; T get_attr(const std::string&amp; name) const;</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">mwg::exp::enumerator&lt;ttx_attr&amp;&gt; enumAttrs();</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">mwg::exp::enumerator&lt;ttx_attr const&amp;&gt; enumAttrs() const;</code></li>
+  </ul>
+  <p>load</p>
+  <ul>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">void load(const char* ttx);</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">void load(std::istream&amp; ttx);</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">static mwg::exp::enumerator&lt;ttx_node*&gt; load_and_enumerate(const char* ttx);</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">static mwg::exp::enumerator&lt;ttx_node*&gt; load_and_enumerate(std::istream&amp; ttx);</code></li>
+  </ul>
+  <p>print</p>
+  <ul>
+  <li class="prog-decl-type"><code class="agh-prog-cpp">:public mwg::exp::iprint;</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">typedef mwg::exp::iprint base;</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">using base::print;</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">void print(std::ostream&amp; ostr,mwg::exp::sfmt::xml_t* tag) const;</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">void print(std::ostream&amp; ostr,mwg::exp::sfmt::ttx_t* tag) const;</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">void print(std::ostream&amp; ostr,mwg::exp::sfmt::json_t* tag) const;</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">virtual void print(std::ostream&amp; ostr,const mwg::exp::iformat&amp; fmt) const;</code></li>
+  </ul>
+</li>
+<li class="prog-decl-class"><code class="agh-prog-cpp">class ttx_root</code>
+  <ul>
+  <li class="prog-decl-type"><code class="agh-prog-cpp">:public ttx_node;</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">ttx_root();</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">using mwg::exp::iprint::print;</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">void print(std::ostream&amp; ostr,mwg::exp::sfmt::xml_t* tag) const;</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">void print(std::ostream&amp; ostr,mwg::exp::sfmt::ttx_t* tag) const;</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">virtual void print(std::ostream&amp; ostr,const mwg::exp::iformat&amp; fmt) const;</code></li>
+  </ul>
+</li>
+</ul>
+<!--########################################################################-->
+<h2 id="sec.P2">計画2. [再構成] 名前付け規則 [2013-05-25]</h2>
+<p>なかなか関数の名前が覚えられない、というか関数の名前に不満があるので、
+再度考え直して ttx-exp1.h から ttx2.h に移行する事を目指す。
+取り敢えず、現状の関数名と候補の関数名を列挙する。
+</p>
+<table class="normal center">
+<tr><th>現状</th><th>C++的</th><th>JavaScript的</th></tr>
+<tr><td>ttx_node</td><td>ttx_node</td><td>TtxNode</td></tr>
+<tr><td>get_parent</td><td>parent</td><td>getParent</td></tr>
+<tr><td>get_index</td><td>index</td><td>getIndex</td></tr>
+<tr><td>get_name</td><td>name</td><td>getName</td></tr>
+<tr><td>get_children</td><td>children</td><td>getChildren</td></tr>
+<tr><td>getNodeByName</td><td>node</td><td>node</td></tr>
+<tr><td>has_attr</td><td>has_attr</td><td>hasAttr</td></tr>
+<tr><td>get_attr</td><td>attr</td><td>attr</td></tr>
+</table>
+
+<ul>
+<li>C++ 的命名規則
+  <p>関数名は全て小文字で構成され、単語の分割は '_' で行う。
+  単にプロパティを取得する為の関数は、名詞節を関数名とする。
+  何らかの動作を行う関数は動詞節を関数名とする。
+  </p>
+  <p>× この様にすると必然的に XML で一般的に用いられている関数名を捨てる事になる。
+  例えば getElementsByClassName 的な物は関数名が長くなりがちなので、
+  XML や 
+  </p>
+  <p>☆ この様な命名規則を C++ 的と呼んだが、
+  これは最新の C++11 のライブラリ拡張でも採用されている命名規則だろうか。
+  /* C++ は長い歴史を持つ為、様々な時代の命名規則が入り乱れている気がする。
+  個人的な印象としては: C 時代のできるだけ関数名を縮めて書いた時代 (hworld 的)、
+  初期のライブラリ? (gethworld, helloworld)、
+  最近 (hello_world) など。 */
+
+  実際に、最近追加された unordered_map 等を覗いてみた所、
+  やはりプロパティ取得は単に名詞の関数名になっている。
+  しかし、これは STL の歴史を引きずった物である気もする。
+  次に、完全に新しく追加されたスレッドライブラリを見る。
+  native_handle という関数名が使われている一方で
+  get_id/get_future/set_future という関数名が使われている。
+  正規表現ライブラリについても参照してみると、
+  mark_count/flags/length 等という名詞の関数名が使われている一方で、
+  getloc/get_allocator 等という関数名も使われている。滅茶苦茶である。
+
+  結局 C++ のライブラリと言っても趣味や慣習によって色々であって、
+  統一された関数名の付け方は無いようである。
+  C++ がどう、というよりも libmwg の中での整合を気にした方が良いかも知れない。
+  </p>
+
+  <p>△ 一方で get_hoge と set_hoge の機能の両方がある場合には、
+  hoge 関数と set_hoge 関数にすると対称性が悪いという問題もある。
+  と思ったが、set_hoge と対になっているのは get_attr だけであった。
+  その他の関数は問題なく get を除去してしまった良いと思う。
+  </p>
+</li>
+<li>JavaScript 的命名規則
+  <p>XML DOM 的な関数名は、元々 HTML DOM を操作する為の JavaScript から来ている。
+  従って、構造化文字列の API として JavaScript 的な命名規則を此処でも取り入れるのも手である。
+  </p>
+  <p>× 然し、これを受け入れる場合、関数名だけ受け入れるのかクラス名も受け入れるかが悩ましい。
+  関数名だけ受け入れるとクラス名との差異が気になるし、
+  だからといって C++ 用のクラスライブラリとして、今迄 hello_world 式命名規則でやって来たのを、
+  HelloWorld 的命名に変更するのも抵抗がある。
+  </p>
+</li>
+<li>また、別の C++ 用 xml ライブラリでどの様な方式を採用しているかも参考になる。
+  <p>XML DOM をそのまま実装しているライブラリでは、XML DOM と等価であるので余り参考にならないが、
+  他の命名規則を採用している物に関しては参考になるだろう。
+  </p>
+  <p>libxml++ を見てみたら何かちぐはぐな名前付けになっていた。
+  クラス名は HelloWorld 式の名前付けで (但し Xml DOM に従っているという訳でもない)、
+  関数名は hello_world 式の名前付けになっている。
+  そして取得関数は get_hoge() という関数名にしている。
+  この様な物を見せられると、俄然、JavaScript 的な命名規則でも言いかなという気分になってくる。
+  </p>
+</li>
+</ul>
+
+<h4>attr</h4>
+<p>get_attr, has_attr, set_attr についてはどの様にするのが良いか?
+出来るだけ一つの関数 attr でアクセスできるようにしたい。
+文字列を取得しようとすれば文字列が取得でき、
+bool に型変換しようとすればそれが空の attribute なのか中身を持った物なのか確認できる。
+また、値を設定しようとすれば元のノードの attribute リストに属性が追加される。
+その様な属性 proxy を返すという方法でも良い気がする。
+</p>
+
+<h4>name</h4>
+<p>所で、get_name に対応する set_name が存在しないと考えていたが、
+よく見てみたら std::string name データメンバが裸で公開されていた。
+データメンバが裸で公開されている事は c++ のライブラリとしても余り無い事であるので、
+データメンバは表に公開しない事にする。
+どの様にして get/set の機能を提供するかについては色々考えられる。
+</p>
+<ul>
+<li>name() 関数で参照型を返してしまえばそれに対して代入を実行する事で set ができる。
+  然し、これは単に std::string を返す様な別の関数を作った時に勘違いして、
+  其処に代入すれば元のオブジェクトも変更されると思い込みかねない。
+</li>
+<li>或いは name/set_name で非対称な形にしても良い。</li>
+<li>name/rename でも良いかも知れない。
+  唯、これは初心者に対しては余り親切でない名前付けである。
+  ぱっと見ただけでは name/rename が対になっているのかそうでないのか判断できない。
+  (set_name/get_name となっていれば明らかに対になっているという事が分かる)。
+</li>
+<li>そもそも set_name 機能を使う事があるのか?
+  <p>オブジェクト作成時に一旦名前を付けたらもう変更はないのではないか?
+  例えば html の場合には、各 tagName に応じて様々な機能や制限がある為、
+  一同構築した後で tagName を変更するという事は論理的に考えても難しい。
+  従って、要素を生成する時に tagName を決定し、その後は変更を行わない。
+  </p>
+  <p>実際に、name に値を設定している箇所を調べてみる事にすればよい。
+  若し後で name を変更する機能が欲しくなったら
+  rename 関数か set_name 関数を追加する事にする。
+  内部での構築で値の変更が必要になったら、
+  その時は friend か何かで凌ぐ。
+  </p>
+</li>
+</ul>
+
+<h4>libmwg 整合性</h4>
+<p>libmwg の中での整合性を考えると。。
+  現在の所仕様が固まってきている libmwg 固有のクラスオブジェクトは、tape 程度しかない。
+  stat 系の関数名を見てみた所、これは或る程度落ち着いてきている感じがするので参考にしても良い。
+  その他の物は大した機能もないか、operator ばかり定義していたり、
+  未だ仕様が固まっていなかったりするので関数名の参考にはならない。
+  其処で tape や stat 系のクラスを覗いてみたが、何れも名詞を以てプロパティ取得の関数名としている。
+  中には relative_error の様に複数の単語からなる名詞によってプロパティ取得を提供している物もある。
+  一方で、プロパティを設定するような機能を持つ関数というのは存在していないようだ。
+  一応 tape には tell に対して seek という関数があって、
+  これは実質現在の書込位置を取得/設定する物であるが、
+  何れも独立の動詞を使っていて get/set 対にはなっていない。
+</p>
+
+<h4>getNodeByName</h4>
+<p>その他、DOM の getElementsByTagName 等の関数名に触発されて作った、
+getNodeByName やら enumNodesByName 等の関数名をどの様にするかの問題も悩ましい。
+</p>
+<table class="normal center">
+<tr><th>現在</th><th>C++</th></tr>
+<tr><td>getNodeByName</td><td>node</td></tr>
+<tr><td>enumNodes</td><td>begin_nodes, enum_nodes, enumerate_nodes</td></tr>
+<tr><td>enumNodesByName</td><td>begin_nodes_by_name, enum_nodes_by_name, enumerate_nodes_by_name</td></tr>
+<tr><td>enumAttrs</td><td>begin_attrs, enum_attrs, enumerate_nodes</td></tr>
+</table>
+<p>と思ったが、存外余りその様な関数は定義していなかった。
+  enumNodesByName 以外は C++ 的命名では高々 2 単語になるのでそれ程面倒でもない。
+  特に enum 系関数は libmwg の他の部分でも使っていくようにしたいので、
+  他の部分でも安易に新しく定義する事が出来るように enumHoge 形式ではなくて、
+  enum_hoge や enumerate_hoge で良い気がする。
+  特に enum 系関数は for ループなどで使う事を想定し気軽に使う物という雰囲気でもないので、
+  enumerate の様な長い関数名でも構わないと考える
+  (getElementsByTagName 等を意識すると enumerateNodesByNames 等は幾分か長く感じられたが)。
+</p>
+
+<h3>変更箇所まとめ</h3>
+<ul>
+<li>関数名は C++ 的な物に変更する。</li>
+<li>set_attr/get_attr/has_attr は一つに纏め、proxy クラスを戻り値とする。</li>
+<li>name データメンバは内部に隠し、name() 関数で値を取得するようにする。set_name 的な機能は取り敢えず公開しない事にする。</li>
+<li>enumHoge 系関数は enumerate_hoge の様な関数名に変更する。</li>
+</ul>
+
+<table class="normal center">
+<tr><th colspan="2">データメンバ</th></tr>
+<tr><th>ttx1</th>           <th>ttx2</th></tr>
+<tr><td>name</td>           <td>m_name</td></tr>
+<tr><td>parent</td>         <td>m_parent</td></tr>
+<tr><td>index</td>          <td>m_index</td></tr>
+<tr><td>children</td>       <td>m_nodes</td></tr>
+<tr><td>attributes</td>     <td>m_attrs</td></tr>
+<tr><th colspan="2">メンバ関数</th></tr>
+<tr><th>ttx1</th>           <th>ttx2</th></tr>
+<tr><td>get_name</td>       <td>name</td></tr>
+<tr><td>get_parent</td>     <td>parent</td></tr>
+<tr><td>get_index</td>      <td>index</td></tr>
+<tr><td>get_children</td>   <td>nodes</td></tr>
+<tr><td>get_attributes</td> <td>attrs</td></tr>
+<tr><td>n-&gt;get_attr(name)</td>
+  <td>
+  <code class="agh-prog-cpp">(std::string const&amp;)n-&gt;attr(name)</code><br/>
+  <code class="agh-prog-cpp">n-&gt;attr(name).get()</code>
+  </td></tr>
+<tr><td>n-&gt;has_attr(name)</td>
+  <td>
+  <code class="agh-prog-cpp">(bool)n-&gt;attr(name)</code><br/>
+  <code class="agh-prog-cpp">!n-&gt;attr(name).empty()</code>
+  </td></tr>
+<tr><td>n-&gt;set_attr(name,value)</td>
+  <td>
+  <code class="agh-prog-cpp">n-&gt;attr(name)=value</code><br/>
+  <code class="agh-prog-cpp">n-&gt;attr(name).set(value)</code>
+  </td></tr>
+</table>
+<!--########################################################################-->
+<h2 id="sec.P3">計画3. 標準的操作方法の提供 [2013-05-25]</h2>
+<p>load_and_enumerate の方法は余り一般的な記述でないという感じがするので、
+より一般的な記述の仕方で同様の処理を実現できないか考える。
+例えば C++ では行指向の処理に対して以下の様な定型で書くのが普通である。
+</p>
+<pre class="agh-prog-cpp">
+#include &lt;string&gt;
+#include &lt;iostream&gt;
+
+int main(){
+  std::string line;
+  while(std::getline(std::cin,line)){
+    // 行に対する処理
+  }
+  return 0;
+}
+</pre>
+<p>これを真似て</p>
+<pre class="agh-prog-cpp">
+#include &lt;iostream&gt;
+#include &lt;mwg/bio/ttx2.h&gt;
+
+int main(){
+  mwg::bio::ttx_node node;
+  while(getnode(std::cin,node)){
+    // node に対する処理
+  }
+  return 0;
+}
+</pre>
+<p>等と記述する事が出来れば良い。更に、これを説明書に明記して於ければ尚良し。</p>
+
+<h3>getnode 実装</h3>
+<p>既存の ttx_scan_enumerate_node を修正して実装する事が出来れば良いと考えたが、
+実装上の問題点が見付かった。
+現在の実装では "ttx_source に既に、次に使われる予定の文字が読み込まれている" と仮定している。
+この様な設計にしていると、node 一個分だけ読み取った時点で、
+次の node の1文字目がストリームから取り出されている事になる。
+其処で再度 ttx_source の初期化を行うと2文字目以降しか読み取られない事になる。
+つまり、従来の ttx_source/ttx_scan は、
+一度 ttx_source としてストリームを初期化したら末端までその ttx_source を用いて読み取るという前提に従って実装されていた。
+しかし、この事はストリームの一部分だけ ttx として読み取りたい (そして末端の位置を予め知らない) 場合に適用できない。
+(一応 ungetc の様な状態巻き戻しの操作をサポートしているストリームでは、
+無理をすれば途中で中断をできるが余り綺麗な実装ではないし、
+様々な種類のストリームに対応したければこの様な機能に頼る訳には行かない)。
+</p>
+
+<p><del>其処で、先ずは ttx_source/ttx_scanner を
+"次の文字が実際に使われるまでストリームから文字を取り出さない"
+という方向で書き換える事にする。
+ttx_source に関しては、コンストラクタの中で 1文字読み取っているのを省略する事にする。
+ttx_source を用いる側で初回に一回 ++ を実行しておくのを忘れなければ今迄と同様に使用する事が可能である。</del>
+と思ったが "一般には、次の一文字が分からなければ単語の終端かどうかを判定する事ができない" ので、
+ttx_scanner のレベルで次の文字を取り出さないようにするのは不可能である。
+(getline の場合は "\n" が得られた時点でこれが行の最後の文字だという事が分かるので、自然に実装する事が出来る。)
+ttx_source に関してはいくらか書き換えてしまったが、前の version に戻す事にした。
+</p>
+
+<p>但し、単語のレベルで末端を検知する事は出来ないが、
+要素の終端に限っては '}' という文字が登場した時点でそれと分かるので、
+論理的には判断する事が可能である。
+つまり ttx_scanner のレベルではなくて、
+それより上の parser のレベルで scanner/source の状態を監視しながら scanner を動かす事で、
+node 単位の読み取りを実行する事が可能である (と思う)。
+次の要素が '}' であるか否かを判定する関数を ttx_scanner に追加すれば良さそう。
+</p>
+
+<!--########################################################################-->
+<h2>他の実装について思う所 2013-05-26 04:39:43</h2>
+<ul>
+<li>スペース区切の行指向テキスト
+  <p>UNIX 等の環境で初期から用いられてきた物である</p>
+  <ul>
+  <li>UNIX ではこの類のデータを処理する為の多くのコマンドが用意されている。
+    awk sort uniq join cut wc gnuplot 等はこの形式のデータを認識する。
+  </li>
+  <li>更に C 言語でこの形式のデータを処理するプログラムを書くのはとても簡単である。
+    また標準的なプログラムの書き方も既に確立しており、
+    新しくアプリケーションを書くのにあれこれ無駄な事を考える余地もない。
+  </li>
+  <li>複雑なデータ構造を扱う事が出来ない。</li>
+  </ul>
+</li>
+<li>JSON
+  <p>JavaScript リテラルが Ajax の通信で用いられる様になり、そこから規格化された物</p>
+  <ul>
+  <li>XML に対する不満からか、より簡単で理に適った形式として JavaScript のサブセットとして定義された表現である。
+    <p>これは XML などに較べるととてもまともな物である。</p>
+  </li>
+  <li>数値データや文字列リテラルなどで簡単な型を構造を持つ</li>
+  <li>複雑な入れ子構造も簡単に、そして一意的に表現する事が出来る</li>
+  </ul>
+</li>
+<li>XML
+  <p>SGML, HTML の影響を受けて発展・規格化されて来た物である。</p>
+  <ul>
+  <li>テキスト、属性、要素、コメント、DOCTYPE 宣言、XML 宣言、等文法要素が多彩に亙り複雑である
+    <p>"厳格な文法であるので計算機で処理しやすい" 等と言うが、
+    歴史的な背景からかこの様に多彩な文法要素が存在し、
+    更に、XML DOM 等の様々な規格が立って標準 API が巨大になっている。
+    今日では XML を正しく解釈し処理する事の出来る実装を用意するのは、
+    実は極めて大変な事となっている。
+    </p>
+    <p>XML を利用するアプリケーションを作ろうと思った場合、自分で XML の処理部分を一から書くのは最早現実的でない。
+    その言語に備わっている標準ライブラリにあればそれを使う事が出来るが、
+    そうでない場合公開されているライブラリを探すか、
+    他の言語のライブラリを移植してくる事になり、
+    余り手軽に用いる事ができる物ではない。
+    </p>
+  </li>
+  <li>DTD や XSD 等を用意して厳格に文法を規定して、更に名前空間を指定しないと xml として正しい物と扱われない。
+    <p>エディタがその事までチェックをしエラーを報告し始めたりするので、
+    自分で新しい種類のデータを作ったりするのに抵抗がある。</p>
+  </li>
+  <li>文法が厳格すぎて冗長に過ぎる。
+    要素の始まりと終わりの両方にタグ名を宣言する必要があったり、
+    属性を必ず引用符で囲む必要があったり、
+    また、そもそも要素を表現するだけでも特殊記号として "&lt; &gt; &lt;/ &gt;" の 5 文字を要する。
+  </li>
+  <li>元々、通常の文章に対するマークアップ言語として発展して来た物であるので、
+    データを表現するのに向いているのかどうか怪しいと個人的には感じる。
+    <p>長い文章の中のごくごく一部に &lt;&gt; 等のマークアップが存在する状況では
+    この様な冗長な文法の方が見易いし良いと思う。
+    しかし、構造化されたデータを表現するのが目的で、大半がマークアップで占められている様なテキストの場合、
+    マークアップに &lt;&gt;&lt;/&gt; だとか ="" だとかを用いるのは文字数が多いし冗長だし、逆に見にくく感じる。
+    </p>
+    <p>XML がテキストと属性の両方を記述できるように自由度を残している理由も分からない。
+    文章がメインでその中に特別な情報を埋め込むのが目的であるのならば属性値は特別な情報として通常のテキストとは区別されたが、
+    XML の様にデータを表現するのが目的の場合には、あるデータを表現する為にはテキストでも属性値でも良く、
+    それならば同じ物を表現する方法が無駄に複数有る事になる。
+    </p>
+  </li>
+  </ul>
+</li>
+</ul>
+
+<!--########################################################################-->
+</body>
+</html>

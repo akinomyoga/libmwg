@@ -1,0 +1,309 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>mwg::bio::ttx Documentation</title>
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <link rel="stylesheet" type="text/css" charset="utf-8" href="http://padparadscha/agh/mwg.slide.css"/>
+  <link rel="stylesheet" type="text/css" charset="utf-8" href="http://padparadscha/agh/prog.std.css"/>
+  <meta name="agh-fly-type" content="color" />
+  <script type="text/javascript" charset="utf-8" src="http://padparadscha/agh/agh.fly.js"></script>
+</head>
+<body class="width72">
+<!--########################################################################-->
+<h1>mwg::bio::ttx</h1>
+<h2>ttx 形式</h2>
+
+<h3>ttx が目指す物</h3>
+<p>ttx は "プログラムで処理する為の極めて簡単だが汎用的に使える構造化テキスト" を目指す物である。</p>
+
+<p>世の中には CSV, XML や JSON 等のデータを表現する為の構造化テキストが既に存在している。
+しかし、何れも単純過ぎて複雑な構造を表現できないか、
+厳格過ぎて記述が面倒であるかの何れかであり、
+その中間となる物として ttx を位置付けたいと考えている。
+以下に既存の構造化テキスト形式と比較しつつ ttx の目標を載せる。
+</p>
+<ul>
+<li>スペース区切の行指向テキスト
+  <ul>
+  <li>歴史的に UNIX のコマンドで扱われる形式</li>
+  <li>◎ この形式を利用するプログラムの実装が容易</li>
+  <li>× 複雑な構造は表現できない</li>
+  </ul>
+</li>
+<li>XML
+  <ul>
+  <li>歴史的には通常の文章に対するメタデータとして発展してきた SGML, HTML の影響を受けて定義される</li>
+  <li>× この系統の文法は通常の文章中にメタデータを埋め込むのには適しているが、単純にデータ構造を表現するのには冗長である</li>
+  <li>× DOCTYPE 宣言、XML 宣言、名前空間、etc など無駄に文法要素・概念が複雑 (これらを有効に・必須として利用する場合はあるのか?)</li>
+  <li>× XML DOM など標準化された API などが巨大であり、簡単に実装できない</li>
+  <li>× 文法が厳格であり、また、多少のミスに対しても解析エラーで停止する実装が多い</li>
+  <li>× 更に DTD, XSD などによってデータ毎に一々厳密に属性・要素などの使い方を定義しなければならない</li>
+  <li>○ データ形式が標準化され浸透しているので、文法の説明が不要・探せばライブラリがある</li>
+  </ul>
+</li>
+<li>JSON
+  <ul>
+  <li>JavaScript の処理でデータの受け渡しに使われ始め、規格化された物</li>
+  <li>◎ 文法が単純、データを表現するのに過不足のないとてもまともな文法</li>
+  <li>○ 数値型、文字列型などの簡単なデータ型の概念が存在する</li>
+  <li>△ JavaScript の数値リテラル・文字列リテラルの文法に従って記述する必要がある。それ程自由という訳ではない</li>
+  </ul>
+</li>
+<li>ttx (目標)
+  <ul>
+  <li>入れ子構造を表現できる極限に自由で簡単な文法
+    <ul>
+    <li>「plain text (スペース区切データ) の次に簡単な文法」を目指す</li>
+    <li>木構造を持ちながら text に準ずる物を目指すという意味で、
+      Tree-structured TeXt の略として ttx と名付ける。
+      txt を並び替えた形にしたのも text に近い物にするという意図を込めた物である。
+    </li>
+    </ul>
+  </li>
+  <li>データは全てテキスト</li>
+  <li>構造を指定する文字である {,}#='" を除けば、改行も含めて自由に記述可能。</li>
+  <li>他の形式で提供される便利な機能を提供
+    <ul>
+    <li>join, sort, uniq, diff, patch, shuffle, hash, merge 等の UNIX コマンド的操作</li>
+    <li>awk, xslt の様なデータ指向の処理</li>
+    <li>SQL 的操作</li>
+    <li>XPath によるデータの選択</li>
+    <li>簡単に ttx を利用するアプリケーションを書く事ができる様に、手軽な標準パターンを提供</li>
+    </ul>
+  </li>
+  </ul>
+</li>
+</ul>
+
+<h3>ttx の文法</h3>
+<p>JSON に似た文法であるが、key:value の代わりに key=value の形式を持つ。
+# で始まる行コメントを使用する事ができる。
+value の部分にはコメント・文字列リテラル・自由形式の文字列を指定する事ができる。
+文法的に明らかな場合には key, '=', value, ',' 等の要素は省略可能である。
+以下に例を挙げる。
+</p>
+<pre class="agh-prog-txt">
+# -*- mode:ttx -*-
+title=例文
+description=
+これは例文1です。
+これは例文2です。
+これは例文3です。
+これは例文4です。
+これは例文5です。
+
+{type=field,ttx1=name,ttx2=m_name},
+{type=field,ttx1=parent,ttx2=m_parent}
+{type=field,ttx1=children,ttx2=m_nodes}
+{type=method,ttx1=get_name,ttx2=name},
+{type=method,ttx1=get_parent,ttx2=parent}
+{type=method,ttx1=get_children,ttx2=nodes}
+{type=code,ttx1="n->get_attr(name)",ttx2="(std::string const&amp;)n->attr(name)"}
+{type=code,ttx1="n->get_attr(name)",ttx2="n->attr(name).get()"}
+{type=code,ttx1='n->has_attr(name)',ttx2='(bool)n->attr(name)'}
+{type=code,ttx1='n->has_attr(name)',ttx2='!n->attr(name).empty()'}
+{type=code,ttx1='n->set_attr(name,value)',ttx2='n->attr(name)=value'}
+{type=code,ttx1='n->set_attr(name,value)',ttx2='n->attr(name).set(value)'}
+</pre>
+
+
+<p>詳細な文法は以下の通りである。</p>
+<ul>
+<li><var>ttx</var> := <strong>(</strong>
+  <var>key</var> <strong>(</strong> <var>space</var> <strong>?</strong> '=' <var>space</var> <strong>?</strong> <strong>|</strong> <var>space</var> <strong>)</strong> <var>value</var>
+  <strong>|</strong> <var>sep</var>
+  <strong>|</strong> <var>space</var> <strong>)*</strong>
+  
+  <ul>
+  <li><var>sep</var> := <code>','</code>
+    <p>カンマは他の文法要素の終端を表す区切として使用される。
+    終端の明示という文法的な機能以外は持たず、単純に無視される。
+    </p>
+  </li>
+  <li><var>space</var> := <strong>(</strong> <code>/\s/</code> <strong>|</strong> <var>comment</var> <strong>)+</strong>
+    <ul>
+    <li><var>comment</var> := <code>/#[^\n]+:$/</code>
+      <p># で始まる行コメントを使用する事が出来る。</p>
+    </li>
+    </ul>
+  </li>
+  <li><var>key</var>
+    := <var>double_quoted_string</var>
+    <strong>|</strong> <var>single_quoted_string</var>
+    <strong>|</strong> <var>identifier</var>
+    <strong>|</strong> <code>/[^\s{,}"'#=]/</code>
+    <strong>| ε</strong>
+
+    <p>キーを省略した時は、対応する値が {...} の場合は "xml" と解釈され、それ以外の時は "data" と解釈される。</p>
+    <ul>
+    <li><var>double_quoted_string</var> := <code>/"([^"\\]|\\.)*"/</code></li>
+    <li><var>single_quoted_string</var> := <code>/'([^'\\]|\\.)*'/</code></li>
+    <li><var>identifier</var> := <code>/[a-zA-Z_0-9\-:.+]+/</code></li>
+    </ul>
+  </li>
+  <li><var>value</var>
+    := <strong>ε</strong>
+    <strong>|</strong> <var>value_component</var> <strong>(</strong> <var>space</var> <var>value_component</var> <strong> )*</strong>
+    <strong>|</strong> <code>'{'</code> <var>ttx</var> <code>'}'</code>
+
+    <p>{...} の形式の場合は、中に ttx 構造を持つ。</p>
+    <p>それ以外の場合は、単なる文字列である。値の中に含まれる空白はそのまま文字列の構成文字と解釈される。コメントは無視される。</p>
+    <ul>
+    <li><var>value_component</var>
+      := <var>double_quoted_string</var>
+      <strong>|</strong> <var>double_quoted_string</var>
+      <strong>|</strong> <code>/[^\s{,}'"#]/</code>
+
+      <p>double_quoted_string/single_quoted_string は囲まれた中身が値の一部と解釈される。</p>
+      <p>それ以外の文字は直接値の一部と解釈される。</p>
+    </li>
+    </ul>
+  </li>
+  </ul>
+</li>
+</ul>
+
+<!--########################################################################-->
+<h2 class="prog-item-hfile">Doc. &lt;mwg/bio/ttx2.h&gt; Member List [2013-05-25 17:51:41]</h2>
+<ul>
+<li class="prog-decl-class"><code class="agh-prog-cpp">class <dfn>ttx_attr</dfn>;</code>
+  <ul>
+  <li class="prog-decl-var"><code class="agh-prog-cpp">std::string <dfn>name</dfn>;</code></li>
+  <li class="prog-decl-var"><code class="agh-prog-cpp">std::string <dfn>value</dfn>;</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">template&lt;typename A1,typename A2&gt; <dfn>ttx_attr</dfn>(A1&amp;&amp; name,A2&amp;&amp; value);</code></li>
+  </ul>
+</li>
+<li class="prog-decl-class"><code class="agh-prog-cpp">class <dfn>ttx_node</dfn>;</code>
+  <ul>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">ttx_node* <dfn>parent</dfn>() const;</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">int <dfn>index</dfn>() const;</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">const std::string&amp; <dfn>name</dfn>() const;</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp"><dfn>ttx_node</dfn>();</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">explicit <dfn>ttx_node</dfn>(const char* name);</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">explicit <dfn>ttx_node</dfn>(const std::string&amp; name);</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">explicit <dfn>ttx_node</dfn>(std::string&amp;&amp; name);</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp"><dfn>ttx_node</dfn>(const ttx_node&amp; src);</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp"><dfn>~ttx_node</dfn>();</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">ttx_node&amp; <dfn>operator=</dfn>(const ttx_node&amp; src);</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">void <dfn>add_merge</dfn>(const ttx_node&amp; n1,const ttx_node&amp; n2);</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">static ttx_node* <dfn>clone</dfn>(const ttx_node&amp; n1);</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">static ttx_node* <dfn>merge</dfn>(const ttx_node&amp; n1,const ttx_node&amp; n2);</code></li>
+  </ul>
+  <p>nodes</p>
+  <ul>
+  <li class="prog-decl-var"><code class="agh-prog-cpp">protected: std::vector&lt;ttx_node*&gt; <dfn>m_nodes</dfn>;</code></li>
+  <li class="prog-decl-type"><code class="agh-prog-cpp">typedef std::vector&lt;ttx_node*&gt;::const_iterator <dfn>node_iterator</dfn>;</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">const std::vector&lt;ttx_node*&gt;&amp; <dfn>nodes</dfn>() const;</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">ttx_node* <dfn>release_node</dfn>(int index);</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">ttx_node* <dfn>release_node</dfn>(ttx_node* node);</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">ttx_node* <dfn>add_node</dfn>(ttx_node* node);</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">ttx_node* <dfn>create_node</dfn>(const char* name);</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">ttx_node* <dfn>create_node</dfn>(const std::string&amp; name);</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">ttx_node* <dfn>create_node</dfn>(std::string&amp;&amp; name);</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">void <dfn>remove_node</dfn>(int index);</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">void <dfn>remove_node</dfn>(ttx_node* node);</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">mwg::exp::enumerator&lt;ttx_node*&gt; <dfn>enumerate_nodes</dfn>(bool recursive=false);</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">mwg::exp::enumerator&lt;ttx_node*&gt; <dfn>enumerate_nodes</dfn>(const char* name,bool recursive=false);</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">mwg::exp::enumerator&lt;ttx_node*&gt; <dfn>enumerate_nodes</dfn>(const std::string&amp; name,bool recursive=false);</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">ttx_node* <dfn>node</dfn>(const char* name,bool recursive=false) const;</code></li>
+  </ul>
+  <p>attrs</p>
+  <ul>
+  <li class="prog-decl-var"><code class="agh-prog-cpp">protected: std::vector&lt;ttx_attr&gt; <dfn>m_attrs</dfn>;</code></li>
+  <li class="prog-decl-type"><code class="agh-prog-cpp">typedef std::vector&lt;ttx_attr&gt;::const_iterator <dfn>attr_iterator</dfn>;</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">const std::vector&lt;ttx_attr&gt;&amp; <dfn>attrs</dfn>() const;</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp"><var>temporary-object</var> <dfn>attr</dfn>(const std::string&amp; name);</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp"><var>temporary-object</var> const <dfn>attr</dfn>(const std::string&amp; name) const;</code>
+    <ul>
+    <li class="prog-decl-meth"><code class="agh-prog-cpp"><dfn>operator bool</dfn>() const;</code></li>
+    <li class="prog-decl-meth"><code class="agh-prog-cpp">bool <dfn>empty</dfn>() const;</code></li>
+    <li class="prog-decl-meth"><code class="agh-prog-cpp"><dfn>operator const std::string&amp;</dfn>() const;</code></li>
+    <li class="prog-decl-meth"><code class="agh-prog-cpp">const std::string&amp; <dfn>get</dfn>() const;</code></li>
+    <li class="prog-decl-meth"><code class="agh-prog-cpp">template&lt;typename T&gt; T <dfn>get</dfn>() const;</code></li>
+    <li class="prog-decl-meth"><code class="agh-prog-cpp">std::string const&amp; <dfn>str</dfn>() const;</code></li>
+    <li class="prog-decl-meth"><code class="agh-prog-cpp">const char* <dfn>c_str</dfn>() const;</code></li>
+    <li class="prog-decl-meth"><code class="agh-prog-cpp"><var>temporary-object</var> <dfn>operator=</dfn>(const std::string&amp; value);</code></li>
+    <li class="prog-decl-meth"><code class="agh-prog-cpp">void <dfn>set</dfn>(const std::string&amp; value);</code></li>
+    </ul>
+  </li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">mwg::exp::enumerator&lt;ttx_attr&amp;&gt; <dfn>enumerate_attrs</dfn>();</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">mwg::exp::enumerator&lt;ttx_attr const&amp;&gt; <dfn>enumerate_attrs</dfn>() const;</code></li>
+  </ul>
+  <p>load</p>
+  <ul>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">void <dfn>load</dfn>(const char* ttx);</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">void <dfn>load</dfn>(std::istream&amp; ttx);</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">static mwg::exp::enumerator&lt;ttx_node*&gt; <dfn>load_and_enumerate</dfn>(const char* ttx);</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">static mwg::exp::enumerator&lt;ttx_node*&gt; <dfn>load_and_enumerate</dfn>(std::istream&amp; ttx);</code></li>
+  </ul>
+  <p>print</p>
+  <ul>
+  <li class="prog-decl-type"><code class="agh-prog-cpp">:public mwg::exp::iprint;</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">typedef mwg::exp::iprint <dfn>base</dfn>;</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">using base::<dfn>print</dfn>;</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">void <dfn>print</dfn>(std::ostream&amp; ostr,mwg::exp::sfmt::xml_t* tag) const;</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">void <dfn>print</dfn>(std::ostream&amp; ostr,mwg::exp::sfmt::ttx_t* tag) const;</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">void <dfn>print</dfn>(std::ostream&amp; ostr,mwg::exp::sfmt::json_t* tag) const;</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">virtual void <dfn>print</dfn>(std::ostream&amp; ostr,const mwg::exp::iformat&amp; fmt) const;</code></li>
+  </ul>
+</li>
+<li class="prog-decl-class"><code class="agh-prog-cpp">class <dfn>ttx_root</dfn></code>
+  <ul>
+  <li class="prog-decl-type"><code class="agh-prog-cpp">:public ttx_node;</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp"><dfn>ttx_root</dfn>();</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">using mwg::exp::iprint::<dfn>print</dfn>;</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">void <dfn>print</dfn>(std::ostream&amp; ostr,mwg::exp::sfmt::xml_t* tag) const;</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">void <dfn>print</dfn>(std::ostream&amp; ostr,mwg::exp::sfmt::ttx_t* tag) const;</code></li>
+  <li class="prog-decl-meth"><code class="agh-prog-cpp">virtual void <dfn>print</dfn>(std::ostream&amp; ostr,const mwg::exp::iformat&amp; fmt) const;</code></li>
+  </ul>
+</li>
+</ul>
+
+<h2>Doc. 使用例</h2>
+<p>各トップレベルノードに対して何らかの操作を実行するには以下の様にする。</p>
+<pre class="agh-prog-cpp">
+#include &lt;iostream&gt;
+#include &lt;mwg/bio/ttx2.h&gt;
+
+int main(){
+  mwg::bio::ttx_node node;
+  while(getnode(std::cin,node)){
+
+    // ノードに対する操作例
+    if(node.attr("type").str()=="field")
+      std::cout&lt;&lt;node.attr("ttx1").str()&lt;&lt;" "&lt;&lt;node.attr("ttx2").str()&lt;&lt;std::endl;
+
+  }
+
+  return 0;
+}
+</pre>
+
+<p>各子ノードに対して操作をする場合には以下の様にする。</p>
+<pre class="agh-prog-cpp">
+// C++03
+void f(ttx_node* node){
+  for(mwg::exp::enumerator&lt;ttx_node*&gt; i=node-&gt;enumerate_nodes();i;++i){
+    ttx_node* child=(*i);
+
+    // child に対する操作
+
+  }
+}
+
+// C++11
+void f(ttx_node* node){
+  for(ttx_node* child : node-&gt;enumerate_nodes("name")){
+
+    // child に対する操作
+
+  }
+}
+</pre>
+
+
+</body>
+</html>
+

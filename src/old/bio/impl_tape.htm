@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html>
+<head>
+  <title>mwg::bio Implementation</title>
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <style type="text/css">
+  h1{background-color:gray;color:white;padding:.5ex;text-align:center;}
+  h2{border-width:3px 0px;border-style:double;border-color:gray;padding:.2ex 1ex;}
+  h3{border-left:2ex solid #e66;padding-left:.5ex;}
+  p{text-indent:1em;}
+  p.marked{text-indent:0px;}
+  
+  /*pre{border:1px solid white;padding:1ex;background-color:#f8f8f8}*/
+  /*pre{border:1px solid silver;padding:1px;}*/
+  /*pre{background-color:#f8f8f8}*/
+  pre{border:1px solid silver;border-width:1px 0px;padding-bottom:1ex;background-color:white;}
+  pre:before{
+    content:"C++";
+    display:block;margin:0px;margin-bottom:.5ex;
+    padding:0px 3px;
+    background-color:gray;color:white;font-size:small;
+  }
+  </style>
+  <meta name="Mwg-Kick-Type" content="text.color" />
+  <script type="text/javascript" charset="utf-8" src="http://localhost/mwg3/mwg.kick.js"></script>
+</head>
+<body>
+<h1>mwg::bio 実装</h1>
+<h2>tape.stream.h</h2>
+<p>&lt;iostream&gt; と連携するには、
+streambuf を継承して実装する必要がある様である。
+が、その詳しい方法は良く分かっていないので、先ずはそれについて調べる事にする。
+</p>
+<ul>
+<li><a href="http://www.kijineko.co.jp/tech/reinvwheel/20090729-1">きじねこ :: stream -&gt; OutputDebugString</a>
+<pre class="cpp">
+#ifndef	WIN32DEBUGSTREAM_HPP_
+#define	WIN32DEBUGSTREAM_HPP_
+
+#ifdef	_MSC_VER
+#pragma	once
+#endif
+
+#include &lt;windows.h&gt;
+#include &lt;string&gt;
+#include &lt;ostream&gt;
+
+inline void win32debugout(char const* s)
+{
+  ::OutputDebugStringA(s);
+}
+inline void win32debugout(wchar_t const* s)
+{
+  ::OutputDebugStringW(s);
+}
+
+/**
+ *	@note	フィールドの途中でデバッグ文字列が途切れることを回避するため、この
+ *			実装ではoverflowではなくxsputnをオーバーライドすることにした。
+ */
+template &lt;class charT, class traits = std::char_traits&lt;charT&gt; &gt;
+class basic_win32debugbuf : public std::basic_streambuf&lt;charT, traits&gt;
+{
+public:
+  basic_win32debugbuf()
+  {
+    buffer_.reserve(256);
+  }
+protected:
+  std::streamsize xsputn(charT const* s, std::streamsize n)
+  {
+    buffer_.assign(s, n);
+    std::streamsize size = static_cast&lt;std::streamsize&gt;(buffer_.size());
+    win32debugout(buffer_.c_str());
+    return n;
+  }
+private:
+  std::basic_string&lt;charT, traits&gt; buffer_;
+};
+
+template &lt;class charT, class traits = std::char_traits&lt;charT&gt; &gt;
+class basic_owin32debugstream : public std::basic_ostream&lt;charT, traits&gt;
+{
+public:
+  /// デフォルトコンストラクタ
+  basic_owin32debugstream()
+    : std::basic_ostream&lt;charT, traits&gt;(&amp;rdbuf_)
+  {
+  }
+private:
+  basic_win32debugbuf&lt;charT, traits&gt; rdbuf_;
+};
+
+typedef basic_win32debugbuf&lt;char&gt; win32debugbuf;
+typedef basic_win32debugbuf&lt;wchar_t&gt; wwin32debugbuf;
+typedef basic_owin32debugstream&lt;char&gt; owin32debugstream;
+typedef basic_owin32debugstream&lt;wchar_t&gt; wowin32debugstream;
+
+#endif	// WIN32DEBUGSTREAM_HPP_
+</pre>
+</li>
+<li><a href="http://www.jah.ne.jp/~naoyuki/Writings/ExtIos.html">iostream</a> 皆が参照している標準的? 文書</li>
+<li>CLX C++ lib: <a href="http://d.hatena.ne.jp/tt_clown/20080714/p1">streambufのカスタマイズ - Life like a clown</a></li>
+<li><a href="http://www.kab-studio.biz/Programing/Codian/iostream/08.html">カスタムバッファ</a> ここが一番ちゃんと書いてある。まとも。</li>
+</ul>
+<p>既定の streambuf の動作は、多分以下の様な感じになっていると予想。</p>
+<ol>
+<li>xsputn で文字列を受け取り、バッファに溜める。</li>
+<li>バッファが一杯になったら overflow を呼び出す。</li>
+<li>overflow は 「バッファに溜まっている物 + 引数に受け取った文字」を、実際に処理する。</li>
+</ol>
+<p>というか、msdn の overflow の項目に色々書かれている。</p>
+<ul>
+<li>新しく streambuf を定義するのであれば、overflow, sync, underflow を実装する。</li>
+<li>sync は出力バッファをフラッシュする。
+  <ol>
+  <li>バッファの中身 (pbase() から pptr() まで) を[処理]する。</li>
+  <li>その後、バッファを再初期化する。
+    一つの関数でできてもいいと思うのだが、pbump( pbase() - pptr() ); とするしかない様だ。</li>
+  </ol>
+</li>
+<li>overflow は
+  <ol>
+  <li>バッファの中身を出して、バッファを初期化する。というか sync を呼び出すだけ?</li>
+  <li>引数が trais_type::eof() の場合はそれで終わり。</li>
+  <li>引数がそれ以外の場合は、それは追加したい文字を表している。
+    traits_type::to_char_type(第一引数) をバッファに追加するか、[処理]する。</li>
+  <li>return traits_type::not_eof(第一引数);</li>
+  <li>※ もし処理に失敗したならば、例外を投げるか traits_type::eof() を返す。</li>
+  </ol>
+</li>
+<li>underflow は入力バッファの現在位置にある文字を返す。
+  <ol>
+  <li>入力バッファに残りがない場合には、新しく読み取る。
+    ※ 残りがある場合にも呼び出されうるので注意。
+  </li>
+  <li>入力バッファに残っているデータの先頭文字を返す。
+    return traits_type::to_int_type(pgptr());
+  </li>
+  <li>処理に失敗した場合には traits_type::eof() を返すか、例外を投げる。</li>
+  </ol>
+</li>
+<li>特に実装して無くてもいいかもしれない?物は、 uflow pbackfail</li>
+<li>uflow は underflow を呼び出してから、入力バッファ現在位置を一つ進める。gbump(1);
+  <p>既定で上の様な動作になっているので、特別な事をしたいのでなければ override する必要はない。</p>
+</li>
+<li>pbackfail は入力源に文字を一個書き戻す。
+  <p>既定では失敗する。</p>
+  <p>これも使われる状況は限られている為、
+  入力源がそういう動作に対応していなければ無理に実装する必要はない。
+  </p>
+</li>
+</ul>
+</body>
+</html>
