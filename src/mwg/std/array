@@ -22,8 +22,7 @@ namespace stdm {
   // Note: https://stackoverflow.com/questions/15512827/why-is-stdarray-t-0-not-empty
   template<typename T, std::size_t N>
   struct array {
-  private:
-    T m_data[N == 0? 1: N];
+    T m_data[N == 0? 1: N]; // left public to provide list-initialization
 
   public:
     typedef T value_type;
@@ -73,7 +72,7 @@ namespace stdm {
     mwg_constexpr const_reverse_iterator crend() const mwg_noexcept {return const_reverse_iterator(m_data);}
 
   public:
-    mwg_constexpr bool empty() const mwg_noexcept {return N != 0;}
+    mwg_constexpr bool empty() const mwg_noexcept {return N == 0;}
     mwg_constexpr size_type size() const mwg_noexcept {return N;}
     mwg_constexpr size_type max_size() const mwg_noexcept {return N;}
 
@@ -153,7 +152,16 @@ namespace std {
 
 int test() {
   namespace ns = mwg::stdm;
-  ns::array<int, 10> arr;
+  typedef ns::array<int, 10> arr_t;
+  ns::array<int, 10> arr = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+  mwg_check((ns::tuple_size<arr_t>::value == 10 && ns::is_same<ns::tuple_element<2, arr_t>::type, int>::value));
+  mwg_check(arr.front() == 0 && arr.back() == 9);
+  mwg_check(arr.data() == &arr[0]);
+  mwg_check(!arr.empty() && arr.size() == 10 && arr.max_size() == 10);
+  for (int i = 0; i < 10; i++) mwg_check(arr[i] == i && arr.at(i) == i);
+  mwg_check(ns::get<0>(arr) == 0 && ns::get<5>(arr) == 5 && ns::get<9>(arr) == 9);
+  for (arr_t::iterator i = arr.begin(); i != arr.end(); i++) *i *= *i;
+  for (int i = 0; i < 10; i++) mwg_check(arr[i] == i * i);
   return 0;
 }
 
