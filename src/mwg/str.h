@@ -1372,7 +1372,7 @@ public:
 #pragma%end
 private:
   template<bool A1, bool A2, bool A3 = false>
-  struct _xor: stdm::integral_constant<bool, ((A1? 1: 0) + (A2? 1: 0) + (A3? 1: 0) == 1)> {};
+  struct _xor: stdm::bool_constant<((A1? 1: 0) + (A2? 1: 0) + (A3? 1: 0) == 1)> {};
 
   template<typename T, bool HasChar, bool HasPredicate, bool HasString>
   struct enable_find: stdm::enable_if<

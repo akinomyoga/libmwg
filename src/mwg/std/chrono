@@ -88,8 +88,7 @@ namespace chrono_detail {
   struct is_duration<duration<R1, P1> >: mwg::stdm::true_type {};
 
   template<typename D1, typename D2>
-  struct is_duration_promotable: mwg::stdm::integral_constant<
-    bool,
+  struct is_duration_promotable: mwg::stdm::bool_constant<
     treat_as_floating_point<typename D1::rep>::value
     ||(!treat_as_floating_point<typename D2::rep>::value && mwg::stdm::ratio_divide<typename D1::period, typename D2::period>::type::den == 1)
     > {};
@@ -98,8 +97,7 @@ namespace chrono_detail {
   struct is_duration_explicit: mwg::stdm::false_type {};
 
   template<typename R1, typename P1, typename R2>
-  struct is_duration_explicit<duration<R1, P1>, R2>: mwg::stdm::integral_constant<
-    bool,
+  struct is_duration_explicit<duration<R1, P1>, R2>: mwg::stdm::bool_constant<
     mwg::stdm::is_convertible<R2, R1>::value
     &&(treat_as_floating_point<R1>::value || !treat_as_floating_point<R2>::value)
     > {};

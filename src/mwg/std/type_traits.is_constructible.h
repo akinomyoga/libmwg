@@ -126,11 +126,11 @@ namespace stdm {
 # elif defined(MWG_STDM_TYPE_TRAITS_IS_CONSTRUCTIBLE_H_tr1_available)
     template<typename T> struct is_trivially_default_constructible: tr1::has_trivial_constructor<T> {};
 # elif MWGCONF_MSC_VER >= 140050215
-    template<typename T> struct is_trivially_default_constructible: integral_constant<bool, is_pod<T>::value || __has_trivial_constructor(T)> {};
+    template<typename T> struct is_trivially_default_constructible: bool_constant<is_pod<T>::value || __has_trivial_constructor(T)> {};
 # elif MWGCONF_GCC_VER >= 40300 && !defined(__GCCXML__)
-    template<typename T> struct is_trivially_default_constructible: integral_constant<bool, is_pod<T>::value || (__has_trivial_constructor(T) && !is_volatile<T>::value)> {};
+    template<typename T> struct is_trivially_default_constructible: bool_constant<is_pod<T>::value || (__has_trivial_constructor(T) && !is_volatile<T>::value)> {};
 # elif MWGCONF_CLANG_VER
-    template<typename T> struct is_trivially_default_constructible: integral_constant<bool, is_pod<T>::value || __has_trivial_constructor(T)> {};
+    template<typename T> struct is_trivially_default_constructible: bool_constant<is_pod<T>::value || __has_trivial_constructor(T)> {};
 # else
 #  define mwg_stdm_is_trivially_default_constructible_incomplete
     /* INCOMPLETE */
@@ -152,11 +152,11 @@ namespace stdm {
 # elif defined(MWG_STDM_TYPE_TRAITS_IS_CONSTRUCTIBLE_H_tr1_available)
     template<typename T> struct is_nothrow_default_constructible: tr1::has_nothrow_constructor<T> {};
 # elif MWGCONF_MSC_VER >= 140050215
-    template<typename T> struct is_nothrow_default_constructible: integral_constant<bool, is_pod<T>::value || __has_nothrow_constructor(T)> {};
+    template<typename T> struct is_nothrow_default_constructible: bool_constant<is_pod<T>::value || __has_nothrow_constructor(T)> {};
 # elif MWGCONF_GCC_VER >= 40300 && !defined(__GCCXML__)
-    template<typename T> struct is_nothrow_default_constructible: integral_constant<bool, is_pod<T>::value || (__has_nothrow_constructor(T) && !is_volatile<T>::value)> {};
+    template<typename T> struct is_nothrow_default_constructible: bool_constant<is_pod<T>::value || (__has_nothrow_constructor(T) && !is_volatile<T>::value)> {};
 # elif MWGCONF_CLANG_VER
-    template<typename T> struct is_nothrow_default_constructible: integral_constant<bool, is_pod<T>::value || __has_nothrow_constructor(T)> {};
+    template<typename T> struct is_nothrow_default_constructible: bool_constant<is_pod<T>::value || __has_nothrow_constructor(T)> {};
 # else
 #  define mwg_stdm_is_nothrow_default_constructible_incomplete
     /* INCOMPLETE */
@@ -179,19 +179,19 @@ namespace stdm {
 
     // 配列型・参照型を指定するとエラーになる標準ライブラリがあるので:
     template<typename T>
-    struct is_default_constructible: integral_constant<
-      bool, !is_reference<T>::value && is_constructible<typename remove_extent<typename remove_reference<T>::type>::type>::value> {};
+    struct is_default_constructible: bool_constant<
+      !is_reference<T>::value && is_constructible<typename remove_extent<typename remove_reference<T>::type>::type>::value> {};
 # elif defined(mwg_concept_is_valid_expression)
     template<typename T>
     mwg_concept_is_valid_expression(is_default_constructible_impl, Holder<T>, X, (X()));
     template<typename T>
-    struct is_default_constructible: integral_constant<
-      bool, !is_reference<T>::value && is_default_constructible_impl<typename remove_reference<T>::type>::value> {};
+    struct is_default_constructible: bool_constant<
+      !is_reference<T>::value && is_default_constructible_impl<typename remove_reference<T>::type>::value> {};
 # else
 #  define mwg_stdm_is_default_constructible_incomplete
     template<typename T>
-    struct is_default_constructible: integral_constant<
-      bool, (is_trivially_default_constructible<T>::value || is_nothrow_default_constructible<T>::value)> {};
+    struct is_default_constructible: bool_constant<
+      (is_trivially_default_constructible<T>::value || is_nothrow_default_constructible<T>::value)> {};
 # endif
   }
   using is_constructible_detail::is_default_constructible;
@@ -209,11 +209,11 @@ namespace stdm {
 # elif defined(MWG_STDM_TYPE_TRAITS_IS_CONSTRUCTIBLE_H_tr1_available)
     template<typename T> struct is_trivially_copy_constructible: tr1::has_trivial_copy<T> {};
 # elif MWGCONF_MSC_VER >= 140050215
-    template<typename T> struct is_trivially_copy_constructible: integral_constant<bool, is_pod<T>::value || __has_trivial_copy(T)> {};
+    template<typename T> struct is_trivially_copy_constructible: bool_constant<is_pod<T>::value || __has_trivial_copy(T)> {};
 # elif MWGCONF_GCC_VER >= 40300 && !defined(__GCCXML__)
-    template<typename T> struct is_trivially_copy_constructible: integral_constant<bool, is_pod<T>::value || (__has_trivial_copy(T) && !is_reference<T>::value && !is_volatile<T>::value)> {};
+    template<typename T> struct is_trivially_copy_constructible: bool_constant<is_pod<T>::value || (__has_trivial_copy(T) && !is_reference<T>::value && !is_volatile<T>::value)> {};
 # elif MWGCONF_CLANG_VER
-    template<typename T> struct is_trivially_copy_constructible: integral_constant<bool, is_pod<T>::value || (__has_trivial_copy(T) && !is_reference<T>::value && !is_volatile<T>::value)> {};
+    template<typename T> struct is_trivially_copy_constructible: bool_constant<is_pod<T>::value || (__has_trivial_copy(T) && !is_reference<T>::value && !is_volatile<T>::value)> {};
 # else
 #  define mwg_stdm_is_trivially_copy_constructible_incomplete
     template<typename T> struct is_trivially_copy_constructible: is_pod<T> {};
@@ -234,11 +234,11 @@ namespace stdm {
 # elif defined(MWG_STDM_TYPE_TRAITS_IS_CONSTRUCTIBLE_H_tr1_available)
     template<typename T> struct is_nothrow_copy_constructible: tr1::has_nothrow_copy<T> {};
 # elif MWGCONF_MSC_VER >= 140050215
-    template<typename T> struct is_nothrow_copy_constructible: integral_constant<bool, is_pod<T>::value || __has_nothrow_copy(T) || __has_trivial_copy(T)> {};
+    template<typename T> struct is_nothrow_copy_constructible: bool_constant<is_pod<T>::value || __has_nothrow_copy(T) || __has_trivial_copy(T)> {};
 # elif MWGCONF_GCC_VER >= 40300 && !defined(__GCCXML__)
-    template<typename T> struct is_nothrow_copy_constructible: integral_constant<bool, is_pod<T>::value || (__has_nothrow_copy(T) && !is_reference<T>::value && !is_volatile<T>::value)> {};
+    template<typename T> struct is_nothrow_copy_constructible: bool_constant<is_pod<T>::value || (__has_nothrow_copy(T) && !is_reference<T>::value && !is_volatile<T>::value)> {};
 # elif MWGCONF_CLANG_VER
-    template<typename T> struct is_nothrow_copy_constructible: integral_constant<bool, is_pod<T>::value || (__has_nothrow_copy(T) && !is_reference<T>::value && !is_volatile<T>::value)> {};
+    template<typename T> struct is_nothrow_copy_constructible: bool_constant<is_pod<T>::value || (__has_nothrow_copy(T) && !is_reference<T>::value && !is_volatile<T>::value)> {};
 # else
 #  define mwg_stdm_is_nothrow_copy_constructible_incomplete
     template<typename T> struct is_nothrow_copy_constructible: is_pod<T> {};
@@ -263,8 +263,8 @@ namespace stdm {
 # else
 #  define mwg_stdm_is_copy_constructible_incomplete
     template<typename T>
-    struct is_copy_constructible: integral_constant<
-      bool, (is_trivially_copy_constructible<T>::value || is_nothrow_copy_constructible<T>::value)> {};
+    struct is_copy_constructible: bool_constant<
+      (is_trivially_copy_constructible<T>::value || is_nothrow_copy_constructible<T>::value)> {};
 # endif
   }
   using is_constructible_detail::is_copy_constructible;
@@ -284,11 +284,11 @@ namespace stdm {
 # elif defined(MWG_STDM_TYPE_TRAITS_IS_CONSTRUCTIBLE_H_tr1_available)
     template<typename T> struct is_trivially_copy_assignable: tr1::has_trivial_assign<T> {};
 # elif MWGCONF_MSC_VER >= 140050215
-    template<typename T> struct is_trivially_copy_assignable: integral_constant<bool, is_pod<T>::value || __has_trivial_assign(T)> {};
+    template<typename T> struct is_trivially_copy_assignable: bool_constant<is_pod<T>::value || __has_trivial_assign(T)> {};
 # elif MWGCONF_GCC_VER >= 40300 && !defined(__GCCXML__)
-    template<typename T> struct is_trivially_copy_assignable: integral_constant<bool, is_pod<T>::value || (__has_trivial_assign(T) && !is_const<T>::value && !is_volatile<T>::value)> {};
+    template<typename T> struct is_trivially_copy_assignable: bool_constant<is_pod<T>::value || (__has_trivial_assign(T) && !is_const<T>::value && !is_volatile<T>::value)> {};
 # elif MWGCONF_CLANG_VER
-    template<typename T> struct is_trivially_copy_assignable: integral_constant<bool, is_pod<T>::value || (__has_trivial_assign(T) && !is_volatile<T>::value)> {};
+    template<typename T> struct is_trivially_copy_assignable: bool_constant<is_pod<T>::value || (__has_trivial_assign(T) && !is_volatile<T>::value)> {};
 # else
 #  define mwg_stdm_is_trivially_copy_assignable_incomplete
     template<typename T> struct is_trivially_copy_assignable: is_pod<T> {};
@@ -311,11 +311,11 @@ namespace stdm {
 # elif defined(MWG_STDM_TYPE_TRAITS_IS_CONSTRUCTIBLE_H_tr1_available)
     template<typename T> struct is_nothrow_copy_assignable: tr1::has_nothrow_assign<T> {};
 # elif MWGCONF_MSC_VER >= 140050215
-    template<typename T> struct is_nothrow_copy_assignable: integral_constant<bool, is_pod<T>::value || __has_nothrow_assign(T) || __has_trivial_assign(T)> {};
+    template<typename T> struct is_nothrow_copy_assignable: bool_constant<is_pod<T>::value || __has_nothrow_assign(T) || __has_trivial_assign(T)> {};
 # elif MWGCONF_GCC_VER >= 40300 && !defined(__GCCXML__)
-    template<typename T> struct is_nothrow_copy_assignable: integral_constant<bool, is_pod<T>::value || (__has_nothrow_assign(T) && !is_const<T>::value && !is_volatile<T>::value)> {};
+    template<typename T> struct is_nothrow_copy_assignable: bool_constant<is_pod<T>::value || (__has_nothrow_assign(T) && !is_const<T>::value && !is_volatile<T>::value)> {};
 # elif MWGCONF_CLANG_VER
-    template<typename T> struct is_nothrow_copy_assignable: integral_constant<bool, is_pod<T>::value || (__has_nothrow_assign(T) && !is_volatile<T>::value)> {};
+    template<typename T> struct is_nothrow_copy_assignable: bool_constant<is_pod<T>::value || (__has_nothrow_assign(T) && !is_volatile<T>::value)> {};
 # else
 #  define mwg_stdm_is_nothrow_copy_assignable_incomplete
     template<typename T> struct is_nothrow_copy_assignable: is_pod<T> {};
@@ -342,8 +342,8 @@ namespace stdm {
 # else
 #  define mwg_stdm_is_copy_assignable_incomplete
     template<typename T>
-    struct is_copy_assignable: integral_constant<
-      bool, (is_trivially_copy_assignable<T>::value || is_nothrow_copy_assignable<T>::value)> {};
+    struct is_copy_assignable: bool_constant<
+      (is_trivially_copy_assignable<T>::value || is_nothrow_copy_assignable<T>::value)> {};
 # endif
   }
   using is_constructible_detail::is_copy_assignable;
@@ -358,11 +358,11 @@ namespace stdm {
 # if defined(MWG_STDM_TYPE_TRAITS_IS_CONSTRUCTIBLE_H_tr1_available)
     template<typename T> struct is_trivially_destructible: tr1::has_trivial_assign<T> {};
 # elif MWGCONF_MSC_VER >= 140050215
-    template<typename T> struct is_trivially_destructible: integral_constant<bool, is_pod<T>::value || __has_trivial_destructor(T)> {};
+    template<typename T> struct is_trivially_destructible: bool_constant<is_pod<T>::value || __has_trivial_destructor(T)> {};
 # elif MWGCONF_GCC_VER >= 40300 && !defined(__GCCXML__)
-    template<typename T> struct is_trivially_destructible: integral_constant<bool, is_pod<T>::value || __has_trivial_destructor(T)> {};
+    template<typename T> struct is_trivially_destructible: bool_constant<is_pod<T>::value || __has_trivial_destructor(T)> {};
 # elif MWGCONF_CLANG_VER
-    template<typename T> struct is_trivially_destructible: integral_constant<bool, is_pod<T>::value || __has_trivial_destructor(T)> {};
+    template<typename T> struct is_trivially_destructible: bool_constant<is_pod<T>::value || __has_trivial_destructor(T)> {};
 # else
 #  define mwg_stdm_is_trivially_destructible_incomplete
     template<typename T> struct is_trivially_destructible: is_pod<T> {};
@@ -380,11 +380,11 @@ namespace stdm {
 # if defined(MWG_STDM_TYPE_TRAITS_IS_CONSTRUCTIBLE_H_tr1_available)
     // template<typename T> struct has_virtual_destructor: has_virtual_destructor<T> {}; // same as that of the tr1
 # elif MWGCONF_MSC_VER >= 140050215
-    template<typename T> struct has_virtual_destructor: integral_constant<bool, __has_virtual_destructor(T)> {};
+    template<typename T> struct has_virtual_destructor: bool_constant<__has_virtual_destructor(T)> {};
 # elif MWGCONF_GCC_VER >= 40300 && !defined(__GCCXML__)
-    template<typename T> struct has_virtual_destructor: integral_constant<bool, __has_virtual_destructor(T)> {};
+    template<typename T> struct has_virtual_destructor: bool_constant<__has_virtual_destructor(T)> {};
 # elif MWGCONF_CLANG_VER
-    template<typename T> struct has_virtual_destructor: integral_constant<bool, __has_virtual_destructor(T)> {};
+    template<typename T> struct has_virtual_destructor: bool_constant<__has_virtual_destructor(T)> {};
 # else
 #  define mwg_stdm_has_virtual_destructor_incomplete
     template<typename T> struct has_virtual_destructor: false_type {};

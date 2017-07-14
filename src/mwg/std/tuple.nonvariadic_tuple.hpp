@@ -19,8 +19,8 @@ namespace detail {
 #pragma%else
   template<$".for/K/0/ArN/typename TK = void/, ">
   struct tuple_is_default_constructible
-    //: mwg::stdm::integral_constant<bool, (mwg::stdm::is_default_constructible<T0>::value && tuple_is_default_constructible<$".for/K/1/ArN/TK/, ">::value)> {};
-    : mwg::stdm::integral_constant<bool, false> {}; //@@@
+    //: mwg::stdm::bool_constant<(mwg::stdm::is_default_constructible<T0>::value && tuple_is_default_constructible<$".for/K/1/ArN/TK/, ">::value)> {};
+    : mwg::stdm::bool_constant<false> {}; //@@@
 
   template<>
   struct tuple_is_default_constructible<>: mwg::stdm::true_type {};
@@ -165,10 +165,10 @@ namespace tuple_detail {
   //
 
   template<typename T, typename U> struct assign_enabler
-    :stdm::integral_constant<bool,
+    :stdm::bool_constant<
       stdm::is_convertible<U, T>::value && !stdm::is_const<T>::value
       ||stdm::is_same<stdm::ignore_type, typename stdm::remove_cv<T>::type>::value> {};
-  // :stdm::integral_constant<bool, stdm::is_assignable<T, U>::value> {};
+  // :stdm::bool_constant<stdm::is_assignable<T, U>::value> {};
   // ■(上記)is_assignable が未だ実装されていないので
   //   is_convertible, is_const で代わりに判定している。
 

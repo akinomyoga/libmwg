@@ -65,14 +65,14 @@ namespace fun_detail {
 
         bool const value = (stdm::is_void<From>::value ||
           stdm::is_convertible<typename reference_parameter<To>::type, From>::value)>
-      struct is_contravariant: stdm::integral_constant<bool, value> {};
+      struct is_contravariant: stdm::bool_constant<value> {};
 
       template<
         typename From, typename To,
         bool const value = (stdm::is_void<To>::value ||
           (stdm::is_convertible<From, To>::value &&
             (!stdm::is_reference<To>::value || stdm::is_reference<From>::value)))>
-      struct is_covariant: stdm::integral_constant<bool, value> {};
+      struct is_covariant: stdm::bool_constant<value> {};
     }
 
     template<typename From, typename To>
@@ -84,7 +84,7 @@ namespace fun_detail {
       template<
         typename FromSignature, typename ToSignature,
         bool cond = sig::arity<FromSignature>::value || sig::arity<ToSignature>::value>
-      struct has_contravariant_parameters: stdm::integral_constant<bool,
+      struct has_contravariant_parameters: stdm::bool_constant<
         is_contravariant<
           typename sig::param<FromSignature, 0>::type,
           typename sig::param<ToSignature  , 0>::type>::value &&
@@ -98,7 +98,7 @@ namespace fun_detail {
       template<
         typename FromSignature, typename ToSignature,
         bool = stdm::is_function<FromSignature>::value && stdm::is_function<ToSignature>::value>
-      struct is_variant_function: stdm::integral_constant<bool,
+      struct is_variant_function: stdm::bool_constant<
         (is_covariant<
           typename sig::result<FromSignature>::type,
           typename sig::result<ToSignature>::type>::value &&
@@ -203,7 +203,7 @@ namespace fun_detail {
       struct has_function_call_operator<F, S, false>: stdm::false_type {};
 
       template<typename F, typename S>
-      struct check_function_call_operator: stdm::integral_constant<bool, (
+      struct check_function_call_operator: stdm::bool_constant<(
         has_function_call_operator<F, S>::value
         || has_function_call_operator<F const, S>::value)> {};
 
@@ -704,7 +704,7 @@ namespace fun_detail {
 
       typename sig_t = mem_ref_t (obj_ref_t),
       bool _value = type_traits::is_variant_function<sig_t, S>::value>
-    struct check_signature: stdm::integral_constant<bool, _value> {typedef sig_t type;};
+    struct check_signature: stdm::bool_constant<_value> {typedef sig_t type;};
 
     template<typename T, typename C, typename S, int Flags>
     struct check_signature_cv: find_first<void(

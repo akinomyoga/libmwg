@@ -32,8 +32,7 @@ namespace stat{
         return irest*mwg::stdm::get<I>(bins).size()+ithis;
       }
       template<typename TT>
-      struct IsBins:mwg::stdm::integral_constant<
-        bool,
+      struct IsBins:mwg::stdm::bool_constant<
         ProductBinningImpl<I-1>::template IsBins<TT>::value&&binning_concept<typename mwg::stdm::tuple_element<I,TT>::type>::value
       >{};
     };
@@ -54,7 +53,7 @@ namespace stat{
         return (int)mwg::stdm::get<0>(vals);
       }
       template<typename TT>
-      struct IsBins:mwg::stdm::integral_constant<bool,binning_concept<typename mwg::stdm::tuple_element<0,TT>::type>::value>{};
+      struct IsBins:mwg::stdm::bool_constant<binning_concept<typename mwg::stdm::tuple_element<0,TT>::type>::value>{};
     };
 
 #pragma%if variadic
@@ -62,7 +61,7 @@ namespace stat{
     struct is_bindex_pack_impl:stdm::false_type{};
     template<typename... As,typename... Bs>
     struct is_bindex_pack_impl<stdx::parameter_pack<As...>,stdx::parameter_pack<Bs...>,true>
-      :stdm::integral_constant<bool,stdx::ice_and<(stdm::is_same<As,bindex>::value||stdm::is_convertible<As,typename Bs::domain_type>::value)...>::value>{};
+      :stdm::bool_constant<stdx::ice_and<(stdm::is_same<As,bindex>::value||stdm::is_convertible<As,typename Bs::domain_type>::value)...>::value>{};
 
     template<typename TT1,typename TT2>
     struct is_bindex_pack:stdm::false_type{};
@@ -78,9 +77,8 @@ namespace stat{
       $".for/K/0/ArN/typename AK/,",
       $".for/K/0/ArN/typename BK/,"
       >
-    struct is_bindex_pack_impl<stdx::parameter_pack<$".for/K/0/ArN/AK/,">,stdx::parameter_pack<$".for/K/0/ArN/BK/,"> >
-      :stdm::integral_constant<
-      bool,
+    struct is_bindex_pack_impl<stdx::parameter_pack<$".for/K/0/ArN/AK/,">,stdx::parameter_pack<$".for/K/0/ArN/BK/,"> >:
+      stdm::bool_constant<
       (stdm::is_same<A0,bindex>::value||stdm::is_convertible<A0,typename B0::domain_type>::value)&&is_bindex_pack_impl<
         stdx::parameter_pack<$".for/K/1/ArN/AK/,">,
         stdx::parameter_pack<$".for/K/1/ArN/BK/,">

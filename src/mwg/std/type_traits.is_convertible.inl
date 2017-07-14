@@ -25,8 +25,8 @@ namespace stdm {
   //
   namespace detail {
     template<typename From, typename To>
-    struct is_convertible_core: integral_constant<
-      bool, is_void<From>::value && is_void<To>::value || __is_convertible_to(From, To)> {};
+    struct is_convertible_core: bool_constant<
+      is_void<From>::value && is_void<To>::value || __is_convertible_to(From, To)> {};
 
     template<
       typename From, typename To,
@@ -38,7 +38,7 @@ namespace stdm {
       bool value = (is_convertible_core<from_raw_t&, to_raw_t const&>::value &&
         is_const<to_cv_t>::value &&
         (is_volatile<to_cv_t>::value || !is_volatile<from_cv_t>::value))>
-    struct is_convertible_rval2lref: integral_constant<bool, value> {};
+    struct is_convertible_rval2lref: bool_constant<value> {};
 
     template<typename From, typename To>
     struct is_convertible_2: is_convertible_core<From, To> {};
@@ -65,7 +65,7 @@ namespace stdm {
   struct is_convertible: detail::is_convertible_1<From, To> {};
 # else
   template<typename From, typename To>
-  struct is_convertible: integral_constant<bool,
+  struct is_convertible: bool_constant<
     is_void<From>::value && is_void<To>::value || __is_convertible_to(From, To)> {};
 # endif
 #elif defined(mwg_concept_is_valid_expression)
@@ -79,7 +79,7 @@ namespace stdm {
   namespace detail {
 // # if defined(_MSC_VER) && _MSC_FULL_VER >= 140050215
 //     template<typename From, typename To>
-//     struct is_convertible_core: integral_constant<bool, __is_convertible_to(From, To)> {};
+//     struct is_convertible_core: bool_constant<__is_convertible_to(From, To)> {};
 // # elif defined(mwg_concept_is_valid_expression)
 //     template<typename From, typename To>
 //     mwg_concept_is_valid_expression(is_convertible_core, From, F, To(mwg::declval<F>()));
@@ -106,13 +106,12 @@ namespace stdm {
     struct is_convertible_core<From, To, typename enable_if<(is_floating_point<From>::value && is_integral<To>::value)>::type>: true_type {};
 # else
     template<typename From, typename To>
-    struct is_convertible_core: integral_constant<bool, is_void<From>::value && is_void<To>::value || is_same<From, To>::value || is_base_of<To, From>::value> {};
+    struct is_convertible_core: bool_constant<is_void<From>::value && is_void<To>::value || is_same<From, To>::value || is_base_of<To, From>::value> {};
 # endif
 
     template<typename F, typename T> struct is_reference_convertible_nocv: is_base_of<T, F> {};
     template<typename F>             struct is_reference_convertible_nocv<F, void>: true_type {};
-    template<typename F, typename T> struct is_reference_convertible: integral_constant<
-      bool,
+    template<typename F, typename T> struct is_reference_convertible: bool_constant<
       (!((is_const<F>::value && !is_const<T>::value) || (is_volatile<F>::value && !is_volatile<T>::value)) &&
         is_reference_convertible_nocv<typename remove_cv<F>::type, typename remove_cv<T>::type>::value)
       > {};
@@ -131,8 +130,8 @@ namespace stdm {
     template<typename F, typename T> struct is_convertible_nocv          :is_convertible_noref<
       typename remove_cv<F>::type,
       typename remove_cv<T>::type> {};
-    template<typename F, typename T> struct is_convertible_nocv <F, T&>: integral_constant<
-      bool, (is_const<T>::value&&!is_volatile<F>::value&&!is_volatile<T>::value&&is_convertible_noref<F, T>::value)> {};
+    template<typename F, typename T> struct is_convertible_nocv <F, T&>: bool_constant<
+      (is_const<T>::value&&!is_volatile<F>::value&&!is_volatile<T>::value&&is_convertible_noref<F, T>::value)> {};
     template<typename F, typename T> struct is_convertible_nocv <F&, T>: is_convertible_noref<
       typename remove_cv<F>::type,
       typename remove_cv<T>::type> {};
