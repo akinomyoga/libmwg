@@ -936,7 +936,7 @@ namespace stdm {
   template<typename T>
   typename cmath_detail::overload<T>::type scalbln(T value, long n) {
     typedef typename cmath_detail::overload<T>::type R;
-    static_assert(
+    mwg_static_assert(
       INT_MIN <= (mwg::stdm::is_same<R, float>::value? FLT_MIN_EXP:
         mwg::stdm::is_same<R, long double>::value? LDBL_MIN_EXP:
         DBL_MIN_EXP) &&

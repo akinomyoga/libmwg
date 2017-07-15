@@ -582,8 +582,8 @@ void debug_duration() {
   // chrono_detail::is_duration_castable
   mwg_assert((ns::chrono::chrono_detail::is_duration_castable<ns::chrono::milliseconds, int>::value));
   mwg_assert((ns::chrono::chrono_detail::is_duration_explicit<ns::chrono::milliseconds, int>::value));
-  static_assert((ns::chrono::chrono_detail::is_duration_explicit<ns::chrono::milliseconds, int>::value), "err");
-  static_assert((ns::is_convertible<int, mwg::i8t>::value), "err");
+  mwg_static_assert((ns::chrono::chrono_detail::is_duration_explicit<ns::chrono::milliseconds, int>::value), "err");
+  mwg_static_assert((ns::is_convertible<int, mwg::i8t>::value), "err");
 #endif
 
   ns::chrono::milliseconds s(12300);

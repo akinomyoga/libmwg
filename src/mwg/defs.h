@@ -1,4 +1,5 @@
 // -*- mode: c++; coding: utf-8 -*-
+#pragma%include "impl/va_args.pp"
 #ifndef MWG_DEFS_H
 #define MWG_DEFS_H
 
@@ -7,15 +8,15 @@
 
 #include <mwg/config.h>
 
-//------------------------------------------------------------------------------
-//N 名前空間定義
-//T 型定義
-//F 関数定義・フィールド定義
-//M マクロ定義
-//C コメント
-//E 例
-//X 試験
-//------------------------------------------------------------------------------
+// 以下は元々コメントの区切りに使っていた物の一覧だが現在は使用に消極的である。
+//
+// - N 名前空間定義
+// - T 型定義
+// - F 関数定義・フィールド定義
+// - M マクロ定義
+// - C コメント
+// - E 例
+// - X 試験
 
 namespace std {namespace tr1 {}}
 
@@ -156,7 +157,7 @@ namespace stdm {
 # define mwg_noexcept         noexcept
 # define mwg_noexcept_when(A) noexcept(A)
 #else
-# define mwg_noexcept
+# define mwg_noexcept throw()
 # define mwg_noexcept_when(A)
 #endif
 //------------------------------------------------------------------------------
@@ -180,9 +181,22 @@ namespace stdm {
 # define mwg_decltyped(EXPR)
 #endif
 //------------------------------------------------------------------------------
-//  static_assert
+//  __VA_ARGS__
 //------------------------------------------------------------------------------
-#if !mwg_has_feature(cxx_static_assert)
+#if MWGCONF_MSC_VER? (MWGCONF_MSC_VER >= 1400): (MWGCONF_GCC_VER? (MWGCONF_GCC_VER >= 30000): 1)
+# define MWG_STD_VA_ARGS
+#endif
+//------------------------------------------------------------------------------
+//  mwg_static_assert
+//------------------------------------------------------------------------------
+#if defined(MWG_STD_CXX17)
+# define mwg_static_assert(...) static_assert(__VA_ARGS__)
+#elif mwg_has_feature(cxx_static_assert)
+# pragma%m 1
+#  define mwg_static_assert(C, ...) static_assert(C, __VA_ARGS__ "")
+# pragma%end
+# pragma%x mwg::va_args::declare_variadic_macro
+#else
 namespace mwg {
   namespace detail {
     template<bool B, int LINE>
@@ -198,10 +212,8 @@ namespace mwg {
 // 以下は、C++03 において依存型・非依存型で
 // typename が必要だったりそうでなかったりするので駄目
 /*
-# define static_assert(C,...)                                     \
-    struct static_assert_line##__LINE__{                          \
-      typename mwg::detail::static_assert_tester<C>::type value; \
-    }
+# define mwg_static_assert(C,...) \
+    struct static_assert_line##__LINE__ { typename mwg::detail::static_assert_tester<C>::type value; }
 */
 
 /* 実装のメモ
@@ -209,24 +221,21 @@ namespace mwg {
  * 1 static tester<C, __LINE__> dummy; とすると
  *   クラス内で使った時に実体の定義を要求されてしまう。
  *   といって static を外すとクラスのサイズが無駄に大きくなってしまう。
- *   また static const int dummy=hello; という形にする訳にも行かない。
+ *   また static const int dummy = hello; という形にする訳にも行かない。
  *
  * 2 tester<C, __LINE__>::type dummy; とすると
  *   C が template type parameter に依存している時に typename が必要になる。
  *
-# define static_assert(C, Message)                                       \
+# define mwg_static_assert(C, Message)                                       \
   static MWG_ATTRIBUTE_UNUSED const mwg::detail::static_assert_tester<C, __LINE__>::type      \
     MWG_PREPROC_ADDLINE(static_assert_at_line_) = (0);
  */
-# define static_assert(C, Message)                                       \
+#pragma%m 1
+# define mwg_static_assert(C, ...) \
   enum{ MWG_PREPROC_ADDLINE(static_assert_at_line_) = mwg::detail::static_assert_tester<C, __LINE__>::value }
+#pragma%end
+#pragma%x mwg::va_args::declare_variadic_macro
 }
-#endif
-//------------------------------------------------------------------------------
-//  __VA_ARGS__
-//------------------------------------------------------------------------------
-#if MWGCONF_MSC_VER? (MWGCONF_MSC_VER >= 1400): (MWGCONF_GCC_VER? (MWGCONF_GCC_VER >= 30000): 1)
-# define MWG_STD_VA_ARGS
 #endif
 //------------------------------------------------------------------------------
 //  mwg_has_feature(cxx_inline_variables)
@@ -298,7 +307,7 @@ namespace mwg {
 //TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
 //  整数型の定義
 //------------------------------------------------------------------------------
-#include <mwg/std/cstdint> /* requires static_assert */
+#include <mwg/std/cstdint> /* requires mwg_static_assert */
 namespace mwg {
   typedef mwg::stdm::int8_t   i1t;
   typedef mwg::stdm::int16_t  i2t;

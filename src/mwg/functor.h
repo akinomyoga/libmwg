@@ -445,11 +445,11 @@ namespace functor_detail {
     template<typename F, typename Case>
     void init(const F& f) {
 #if mwg_has_feature(cxx_static_assert)
-      static_assert(sizeof(Case) <= sizeof(this->buffer), "sizeof(Case) too large");
+      mwg_static_assert(sizeof(Case) <= sizeof(this->buffer), "sizeof(Case) too large");
 #else
-      static_assert(sizeof(Case) <= sizeof(mwg::declval<functor_ref>().buffer), "sizeof(Case) too large");
+      mwg_static_assert(sizeof(Case) <= sizeof(mwg::declval<functor_ref>().buffer), "sizeof(Case) too large");
 #endif
-      static_assert((mwg::stdm::alignment_of<Case>::value <= mwg::stdm::alignment_of<void*>::value), "alignof(Case) too large");
+      mwg_static_assert((mwg::stdm::alignment_of<Case>::value <= mwg::stdm::alignment_of<void*>::value), "alignof(Case) too large");
       this->h = new(this->buffer) Case(f);
     }
   public:

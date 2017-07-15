@@ -1,4 +1,5 @@
 // -*- mode: c++; coding: utf-8 -*-
+#pragma%include "impl/va_args.pp"
 #ifndef MWG_CONCEPT_H
 #define MWG_CONCEPT_H
 #include "mwg/defs.h"
@@ -64,28 +65,25 @@ namespace concept_detail {
 //-----------------------------------------------------------------------------
 //  [obsoleted] macro: mwg_requires(boolean_expr,T)
 //-----------------------------------------------------------------------------
-#ifdef MWG_STD_VA_ARGS
+#pragma%m 1
 # define mwg_requires(CONDITION, ...) typename mwg::stdm::enable_if<CONDITION, __VA_ARGS__>::type
-#else
-# define mwg_requires(CONDITION, EXPR) typename mwg::stdm::enable_if<CONDITION, EXPR>::type
-#endif
+#pragma%end
+#pragma%x mwg::va_args::declare_variadic_macro
 //-----------------------------------------------------------------------------
 //  macro: mwg_concept_condition (boolean_expr)
 //  macro: mwg_concept_nest      (name,T,X,boolean_expr,declarations)
 //-----------------------------------------------------------------------------
-#ifdef MWG_STD_VA_ARGS
+#pragma%m 1
 # define mwg_concept_condition(...) static mwg_constexpr_const bool value = (__VA_ARGS__)
-# define mwg_concept_nest(name,T,X,cond,...)                                  \
+# define mwg_concept_nest(name, T, X, cond, ...) \
   template<typename X, bool B> struct name##_mwg_1 {static const bool value = B;}; \
-  template<typename X>         struct name##_mwg_1<X, true> {__VA_ARGS__};    \
-  struct name {mwg_concept_condition(name##_impl_<T, cond>::value);}       /**/
-#else
-# define mwg_concept_condition(EXPR) static mwg_constexpr_const bool value = (EXPR)
-# define mwg_concept_nest(name, T, X, cond, EXPR)                             \
-  template<typename X, bool B> struct name##_mwg_1 {static const bool value = B;}; \
-  template<typename X>         struct name##_mwg_1<X, true> {EXPR};           \
-  struct name {mwg_concept_condition(name##_impl_<T, cond>::value);}       /**/
-#endif
+  template<typename X>         struct name##_mwg_1<X, true> {__VA_ARGS__}; \
+  struct name {mwg_concept_condition(name##_impl_<T, cond>::value);}
+#pragma%end
+#pragma%x mwg::va_args::declare_variadic_macro
+//-----------------------------------------------------------------------------
+//  macro: mwg_gcc3_concept_overload
+//-----------------------------------------------------------------------------
 #if 0 < MWG_GNUC_VER && MWG_GNUC_VER < 40000
 # define MWG_CONCEPT_OVERLOAD_FAIL
 # define mwg_gcc3_concept_overload(I) , int(*)[I] = 0
@@ -158,13 +156,11 @@ namespace concept_detail {
     };                                                                        \
     mwg_concept_sfinae_param_check(T, (0));                                   \
   }                                                                        /**/
-# ifdef MWG_STD_VA_ARGS
-#   define mwg_concept_is_valid_expression(name, T, X, ...)                   \
-      mwg_concept_is_valid_expression_impl(name, T, X, (__VA_ARGS__))
-# else
-#   define mwg_concept_is_valid_expression(name, T, X, EXPR)                  \
-      mwg_concept_is_valid_expression_impl(name, T, X, EXPR)
-# endif
+# pragma%m 1
+#  define mwg_concept_is_valid_expression(name, T, X, ...) \
+     mwg_concept_is_valid_expression_impl(name, T, X, (__VA_ARGS__))
+# pragma%end
+# pragma%x mwg::va_args::declare_variadic_macro
 #endif
 
 #if defined(_MSC_VER) && mwg_has_feature(cxx_decltype)

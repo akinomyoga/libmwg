@@ -58,12 +58,12 @@ namespace attr{
     public mwg::attr::integral_attr<my_tag2,unsigned,123>
   {};
 
-  static_assert( mwg::attr::has_integral_attr<Hoge,my_tag1,int     >::value,"has");
-  static_assert( mwg::attr::has_integral_attr<Hoge,my_tag2,unsigned>::value,"has");
-  static_assert(!mwg::attr::has_integral_attr<Hoge,my_tag3,char    >::value,"does not have");
+  mwg_static_assert( mwg::attr::has_integral_attr<Hoge,my_tag1,int     >::value,"has");
+  mwg_static_assert( mwg::attr::has_integral_attr<Hoge,my_tag2,unsigned>::value,"has");
+  mwg_static_assert(!mwg::attr::has_integral_attr<Hoge,my_tag3,char    >::value,"does not have");
 
-  static_assert(-321==mwg::attr::integral_attr_get<Hoge,my_tag1,int     >::value,"-321");
-  static_assert( 123==mwg::attr::integral_attr_get<Hoge,my_tag2,unsigned>::value,"123");
+  mwg_static_assert(-321==mwg::attr::integral_attr_get<Hoge,my_tag1,int     >::value,"-321");
+  mwg_static_assert( 123==mwg::attr::integral_attr_get<Hoge,my_tag2,unsigned>::value,"123");
 
   // 特定の用途に対して使う為には以下の様にするのが良い。
   template<int Flags>
