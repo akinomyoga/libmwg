@@ -199,7 +199,7 @@ void test() {
   //a = mwg::stdm::cmath_detail::qnan();
   a = INFINITY;
   a = NAN;
-  (void) a;
+  mwg_unused(a);
 }
 #pragma%x end_test
 

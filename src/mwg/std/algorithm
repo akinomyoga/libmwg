@@ -65,13 +65,13 @@ namespace stdm {
   template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt1>::type
   find_first_of(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first, ForwardIt1 last, ForwardIt2 s_first, ForwardIt2 s_last) {
-    (void) policy;
+    mwg_unused(policy);
     return find_first_of(first, last, s_first, s_last);
   }
   template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2, typename BinaryPredicate>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt1>::type
   find_first_of(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first, ForwardIt1 last, ForwardIt2 s_first, ForwardIt2 s_last, BinaryPredicate p) {
-    (void) policy;
+    mwg_unused(policy);
     return find_first_of(first, last, s_first, s_last, p);
   }
 }
@@ -121,7 +121,7 @@ namespace stdm {
   template<typename ExecutionPolicy, typename ForwardIt>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt>::type
   rotate(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt n_first, ForwardIt last) {
-    (void) policy;
+    mwg_unused(policy);
     return rotate(first, n_first, last);
   }
 }
@@ -188,7 +188,7 @@ namespace stdm {
   template<typename ExecutionPolicy, typename ForwardIt, typename UnaryPredicate>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt>::type
   partition(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last, UnaryPredicate p) {
-    (void) policy;
+    mwg_unused(policy);
     return partition(first, last, p);
   }
 }
@@ -374,37 +374,37 @@ namespace stdm {
   template<typename ExecutionPolicy, typename ForwardIt>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt>::type
   max_element(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last) {
-    (void) policy;
+    mwg_unused(policy);
     return max_element(first, last);
   }
   template<typename ExecutionPolicy, typename ForwardIt, typename Compare>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt>::type
   max_element(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last, Compare cmp) {
-    (void) policy;
+    mwg_unused(policy);
     return max_element(first, last, cmp);
   }
   template<typename ExecutionPolicy, typename ForwardIt>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt>::type
   min_element(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last) {
-    (void) policy;
+    mwg_unused(policy);
     return min_element(first, last);
   }
   template<typename ExecutionPolicy, typename ForwardIt, typename Compare>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt>::type
   min_element(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last, Compare comp) {
-    (void) policy;
+    mwg_unused(policy);
     return min_element(first, last, comp);
   }
   template<typename ExecutionPolicy, typename ForwardIt>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, std::pair<ForwardIt, ForwardIt> >::type
   minmax_element(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last) {
-    (void) policy;
+    mwg_unused(policy);
     return minmax_element(first, last);
   }
   template<typename ExecutionPolicy, typename ForwardIt, typename Compare>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, std::pair<ForwardIt, ForwardIt> >::type
   minmax_element(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last, Compare comp) {
-    (void) policy;
+    mwg_unused(policy);
     return minmax_element(first, last, comp);
   }
 }
@@ -1143,535 +1143,535 @@ namespace stdm {
   template<typename ExecutionPolicy, typename ForwardIt, typename UnaryPredicate>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, bool>::type
   all_of(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last, UnaryPredicate p) {
-    (void) policy;
+    mwg_unused(policy);
     return all_of(first, last, p);
   }
   template<typename ExecutionPolicy, typename ForwardIt, typename UnaryPredicate>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, bool>::type
   any_of(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last, UnaryPredicate p) {
-    (void) policy;
+    mwg_unused(policy);
     return any_of(first, last, p);
   }
   template<typename ExecutionPolicy, typename ForwardIt, typename UnaryPredicate>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, bool>::type
   none_of(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last, UnaryPredicate p) {
-    (void) policy;
+    mwg_unused(policy);
     return none_of(first, last, p);
   }
   template<typename ExecutionPolicy, typename ForwardIt, typename UnaryFunction2>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, void>::type
   for_each(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last, UnaryFunction2 f) {
-    (void) policy;
+    mwg_unused(policy);
     return for_each(first, last, f);
   }
   template<typename ExecutionPolicy, typename ForwardIt, typename Size, typename UnaryFunction2>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt>::type
   for_each_n(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, Size n, UnaryFunction2 f) {
-    (void) policy;
+    mwg_unused(policy);
     return for_each_n(first, n, f);
   }
   template<typename ExecutionPolicy, typename ForwardIt, typename T>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, typename std::iterator_traits<ForwardIt>::difference_type>::type
   count(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last, const T& value) {
-    (void) policy;
+    mwg_unused(policy);
     return count(first, last, value);
   }
   template<typename ExecutionPolicy, typename ForwardIt, typename UnaryPredicate>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, typename std::iterator_traits<ForwardIt>::difference_type>::type
   count_if(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last, UnaryPredicate p) {
-    (void) policy;
+    mwg_unused(policy);
     return count_if(first, last, p);
   }
   template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, std::pair<ForwardIt1, ForwardIt2> >::type
   mismatch(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2) {
-    (void) policy;
+    mwg_unused(policy);
     return mismatch(first1, last1, first2);
   }
   template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2, typename BinaryPredicate>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, std::pair<ForwardIt1, ForwardIt2> >::type
   mismatch(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2, BinaryPredicate p) {
-    (void) policy;
+    mwg_unused(policy);
     return mismatch(first1, last1, first2, p);
   }
   template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, std::pair<ForwardIt1, ForwardIt2> >::type
   mismatch(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2, ForwardIt2 last2) {
-    (void) policy;
+    mwg_unused(policy);
     return mismatch(first1, last1, first2, last2);
   }
   template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2, typename BinaryPredicate>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, std::pair<ForwardIt1, ForwardIt2> >::type
   mismatch(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2, ForwardIt2 last2, BinaryPredicate p) {
-    (void) policy;
+    mwg_unused(policy);
     return mismatch(first1, last1, first2, last2, p);
   }
   template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, bool>::type
   equal(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2) {
-    (void) policy;
+    mwg_unused(policy);
     return equal(first1, last1, first2);
   }
   template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2, typename BinaryPredicate>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, bool>::type
   equal(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2, BinaryPredicate p) {
-    (void) policy;
+    mwg_unused(policy);
     return equal(first1, last1, first2, p);
   }
   template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, bool>::type
   equal(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2, ForwardIt2 last2) {
-    (void) policy;
+    mwg_unused(policy);
     return equal(first1, last1, first2, last2);
   }
   template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2, typename BinaryPredicate>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, bool>::type
   equal(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2, ForwardIt2 last2, BinaryPredicate p) {
-    (void) policy;
+    mwg_unused(policy);
     return equal(first1, last1, first2, last2, p);
   }
   template<typename ExecutionPolicy, typename ForwardIt, typename T>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt>::type
   find(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last, const T& value) {
-    (void) policy;
+    mwg_unused(policy);
     return find(first, last, value);
   }
   template<typename ExecutionPolicy, typename ForwardIt, typename UnaryPredicate>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt>::type
   find_if(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last, UnaryPredicate p) {
-    (void) policy;
+    mwg_unused(policy);
     return find_if(first, last, p);
   }
   template<typename ExecutionPolicy, typename ForwardIt, typename UnaryPredicate>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt>::type
   find_if_not(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last, UnaryPredicate q) {
-    (void) policy;
+    mwg_unused(policy);
     return find_if_not(first, last, q);
   }
   template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt1>::type
   find_end(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first, ForwardIt1 last, ForwardIt2 s_first, ForwardIt2 s_last) {
-    (void) policy;
+    mwg_unused(policy);
     return find_end(first, last, s_first, s_last);
   }
   template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2, typename BinaryPredicate>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt1>::type
   find_end(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first, ForwardIt1 last, ForwardIt2 s_first, ForwardIt2 s_last, BinaryPredicate p) {
-    (void) policy;
+    mwg_unused(policy);
     return find_end(first, last, s_first, s_last, p);
   }
   template<typename ExecutionPolicy, typename ForwardIt>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt>::type
   adjacent_find(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last) {
-    (void) policy;
+    mwg_unused(policy);
     return adjacent_find(first, last);
   }
   template<typename ExecutionPolicy, typename ForwardIt, typename BinaryPredicate>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt>::type
   adjacent_find(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last, BinaryPredicate p) {
-    (void) policy;
+    mwg_unused(policy);
     return adjacent_find(first, last, p);
   }
   template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt1>::type
   search(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first, ForwardIt1 last, ForwardIt2 s_first, ForwardIt2 s_last) {
-    (void) policy;
+    mwg_unused(policy);
     return search(first, last, s_first, s_last);
   }
   template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2, typename BinaryPredicate>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt1>::type
   search(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first, ForwardIt1 last, ForwardIt2 s_first, ForwardIt2 s_last, BinaryPredicate p) {
-    (void) policy;
+    mwg_unused(policy);
     return search(first, last, s_first, s_last, p);
   }
   template<typename ExecutionPolicy, typename ForwardIt, typename Size, typename T>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt>::type
   search_n(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last, Size count, const T& value) {
-    (void) policy;
+    mwg_unused(policy);
     return search_n(first, last, count, value);
   }
   template<typename ExecutionPolicy, typename ForwardIt, typename Size, typename T, typename BinaryPredicate>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt>::type
   search_n(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last, Size count, const T& value, BinaryPredicate p) {
-    (void) policy;
+    mwg_unused(policy);
     return search_n(first, last, count, value, p);
   }
   template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt2>::type
   copy(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first, ForwardIt1 last, ForwardIt2 d_first) {
-    (void) policy;
+    mwg_unused(policy);
     return copy(first, last, d_first);
   }
   template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2, typename UnaryPredicate>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt2>::type
   copy_if(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first, ForwardIt1 last, ForwardIt2 d_first, UnaryPredicate pred) {
-    (void) policy;
+    mwg_unused(policy);
     return copy_if(first, last, d_first, pred);
   }
   template<typename ExecutionPolicy, typename ForwardIt1, typename Size, typename ForwardIt2>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt2>::type
   copy_n(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first, Size count, ForwardIt2 result) {
-    (void) policy;
+    mwg_unused(policy);
     return copy_n(first, count, result);
   }
   template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt2>::type
   move(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first, ForwardIt1 last, ForwardIt2 d_first) {
-    (void) policy;
+    mwg_unused(policy);
     return move(first, last, d_first);
   }
   template<typename ExecutionPolicy, typename ForwardIt, typename T>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, void>::type
   fill(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last, const T& value) {
-    (void) policy;
+    mwg_unused(policy);
     return fill(first, last, value);
   }
   template<typename ExecutionPolicy, typename ForwardIt, typename Size, typename T>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt>::type
   fill_n(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, Size count, const T& value) {
-    (void) policy;
+    mwg_unused(policy);
     return fill_n(first, count, value);
   }
   template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2, typename UnaryOperation>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt2>::type
   transform(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 d_first, UnaryOperation unary_op) {
-    (void) policy;
+    mwg_unused(policy);
     return transform(first1, last1, d_first, unary_op);
   }
   template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2, typename ForwardIt3, typename BinaryOperation>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt3>::type
   transform(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2, ForwardIt3 d_first, BinaryOperation binary_op) {
-    (void) policy;
+    mwg_unused(policy);
     return transform(first1, last1, first2, d_first, binary_op);
   }
   template<typename ExecutionPolicy, typename ForwardIt, typename Generator>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, void>::type
   generate(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last, Generator g) {
-    (void) policy;
+    mwg_unused(policy);
     return generate(first, last, g);
   }
   template<typename ExecutionPolicy, typename ForwardIt , typename Size, typename Generator>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt>::type
   generate_n(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, Size count, Generator g) {
-    (void) policy;
+    mwg_unused(policy);
     return generate_n(first, count, g);
   }
   template<typename ExecutionPolicy, typename ForwardIt, typename T>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt>::type
   remove(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last, const T& value) {
-    (void) policy;
+    mwg_unused(policy);
     return remove(first, last, value);
   }
   template<typename ExecutionPolicy, typename ForwardIt, typename UnaryPredicate>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt>::type
   remove_if(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last, UnaryPredicate p) {
-    (void) policy;
+    mwg_unused(policy);
     return remove_if(first, last, p);
   }
   template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2, typename T>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt2>::type
   remove_copy(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first, ForwardIt1 last, ForwardIt2 d_first, const T& value) {
-    (void) policy;
+    mwg_unused(policy);
     return remove_copy(first, last, d_first, value);
   }
   template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2, typename UnaryPredicate>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt2>::type
   remove_copy_if(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first, ForwardIt1 last, ForwardIt2 d_first, UnaryPredicate p) {
-    (void) policy;
+    mwg_unused(policy);
     return remove_copy_if(first, last, d_first, p);
   }
   template<typename ExecutionPolicy, typename ForwardIt, typename T>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, void>::type
   replace(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last, const T& old_value, const T& new_value) {
-    (void) policy;
+    mwg_unused(policy);
     return replace(first, last, old_value, new_value);
   }
   template<typename ExecutionPolicy, typename ForwardIt, typename UnaryPredicate, typename T>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, void>::type
   replace_if(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last, UnaryPredicate p, const T& new_value) {
-    (void) policy;
+    mwg_unused(policy);
     return replace_if(first, last, p, new_value);
   }
   template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2, typename T>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt2>::type
   replace_copy(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first, ForwardIt1 last, ForwardIt2 d_first, const T& old_value, const T& new_value) {
-    (void) policy;
+    mwg_unused(policy);
     return replace_copy(first, last, d_first, old_value, new_value);
   }
   template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2, typename UnaryPredicate, typename T>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt2>::type
   replace_copy_if(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first, ForwardIt1 last, ForwardIt2 d_first, UnaryPredicate p, const T& new_value) {
-    (void) policy;
+    mwg_unused(policy);
     return replace_copy_if(first, last, d_first, p, new_value);
   }
   template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt2>::type
   swap_ranges(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2) {
-    (void) policy;
+    mwg_unused(policy);
     return swap_ranges(first1, last1, first2);
   }
   template<typename ExecutionPolicy, typename BidirIt>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, void>::type
   reverse(ExecutionPolicy mwg_forward_rvalue policy, BidirIt first, BidirIt last) {
-    (void) policy;
+    mwg_unused(policy);
     return reverse(first, last);
   }
   template<typename ExecutionPolicy, typename BidirIt, typename ForwardIt>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt>::type
   reverse_copy(ExecutionPolicy mwg_forward_rvalue policy, BidirIt first, BidirIt last, ForwardIt d_first) {
-    (void) policy;
+    mwg_unused(policy);
     return reverse_copy(first, last, d_first);
   }
   template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt2>::type
   rotate_copy(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first, ForwardIt1 n_first, ForwardIt1 last, ForwardIt2 d_first) {
-    (void) policy;
+    mwg_unused(policy);
     return rotate_copy(first, n_first, last, d_first);
   }
   template<typename ExecutionPolicy, typename ForwardIt>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt>::type
   unique(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last) {
-    (void) policy;
+    mwg_unused(policy);
     return unique(first, last);
   }
   template<typename ExecutionPolicy, typename ForwardIt, typename BinaryPredicate>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt>::type
   unique(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last, BinaryPredicate p) {
-    (void) policy;
+    mwg_unused(policy);
     return unique(first, last, p);
   }
   template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt2>::type
   unique_copy(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first, ForwardIt1 last, ForwardIt2 d_first) {
-    (void) policy;
+    mwg_unused(policy);
     return unique_copy(first, last, d_first);
   }
   template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2, typename BinaryPredicate>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt2>::type
   unique_copy(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first, ForwardIt1 last, ForwardIt2 d_first, BinaryPredicate p) {
-    (void) policy;
+    mwg_unused(policy);
     return unique_copy(first, last, d_first, p);
   }
   template<typename ExecutionPolicy, typename ForwardIt, typename UnaryPredicate>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, bool>::type
   is_partitioned(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last, UnaryPredicate p) {
-    (void) policy;
+    mwg_unused(policy);
     return is_partitioned(first, last, p);
   }
   template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2, typename ForwardIt3, typename UnaryPredicate>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, std::pair<ForwardIt2, ForwardIt3> >::type
   partition_copy(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first, ForwardIt1 last, ForwardIt2 d_first_true, ForwardIt3 d_first_false, UnaryPredicate p) {
-    (void) policy;
+    mwg_unused(policy);
     return partition_copy(first, last, d_first_true, d_first_false, p);
   }
   template<typename ExecutionPolicy, typename BidirIt, typename UnaryPredicate>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, BidirIt>::type
   stable_partition(ExecutionPolicy mwg_forward_rvalue policy, BidirIt first, BidirIt last, UnaryPredicate p) {
-    (void) policy;
+    mwg_unused(policy);
     return stable_partition(first, last, p);
   }
   template<typename ExecutionPolicy, typename ForwardIt>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, bool>::type
   is_sorted(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last) {
-    (void) policy;
+    mwg_unused(policy);
     return is_sorted(first, last);
   }
   template<typename ExecutionPolicy, typename ForwardIt, typename Compare>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, bool>::type
   is_sorted(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last, Compare comp) {
-    (void) policy;
+    mwg_unused(policy);
     return is_sorted(first, last, comp);
   }
   template<typename ExecutionPolicy, typename ForwardIt>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt>::type
   is_sorted_until(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last) {
-    (void) policy;
+    mwg_unused(policy);
     return is_sorted_until(first, last);
   }
   template<typename ExecutionPolicy, typename ForwardIt, typename Compare>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt>::type
   is_sorted_until(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last, Compare comp) {
-    (void) policy;
+    mwg_unused(policy);
     return is_sorted_until(first, last, comp);
   }
   template<typename ExecutionPolicy, typename RandomIt>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, void>::type
   sort(ExecutionPolicy mwg_forward_rvalue policy, RandomIt first, RandomIt last) {
-    (void) policy;
+    mwg_unused(policy);
     return sort(first, last);
   }
   template<typename ExecutionPolicy, typename RandomIt, typename Compare>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, void>::type
   sort(ExecutionPolicy mwg_forward_rvalue policy, RandomIt first, RandomIt last, Compare comp) {
-    (void) policy;
+    mwg_unused(policy);
     return sort(first, last, comp);
   }
   template<typename ExecutionPolicy, typename RandomIt>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, void>::type
   partial_sort(ExecutionPolicy mwg_forward_rvalue policy, RandomIt first, RandomIt middle, RandomIt last) {
-    (void) policy;
+    mwg_unused(policy);
     return partial_sort(first, middle, last);
   }
   template<typename ExecutionPolicy, typename RandomIt, typename Compare>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, void>::type
   partial_sort(ExecutionPolicy mwg_forward_rvalue policy, RandomIt first, RandomIt middle, RandomIt last, Compare comp) {
-    (void) policy;
+    mwg_unused(policy);
     return partial_sort(first, middle, last, comp);
   }
   template<typename ExecutionPolicy, typename ForwardIt, typename RandomIt>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, RandomIt>::type
   partial_sort_copy(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last, RandomIt d_first, RandomIt d_last) {
-    (void) policy;
+    mwg_unused(policy);
     return partial_sort_copy(first, last, d_first, d_last);
   }
   template<typename ExecutionPolicy, typename ForwardIt, typename RandomIt, typename Compare>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, RandomIt>::type
   partial_sort_copy(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt first, ForwardIt last, RandomIt d_first, RandomIt d_last, Compare comp) {
-    (void) policy;
+    mwg_unused(policy);
     return partial_sort_copy(first, last, d_first, d_last, comp);
   }
   template<typename ExecutionPolicy, typename RandomIt>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, void>::type
   stable_sort(ExecutionPolicy mwg_forward_rvalue policy, RandomIt first, RandomIt last) {
-    (void) policy;
+    mwg_unused(policy);
     return stable_sort(first, last);
   }
   template<typename ExecutionPolicy, typename RandomIt, typename Compare>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, void>::type
   stable_sort(ExecutionPolicy mwg_forward_rvalue policy, RandomIt first, RandomIt last, Compare comp) {
-    (void) policy;
+    mwg_unused(policy);
     return stable_sort(first, last, comp);
   }
   template<typename ExecutionPolicy, typename RandomIt>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, void>::type
   nth_element(ExecutionPolicy mwg_forward_rvalue policy, RandomIt first, RandomIt nth, RandomIt last) {
-    (void) policy;
+    mwg_unused(policy);
     return nth_element(first, nth, last);
   }
   template<typename ExecutionPolicy, typename RandomIt, typename Compare>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, void>::type
   nth_element(ExecutionPolicy mwg_forward_rvalue policy, RandomIt first, RandomIt nth, RandomIt last, Compare comp) {
-    (void) policy;
+    mwg_unused(policy);
     return nth_element(first, nth, last, comp);
   }
   template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2, typename ForwardIt3>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt3>::type
   merge(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2, ForwardIt2 last2, ForwardIt3 d_first) {
-    (void) policy;
+    mwg_unused(policy);
     return merge(first1, last1, first2, last2, d_first);
   }
   template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2, typename ForwardIt3, typename Compare>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt3>::type
   merge(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2, ForwardIt2 last2, ForwardIt3 d_first, Compare comp) {
-    (void) policy;
+    mwg_unused(policy);
     return merge(first1, last1, first2, last2, d_first, comp);
   }
   template<typename ExecutionPolicy, typename BidirIt>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, void>::type
   inplace_merge(ExecutionPolicy mwg_forward_rvalue policy, BidirIt first, BidirIt middle, BidirIt last) {
-    (void) policy;
+    mwg_unused(policy);
     return inplace_merge(first, middle, last);
   }
   template<typename ExecutionPolicy, typename BidirIt, typename Compare>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, void>::type
   inplace_merge(ExecutionPolicy mwg_forward_rvalue policy, BidirIt first, BidirIt middle, BidirIt last, Compare comp) {
-    (void) policy;
+    mwg_unused(policy);
     return inplace_merge(first, middle, last, comp);
   }
   template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, bool>::type
   includes(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2, ForwardIt2 last2) {
-    (void) policy;
+    mwg_unused(policy);
     return includes(first1, last1, first2, last2);
   }
   template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2, typename Compare>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, bool>::type
   includes(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2, ForwardIt2 last2, Compare comp) {
-    (void) policy;
+    mwg_unused(policy);
     return includes(first1, last1, first2, last2, comp);
   }
   template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2, typename ForwardIt3>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt3>::type
   set_difference(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2, ForwardIt2 last2, ForwardIt3 d_first) {
-    (void) policy;
+    mwg_unused(policy);
     return set_difference(first1, last1, first2, last2, d_first);
   }
   template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2, typename ForwardIt3, typename Compare>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt3>::type
   set_difference(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2, ForwardIt2 last2, ForwardIt3 d_first, Compare comp) {
-    (void) policy;
+    mwg_unused(policy);
     return set_difference(first1, last1, first2, last2, d_first, comp);
   }
   template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2, typename ForwardIt3>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt3>::type
   set_intersection(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2, ForwardIt2 last2, ForwardIt3 d_first) {
-    (void) policy;
+    mwg_unused(policy);
     return set_intersection(first1, last1, first2, last2, d_first);
   }
   template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2, typename ForwardIt3, typename Compare>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt3>::type
   set_intersection(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2, ForwardIt2 last2, ForwardIt3 d_first, Compare comp) {
-    (void) policy;
+    mwg_unused(policy);
     return set_intersection(first1, last1, first2, last2, d_first, comp);
   }
   template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2, typename ForwardIt3>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt3>::type
   set_symmetric_difference(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2, ForwardIt2 last2, ForwardIt3 d_first) {
-    (void) policy;
+    mwg_unused(policy);
     return set_symmetric_difference(first1, last1, first2, last2, d_first);
   }
   template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2, typename ForwardIt3, typename Compare>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt3>::type
   set_symmetric_difference(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2, ForwardIt2 last2, ForwardIt3 d_first, Compare comp) {
-    (void) policy;
+    mwg_unused(policy);
     return set_symmetric_difference(first1, last1, first2, last2, d_first, comp);
   }
   template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2, typename ForwardIt3>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt3>::type
   set_union(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2, ForwardIt2 last2, ForwardIt3 d_first) {
-    (void) policy;
+    mwg_unused(policy);
     return set_union(first1, last1, first2, last2, d_first);
   }
   template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2, typename ForwardIt3, typename Compare>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, ForwardIt3>::type
   set_union(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2, ForwardIt2 last2, ForwardIt3 d_first, Compare comp) {
-    (void) policy;
+    mwg_unused(policy);
     return set_union(first1, last1, first2, last2, d_first, comp);
   }
   template<typename ExecutionPolicy, typename RandomIt>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, bool>::type
   is_heap(ExecutionPolicy mwg_forward_rvalue policy, RandomIt first, RandomIt last) {
-    (void) policy;
+    mwg_unused(policy);
     return is_heap(first, last);
   }
   template<typename ExecutionPolicy, typename RandomIt, typename Compare>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, bool>::type
   is_heap(ExecutionPolicy mwg_forward_rvalue policy, RandomIt first, RandomIt last, Compare comp) {
-    (void) policy;
+    mwg_unused(policy);
     return is_heap(first, last, comp);
   }
   template<typename ExecutionPolicy, typename RandomIt>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, RandomIt>::type
   is_heap_until(ExecutionPolicy mwg_forward_rvalue policy, RandomIt first, RandomIt last) {
-    (void) policy;
+    mwg_unused(policy);
     return is_heap_until(first, last);
   }
   template<typename ExecutionPolicy, typename RandomIt, typename Compare>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, RandomIt>::type
   is_heap_until(ExecutionPolicy mwg_forward_rvalue policy, RandomIt first, RandomIt last, Compare comp) {
-    (void) policy;
+    mwg_unused(policy);
     return is_heap_until(first, last, comp);
   }
   template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, bool>::type
   lexicographical_compare(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2, ForwardIt2 last2) {
-    (void) policy;
+    mwg_unused(policy);
     return lexicographical_compare(first1, last1, first2, last2);
   }
   template<typename ExecutionPolicy, typename ForwardIt1, typename ForwardIt2, typename Compare>
   typename stdm::enable_if<stdm::is_execution_policy<ExecutionPolicy>::value, bool>::type
   lexicographical_compare(ExecutionPolicy mwg_forward_rvalue policy, ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2, ForwardIt2 last2, Compare comp) {
-    (void) policy;
+    mwg_unused(policy);
     return lexicographical_compare(first1, last1, first2, last2, comp);
   }
 
