@@ -137,6 +137,9 @@ fi
 # measure_and_summary vaio.gcc
 # measure_and_summary vaio.clang
 # measure_and_summary vaio.msc
+measure_and_summary mag.gcc
+measure_and_summary mag.clang
+measure_and_summary mag.msc
 # measure_and_summary laguerre.gcc
 # measure_and_summary laguerre.clang
 # measure_and_summary laguerre.icc

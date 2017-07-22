@@ -319,7 +319,7 @@ inline int ndigits_impl_ibsf(unsigned __int64 value) mwg_noexcept {
 # endif
 #endif
 
-#if defined(_MSC_VER) || defined(__GNUC__) && defined(__CYGWIN__) || MWGCONF_ICC_VER
+#if defined(__GNUC__) && defined(__CYGWIN__) || MWGCONF_ICC_VER
 # define intrin_popcnt_defined
 # include <immintrin.h>
 inline int ndigits_impl_ipopcnt(std11::uint32_t value) {
