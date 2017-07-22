@@ -100,7 +100,7 @@ namespace functor_detail{
    *  `T=void` の場合は仮引数がないことを意味し、呼び出しに実引数を必要としないので常に `true` になります。
    */
   template<typename F,typename T>
-  struct is_covariant:stdm::integral_constant<bool,(stdm::is_void<T>::value||stdm::is_convertible<F,T>::value)>{};
+  struct is_covariant:stdm::bool_constant<(stdm::is_void<T>::value||stdm::is_convertible<F,T>::value)>{};
 
   //---------------------------------------------------------------------------
   /*?lwiki
@@ -133,7 +133,7 @@ namespace functor_detail{
 
   template<typename FSgn, typename TSgn>
   struct is_variant_function<FSgn, TSgn, typename stdm::enable_if<stdm::is_function<FSgn>::value && stdm::is_function<TSgn>::value>::type>:
-    stdm::integral_constant<bool,
+    stdm::bool_constant<
     (is_covariant<typename sig::returns<FSgn>::type, typename sig::returns<TSgn>::type>::value &&
       detail::has_contravariant_parameters<FSgn,TSgn>::value)>{};
 
@@ -183,7 +183,7 @@ namespace functor_detail{
     mwg_concept_is_valid_expression(c1,P,P_,*expr<P_>());
 # elif defined(_MSC_VER)&&defined(mwg_concept_is_valid_expression_vc2010A)
     mwg_concept_is_valid_expression_vc2010A(c1_1,P,P_,expr<P_>().operator*());
-    struct c1:stdm::integral_constant<bool,c1_1::value||stdm::is_pointer<P>::value>{};
+    struct c1:stdm::bool_constant<c1_1::value||stdm::is_pointer<P>::value>{};
 # else
     struct c1:stdm::false_type{};
 # endif
@@ -248,7 +248,7 @@ namespace functor_detail{
 # define MWG_FUNCTOR_H_can_be_called_as_declare_c1(Parameters, Arguments) \
       mwg_concept_has_member(c1_1, F, X, operator(), R(X::*) Parameters);   \
       mwg_concept_has_member(c1_2, F, X, operator(), R(X::*) Parameters const); \
-      struct c1: stdm::integral_constant<bool, (c1_1::value || c1_2::value)> {};
+      struct c1: stdm::bool_constant<(c1_1::value || c1_2::value)> {};
       // // 以下の様に permissive にすると overload 選択などで問題あり。
       // struct c1:stdm::true_type{};
 #endif

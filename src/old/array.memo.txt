@@ -1,0 +1,48 @@
+// -*- coding:utf-8 -*-
+//******************************************************************************
+	mwg.array.h
+//******************************************************************************
+
+// 完:
+// ・ 一旦拡がると小さくなる事が出来ない。これは問題ではないか?
+//    既に StringBuffer の所で作成してあるバッファ管理の部分を、
+//    独立させて流用するというのはどうか?
+// → StringBuffer のバッファ管理の部分は、
+// 　 以降の拡張に備えて大きめにメモリを確保する様になっていたので、
+// 　 そこから切り出すのではなく、新しく作り直す事にした。
+
+//******************************************************************************
+//	allocator の実装方法
+//******************************************************************************
+
+定義する物
+class my_allocator{
+	typename size_type;
+	typename difference_type;
+	typename pointer;
+	typename const_pointer;
+	typename reference;
+	typename const_reference;
+	typename value_type;
+
+	template<typename U> struct rebind;
+	template<typename U> typename rebind<U>::other;
+
+	デフォルトコンストラクタ
+	コピーコンストラクタ
+	コピーコンストラクタ(const rebind<U>::other&)
+
+	pointer address(reference x) const;
+	const_pointer address(const_reference x) const;
+	size_type max_size() const;
+	void construct(pointer p, const value_type& value);
+	void destroy(pointer p);
+	pointer allocate(size_type n , const void* hint = 0);
+	void deallocate(pointer p, size_type n);
+}
+
+template <class T1, class T2>
+bool operator==(const my_allocator<T1>&, const my_allocator<T2>&) throw() { return true; }
+
+template <class T1, class T2>
+bool operator!=(const my_allocator<T1>&, const my_allocator<T2>&) throw() { return false; }

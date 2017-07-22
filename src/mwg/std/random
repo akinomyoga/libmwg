@@ -18,9 +18,52 @@
 # include <limits>
 # include <mwg/std/type_traits>
 # include <mwg/std/cstdint>
+# include <mwg/std/iterator>
 # include <mwg/bits/integer.nlz.h>
 namespace mwg {
 namespace stdm {
+
+  template<typename UIntType, UIntType a, UIntType c, UIntType m>
+  class linear_congruential_engine {
+    static_assert(a < m && c < m, "C++ [rand.eng.lcong]/3");
+  public:
+    typedef UIntType result_type;
+  private:
+    result_type m_state;
+
+  public:
+    static mwg_constexpr_const result_type multiplier = a;
+    static mwg_constexpr_const result_type increment = c;
+    static mwg_constexpr_const result_type modulus = m;
+    static mwg_constexpr_const result_type min() {return c == 0u? 1u: 0u;}
+    static mwg_constexpr_const result_type max() {return m - 1u;}
+    static mwg_constexpr_const result_type default_seed = 1u;
+
+    explicit linear_congruential_engine(result_type s = default_seed) {this->seed(s);}
+
+    // TODO: Sseq が seed sequence でない時には overload resolution から外れる。
+    template<class Sseq> explicit linear_congruential_engine(Sseq& q) {this->seed(q);}
+
+    void seed(result_type s = default_seed) {
+      this->m_state = c % m == 0 && s % m == 0? 1: s % m;
+    }
+
+    // TODO: Sseq が seed sequence でない時には overload resolution から外れる。
+    template<class Sseq> void seed(Sseq& q) {
+      static mwg_constexpr_const int k = (mwg::mpl::integral_ndigits<UIntType, m - 1>::value + 31) / 32;
+      stdm::uint_least32_t arr[k + 3];
+      q.generate(stdm::begin(arr), stdm::end(arr));
+      m_state = 0;
+      for (int j = 0; j < k; j++) m_state |= (UIntType) arr[j + 3] << 32 * j;
+      if (c % m == 0 && m_state % m == 0) m_state = 1u;
+    }
+
+    result_type operator()() {return m_state = (a * m_state + c) % m;}
+    void discard(unsigned long long z) {while (z--) (void) this->operator()();}
+  };
+
+  typedef linear_congruential_engine<stdm::uint_fast32_t, 16807, 0, 2147483647> minstd_rand0;
+  typedef linear_congruential_engine<stdm::uint_fast32_t, 48271, 0, 2147483647> minstd_rand;
 
   namespace random_detail {
 
@@ -81,7 +124,7 @@ namespace stdm {
 
     public:
       typedef uniform_int_distribution<Integer> distribution_type;
-      friend distribution_type;
+      friend class uniform_int_distribution<Integer>;
 
       param_type(Integer a = 0, Integer b = std::numeric_limits<Integer>::max()):
         m_min(a), m_width(b - a), m_nbit(mwg::integer::ndigits(m_width)) {}
@@ -115,7 +158,7 @@ namespace stdm {
       uint_t const width = params.m_width;
       int const nconsume = params.m_nbit;
       for (;;) {
-        uint_t const ret = this->buffer.generate_bits<uint_t>(g, nconsume);
+        uint_t const ret = this->buffer.template generate_bits<uint_t>(g, nconsume);
         if (ret <= width) return params.min() + (result_type) ret;
       }
     }

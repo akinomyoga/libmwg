@@ -1,0 +1,30 @@
+@@ template<typename F> struct HandlerName @ 23:34 2010/07/21
+	  template<typename F>
+	  struct HandlerName{
+-	#ifdef mwg_concept_is_variant_functor
+-	    mwg_concept_is_variant_functor(c1,F,X,int ,(mwg_mpl_nullref(_const T) _int));
+-	    mwg_concept_is_variant_functor(c2,F,X,bool,(mwg_mpl_nullref(_const T) _int));
+-	#else
+-	    mwg_concept_has_member(c1,F,X,int  (X::*)(_const T _int) const,operator());
+-	    mwg_concept_has_member(c2,F,X,bool (X::*)(_const T _int) const,operator());
+-	#endif
++	    mwg_concept_is_variant_functor(c1,F,X,int ,(mwg_concept_isvft(_const T) _int));
++	    mwg_concept_is_variant_functor(c2,F,X,bool,(mwg_concept_isvft(_const T) _int));
+	    mwg_concept_condition(c1::value||c2::value);
+-	    //mwg_concept_condition(
+	    //    mwg_mpl_is_assignable(int ,mwg_mpl_nullref(F)(mwg_mpl_nullref(_const T) _1))
+-	    //  ||mwg_mpl_is_assignable(bool,mwg_mpl_nullref(F)(mwg_mpl_nullref(_const T) _1))
+-	    //  );
+	  };
+@@ template<typename F> struct HandlerName @ 
+	  template<typename F>
+	  struct HandlerNameV{
+-	#ifdef mwg_concept_is_variant_functor
+-	    mwg_concept_is_variant_functor(c1,F,X,mwg_mpl_void,(mwg_mpl_nullref(_const T) _int));
+-	#else
+-	    mwg_concept_has_member(c1,F,X,void (X::*)(_const T _int) const,operator());
+-	#endif
++	    mwg_concept_is_variant_functor(c1,F,X,mwg_mpl_void,(mwg_concept_isvft(_const T) _int));
+	    mwg_concept_condition(c1::value);
+-	    //mwg_concept_condition(mwg_mpl_is_void(mwg_mpl_nullref(F)(mwg_mpl_nullref(_const T) _1)));
+	  };

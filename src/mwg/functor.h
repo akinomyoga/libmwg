@@ -257,7 +257,7 @@ namespace functor_detail {
   template<typename F, typename S>
   struct is_functor: stdm::is_same<S, typename mwg::functor_traits<F>::sgn_t> {};
   template<typename F, typename S>
-  struct be_functor: stdm::integral_constant<bool, functor_traits<F, S>::is_functor> {};
+  struct be_functor: stdm::bool_constant<functor_traits<F, S>::is_functor> {};
 
   template<typename F, typename S, typename CaseTr>
   struct _as_functor_adapter {};
@@ -328,10 +328,10 @@ namespace functor_detail {
 
     template<typename F, std::size_t I, bool IsFunction>
     struct limited_storage_is_interior_impl
-      :stdm::integral_constant<bool, (sizeof(limited_storage_holder<F>) <= I)> {};
+      :stdm::bool_constant<(sizeof(limited_storage_holder<F>) <= I)> {};
     template<typename F, std::size_t I>
     struct limited_storage_is_interior_impl<F, I, true>
-      :stdm::integral_constant<bool, (sizeof(limited_storage_holder<F*>) <= I)> {};
+      :stdm::bool_constant<(sizeof(limited_storage_holder<F*>) <= I)> {};
     template<typename F, std::size_t I>
     struct limited_storage_is_interior
       :limited_storage_is_interior_impl<F, I, stdm::is_function<F>::value> {};
@@ -431,7 +431,7 @@ namespace functor_detail {
   // 2016-03-25 gcc-2.95.3 bug work around:
   //   enable_if に複雑な式を指定すると ICE になる。
   template<typename F, typename S>
-  struct is_explicit_functor: stdm::integral_constant<bool, (!is_functor<F, S>::value && be_functor<F, S>::value)> {};
+  struct is_explicit_functor: stdm::bool_constant<(!is_functor<F, S>::value && be_functor<F, S>::value)> {};
 
 #pragma%m 1
   template<typename S>
@@ -569,7 +569,7 @@ struct is_pointer_to_single_operator_functor {
   struct c1_1: mwg::stdm::false_type {};
 #endif
 
-  struct c1: mwg::stdm::integral_constant<bool, c1_1::value || mwg::stdm::is_pointer<P>::value> {};
+  struct c1: mwg::stdm::bool_constant<c1_1::value || mwg::stdm::is_pointer<P>::value> {};
 
   template<typename T> static T expr();
 

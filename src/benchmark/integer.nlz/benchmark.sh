@@ -1,15 +1,14 @@
 #!/bin/bash
 
-export outdir=out/integer.nlz
+export outdir=../out/integer.nlz
 [[ -d $outdir ]] || mkdir -p "$outdir"
-
 
 function measure_and_summary {
   local name=${1:-laguerre.icc}
   
-  local file=$outdir/integer.nlz.$name.txt
+  local file=$outdir/measure.$name.txt
   if [[ $force_update || ! -e $file ]]; then
-    ./integer.nlz.bench1.exe > "$file"
+    ./bench1.exe > "$file"
   fi
   
   sort "$file" | gawk '
@@ -21,13 +20,14 @@ function measure_and_summary {
         sub(/^bcpop$/, "bpopcount", title);
         sub(/^bbsr$/, "ibsr", title);
         sub(/^bbsf$/, "ibsf", title);
+        sub(/^debruijn$/, "kazatsuyund", title);
   
         name = title;
         sub(/^base$/, "空ループ", name);
         sub(/^shift$/, "shift1", name);
         sub(/^bsec$/, "bsec1", name);
         sub(/^kazatsuyu$/, "kazatsuyu(nlz)", name);
-        sub(/^debruijn$/, "kazatsuyu(nd)", name);
+        sub(/^kazatsuyund$/, "kazatsuyu(nd)", name);
         sub(/^bclz$/, "builtin(ctz)", name);
         sub(/^bctz$/, "builtin(clz)", name);
         sub(/^bpopcount$/, "builtin(popcnt)", name);
@@ -94,53 +94,65 @@ function measure_and_summary {
       n = split("shift shift4 shift8 bsec bsec2 bsec3 kazatsuyu debruijn debruijn2 frexp double float bclz ilzcnt ibsr asmbsr bctz bffs itzcnt ibsf bpopcount ipopcnt", g_titles);
       for (i = 1; i <= n; i++) {
         k = g_titles[i];
-        print k, (g_medians[k] - base) / shift > fname;
+        time = g_medians[k] - base;
+        if (time >= 0)
+          ratio = time / shift;
+        else {
+          time = "NaN";
+          ratio = "NaN";
+        }
+        print k, ratio, time > fname;
       }
     }
   '
 }
 
-if [[ $1 == force ]]; then
+case $1 in
+(force)
   if [[ $HOSTNAME == padparadscha ]]; then
-    touch integer.nlz.bench1.cpp
+    touch bench1.cpp
     CXXKEY=c make
     force_update=1 measure_and_summary pad.clang
-    touch integer.nlz.bench1.cpp
+    touch bench1.cpp
     CXXKEY=g make
     force_update=1 measure_and_summary pad.gcc
-    touch integer.nlz.bench1.cpp
+    touch bench1.cpp
     CXXKEY=i make
     force_update=1 measure_and_summary pad.icc
   elif [[ ${HOSTNAME%%.*} == laguerre01 ]]; then
-    touch integer.nlz.bench1.cpp
+    touch bench1.cpp
     CXXKEY=c35 make
     force_update=1 measure_and_summary laguerre.clang
-    touch integer.nlz.bench1.cpp
+    touch bench1.cpp
     CXXKEY=g710 make
     force_update=1 measure_and_summary laguerre.gcc
-    touch integer.nlz.bench1.cpp
+    touch bench1.cpp
     CXXKEY=i13 make
     force_update=1 measure_and_summary laguerre.icc
   elif [[ $HOSTNAME == magnate2016 ]]; then
-    touch integer.nlz.bench1.cpp
+    touch bench1.cpp
     CXXKEY=c make
     force_update=1 measure_and_summary mag.clang
-    touch integer.nlz.bench1.cpp
+    touch bench1.cpp
     CXXKEY=g make
     force_update=1 measure_and_summary mag.gcc
-    touch integer.nlz.bench1.cpp
+    touch bench1.cpp
     CXXKEY=v1910 make
     force_update=1 measure_and_summary mag.msc
-  fi
-fi
-
-# measure_and_summary vaio.gcc
-# measure_and_summary vaio.clang
-# measure_and_summary vaio.msc
-measure_and_summary mag.gcc
-measure_and_summary mag.clang
-measure_and_summary mag.msc
-# measure_and_summary laguerre.gcc
-# measure_and_summary laguerre.clang
-# measure_and_summary laguerre.icc
-
+  fi ;;
+(regenerate-summary)
+  measure_and_summary pad.gcc
+  measure_and_summary pad.clang
+  measure_and_summary pad.icc
+  measure_and_summary mag.gcc
+  measure_and_summary mag.clang
+  measure_and_summary mag.msc
+  measure_and_summary laguerre.gcc
+  measure_and_summary laguerre.clang
+  measure_and_summary laguerre.icc ;;
+(plot)
+  gnuplot benchmark.gp
+  ps2pdf -dEPSCrop $outdir/benchmark.eps
+  mv benchmark.pdf $outdir/
+  echo "file: ../out/integer.nlz/benchmark.pdf" >&2 ;;
+esac

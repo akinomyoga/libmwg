@@ -91,8 +91,9 @@ void test_is_convertible_to_reference() {
   static_assert(!(mwg::stdm::is_convertible<int volatile const, int const&>::value), "");
   static_assert(!(mwg::stdm::is_convertible<int volatile const, int volatile&>::value), "");
   static_assert( (mwg::stdm::is_convertible<int volatile const, int const volatile&>::value), "");
-#elif defined(_MSC_VER) && (_MSC_VER == 1900)
-  // msc19 Microsoft(R) C/C++ Optimizing Compiler Version 19.00.24213.1 for x86 (VS2016)
+#elif defined(_MSC_VER) && (1900 <= _MSC_VER && _MSC_VER <= 1910)
+  // msc19   Microsoft(R) C/C++ Optimizing Compiler Version 19.00.24213.1 for x86 (VS2016)
+  // msc1910 Microsoft(R) C/C++ Optimizing Compiler Version 19.10.25017 for x86
   //
   // 実際に変換できるかどうかのパターンはこれまでの msc15-msc18 と同様である。
   // しかし msc19 で std::is_convertible の返す値だけが変なパターンに変化した。

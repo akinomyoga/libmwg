@@ -1,8 +1,9 @@
 // -*- mode: c++; coding: utf-8 -*-
-#ifndef MWG_MPL_H
-#define MWG_MPL_H
+#ifndef MWG_BITS_MPL_INTEGER_H
+#define MWG_BITS_MPL_INTEGER_H
 #include <cstddef>
 #include <climits>
+#include <limits>
 #include <mwg/std/type_traits>
 namespace mwg {
 namespace mpl {
@@ -15,13 +16,6 @@ namespace mpl {
   //   operator T&(){return *reinterpret_cast<T*>(d);}
   // };
 
-//-----------------------------------------------------------------------------
-// macro mwg_mpl_nullref
-//
-// #define mwg_mpl_nullref(T) (*reinterpret_cast<typename mwg::identity<T>::type*>(0))
-//   mwg_mpl_nullref(const T) -> mwg::declval<T>()
-//   mwg_mpl_nullref(T)       -> mwg::declval<T&>()
-
 //*****************************************************************************
 //  整数テンプレート
 //-----------------------------------------------------------------------------
@@ -30,68 +24,79 @@ namespace mpl {
   // template<unsigned I> struct impl_add_nibbles: impl_add_bytes<(I & 0x0f0f0f0f)+(I >> 4 & 0x0f0f0f0f)> {};
   // template<unsigned I> struct count_bits: impl_add_nibbles<(I & 0x11111111)+(I >> 1 & 0x11111111)+(I >> 2 & 0x11111111)+(I >> 3 & 0x11111111)> {};
 
-  template<int I> struct is_power_of_2;
-  template<>      struct is_power_of_2<0>  : mwg::stdm::false_type {};
-  template<>      struct is_power_of_2<1>  : mwg::stdm::true_type {};
-  template<>      struct is_power_of_2<2>  : mwg::stdm::true_type {};
-  template<>      struct is_power_of_2<4>  : mwg::stdm::true_type {};
-  template<>      struct is_power_of_2<8>  : mwg::stdm::true_type {};
-  template<>      struct is_power_of_2<16> : mwg::stdm::true_type {};
-  template<>      struct is_power_of_2<32> : mwg::stdm::true_type {};
-  template<>      struct is_power_of_2<64> : mwg::stdm::true_type {};
-  template<>      struct is_power_of_2<128>: mwg::stdm::true_type {};
-  template<int I> struct is_power_of_2: mwg::stdm::integral_constant<bool,
-    (I % 256 == 0 && is_power_of_2<I / 256>::value)
-    > {};
+  namespace is_pow2_detail {
+
+    template<typename UIntType, UIntType value, std::size_t width = std::numeric_limits<UIntType>::digits, std::size_t shift = (width + 1) / 2>
+    struct for_unsigned: for_unsigned<
+      UIntType,
+      (value % ((UIntType) 1 << shift) == 0? value >> shift: value),
+      width - shift> {};
+    template<typename UIntType, UIntType value, std::size_t shift>
+    struct for_unsigned<UIntType, value, 0, shift>: stdm::bool_constant<value == 1>::type {};
+
+    template<typename IntType, IntType value, typename UIntType = typename stdm::make_unsigned<IntType>::type, bool = (value >= 0)>
+    struct for_signed: for_unsigned<UIntType, (UIntType) value> {};
+    template<typename IntType, IntType value, typename UIntType>
+    struct for_signed<IntType, value, UIntType, false>: stdm::false_type {};
+
+    template<typename Integer, Integer value, typename = void> struct impl: stdm::false_type {};
+    template<typename IntType, IntType value>
+    struct impl<IntType, value, typename stdm::enable_if<stdm::is_signed<IntType>::value>::type>: for_signed<IntType, value> {};
+    template<typename UIntType, UIntType value>
+    struct impl<UIntType, value, typename stdm::enable_if<stdm::is_unsigned<UIntType>::value>::type>: for_unsigned<UIntType, value> {};
+  }
+
+  template<typename Integer, Integer value> struct is_pow2: is_pow2_detail::impl<Integer, value> {};
+
 
 #pragma%x begin_check
 #include <cstdio>
-#include <mwg/mpl.h>
+#include <mwg/bits/mpl.integer.h>
 #include <mwg/except.h>
 
-void test_is_power_of_2() {
-  mwg_check(( mwg::mpl::is_power_of_2<1>::value));
-  mwg_check(( mwg::mpl::is_power_of_2<2>::value));
-  mwg_check(( mwg::mpl::is_power_of_2<4>::value));
-  mwg_check(( mwg::mpl::is_power_of_2<8>::value));
-  mwg_check((!mwg::mpl::is_power_of_2<0>::value));
-  mwg_check((!mwg::mpl::is_power_of_2<3>::value));
-  mwg_check((!mwg::mpl::is_power_of_2<5>::value));
-  mwg_check((!mwg::mpl::is_power_of_2<6>::value));
-  mwg_check((!mwg::mpl::is_power_of_2<7>::value));
-  mwg_check((!mwg::mpl::is_power_of_2<9>::value));
+void test_is_pow2() {
+  mwg_check(( mwg::mpl::is_pow2<int, 1>::value));
+  mwg_check(( mwg::mpl::is_pow2<int, 2>::value));
+  mwg_check(( mwg::mpl::is_pow2<int, 4>::value));
+  mwg_check(( mwg::mpl::is_pow2<int, 8>::value));
+  mwg_check((!mwg::mpl::is_pow2<int, 0>::value));
+  mwg_check((!mwg::mpl::is_pow2<int, 3>::value));
+  mwg_check((!mwg::mpl::is_pow2<int, 5>::value));
+  mwg_check((!mwg::mpl::is_pow2<int, 6>::value));
+  mwg_check((!mwg::mpl::is_pow2<int, 7>::value));
+  mwg_check((!mwg::mpl::is_pow2<int, 9>::value));
 
-  mwg_check(( mwg::mpl::is_power_of_2<16>::value));
-  mwg_check(( mwg::mpl::is_power_of_2<32>::value));
-  mwg_check(( mwg::mpl::is_power_of_2<64>::value));
-  mwg_check((!mwg::mpl::is_power_of_2<23>::value));
-  mwg_check((!mwg::mpl::is_power_of_2<43>::value));
-  mwg_check((!mwg::mpl::is_power_of_2<61>::value));
-  mwg_check((!mwg::mpl::is_power_of_2<23>::value));
-  mwg_check((!mwg::mpl::is_power_of_2<98>::value));
+  mwg_check(( mwg::mpl::is_pow2<int, 16>::value));
+  mwg_check(( mwg::mpl::is_pow2<int, 32>::value));
+  mwg_check(( mwg::mpl::is_pow2<int, 64>::value));
+  mwg_check((!mwg::mpl::is_pow2<int, 23>::value));
+  mwg_check((!mwg::mpl::is_pow2<int, 43>::value));
+  mwg_check((!mwg::mpl::is_pow2<int, 61>::value));
+  mwg_check((!mwg::mpl::is_pow2<int, 23>::value));
+  mwg_check((!mwg::mpl::is_pow2<int, 98>::value));
 
-  mwg_check(( mwg::mpl::is_power_of_2<128>::value));
-  mwg_check(( mwg::mpl::is_power_of_2<256>::value));
-  mwg_check(( mwg::mpl::is_power_of_2<512>::value));
-  mwg_check((!mwg::mpl::is_power_of_2<122>::value));
-  mwg_check((!mwg::mpl::is_power_of_2<132>::value));
-  mwg_check((!mwg::mpl::is_power_of_2<432>::value));
-  mwg_check((!mwg::mpl::is_power_of_2<327>::value));
-  mwg_check((!mwg::mpl::is_power_of_2<243>::value));
+  mwg_check(( mwg::mpl::is_pow2<int, 128>::value));
+  mwg_check(( mwg::mpl::is_pow2<int, 256>::value));
+  mwg_check(( mwg::mpl::is_pow2<int, 512>::value));
+  mwg_check((!mwg::mpl::is_pow2<int, 122>::value));
+  mwg_check((!mwg::mpl::is_pow2<int, 132>::value));
+  mwg_check((!mwg::mpl::is_pow2<int, 432>::value));
+  mwg_check((!mwg::mpl::is_pow2<int, 327>::value));
+  mwg_check((!mwg::mpl::is_pow2<int, 243>::value));
 
-  mwg_check(( mwg::mpl::is_power_of_2<1024>::value));
-  mwg_check(( mwg::mpl::is_power_of_2<2048>::value));
-  mwg_check(( mwg::mpl::is_power_of_2<4096>::value));
-  mwg_check(( mwg::mpl::is_power_of_2<8192>::value));
-  mwg_check((!mwg::mpl::is_power_of_2<1536>::value));
-  mwg_check((!mwg::mpl::is_power_of_2<9999>::value));
-  mwg_check((!mwg::mpl::is_power_of_2<2134>::value));
-  mwg_check((!mwg::mpl::is_power_of_2<4321>::value));
-  mwg_check((!mwg::mpl::is_power_of_2<3192>::value));
-  mwg_check((!mwg::mpl::is_power_of_2<3928>::value));
-  mwg_check((!mwg::mpl::is_power_of_2<4329>::value));
-  mwg_check((!mwg::mpl::is_power_of_2<3412>::value));
-  mwg_check((!mwg::mpl::is_power_of_2<8888>::value));
+  mwg_check(( mwg::mpl::is_pow2<int, 1024>::value));
+  mwg_check(( mwg::mpl::is_pow2<int, 2048>::value));
+  mwg_check(( mwg::mpl::is_pow2<int, 4096>::value));
+  mwg_check(( mwg::mpl::is_pow2<int, 8192>::value));
+  mwg_check((!mwg::mpl::is_pow2<int, 1536>::value));
+  mwg_check((!mwg::mpl::is_pow2<int, 9999>::value));
+  mwg_check((!mwg::mpl::is_pow2<int, 2134>::value));
+  mwg_check((!mwg::mpl::is_pow2<int, 4321>::value));
+  mwg_check((!mwg::mpl::is_pow2<int, 3192>::value));
+  mwg_check((!mwg::mpl::is_pow2<int, 3928>::value));
+  mwg_check((!mwg::mpl::is_pow2<int, 4329>::value));
+  mwg_check((!mwg::mpl::is_pow2<int, 3412>::value));
+  mwg_check((!mwg::mpl::is_pow2<int, 8888>::value));
 }
 #pragma%x end_check
 
@@ -106,10 +111,16 @@ void test_is_power_of_2() {
     template<typename I, I Z1>
     struct integral_sgn: mwg::stdm::integral_constant<I, (Z1 < 0? -1: 1)> {};
 
+    /* template<typename IntType> struct integral_limits;
+     *
+     * std::numeric_limits<I>::min(), max() は C++03 では constant expression ではないので、
+     * integral_limits<I>::min_value, integral_limits<I>::max_value として最小値・最大値を提供する。
+     */
+
     template<typename I, I ZMin, I ZMax>
     struct integral_limits_impl {
-      static const I min_value=ZMin;
-      static const I max_value=ZMax;
+      static mwg_constexpr_const I min_value = ZMin;
+      static mwg_constexpr_const I max_value = ZMax;
     };
 
     template<typename I> struct integral_limits {};
@@ -228,32 +239,32 @@ void test_is_power_of_2() {
 #else
     template<
       typename I,
-      I Z0=integral_limits<I>::min_value,
-      I Z1=integral_limits<I>::min_value,
-      I Z2=integral_limits<I>::min_value,
-      I Z3=integral_limits<I>::min_value,
-      I Z4=integral_limits<I>::min_value,
-      I Z5=integral_limits<I>::min_value,
-      I Z6=integral_limits<I>::min_value,
-      I Z7=integral_limits<I>::min_value,
-      I Z8=integral_limits<I>::min_value,
-      I Z9=integral_limits<I>::min_value >
-    struct integral_max
-      :integral_max<I, (Z0 > Z1? Z0: Z1), Z2, Z3, Z4, Z5, Z6, Z7, Z8, Z9> {};
+      I Z0 = integral_limits<I>::min_value,
+      I Z1 = integral_limits<I>::min_value,
+      I Z2 = integral_limits<I>::min_value,
+      I Z3 = integral_limits<I>::min_value,
+      I Z4 = integral_limits<I>::min_value,
+      I Z5 = integral_limits<I>::min_value,
+      I Z6 = integral_limits<I>::min_value,
+      I Z7 = integral_limits<I>::min_value,
+      I Z8 = integral_limits<I>::min_value,
+      I Z9 = integral_limits<I>::min_value >
+    struct integral_max:
+      integral_max<I, (Z0 > Z1? Z0: Z1), Z2, Z3, Z4, Z5, Z6, Z7, Z8, Z9> {};
     template<
       typename I,
-      I Z0=integral_limits<I>::max_value,
-      I Z1=integral_limits<I>::max_value,
-      I Z2=integral_limits<I>::max_value,
-      I Z3=integral_limits<I>::max_value,
-      I Z4=integral_limits<I>::max_value,
-      I Z5=integral_limits<I>::max_value,
-      I Z6=integral_limits<I>::max_value,
-      I Z7=integral_limits<I>::max_value,
-      I Z8=integral_limits<I>::max_value,
-      I Z9=integral_limits<I>::max_value >
-    struct integral_min
-      :integral_min<I, (Z0 < Z1? Z0: Z1), Z2, Z3, Z4, Z5, Z6, Z7, Z8, Z9> {};
+      I Z0 = integral_limits<I>::max_value,
+      I Z1 = integral_limits<I>::max_value,
+      I Z2 = integral_limits<I>::max_value,
+      I Z3 = integral_limits<I>::max_value,
+      I Z4 = integral_limits<I>::max_value,
+      I Z5 = integral_limits<I>::max_value,
+      I Z6 = integral_limits<I>::max_value,
+      I Z7 = integral_limits<I>::max_value,
+      I Z8 = integral_limits<I>::max_value,
+      I Z9 = integral_limits<I>::max_value >
+    struct integral_min:
+      integral_min<I, (Z0 < Z1? Z0: Z1), Z2, Z3, Z4, Z5, Z6, Z7, Z8, Z9> {};
 
 /*---- WORKAROUND -------------------------------------------------------------
  * 特殊化の際、既定テンプレート引数が他のテンプレートパラメータ I を含む事はできない
@@ -311,50 +322,13 @@ void test_integral_minmax() {
 }
 #pragma%x end_check
 
-//*****************************************************************************
-//  型に関する判定
-/*
- * //-----------------------------------------------------------------------------
- * // mustbe_type<T, mem> : mem の型が T でなかったら適用失敗
- * //-----------------------------------------------------------------------------
- *   template<class T, T mem>
- *   struct mustbe_type {typedef mwg::stdm::true_type type;};
- * //----------------------------------------------------------------------------
- * // mwg_mpl_is_assignable(T, expr) : expr を T 型の変数に代入可能か否かの判定
- * //----------------------------------------------------------------------------
- *   template<typename T>
- *   struct is_assignable_impl {
- *     static mwg::mpl::true_t eval(T v);
- *     static mwg::mpl::false_t eval(...);
- *   };
- * #define mwg_mpl_is_assignable(T, expr) \
- *   (sizeof(mwg::mpl::true_t) == sizeof(mwg::mpl::is_assignable_impl<T>::eval(mwg_mpl_void2iarr(expr))))
- */
-
-  //============================================================================
-  //  type_for_arg<T>::type : 関数の引数として適当な物を選択
-  //    (値渡し or const 参照渡し)
-  //----------------------------------------------------------------------------
-  template<typename T, bool B=mwg::stdm::is_scalar<T>::value> struct type_for_arg;
-  template<typename T> struct type_for_arg<T, true>: identity<T> {};
-  template<typename T> struct type_for_arg<T, false>: identity<const T&> {};
-  // long double → サイズが大きいので参照で渡す様にする?
-  // 参照 → 参照の参照は参照なので OK
-  // 関数ポインタ → 自動的にポインタとして扱われる? ので大丈夫?
-  // メンバへのポインタ → is_scalar が対応しているので OK
-  // 配列 → 配列は要素数情報の保存も考えて参照で受け取れた方が良いと思う。
-  template<typename T, std::size_t N, bool B>
-  struct type_for_arg<T[N], B>: identity<T(&)[N]> {};
-  template<typename T, bool B>
-  struct type_for_arg<T[], B>: identity<T*> {};
-
 //NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN
 } /* endof namespace mpl */
 } /* endof namespace mwg */
 #endif
 #pragma%x begin_check
 int main() {
-  test_is_power_of_2();
+  test_is_pow2();
   test_integral_minmax();
   return 0;
 }

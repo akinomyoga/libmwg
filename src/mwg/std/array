@@ -22,8 +22,7 @@ namespace stdm {
   // Note: https://stackoverflow.com/questions/15512827/why-is-stdarray-t-0-not-empty
   template<typename T, std::size_t N>
   struct array {
-  private:
-    T m_data[N == 0? 1: N];
+    T m_data[N == 0? 1: N]; // left public to provide list-initialization
 
   public:
     typedef T value_type;
@@ -49,31 +48,31 @@ namespace stdm {
     mwg_constexpr reference operator[](size_type pos) {return m_data[pos];}
     mwg_constexpr const_reference operator[](size_type pos) const {return m_data[pos];}
 
-    mwg_constexpr reference front(size_type pos) {return m_data[0];}
-    mwg_constexpr const_reference front(size_type pos) const {return m_data[0];}
-    mwg_constexpr reference back(size_type pos) {return m_data[N - 1];}
-    mwg_constexpr const_reference back(size_type pos) const {return m_data[N - 1];}
+    mwg_constexpr reference front() {return m_data[0];}
+    mwg_constexpr const_reference front() const {return m_data[0];}
+    mwg_constexpr reference back() {return m_data[N - 1];}
+    mwg_constexpr const_reference back() const {return m_data[N - 1];}
 
-    mwg_constexpr pointer data(size_type pos) mwg_noexcept {return m_data;}
-    mwg_constexpr const_pointer data(size_type pos) const mwg_noexcept {return m_data;}
-
-  public:
-    mwg_constexpr iterator begin(size_type pos) mwg_noexcept {return m_data;}
-    mwg_constexpr const_iterator begin(size_type pos) const mwg_noexcept {return m_data;}
-    mwg_constexpr const_iterator cbegin(size_type pos) const mwg_noexcept {return m_data;}
-    mwg_constexpr iterator end(size_type pos) mwg_noexcept {return m_data + N;}
-    mwg_constexpr const_iterator end(size_type pos) const mwg_noexcept {return m_data + N;}
-    mwg_constexpr const_iterator cend(size_type pos) const mwg_noexcept {return m_data + N;}
-
-    mwg_constexpr reverse_iterator rbegin(size_type pos) mwg_noexcept {return reverse_iterator(m_data + N);}
-    mwg_constexpr const_reverse_iterator rbegin(size_type pos) const mwg_noexcept {return const_reverse_iterator(m_data + N);}
-    mwg_constexpr const_reverse_iterator crbegin(size_type pos) const mwg_noexcept {return const_reverse_iterator(m_data + N);}
-    mwg_constexpr reverse_iterator rend(size_type pos) mwg_noexcept {return reverse_iterator(m_data);}
-    mwg_constexpr const_reverse_iterator rend(size_type pos) const mwg_noexcept {return const_reverse_iterator(m_data);}
-    mwg_constexpr const_reverse_iterator crend(size_type pos) const mwg_noexcept {return const_reverse_iterator(m_data);}
+    mwg_constexpr pointer data() mwg_noexcept {return m_data;}
+    mwg_constexpr const_pointer data() const mwg_noexcept {return m_data;}
 
   public:
-    mwg_constexpr bool empty() const mwg_noexcept {return N != 0;}
+    mwg_constexpr iterator begin() mwg_noexcept {return m_data;}
+    mwg_constexpr const_iterator begin() const mwg_noexcept {return m_data;}
+    mwg_constexpr const_iterator cbegin() const mwg_noexcept {return m_data;}
+    mwg_constexpr iterator end() mwg_noexcept {return m_data + N;}
+    mwg_constexpr const_iterator end() const mwg_noexcept {return m_data + N;}
+    mwg_constexpr const_iterator cend() const mwg_noexcept {return m_data + N;}
+
+    mwg_constexpr reverse_iterator rbegin() mwg_noexcept {return reverse_iterator(m_data + N);}
+    mwg_constexpr const_reverse_iterator rbegin() const mwg_noexcept {return const_reverse_iterator(m_data + N);}
+    mwg_constexpr const_reverse_iterator crbegin() const mwg_noexcept {return const_reverse_iterator(m_data + N);}
+    mwg_constexpr reverse_iterator rend() mwg_noexcept {return reverse_iterator(m_data);}
+    mwg_constexpr const_reverse_iterator rend() const mwg_noexcept {return const_reverse_iterator(m_data);}
+    mwg_constexpr const_reverse_iterator crend() const mwg_noexcept {return const_reverse_iterator(m_data);}
+
+  public:
+    mwg_constexpr bool empty() const mwg_noexcept {return N == 0;}
     mwg_constexpr size_type size() const mwg_noexcept {return N;}
     mwg_constexpr size_type max_size() const mwg_noexcept {return N;}
 
@@ -100,7 +99,7 @@ namespace stdm {
   bool operator!=(array<T, N> const& lhs, array<T, N> const& rhs) {return !(lhs == rhs);}
   template<typename T, std::size_t N>
   bool operator<(array<T, N> const& lhs, array<T, N> const& rhs) {
-    return std::lexicographical_compare(lhs.begin(), lhs,end(), rhs.begin(), rhs.end());
+    return std::lexicographical_compare(lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
   }
   template<typename T, std::size_t N>
   bool operator<=(array<T, N> const& lhs, array<T, N> const& rhs) {return !(rhs < lhs);}
@@ -110,7 +109,7 @@ namespace stdm {
   bool operator>=(array<T, N> const& lhs, array<T, N> const& rhs) {return !(lhs < rhs);}
 
   template<typename T, std::size_t N>
-  void swap(array<T, N>& lhs, array<T, N>& rsh) mwg_noexcept_when(mwg_noexcept_when(lhs.swap(rhs))) {lhs.swap(rhs);}
+  void swap(array<T, N>& lhs, array<T, N>& rhs) mwg_noexcept_when(mwg_noexcept_when(lhs.swap(rhs))) {lhs.swap(rhs);}
 
   template<std::size_t I, class T, std::size_t N>
   mwg_constexpr typename stdm::enable_if<(I < N), T&>::type
@@ -153,7 +152,16 @@ namespace std {
 
 int test() {
   namespace ns = mwg::stdm;
-  ns::array<int, 10> arr;
+  typedef ns::array<int, 10> arr_t;
+  ns::array<int, 10> arr = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+  mwg_check((ns::tuple_size<arr_t>::value == 10 && ns::is_same<ns::tuple_element<2, arr_t>::type, int>::value));
+  mwg_check(arr.front() == 0 && arr.back() == 9);
+  mwg_check(arr.data() == &arr[0]);
+  mwg_check(!arr.empty() && arr.size() == 10 && arr.max_size() == 10);
+  for (int i = 0; i < 10; i++) mwg_check(arr[i] == i && arr.at(i) == i);
+  mwg_check(ns::get<0>(arr) == 0 && ns::get<5>(arr) == 5 && ns::get<9>(arr) == 9);
+  for (arr_t::iterator i = arr.begin(); i != arr.end(); i++) *i *= *i;
+  for (int i = 0; i < 10; i++) mwg_check(arr[i] == i * i);
   return 0;
 }
 

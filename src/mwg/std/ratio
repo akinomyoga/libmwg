@@ -22,7 +22,7 @@
 # define MWG_STDM_RATIO_EMULATED
 # include "cstdint"
 # include "type_traits"
-# include <mwg/mpl.h>
+# include <mwg/bits/mpl.integer.h>
 namespace mwg {
 namespace stdm {
 namespace ratio_detail {
@@ -112,17 +112,17 @@ namespace ratio_detail {
 #endif
 
   template<typename R1, typename R2>
-  struct ratio_equal: mwg::stdm::integral_constant<bool, (ratio_subtract<R1, R2>::num == 0)> {};
+  struct ratio_equal: mwg::stdm::bool_constant<(ratio_subtract<R1, R2>::num == 0)> {};
   template<typename R1, typename R2>
-  struct ratio_not_equal: mwg::stdm::integral_constant<bool, (ratio_subtract<R1, R2>::num != 0)> {};
+  struct ratio_not_equal: mwg::stdm::bool_constant<(ratio_subtract<R1, R2>::num != 0)> {};
   template<typename R1, typename R2>
-  struct ratio_less: mwg::stdm::integral_constant<bool, (ratio_subtract<R1, R2>::num < 0)> {};
+  struct ratio_less: mwg::stdm::bool_constant<(ratio_subtract<R1, R2>::num < 0)> {};
   template<typename R1, typename R2>
-  struct ratio_less_equal: mwg::stdm::integral_constant<bool, (ratio_subtract<R1, R2>::num <= 0)> {};
+  struct ratio_less_equal: mwg::stdm::bool_constant<(ratio_subtract<R1, R2>::num <= 0)> {};
   template<typename R1, typename R2>
-  struct ratio_greater: mwg::stdm::integral_constant<bool, (ratio_subtract<R1, R2>::num > 0)> {};
+  struct ratio_greater: mwg::stdm::bool_constant<(ratio_subtract<R1, R2>::num > 0)> {};
   template<typename R1, typename R2>
-  struct ratio_greater_equal: mwg::stdm::integral_constant<bool, (ratio_subtract<R1, R2>::num >= 0)> {};
+  struct ratio_greater_equal: mwg::stdm::bool_constant<(ratio_subtract<R1, R2>::num >= 0)> {};
 }
 }
 #endif

@@ -1,6 +1,44 @@
 // -*- mode: c++; coding: utf-8 -*-
 #ifndef MWG_BITS_INTEGER_NLZ_H
 #define MWG_BITS_INTEGER_NLZ_H
+#include <mwg/std/type_traits>
+namespace mwg {
+namespace mpl {
+
+  namespace integral_ndigits_detail {
+
+    template<
+      typename UIntType, UIntType value, int accumulator = 1, std::size_t width = std::numeric_limits<UIntType>::digits,
+      std::size_t shift = (width + 1) / 2>
+    struct for_nonzero_unsigned: for_nonzero_unsigned<
+      UIntType,
+      (value >> shift? value >> shift: value),
+      (value >> shift? accumulator + shift: accumulator),
+      width - shift> {};
+    template<typename UIntType, UIntType value, int accumulator, std::size_t shift>
+    struct for_nonzero_unsigned<UIntType, value, accumulator, 0, shift>: stdm::integral_constant<int, accumulator> {};
+
+    template<typename UIntType, UIntType value, bool = value != 0>
+    struct for_unsigned: for_nonzero_unsigned<UIntType, value> {};
+    template<typename UIntType, UIntType value>
+    struct for_unsigned<UIntType, value, false>: stdm::integral_constant<int, 0> {};
+
+    template<typename Integer, Integer value, typename UIntType = typename stdm::make_unsigned<Integer>::type>
+    struct for_signed: for_unsigned<UIntType, (value < 0? -(UIntType) value: (UIntType) value)> {};
+
+    template<typename Integer, Integer value, typename = void> struct impl {};
+
+    template<typename Integer, Integer value>
+    struct impl<Integer, value, typename stdm::enable_if<stdm::is_signed<Integer>::value>::type>: for_signed<Integer, value> {};
+    template<typename Integer, Integer value>
+    struct impl<Integer, value, typename stdm::enable_if<stdm::is_unsigned<Integer>::value>::type>: for_unsigned<Integer, value> {};
+  }
+
+  template<typename Integer, Integer value>
+  struct integral_ndigits: integral_ndigits_detail::impl<Integer, value> {};
+
+}
+}
 #include <limits>
 #include <mwg/defs.h>
 #include <mwg/std/cstdint>
@@ -16,7 +54,7 @@ namespace integer {
       static_assert(std::numeric_limits<Float>::is_iec559, "Float is not a ISO IEC 559 (IEEE 754) floating-point number");
       static_assert(sizeof(Float) == sizeof(Rep), "mismatch in sizes of Float and Rep");
       union {Float flt; Rep rep;} const data = {(Float) value + (Float) 0.5};
-      return (std::numeric_limits<Float>::min_exponent - 1) + (data.rep >> std::numeric_limits<Float>::digits - 1);
+      return (std::numeric_limits<Float>::min_exponent - 1) + (data.rep >> (std::numeric_limits<Float>::digits - 1));
     }
   }
 

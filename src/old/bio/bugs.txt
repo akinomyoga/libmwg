@@ -1,0 +1,8 @@
+-*- coding:utf-8 -*-
+
+■ -sizeof(char) は巨大な数になる
+現象: i8t(-sizeof(char)) は -1 ではなく、4G-1
+原因: unsigned に前置演算子 - を作用しても - の儘である。
+  上のコードは以下の物に等しい
+  u4t a=1;
+  i8t b(-a);
