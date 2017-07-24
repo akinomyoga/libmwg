@@ -21,7 +21,7 @@ cat<<EOF >&$fdbase
 #include <mwg_config.h>
 
 #ifdef __GNUC__
-# define MWG_GNUC_VER (__GNUC__*10000+__GNUC_MINOR__*100+__GNUC_PATCHLEVEL__)
+# define MWG_GNUC_VER (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__)
 # ifdef __GXX_EXPERIMENTAL_CXX0X__
 #   define MWG_GNU_STD11 MWG_GNUC_VER
 # else
@@ -102,18 +102,18 @@ cat<<EOF >&$fdbase
  */
 #ifndef MWGCONF_HEADER_STD
 # ifdef __GNUC__
-#  if (__GNUC__*10000+__GNUC_MINOR__*100)>=40300 /* gcc 4.3 */
+#  if (__GNUC__ * 10000 + __GNUC_MINOR__ * 100) >= 40300 /* gcc 4.3 */
 #   define MWGCONF_HEADER_STD 2011 /* C++11 */
-#  elif __GNUC__>=4                              /* gcc 4.3 */
+#  elif __GNUC__ >= 4                            /* gcc 4.3 */
 #   define MWGCONF_HEADER_STD 2003 /* C++03 */
 #   define MWGCONF_HEADER_TR1
 #  else
 #   define MWGCONF_HEADER_STD 2003 /* C++03 */
 #  endif
 # elif defined(_MSC_VER)
-#  if _MSC_VER>=1600                             /* VS2010 VC10 */
+#  if _MSC_VER >= 1600                           /* VS2010 VC10 */
 #   define MWGCONF_HEADER_STD 2011 /* C++11 */
-#  elif _MSC_FULL_VER>=150030729                 /* VS2008 VC9 SP1 */
+#  elif _MSC_FULL_VER >= 150030729               /* VS2008 VC9 SP1 */
 #   define MWGCONF_HEADER_STD 2005 /* TR1 */
 #  else
 #   define MWGCONF_HEADER_STD 2003 /* C++03 */
@@ -141,7 +141,7 @@ fi
 # compiler identification
 
 cat<<EOF >&$fdbase
-#if (__cplusplus>=201103L)||defined(__GXX_EXPERIMENTAL_CXX0X__)||(_MSC_VER>=1600)
+#if (__cplusplus >= 201103L) || defined(__GXX_EXPERIMENTAL_CXX0X__) || (_MSC_VER >= 1600)
 # define MWGCONF_STD11
 #endif
 
@@ -165,7 +165,7 @@ cat<<EOF >&$fdbase
 # endif
 #elif defined(__clang__)
 # undef  MWGCONF_CLANG_VER
-# define MWGCONF_CLANG_VER (__clang_major__*10000+__clang_minor__*100+__clang_patchlevel__)
+# define MWGCONF_CLANG_VER (__clang_major__ * 10000 + __clang_minor__ * 100 + __clang_patchlevel__)
 # ifdef __GXX_EXPERIMENTAL_CXX0X__
 #  undef  MWGCONF_CLANG_STD11
 #  define MWGCONF_CLANG_STD11 MWGCONF_CLANG_VER
@@ -173,9 +173,9 @@ cat<<EOF >&$fdbase
 #elif defined(__GNUC__)
 # undef MWGCONF_GCC_VER
 # if __GNUC__>=3
-#  define MWGCONF_GCC_VER (__GNUC__*10000+__GNUC_MINOR__*100+__GNUC_PATCHLEVEL__)
+#  define MWGCONF_GCC_VER (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__)
 # else
-#  define MWGCONF_GCC_VER (__GNUC__*10000+__GNUC_MINOR__*100)
+#  define MWGCONF_GCC_VER (__GNUC__ * 10000 + __GNUC_MINOR__ * 100)
 # endif
 # ifdef __GXX_EXPERIMENTAL_CXX0X__
 #  undef  MWGCONF_GCC_STD11
@@ -504,7 +504,7 @@ cond_expression='char32_t* x=0;'
 declare_feature char32_t 200704
 
 cat <<EOF >&$fdbase
-#if defined(MWGCONF_STD_CHAR16_T)&&defined(MWGCONF_STD_CHAR32_T)
+#if defined(MWGCONF_STD_CHAR16_T) && defined(MWGCONF_STD_CHAR32_T)
 # define MWGCONF_STD_UNICODE_CHARACTERS 200704
 #endif
 

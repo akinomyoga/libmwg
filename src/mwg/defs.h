@@ -67,7 +67,7 @@ namespace mwg {
 //  character types
 //-----------------------------------------------------------------------------
 namespace mwg {
-#ifdef _MSC_VER
+#if MWGCONF_MSC_VER && MWGCONF_MSC_VER < 1900
   // VC では wchar_t, char16_t, char32_t は符号無し整数の typedef
   typedef char           cAt;
   typedef __wchar_t      cWt;
