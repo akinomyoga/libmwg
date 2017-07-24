@@ -173,7 +173,7 @@ mwg_constexpr14 int ntz_impl_bsec1(Unsigned value) mwg_noexcept {
   int count = 0;
   while (width > 4) {
     int const modexp = width / 2;
-    if ((value << digits - modexp) == 0) value >>= modexp, count += modexp;
+    if (value << (digits - modexp) == 0) value >>= modexp, count += modexp;
     width -= modexp;
   }
   count += 0x12131210u >> 2 * value & 3;
@@ -347,7 +347,7 @@ int ntz_impl_float_(Unsigned value) mwg_noexcept {
   mwg_static_assert(std::numeric_limits<Unsigned>::digits <= std::numeric_limits<Float>::max_exponent, "integer too big");
   mwg_static_assert(std::numeric_limits<Float>::is_iec559, "Float is not a ISO IEC 559 (IEEE 754) floating-point number");
   mwg_static_assert(sizeof(Float) == sizeof(Rep), "mismatch in sizes of Float and Rep");
-  union {Float flt; Rep rep;} const data = {value & -value};
+  union {Float flt; Rep rep;} const data = {(Float) (value & -value)};
   return (std::numeric_limits<Float>::min_exponent - 2) + (data.rep >> (std::numeric_limits<Float>::digits - 1));
 }
 
