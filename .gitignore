@@ -3,6 +3,7 @@
 /out
 /src/Makefile
 
+/src/benchmark/out
 /src/benchmark/.obj
 /src/benchmark/*.exe
 /src/benchmark/integer.nlz/*.exe
@@ -11,6 +12,10 @@
 a.out
 a.exe
 a.obj
+
+__cxxtmp.-.obj
+*.ilk
+*.pdb
 
 /note/*.o
 /note/*.obj
