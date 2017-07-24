@@ -106,6 +106,7 @@ function proc/generate-source {
 
   export PPLINENO=1 PPC_PRAGMA=1 PPC_CPP=1 PPLINENO_FILE="$fsrc"
   export DEPENDENCIES_OUTPUT="$fsource.dep" DEPENDENCIES_TARGET="$fsource"
+  export DEPENDENCIES_PHONY=1
   "$MWGPP" <<EOF > "$fsource"
 #%m begin_check
   #%%\$>> $fcheck
@@ -146,7 +147,7 @@ function proc/compile {
 
   mkdf "$fdep"
   mkdf "$fobj"
-  invoke_mcxx -MD -MF "$fdep" -MQ "$fobj" -I "$CFGDIR/include" -I "$CPPDIR" -c -o "$fobj" "$fsource" "$@"
+  invoke_mcxx -MD -MF "$fdep" -MQ "$fobj" -MP -I "$CFGDIR/include" -I "$CPPDIR" -c -o "$fobj" "$fsource" "$@"
 }
 
 function proc/check {
@@ -169,7 +170,7 @@ function proc/check {
       mmake/util/readfile CHECK_FLAGS_SPEC "$chkflg"
       eval "FLAGS=($CHECK_FLAGS_SPEC)"
     fi
-    invoke_mcxx -MD -MF "$chkdep" -MQ "$chkstm" -I "$CFGDIR/include" -I "$CPPDIR" -o "$chkexe" "$fcheck" "${FLAGS[@]}" "$@" && "$chkexe"
+    invoke_mcxx -MD -MF "$chkdep" -MQ "$chkstm" -MP -I "$CFGDIR/include" -I "$CPPDIR" -o "$chkexe" "$fcheck" "${FLAGS[@]}" "$@" && "$chkexe"
   fi && > "$chkstm"
 }
 

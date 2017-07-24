@@ -4,8 +4,8 @@
 #include <mwg/std/cstdint>
 #include <mwg/bits/cxx.inttype.h>
 #pragma%x end_check
-#ifndef MWG_BITS_CXX_CHAR_T_H
-#define MWG_BITS_CXX_CHAR_T_H
+#ifndef MWG_BITS_CXX_INTTYPE_H
+#define MWG_BITS_CXX_INTTYPE_H
 #include <mwg/std/def.h>
 #include <mwg/std/type_traits>
 namespace mwg {
