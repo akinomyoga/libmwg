@@ -3,7 +3,7 @@
 #define MWG_STDM_ALGORITHM
 #include <algorithm>
 #include <iterator>
-#include <mwg/defs.h>
+#include <mwg/std/def.h>
 #pragma%include "../impl/ManagedTest.pp"
 #pragma%x begin_check
 #include <cstdio>
@@ -977,7 +977,7 @@ namespace stdm {
 #endif /* end of !defined(MWG_STD_CXX11) */
 
 #ifndef MWG_STD_CXX14
-# include <mwg/defs.h>
+# include <mwg/std/def.h>
 # include <mwg/std/utility>
 # include <mwg/std/functional>
 

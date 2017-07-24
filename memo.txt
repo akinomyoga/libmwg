@@ -484,6 +484,23 @@ C++
     掛け算や割り算、ビット演算なども提供しなければならないからである。
     というより、整数型を新しく追加するのと同じことをしなければならない。
 
+    動作を調べてみると char32_t は何らかの算術演算に巻き込まれると通常の整数型に帰着する様だ。
+
+    #include <iostream>
+    template<typename T> void f(T) {std::cout << __PRETTY_FUNCTION__ << std::endl;}
+    int main() {
+      char32_t a = U'A';
+      f(a);
+      f(+a);
+      return 0;
+    }
+
+    規格 [conv.prom]/2 によると char32_t は
+    int, unsigned int, long, unsigned long, long long, unsigned long long, uint_least32_t
+    の中で一番最初に char32_t の値を全て表現可能な整数型に変換される様だ。
+
+
+
 
 2017-07-06
 

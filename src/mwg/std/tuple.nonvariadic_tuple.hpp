@@ -3,7 +3,7 @@
 #define MWG_STDM_TUPLE_NONVARIADIC_TUPLE_INL
 #define MWG_STDM_TUPLE_EMULATED
 #include <cstddef>
-#include <mwg/defs.h>
+#include <mwg/std/def.h>
 #include <mwg/std/type_traits>
 #include <mwg/std/utility>
 #pragma%expand

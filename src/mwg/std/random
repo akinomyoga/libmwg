@@ -1,7 +1,7 @@
 // -*- mode: c++; coding: utf-8 -*-
 #ifndef MWG_STDM_RANDOM
 #define MWG_STDM_RANDOM
-#include <mwg/defs.h>
+#include <mwg/std/def.h>
 #pragma%include "../impl/ManagedTest.pp"
 #pragma%x begin_check
 #include <iostream>

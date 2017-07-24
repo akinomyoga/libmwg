@@ -2,7 +2,7 @@
 #pragma%include "impl/va_args.pp"
 #ifndef MWG_CONCEPT_H
 #define MWG_CONCEPT_H
-#include "mwg/defs.h"
+#include <mwg/std/def.h>
 namespace mwg {
   struct unknown_type {int d;};
   struct invalid_type {};

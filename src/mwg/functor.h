@@ -61,6 +61,11 @@ struct Str {
 #include "funcsig.h"
 #include "functor.proto.h"
 
+#include <mwg/std/def.h>
+#ifndef mwg_static_assert
+# error mwg_static_assert undefined
+#endif
+
 #define mwg_attribute(X) mwg_attribute_##X
 #if MWGCONF_GCC_VER > 30300
 # define mwg_attribute_may_alias __attribute__((may_alias))

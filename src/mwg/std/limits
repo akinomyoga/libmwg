@@ -2,7 +2,7 @@
 #ifndef MWG_STDM_LIMITS
 #define MWG_STDM_LIMITS
 #include <limits>
-#include <mwg/defs.h>
+#include <mwg/std/def.h>
 
 /*?mconf
  * X -t'std::numeric_limits<T>::lowest()'     -oMWGCONF_HAS_STD_NUMERIC_LIMITS_LOWEST        -h'limits' "int a = std::numeric_limits<double>::lowest();"

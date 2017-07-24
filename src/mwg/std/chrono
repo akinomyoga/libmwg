@@ -1,7 +1,8 @@
 // -*- mode: c++; coding: utf-8 -*-
 #ifndef MWG_STDM_CHRONO
 #define MWG_STDM_CHRONO
-#include <mwg/defs.h>
+#include <mwg/std/def.h>
+#include <mwg/std/cstdint>
 //HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 //?mconf H chrono
 //
@@ -17,9 +18,9 @@
 #else
 # define MWG_STDM_CHRONO_EMULATED
 # include <limits>
-# include "ratio"
-# include "type_traits"
-# include "limits"
+# include <mwg/std/ratio>
+# include <mwg/std/type_traits>
+# include <mwg/std/limits>
 # include <mwg/bits/mpl.integer.h>
 //-----------------------------------------------------------------------------
 // declarations
@@ -187,12 +188,12 @@ namespace chrono_detail {
     //   return D1(R1(d.count() * ratio::num / ratio::den));
   }
 
-  typedef duration<mwg::i8t, mwg::stdm::nano>         nanoseconds;
-  typedef duration<mwg::i8t, mwg::stdm::micro>        microseconds;
-  typedef duration<mwg::i8t, mwg::stdm::milli>        milliseconds;
-  typedef duration<mwg::i8t, mwg::stdm::ratio<1> >    seconds;
-  typedef duration<mwg::i4t, mwg::stdm::ratio<60> >   minutes;
-  typedef duration<mwg::i4t, mwg::stdm::ratio<3600> > hours;
+  typedef duration<stdm::int_fast64_t, mwg::stdm::nano>         nanoseconds;
+  typedef duration<stdm::int_fast64_t, mwg::stdm::micro>        microseconds;
+  typedef duration<stdm::int_fast64_t, mwg::stdm::milli>        milliseconds;
+  typedef duration<stdm::int_fast64_t, mwg::stdm::ratio<1> >    seconds;
+  typedef duration<stdm::int_fast32_t, mwg::stdm::ratio<60> >   minutes;
+  typedef duration<stdm::int_fast32_t, mwg::stdm::ratio<3600> > hours;
 
   template<typename R1, typename P1, typename R2, typename P2>
   typename mwg::stdm::common_type<duration<R1, P1>, duration<R2, P2> >::type
@@ -572,6 +573,7 @@ namespace chrono {
 //HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 #endif
 #pragma%x begin_check
+#include <mwg/defs.h>
 #include <mwg/except.h>
 #include <mwg/std/chrono>
 

@@ -2,7 +2,7 @@
 #ifndef MWG_STDM_CWCTYPE
 #define MWG_STDM_CWCTYPE
 #include <cwctype>
-#include <mwg/defs.h>
+#include <mwg/std/def.h>
 
 /*?lwiki
 :@class wint_t;

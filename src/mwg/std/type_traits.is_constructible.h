@@ -12,7 +12,7 @@
 #  define MWG_STDM_TYPE_TRAITS_IS_CONSTRUCTIBLE_H_tr1_available
 # endif
 #endif
-#include <mwg/defs.h>
+#include <mwg/std/def.h>
 #include <mwg/concept.h>
 namespace mwg {
 namespace stdm {

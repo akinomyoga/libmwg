@@ -13,7 +13,7 @@
 #include <climits>
 #include <algorithm>
 #include <utility>
-#include <mwg/defs.h>
+#include <mwg/std/def.h>
 #include <mwg/std/type_traits>
 
 #pragma%include "../impl/ManagedTest.pp"
