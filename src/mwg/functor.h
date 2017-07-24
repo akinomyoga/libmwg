@@ -61,6 +61,11 @@ struct Str {
 #include "funcsig.h"
 #include "functor.proto.h"
 
+#include <mwg/std/def.h>
+#ifndef mwg_static_assert
+# error mwg_static_assert undefined
+#endif
+
 #define mwg_attribute(X) mwg_attribute_##X
 #if MWGCONF_GCC_VER > 30300
 # define mwg_attribute_may_alias __attribute__((may_alias))
@@ -445,11 +450,11 @@ namespace functor_detail {
     template<typename F, typename Case>
     void init(const F& f) {
 #if mwg_has_feature(cxx_static_assert)
-      static_assert(sizeof(Case) <= sizeof(this->buffer), "sizeof(Case) too large");
+      mwg_static_assert(sizeof(Case) <= sizeof(this->buffer), "sizeof(Case) too large");
 #else
-      static_assert(sizeof(Case) <= sizeof(mwg::declval<functor_ref>().buffer), "sizeof(Case) too large");
+      mwg_static_assert(sizeof(Case) <= sizeof(mwg::declval<functor_ref>().buffer), "sizeof(Case) too large");
 #endif
-      static_assert((mwg::stdm::alignment_of<Case>::value <= mwg::stdm::alignment_of<void*>::value), "alignof(Case) too large");
+      mwg_static_assert((mwg::stdm::alignment_of<Case>::value <= mwg::stdm::alignment_of<void*>::value), "alignof(Case) too large");
       this->h = new(this->buffer) Case(f);
     }
   public:

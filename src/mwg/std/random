@@ -1,7 +1,7 @@
 // -*- mode: c++; coding: utf-8 -*-
 #ifndef MWG_STDM_RANDOM
 #define MWG_STDM_RANDOM
-#include <mwg/defs.h>
+#include <mwg/std/def.h>
 #pragma%include "../impl/ManagedTest.pp"
 #pragma%x begin_check
 #include <iostream>
@@ -25,7 +25,7 @@ namespace stdm {
 
   template<typename UIntType, UIntType a, UIntType c, UIntType m>
   class linear_congruential_engine {
-    static_assert(a < m && c < m, "C++ [rand.eng.lcong]/3");
+    mwg_static_assert(a < m && c < m, "C++ [rand.eng.lcong]/3");
   public:
     typedef UIntType result_type;
   private:

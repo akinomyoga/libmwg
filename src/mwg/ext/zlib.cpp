@@ -15,7 +15,7 @@
 namespace mwg{
 namespace bio{
 namespace{
-  static_assert(Z_OK==0,"Z_OK is assumed to be 0, or redefinition of the error codes is required.");
+  mwg_static_assert(Z_OK==0,"Z_OK is assumed to be 0, or redefinition of the error codes is required.");
 
   struct ZlibEncodeData{
     int ret;

@@ -2,7 +2,7 @@
 #ifndef MWG_STDM_CCTYPE
 #define MWG_STDM_CCTYPE
 #include <cctype>
-#include <mwg/defs.h>
+#include <mwg/std/def.h>
 
 /*?lwiki
 :@fn int mwg::stdm::iscntrl(int);

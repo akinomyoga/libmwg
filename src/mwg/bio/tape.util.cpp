@@ -134,7 +134,7 @@ int Base64Encode(const byte*& src0,const byte* srcN,byte*& dst0,byte* dstN,void*
 //                                           "0123456789_123456789_123456789_123456789_123456789_123456789_123"
   static const char* const Base64EncodeTable="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
   int Base64Encode(const byte*& src0,const byte*const srcN,byte*& dst0,byte*const dstN,void*& state_){
-    static_assert(sizeof(void*)>=2,"the size of the void* pointer is assumed to be larger than 2 bytes.");
+    mwg_static_assert(sizeof(void*)>=2,"the size of the void* pointer is assumed to be larger than 2 bytes.");
     const byte* src=src0;
     byte* dst=dst0;
     byte& buff=(&reinterpret_cast<byte&>(state_))[0];
@@ -304,7 +304,7 @@ int Base64Encode(const byte*& src0,const byte* srcN,byte*& dst0,byte* dstN,void*
   };
 
   int Base64Decode(const byte*& src0,const byte*const srcN,byte*& dst0,byte*const dstN,void*& state_){
-    static_assert(sizeof(void*)>=sizeof(Base64Decoder),"the size of the void* pointer is assumed to be larger than class Base64Decoder.");
+    mwg_static_assert(sizeof(void*)>=sizeof(Base64Decoder),"the size of the void* pointer is assumed to be larger than class Base64Decoder.");
     Base64Decoder& state=reinterpret_cast<Base64Decoder&>(state_);
 
     if(src0<srcN){

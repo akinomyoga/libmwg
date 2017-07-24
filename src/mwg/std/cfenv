@@ -32,7 +32,7 @@ namespace stdm {
 #else
 # define MWG_STDM_CFENV_EmulatedFenv
 # include <cerrno>
-# include <mwg/defs.h>
+# include <mwg/std/def.h>
 
 namespace mwg {
 namespace stdm {
@@ -64,7 +64,7 @@ namespace stdm {
 #  define FE_ALL_EXCEPT (FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW | FE_UNDERFLOW | FE_INEXACT)
 # endif
 
-  static_assert(
+  mwg_static_assert(
     (((FE_INVALID | FE_DIVBYZERO) & (FE_OVERFLOW | FE_UNDERFLOW | FE_INEXACT))
       | (FE_INVALID & FE_DIVBYZERO)
       | ((FE_OVERFLOW | FE_UNDERFLOW) & FE_INEXACT)
@@ -84,7 +84,7 @@ namespace stdm {
 #  define FE_TOWARDZERO (3 << 10)
 # endif
 
-  static_assert(
+  mwg_static_assert(
     FE_TONEAREST != FE_DOWNWARD &&
     FE_TONEAREST != FE_UPWARD &&
     FE_TONEAREST != FE_TOWARDZERO &&

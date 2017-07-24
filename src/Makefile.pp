@@ -14,12 +14,15 @@ MAKEFLAGS += --no-builtin-rules
 Makefile: Makefile.pp
 	$(BASE)/mmake/mwg_pp.awk $< > $@ || mv $@ $@.error
 
-#%x AddCxxHeader.r|%file%|mwg/defs.h|
-#%x AddCxxHeader.r|%file%|mwg/except.h|
+#%x AddCxxHeader.r|%file%|mwg/std/def.h|
+#%x AddCxxHeader.r|%file%|mwg/std/cstdint|
 #%x AddCxxHeader.r|%file%|mwg/concept.h|
-#%x AddCxxHeader.r|%file%|mwg/std/type_traits|
 #%x AddCxxHeader.r|%file%|mwg/std/type_traits.is_constructible.h|
 #%x AddCxxHeader.r|%file%|mwg/std/type_traits.is_convertible.inl|
+#%x AddCxxHeader.r|%file%|mwg/std/type_traits|
+#%x AddCxxHeader.r|%file%|mwg/bits/cxx.inttype.h|
+#%x AddCxxHeader.r|%file%|mwg/defs.h|
+#%x AddCxxHeader.r|%file%|mwg/except.h|
 
 #%x AddCxxHeader.r|%file%|mwg/bits/mpl.integer.h|
 #%x AddCxxHeader.r|%file%|mwg/bits/mpl.util.h|
@@ -33,7 +36,6 @@ Makefile: Makefile.pp
 #%x AddCxxHeader.r|%file%|mwg/std/cfenv|
 #%x AddCxxHeader.r|%file%|mwg/std/cmath|
 #%x AddCxxSource.r|%file%|mwg/std/cmath.impl.cpp|
-#%x AddCxxHeader.r|%file%|mwg/std/cstdint|
 #%x AddCxxHeader.r|%file%|mwg/std/cctype|
 #%x AddCxxHeader.r|%file%|mwg/std/cwctype|
 #%x AddCxxHeader.r|%file%|mwg/std/initializer_list|

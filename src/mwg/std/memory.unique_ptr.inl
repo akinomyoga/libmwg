@@ -2,7 +2,7 @@
 #include <memory>
 #include <algorithm>
 #include <utility>
-#include <mwg/defs.h>
+#include <mwg/std/def.h>
 #include <mwg/except.h>
 #include "type_traits"
 namespace mwg {

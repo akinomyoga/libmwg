@@ -331,9 +331,9 @@ mwg_constexpr14 int ntz_impl_frexp(Unsigned value) mwg_noexcept {
 
 template<typename Unsigned, typename Float, typename Rep>
 int ndigits_impl_float_(Unsigned value) mwg_noexcept {
-  static_assert(std::numeric_limits<Unsigned>::digits <= std::numeric_limits<Float>::max_exponent, "integer too big");
-  static_assert(std::numeric_limits<Float>::is_iec559, "Float is not a ISO IEC 559 (IEEE 754) floating-point number");
-  static_assert(sizeof(Float) == sizeof(Rep), "mismatch in sizes of Float and Rep");
+  mwg_static_assert(std::numeric_limits<Unsigned>::digits <= std::numeric_limits<Float>::max_exponent, "integer too big");
+  mwg_static_assert(std::numeric_limits<Float>::is_iec559, "Float is not a ISO IEC 559 (IEEE 754) floating-point number");
+  mwg_static_assert(sizeof(Float) == sizeof(Rep), "mismatch in sizes of Float and Rep");
   union {
     Float flt;
     Rep rep;
@@ -344,9 +344,9 @@ int ndigits_impl_float_(Unsigned value) mwg_noexcept {
 template<typename Unsigned, typename Float, typename Rep>
 int ntz_impl_float_(Unsigned value) mwg_noexcept {
   if (value == 0) return std::numeric_limits<Unsigned>::digits;
-  static_assert(std::numeric_limits<Unsigned>::digits <= std::numeric_limits<Float>::max_exponent, "integer too big");
-  static_assert(std::numeric_limits<Float>::is_iec559, "Float is not a ISO IEC 559 (IEEE 754) floating-point number");
-  static_assert(sizeof(Float) == sizeof(Rep), "mismatch in sizes of Float and Rep");
+  mwg_static_assert(std::numeric_limits<Unsigned>::digits <= std::numeric_limits<Float>::max_exponent, "integer too big");
+  mwg_static_assert(std::numeric_limits<Float>::is_iec559, "Float is not a ISO IEC 559 (IEEE 754) floating-point number");
+  mwg_static_assert(sizeof(Float) == sizeof(Rep), "mismatch in sizes of Float and Rep");
   union {Float flt; Rep rep;} const data = {value & -value};
   return (std::numeric_limits<Float>::min_exponent - 2) + (data.rep >> (std::numeric_limits<Float>::digits - 1));
 }

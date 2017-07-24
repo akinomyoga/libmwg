@@ -1,7 +1,7 @@
 // -*- mode: c++; coding: utf-8 -*-
 #ifndef MWG_STDM_TYPE_TRAITS
 #define MWG_STDM_TYPE_TRAITS
-#include <mwg/defs.h>
+#include <mwg/std/def.h>
 /*?mconf
  *
  * # C++11, C++TR1
@@ -94,6 +94,7 @@
 
 #pragma%include ../impl/VariadicMacros.pp
 #pragma%x begin_check
+#include <mwg/defs.h>
 #include <mwg/except.h>
 #include <mwg/std/cstdint>
 #include <mwg/std/type_traits>

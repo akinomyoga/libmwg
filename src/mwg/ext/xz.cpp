@@ -11,7 +11,7 @@
 namespace mwg{
 namespace bio{
 namespace{
-  static_assert(LZMA_OK==0,"LZMA_OK is assumed to be 0, or redefinition of the error codes is required.");
+  mwg_static_assert(LZMA_OK==0,"LZMA_OK is assumed to be 0, or redefinition of the error codes is required.");
 
   struct XzEncoder{
     int ret;

@@ -2,7 +2,7 @@
 #ifndef MWG_STDM_FUNCTIONAL
 #define MWG_STDM_FUNCTIONAL
 #include <functional>
-#include <mwg/defs.h>
+#include <mwg/std/def.h>
 #ifndef MWG_STD_CXX14
 
 // C++14
