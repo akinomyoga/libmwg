@@ -166,10 +166,10 @@ namespace concept_detail {
 #if defined(_MSC_VER) && mwg_has_feature(cxx_decltype)
   /**
    * @def mwg_concept_is_valid_expression_vc2010A(name,T,X,...)
-   * vc2010 用の mwg_concept_is_valid_expression(name,T,X,...) の代替実装です。
-   * 一部の形式の式に対してのみ正しく動作する事が確認されています。
+   * vc2010 用の mwg_concept_is_valid_expression(name,T,X,...) の代替実装。
+   * 一部の形式の式に対してのみ正しく動作する事が確認されている。
    *
-   * 正しく判定できる式とできない式の一覧は以下になります。
+   * 正しく判定できる式とできない式の一覧:
    * - OK T() + U(),            vc2010
    * - OK T().operator()(A1()), vc2010
    * - OK T().get(A1()),        vc2010
@@ -190,20 +190,20 @@ namespace concept_detail {
   }                                                                        /**/
 #endif
 
-#if defined(_MSC_VER)&&(_MSC_VER>=1400)
+#if defined(_MSC_VER) && (_MSC_VER >= 1400)
   /**
    * @def mwg_concept_is_valid_expression_vc2008s(name,T,X,...)
-   * vc2008 用の mwg_concept_is_valid_expression(name,T,X,...) の代替実装です。
-   * 一部の形式の式に対してのみ正しく動作する事が確認されています。
+   * vc2008 用の mwg_concept_is_valid_expression(name,T,X,...) の代替実装。
+   * 一部の形式の式に対してのみ正しく動作する事が確認されている。
    *
-   * 正しく判定できる式とできない式の一覧は以下になります。
+   * 正しく判定できる式とできない式の一覧:
    * - OK T() + U(),            vc2008-2010
    * - OK T().operator()(A1()), vc2008-2010
    * - OK T().get(A1()),        vc2008-2010
    * - OK T().operator&(),      vc2008-2010
    * - OK T().operator+(),      vc2008-2010
    * - NG + T(),                vc2008-2010
-   *   次の様なコンパイルエラーを生じます。
+   *   次のコンパイルエラーになる。
    *   error C2675: 単項演算子 '-' : 'T_' は、この演算子または定義済の演算子に
    *   適切な型への変換の定義を行いません。(新しい動作; ヘルプを参照)
    * - OK & T(),                vc2008-2010

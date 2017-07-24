@@ -81,7 +81,7 @@ namespace stdm {
 
         if (nrest <= m_nbit) {
           m_nbit -= nrest;
-          return (Unsigned) (m_bits >> m_nbit) & ((Unsigned) 1 << nbit) - 1;
+          return (Unsigned) (m_bits >> m_nbit) & (((Unsigned) 1 << nbit) - 1);
         }
 
         Unsigned ret = m_bits;
@@ -105,7 +105,7 @@ namespace stdm {
 
         m_nbit = ngbit;
         m_bits = gbits;
-        return ret & ((Unsigned) 1 << nbit) - 1;
+        return ret & (((Unsigned) 1 << nbit) - 1);
       }
 
     };
@@ -169,7 +169,7 @@ namespace stdm {
 
 #pragma%x begin_test
   struct rand_generator {
-    typedef int result_type;
+    typedef mwg::u4t result_type;
     static int min() {return 0;}
     static int max() {return RAND_MAX;}
     result_type operator()() {return rand();}

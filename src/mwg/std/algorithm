@@ -1084,7 +1084,7 @@ namespace stdm {
 
 #pragma%x begin_test
   struct rand_generator {
-    typedef int result_type;
+    typedef mwg::u4t result_type;
     static int min() {return 0;}
     static int max() {return RAND_MAX;}
     result_type operator()() {return rand();}
