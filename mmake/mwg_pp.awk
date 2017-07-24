@@ -1593,7 +1593,7 @@ function dependency_generate(output, target, is_phony, _i, _iMax, _line, _file){
       for (_i = 0; _i < m_dependency_count; _i++) {
         _file = m_dependency[_i];
         gsub(/[[:space:]]/, "\\\\&", _file);
-        printf("%s:\n\n", _file);
+        printf("%s:\n\n", _file) > output;
       }
     }
   }
