@@ -20,7 +20,7 @@ Makefile: Makefile.pp
 #%x AddCxxHeader.r|%file%|mwg/std/type_traits.is_constructible.h|
 #%x AddCxxHeader.r|%file%|mwg/std/type_traits.is_convertible.inl|
 #%x AddCxxHeader.r|%file%|mwg/std/type_traits|
-# #%x AddCxxHeader.r|%file%|mwg/bits/cxx.char_t.h|
+#%x AddCxxHeader.r|%file%|mwg/bits/cxx.inttype.h|
 #%x AddCxxHeader.r|%file%|mwg/defs.h|
 #%x AddCxxHeader.r|%file%|mwg/except.h|
 

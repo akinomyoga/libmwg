@@ -1,8 +1,4 @@
 // -*- mode: c++; coding: utf-8 -*-
-#pragma%include "impl/ManagedTest.pp"
-#pragma%x begin_check
-#include <mwg/defs.h>
-#pragma%x end_check
 #ifndef MWG_DEFS_H
 #define MWG_DEFS_H
 
@@ -20,7 +16,7 @@
 
 #include <mwg/std/cstdint> /* requires mwg_static_assert */
 
-//#include <mwg/bits/cxx.char_t.h>
+#include <mwg/bits/cxx.inttype.h>
 
 /* 以下は元々コメントの区切りに使っていた物の一覧だが現在は使用に消極的である。
  *
@@ -71,64 +67,26 @@ namespace mwg {
 //  character types
 //-----------------------------------------------------------------------------
 namespace mwg {
-  // defined in <mwg/char.h>
-  template<typename T, int CP = 0>
-  struct char_data;
-
-  template<typename T, int CP = 0>
-  class char_t;
-
-#pragma%x begin_test
-  void test() {
-    typedef mwg::cxx::char_detail::char_t<mwg::stdm::uint16_t> c2t;
-
-    c2t value = '0';
-    mwg_check(value == value);
-    mwg_check(value == (int) '0');
-    mwg_check((int) '0' == value);
-    mwg_check(value == '0');
-    mwg_check('0' == value);
-
-    c2t v2 = value;
-    v2 += value;
-    v2 += '0';
-    mwg_check(value + value == 2 * value);
-    mwg_check(value + 1 == '1');
-    mwg_check(1 + value == '1');
-
-    mwg_check(0);
-  }
-#pragma%x end_test
-
 #ifdef _MSC_VER
   // VC では wchar_t, char16_t, char32_t は符号無し整数の typedef
   typedef char           cAt;
   typedef __wchar_t      cWt;
   typedef unsigned short _cWt;
-  typedef char_t<u1t>    c1t;
-  typedef char_t<u2t>    c2t;
-  typedef char_t<u4t>    c4t;
-# define MWG_TA(x) x
-# define MWG_TW(x) L##x
+  typedef mwg::cxx::inttype<u1t, struct c1t_tag> c1t;
+  typedef mwg::cxx::inttype<u2t, struct c2t_tag> c2t;
+  typedef mwg::cxx::inttype<u4t, struct c4t_tag> c4t;
 #elif defined(MWGCONF_STD_CHAR16_T)
-  typedef char           cAt; // machine native
-  typedef wchar_t        cWt; // machine native wide
-  typedef char_t<u1t>    c1t; // utf-8
-  typedef char16_t       c2t; // utf-16
-  typedef char32_t       c4t; // utf-32
-# define MWG_TA(x) x
-# define MWG_TW(x) L##x
-# define MWG_T1(x) u8##x
-# define MWG_T2(x) u##x
-# define MWG_T4(x) U##x
+  typedef char    cAt; // implementation native
+  typedef wchar_t cWt; // implementation native wide
+  typedef mwg::cxx::inttype<u1t, struct c1t_tag> c1t; // utf-8
+  typedef char16_t c2t; // utf-16
+  typedef char32_t c4t; // utf-32
 #else
-  typedef char           cAt;
-  typedef wchar_t        cWt;
-  typedef char_t<u1t>    c1t;
-  typedef char_t<u2t>    c2t;
-  typedef char_t<u4t>    c4t;
-# define MWG_TA(x) x
-# define MWG_TW(x) L##x
+  typedef char    cAt;
+  typedef wchar_t cWt;
+  typedef mwg::cxx::inttype<u1t, struct c1t_tag> c1t;
+  typedef mwg::cxx::inttype<u2t, struct c2t_tag> c2t;
+  typedef mwg::cxx::inttype<u4t, struct c4t_tag> c4t;
 #endif
 
 }
@@ -137,14 +95,12 @@ namespace mwg {
 // forward declaration
 //-----------------------------------------------------------------------------
 namespace mwg {
+  // defined in <mwg/char.h>
+  template<typename T, int CP = 0> struct char_data;
+  template<typename T, int CP = 0> class char_t;
+
   // defined in <mwg/except.h>
   class except;
 }
 
 #endif
-#pragma%x begin_check
-int main() {
-  managed_test::run_tests();
-  return 0;
-}
-#pragma%x end_check
