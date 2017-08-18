@@ -1044,20 +1044,23 @@ namespace stdm {
     stdm::is_base_of<std::random_access_iterator_tag, typename std::iterator_traits<OutputIterator>::iterator_category>::value,
     OutputIterator>::type
   sample(InputIterator first, InputIterator last, OutputIterator out, Distance n, UniformRandomBitGenerator mwg_forward_rvalue g_) {
-    typedef stdm::uniform_int_distribution<std::size_t> dist_t;
-    UniformRandomBitGenerator& g = const_cast<typename stdm::remove_cv<UniformRandomBitGenerator>::type&>(g_);
     if (n <= 0) return out;
 
     OutputIterator it = out;
-    std::size_t i = 0;
-    for (; i < (std::size_t) n; i++) {
+    Distance i = 0;
+    for (; i < n; i++) {
       if (first == last) return it;
       *it++ = *first++;
     }
 
+    typedef typename stdm::remove_reference<UniformRandomBitGenerator>::type URBG;
+    URBG& g = const_cast<URBG&>(g_);
+    typedef stdm::uniform_int_distribution<Distance> dist_t;
+    typedef typename dist_t::param_type param_t;
     dist_t dist;
+
     for (; first != last; ++first) {
-      std::size_t const j = dist(g, dist_t::param_type(0, i++));
+      Distance const j = dist(g, param_t(0, i++));
       if (j < n) out[j] = *first;
     }
     return out + n;
@@ -1069,13 +1072,16 @@ namespace stdm {
     stdm::is_base_of<std::forward_iterator_tag, typename std::iterator_traits<ForwardIterator>::iterator_category>::value,
     OutputIterator>::type
   sample(ForwardIterator first, ForwardIterator last, OutputIterator out, Distance n, UniformRandomBitGenerator mwg_forward_rvalue g_) {
-    typedef stdm::uniform_int_distribution<Distance> dist_t;
-    UniformRandomBitGenerator& g = const_cast<typename stdm::remove_cv<UniformRandomBitGenerator>::type&>(g_);
     if (n <= 0) return out;
 
+    typedef typename stdm::remove_reference<UniformRandomBitGenerator>::type URBG;
+    URBG& g = const_cast<URBG&>(g_);
+    typedef stdm::uniform_int_distribution<Distance> dist_t;
+    typedef typename dist_t::param_type param_t;
     dist_t dist;
-    for (Distance size = std::distance(first, last); size > n; --size, ++first) {
-      if (dist(g, typename dist_t::param_type(0, size - 1)) >= n) continue;
+
+    for (Distance size = (Distance) std::distance(first, last); size > n; --size, ++first) {
+      if (dist(g, param_t(0, size - 1)) >= n) continue;
       *out++ = *first;
       if (--n == 0) return out;
     }
