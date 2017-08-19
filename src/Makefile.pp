@@ -36,6 +36,7 @@ Makefile: Makefile.pp
 #%x AddCxxHeader.r|%file%|mwg/std/cfenv|
 #%x AddCxxHeader.r|%file%|mwg/std/cmath|
 #%x AddCxxSource.r|%file%|mwg/std/cmath.impl.cpp|
+#%x AddCxxHeader.r|%file%|mwg/std/cinttypes|
 #%x AddCxxHeader.r|%file%|mwg/std/cctype|
 #%x AddCxxHeader.r|%file%|mwg/std/cwctype|
 #%x AddCxxHeader.r|%file%|mwg/std/initializer_list|
@@ -93,6 +94,7 @@ Makefile: Makefile.pp
 #%x AddCxxHeader.r|%file%|mwg/bio/filter.inl|
 #%x AddCxxSource.r|%file%|mwg/bio/tape.util.cpp|
 #%x AddCxxSource.r|%file%|mwg/bio/ttx2.cpp|
+#%x AddCxxHeader.r|%file%|mwg/bio/mwt_i3.h|
 
 #%x AddCxxHeader.r|%file%|mwg/bio/mwb_header.h|
 #%x AddCxxHeader.r|%file%|mwg/bio/mwb_format.h|
