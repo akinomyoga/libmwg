@@ -37,29 +37,89 @@ C++
   ToDo of mwg/fun
 ------------------------------------------------------------------------------
 
+2017-08-19
+
+* mwg/fun: 早々に決着をつけたい。
+
+  先ず mwg/functor.h を廃止する前に最低限対応するべき機能と、
+  後々ゆっくり実装していけば良い機能を分別したい。
+
+  取り敢えず mwg/functor.h を廃止する前に対応する機能について列挙すれば良い。
+
+  今何が問題になっているのかというと、
+  どのような機能に対応したいのかということが不明瞭なことである気がする。
+
+    元々は functor.h で提供されているテストに対して、
+    それと等価なテストに通るようにしたいということだった。
+    しかし、テストの中には要求仕様に定義するものとは限らず、
+    専ら動作検証のために細かいテストをしているものも含まれる。
+    また、functor.h の反省から仕様が大きく変わっているという問題もある。
+    これによって、大枠として対応したいインターフェイスというものが不明瞭になっている。
+
+    従って、ここで改めて (最低限の) 欲しいインターフェイスについて整理し、
+    それについて仕様を完結に示す程度のサンプルコードをテストに加えて、
+    コンパイルが通ることを確かめる程度のチェックとするのが良い。
+    この仕様を示すサンプルコードではコメントをつけて、
+    それ自体が簡単な説明書を為すようにするのが良い。
+
+
+* mwg/fun: [付録機能] 関数ポインタ・関数参照などへの変換関数が定義されているクラスの対応?
+
+  そのクラスが持っている変換関数をどのようにして調べるのか。
+  特に変換先の型が分かっている場合には良いが、
+  任意の関数ポインタ・関数参照・関数ポインタ参照の場合には難しい。
+
 2017-02-13
 
-* mwg/fun: canonical_parameter を用いた operator()() 探索。
+* mwg/fun: [付録機能] mwg::fun_detail::type_traits::canonical_parameter を用いた operator()() 探索。
+
+  Note: canonical_parameter は現在定義はされているが、誰も使用していない。
+  経緯は覚えていないが、今後 operator()() による探索を行う時に使うために予め定義されたものであろう。
+
+  % 所で、現在はどのように処理をしているか確認しておく必要がある。
+  % 関数呼び出し演算子による判定は has_single_operator_functor 及び、
+  % can_be_called_as で行われている。has_single_operator_functor は使用されていない。
+  % can_be_called_as は functor_traits_rule<traits_priority_operator, F, S> の実装で使われている
+  % (具体的な実装は function_call_operator_traits::_switch<F, S> で与えられる)。
+  % 
+  % 従って関手の判定に関しては具体的な opperator()() の取得を必要としていない。
+  % つまり operator()() を探索しなくても処理ができるということ?
+  % と思ったが decltype/modern sizeof がない場合には can_be_called_as の実装は、
+  % check_function_call_operator に fallback している。
+  % この check_function_call_operator は具体的に operator()() を探索しているが、
+  % 現在の実装は単純に要求される signature の関数がないかどうか確認するものである。
+  % 
+  % この項目は check_function_call_operator の実装をよりちゃんとした物にする
+  % という目的で建てられた物であろう。
+
+  この項目が具体的にどういうことなのかについての記述が抜けていたが、これは要するに
+  mwg::fun_detail::type_traits::can_be_called_as_detail::check_function_call_operator
+  の実装をもっとちゃんとしたものにしたいという話である。
 
 * mwg/fun: functor を提供する箇所は何処にする?
 
-  実際に調べてみると functor を使っているのは xprintf.h しかない。
-  (それでも確かに functor を使っている箇所はあるということに注意する)。
-  なので、functor は mwg/fun.h で直接対応するのではなくて、
-  別のヘッダで提供しても良いのではないだろうか。
+  % 実際に調べてみると functor を使っているのは xprintf.h しかない。
+  % (それでも確かに functor を使っている箇所はあるということに注意する)。
+  % なので、functor は mwg/fun.h で直接対応するのではなくて、
+  % 別のヘッダで提供しても良いのではないだろうか。
+  %
+  % 但し、functor を実現するために functor_traits に大幅な変更を加えなければならないかもしれない。
+  % もし functor_traits に対する大幅な変更が大半を占めるのだとしたらば、
+  % やはり mwg/fun.h の中におまけとして functor を入れてしまった方が自然な気がする。
+  %
+  % byref_functor と byval_functor をどの様に名付けるか?
+  % 面倒なので functor<void (int)> と functor<void (&)(int)> で区別するとか。
+  % 既定では byval_functor という事で良い。
 
-  但し、functor を実現するために functor_traits に大幅な変更を加えなければならないかもしれない。
-  もし functor_traits に対する大幅な変更が大半を占めるのだとしたらば、
-  やはり mwg/fun.h の中におまけとして functor を入れてしまった方が自然な気がする。
+  取り敢えず mwg/fun.h の内部に試験的に実装していき、
+  肥大化してきたら別のヘッダに移動するという方法で問題ない気がする。
 
-  byref_functor と byval_functor をどの様に名付けるか?
-  面倒なので functor<void (int)> と functor<void (&)(int)> で区別するとか。
-  既定では byval_functor という事で良い。
-
-* mwg/fun: auto hoge = mwg::delegate<int (A, B)>(obj, &Class::do_action);
+* mwg/fun: [付録機能] auto hoge = mwg::delegate<int (A, B)>(obj, &Class::do_action);
 
   の様な関数を提供しても良いのではないだろうか。
   mwg::delegate ではなくて mwg::fun という名前を使い回す方が良さそう。
+
+  或いは mwg::fun で部分適用もできるようにしてしまうという考え方も。
 
 * mwg/fun: 既定の関数オブジェクト及び多重定義
 
@@ -107,6 +167,14 @@ C++
   (mwg/fun (もしくは前身の mwg/functor) は、
   できるだけ効率的に実装したいが毎回自分で実装するのは面倒な仕組み、
   というのの共通部分を括りだしてまとめた物を作ることである。)
+
+
+  関数オブジェクトを adapter を通して使う場合には、
+  adapter は直接その関数オブジェクトへの参照にする。
+  これによって可変長引数の関数呼び出し演算子を含めて多重定義された状態で公開できる。
+  一方で関数オブジェクトを mwg::functor<> などに型消去して利用する場合には、
+  可変長引数を渡すことはできないので困る。
+  可変長引数は使えないので固定の引数しか許さない様にする?
 
 2017-02-11
 

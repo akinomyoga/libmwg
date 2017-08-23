@@ -32,6 +32,13 @@ namespace fun_detail {
 
     /*?lwiki
      * @typedef typename ==canonical_parameter==<T>::type;
+     *
+     * 型 `T` の実引数を受け取るのに適した仮引数の型を取得します。
+     * `T = Scalar const&` の場合には `Scalar` を仮引数の型とします。
+     * `T` がクラス・共用体の場合には `T const&` を仮引数の型とします。
+     * `T` が配列型・関数型の場合には `typename decay<T>::type` を仮引数の型とします。
+     * それ以外 (ポインタ、参照、算術型、列挙型) の場合は `T` を仮引数の型とします。
+     *
      */
     template<typename T> struct canonical_parameter: stdm::conditional<
       (stdm::is_lvalue_reference<T>::type &&
@@ -40,8 +47,10 @@ namespace fun_detail {
         stdm::is_scalar<typename stdm::remove_reference<T>::type>::type),
       typename stdm::remove_const<typename stdm::remove_reference<T>::type>::type,
       typename stdm::conditional<
-        stdm::is_object<T>::value && !stdm::is_scalar<T>::type, typename stdx::add_const_reference<T>::type,
-        T>::type> {};
+        stdm::is_class<T>::value || stdm::is_union<T>::type, typename stdx::add_const_reference<T>::type,
+        typename stdm::conditional<
+          stdm::is_array<T>::value || stdm::is_function<T>::value, typename stdm::decay<T>::type,
+          T>::type>::type> {};
 
     /*?lwiki
      * @var bool ==is_contravariant==<typename From, typename To>::value;
@@ -173,6 +182,7 @@ namespace fun_detail {
      * :@var mwg::fun_detail::type_traits::==has_single_operator_functor==<typename F>::value;
      *  `mwg::declval<F>.operator()` が有効な型かどうかを判定します。
      */
+    // ※ has_single_operator_functor は現在使用されていない。
 #ifdef mwg_concept_is_valid_expression
     template<typename F>
     mwg_concept_is_valid_expression(has_single_operator_functor, F, F_, &F_::operator());
@@ -556,6 +566,7 @@ namespace fun_detail {
   template<typename F, typename S = void>
   struct functor_traits;
 
+  // 値の大きいものから順に試し、最初に一致した実装を用いる。
   enum traits_priority {
     traits_priority_function = 5,
     traits_priority_member   = 4,
@@ -977,20 +988,24 @@ namespace fun_detail {
 #endif
 
 }
-#pragma%x begin_check
-
-namespace test_funcsig {
-  void run() {
-    using namespace mwg::funsig;
-    mwg_check((mwg::stdm::is_same<
-        filter<int (int, char, short&), mwg::fun_detail::type_traits::reference_parameter>::type,
-        int (int const&, char const&, short&)>::value));
-    mwg_check((mwg::stdm::is_same<
-        filter<int (int&, char, short), mwg::fun_detail::type_traits::reference_parameter>::type,
-        int (int&, char const&, short const&)>::value));
-  }
+#pragma%x begin_test
+//
+// test_funcsig
+//
+void test() {
+  using namespace mwg::funsig;
+  mwg_check((mwg::stdm::is_same<
+      filter<int (int, char, short&), mwg::fun_detail::type_traits::reference_parameter>::type,
+      int (int const&, char const&, short&)>::value));
+  mwg_check((mwg::stdm::is_same<
+      filter<int (int&, char, short), mwg::fun_detail::type_traits::reference_parameter>::type,
+      int (int&, char const&, short const&)>::value));
 }
-
+#pragma%x end_test
+#pragma%x begin_check
+//
+// test_function
+//
 namespace test_function {
   int test_var = 0;
 
@@ -1025,112 +1040,117 @@ namespace test_function {
     mwg_check(test_var == 3011);
   }
 }
-
-namespace test_member {
-  struct Rect {
-    int x, y, w, h;
-
-    int right() const {
-      return x + w;
-    }
-    int bottom() const {
-      return y + h;
-    }
-    void translate(int dx, int dy) {
-      x += dx;
-      y += dy;
-    }
-  };
-
-  void run() {
-    namespace type_traits = mwg::fun_detail::type_traits;
-    mwg_check((type_traits::is_variant_function<mwg::stdm::add_lvalue_reference<int>::type (Rect&), int& (Rect&)>::value));
-
-    Rect rect1;
-    rect1.x = 1;
-    rect1.y = 2;
-    rect1.w = 3;
-    rect1.h = 4;
-
-    {
-      namespace ns = mwg::fun_detail::member_object_pointer_traits;
-      mwg_check((mwg::stdm::is_member_object_pointer<int Rect::*>::value));
-
-      mwg_check((mwg::stdm::is_same<ns::check_signature<int, Rect, int& (Rect&), ns::ACCEPTS_LREF>::type, int& (Rect&)>::value));
-      mwg_check((ns::check_signature<int, Rect, int& (Rect&), ns::ACCEPTS_LREF>::value));
-      mwg_check((ns::check_signature_cv<int, Rect, int& (Rect&), ns::ACCEPTS_LREF>::value));
-
-      // For 2017-02-10 -Wc++11-narrowing bug
-      //   clang++ -std=c++11 conditional 第一引数に int を渡すと SFINAE で候補から外れる。
-      //   しかしこれは SFINAE 的に正しい動作なのだろうか。
-      mwg_check((ns::functor_traits_impl<int Rect::*, int const& (Rect const&)>::value));
-      mwg_check((ns::_switch<int Rect::*, int (Rect const&)>::value));
-      mwg_check((mwg::fun_detail::functor_traits_member<int Rect::*, int (Rect const&)>::value));
-      mwg_check((mwg::as_fun<int Rect::*, int (Rect const&)>::value));
-
-      // 2017-02-12 fix value of ACCEPTS_PTR flag
-      mwg_check((ns::functor_traits_impl<int Rect::*, int& (Rect&)>::value));
-      mwg_check((ns::functor_traits_impl<int Rect::*, int& (Rect*)>::value));
-      mwg_check((mwg::stdm::is_same<ns::check_signature<int, Rect, int& (Rect*), ns::ACCEPTS_PTR>::type, int& (Rect*)>::value));
-      mwg_check((ns::check_signature<int, Rect, int& (Rect*), ns::ACCEPTS_PTR>::value));
-      mwg_check((ns::check_signature_cv<int, Rect, int& (Rect*), ns::ACCEPTS_PTR>::value));
-      mwg_check((ns::_switch<int Rect::*, int& (Rect*)>::value));
-    }
-#if mwg_has_feature(cxx_auto_type)
-    auto f1 = mwg::fun<int& (Rect&)>(&Rect::x);
-    auto f2 = mwg::fun<int (Rect const&)>(&Rect::x);
-    auto f3 = mwg::fun<int& (Rect*)>(&Rect::x);
-    auto f4 = mwg::fun<int (Rect const*)>(&Rect::x);
-#else
-    mwg::as_fun<int Rect::*, int& (Rect&)>::adapter f1(&Rect::x);
-    mwg::as_fun<int Rect::*, int (Rect const&)>::adapter f2(&Rect::x);
-    mwg::as_fun<int Rect::*, int& (Rect*)>::adapter f3(&Rect::x);
-    mwg::as_fun<int Rect::*, int (Rect const*)>::adapter f4(&Rect::x);
-#endif
-    f1(rect1) = 12;
-    mwg_check((rect1.x == 12));
-    mwg_check((f2(rect1) == 12));
-    f3(&rect1) = 321;
-    mwg_check((rect1.x == 321));
-    mwg_check((f4(&rect1) == 321));
-
-    {
-      namespace ns = mwg::fun_detail::member_function_pointer_traits;
-      mwg_check((mwg::stdm::is_same<type_traits::is_member_pointer<int (Rect::*)() const>::member_type, int()>::value));
-      mwg_check((mwg::stdm::is_same<type_traits::is_member_pointer<int (Rect::*)() const>::object_type, Rect const>::value));
-      mwg_check((mwg::stdm::is_same<mwg::funsig::shift<int(), Rect const&>::type, int (Rect const&)>::value));
-      mwg_check((type_traits::is_variant_function<int (Rect const&), int (Rect const&)>::value));
-
-      mwg_check((mwg::stdm::is_same<type_traits::is_member_pointer<void (Rect::*)(int, int)>::member_type, void(int, int)>::value));
-      mwg_check((mwg::stdm::is_same<type_traits::is_member_pointer<void (Rect::*)(int, int)>::object_type, Rect>::value));
-      mwg_check((mwg::stdm::is_same<mwg::funsig::shift<void (int, int), Rect const&>::type, void (Rect const&, int, int)>::value));
-
-      mwg_check((ns::_switch<int (Rect::*)() const, int (Rect const&)>::value));
-    }
-#if mwg_has_feature(cxx_auto_type)
-    auto g1 = mwg::fun<int (Rect const&)>(&Rect::right);
-    auto g2 = mwg::fun<int (Rect const*)>(&Rect::right);
-    auto g3 = mwg::fun<void (Rect&, int const&, int const&)>(&Rect::translate);
-#else
-    mwg::as_fun<int (Rect::*)() const, int (Rect const&)>::adapter g1(&Rect::right);
-    mwg::as_fun<int (Rect::*)() const, int (Rect const*)>::adapter g2(&Rect::right);
-    mwg::as_fun<void (Rect::*)(int, int), void (Rect&, int const&, int const&)>::adapter g3(&Rect::translate);
-#endif
-    mwg_check((g1(rect1) == rect1.x + rect1.w));
-    mwg_check((g2(&rect1) == rect1.x + rect1.w));
-
-    rect1.x = 123;
-    rect1.y = 321;
-    g3(rect1, 4, 1);
-    mwg_check((rect1.x == 127 && rect1.y == 322));
-  }
+#pragma%x end_check
+#pragma%x begin_test
+void test() {
+  test_function::run();
 }
+#pragma%x end_test
+#pragma%x begin_test
+//
+// test_member
+//
+struct Rect {
+  int x, y, w, h;
+
+  int right() const {
+    return x + w;
+  }
+  int bottom() const {
+    return y + h;
+  }
+  void translate(int dx, int dy) {
+    x += dx;
+    y += dy;
+  }
+};
+
+void test() {
+  namespace type_traits = mwg::fun_detail::type_traits;
+  mwg_check((type_traits::is_variant_function<mwg::stdm::add_lvalue_reference<int>::type (Rect&), int& (Rect&)>::value));
+
+  Rect rect1;
+  rect1.x = 1;
+  rect1.y = 2;
+  rect1.w = 3;
+  rect1.h = 4;
+
+  {
+    namespace ns = mwg::fun_detail::member_object_pointer_traits;
+    mwg_check((mwg::stdm::is_member_object_pointer<int Rect::*>::value));
+
+    mwg_check((mwg::stdm::is_same<ns::check_signature<int, Rect, int& (Rect&), ns::ACCEPTS_LREF>::type, int& (Rect&)>::value));
+    mwg_check((ns::check_signature<int, Rect, int& (Rect&), ns::ACCEPTS_LREF>::value));
+    mwg_check((ns::check_signature_cv<int, Rect, int& (Rect&), ns::ACCEPTS_LREF>::value));
+
+    // For 2017-02-10 -Wc++11-narrowing bug
+    //   clang++ -std=c++11 conditional 第一引数に int を渡すと SFINAE で候補から外れる。
+    //   しかしこれは SFINAE 的に正しい動作なのだろうか。
+    mwg_check((ns::functor_traits_impl<int Rect::*, int const& (Rect const&)>::value));
+    mwg_check((ns::_switch<int Rect::*, int (Rect const&)>::value));
+    mwg_check((mwg::fun_detail::functor_traits_member<int Rect::*, int (Rect const&)>::value));
+    mwg_check((mwg::as_fun<int Rect::*, int (Rect const&)>::value));
+
+    // 2017-02-12 fix value of ACCEPTS_PTR flag
+    mwg_check((ns::functor_traits_impl<int Rect::*, int& (Rect&)>::value));
+    mwg_check((ns::functor_traits_impl<int Rect::*, int& (Rect*)>::value));
+    mwg_check((mwg::stdm::is_same<ns::check_signature<int, Rect, int& (Rect*), ns::ACCEPTS_PTR>::type, int& (Rect*)>::value));
+    mwg_check((ns::check_signature<int, Rect, int& (Rect*), ns::ACCEPTS_PTR>::value));
+    mwg_check((ns::check_signature_cv<int, Rect, int& (Rect*), ns::ACCEPTS_PTR>::value));
+    mwg_check((ns::_switch<int Rect::*, int& (Rect*)>::value));
+  }
+#if mwg_has_feature(cxx_auto_type)
+  auto f1 = mwg::fun<int& (Rect&)>(&Rect::x);
+  auto f2 = mwg::fun<int (Rect const&)>(&Rect::x);
+  auto f3 = mwg::fun<int& (Rect*)>(&Rect::x);
+  auto f4 = mwg::fun<int (Rect const*)>(&Rect::x);
+#else
+  mwg::as_fun<int Rect::*, int& (Rect&)>::adapter f1(&Rect::x);
+  mwg::as_fun<int Rect::*, int (Rect const&)>::adapter f2(&Rect::x);
+  mwg::as_fun<int Rect::*, int& (Rect*)>::adapter f3(&Rect::x);
+  mwg::as_fun<int Rect::*, int (Rect const*)>::adapter f4(&Rect::x);
+#endif
+  f1(rect1) = 12;
+  mwg_check((rect1.x == 12));
+  mwg_check((f2(rect1) == 12));
+  f3(&rect1) = 321;
+  mwg_check((rect1.x == 321));
+  mwg_check((f4(&rect1) == 321));
+
+  {
+    namespace ns = mwg::fun_detail::member_function_pointer_traits;
+    mwg_check((mwg::stdm::is_same<type_traits::is_member_pointer<int (Rect::*)() const>::member_type, int()>::value));
+    mwg_check((mwg::stdm::is_same<type_traits::is_member_pointer<int (Rect::*)() const>::object_type, Rect const>::value));
+    mwg_check((mwg::stdm::is_same<mwg::funsig::shift<int(), Rect const&>::type, int (Rect const&)>::value));
+    mwg_check((type_traits::is_variant_function<int (Rect const&), int (Rect const&)>::value));
+
+    mwg_check((mwg::stdm::is_same<type_traits::is_member_pointer<void (Rect::*)(int, int)>::member_type, void(int, int)>::value));
+    mwg_check((mwg::stdm::is_same<type_traits::is_member_pointer<void (Rect::*)(int, int)>::object_type, Rect>::value));
+    mwg_check((mwg::stdm::is_same<mwg::funsig::shift<void (int, int), Rect const&>::type, void (Rect const&, int, int)>::value));
+
+    mwg_check((ns::_switch<int (Rect::*)() const, int (Rect const&)>::value));
+  }
+#if mwg_has_feature(cxx_auto_type)
+  auto g1 = mwg::fun<int (Rect const&)>(&Rect::right);
+  auto g2 = mwg::fun<int (Rect const*)>(&Rect::right);
+  auto g3 = mwg::fun<void (Rect&, int const&, int const&)>(&Rect::translate);
+#else
+  mwg::as_fun<int (Rect::*)() const, int (Rect const&)>::adapter g1(&Rect::right);
+  mwg::as_fun<int (Rect::*)() const, int (Rect const*)>::adapter g2(&Rect::right);
+  mwg::as_fun<void (Rect::*)(int, int), void (Rect&, int const&, int const&)>::adapter g3(&Rect::translate);
+#endif
+  mwg_check((g1(rect1) == rect1.x + rect1.w));
+  mwg_check((g2(&rect1) == rect1.x + rect1.w));
+
+  rect1.x = 123;
+  rect1.y = 321;
+  g3(rect1, 4, 1);
+  mwg_check((rect1.x == 127 && rect1.y == 322));
+}
+#pragma%x end_test
+#pragma%x begin_check
 
 int main() {
-  test_funcsig::run();
-  test_function::run();
-  test_member::run();
-
   managed_test::run_tests();
   return 0;
 }
