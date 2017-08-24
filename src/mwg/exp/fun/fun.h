@@ -445,11 +445,18 @@ namespace fun_detail {
     struct invoker: CRTP {
       MWG_FUN_H_define_forward_constructor(invoker, CRTP, CRTP);
 
+      /*
+       * Note: 戻り値を明示的に sig::result<XS>::type に変換する必要がある。
+       *   共変性により関数の戻り値を明示的型に変換する必要があったり、
+       *   void に変換する必要があったりするからである。
+       *   また戻り値の型が同一の場合には特に overhead は生じないはずである。
+       */
 #pragma%m 1
       template<class XS>
       typename enable_forward<S, XS, __arity__>::type
       forward(typename p<XS,>::type... a, ...) const {
-        return (CRTP::get())(f<XS,>(a)...);
+        typedef typename sig::result<XS>::type result_type;
+        return result_type((CRTP::get())(f<XS,>(a)...));
       }
 #pragma%end
 #pragma%x variadic_expand::with_arity.f/__arity__/0/ArN+1/
@@ -1150,7 +1157,47 @@ void test() {
 #pragma%x end_test
 #pragma%x begin_check
 
+
+int func1(int, int) {return 1;}
+int func2(int) {return 2;}
+
+struct X { X(int) {} };
+int func3(X, X) {return 3;}
+
+struct Y { operator int() const { return 4; } };
+Y func4(int, int) { return Y(); }
+
 int main() {
+  // mwg::fun<int(int, int)>(function) は様々な関数と見做せるオブジェクトに対して、
+  // 同一のインターフェイスを持つアダプタを提供する。
+  //
+  // Note: 以下、C++11 以降では auto f1 = ...; などとして受け取れば良い。
+  //   以下の書き方は C++03 でも通用する書き方である。
+
+  // 関数の参照
+  mwg::as_fun<int(&)(int, int), int(int, int)>::adapter f1 = mwg::fun<int(int, int)>(func1);
+  f1(1, 2);
+
+  // 関数のポインタ
+  mwg::as_fun<int(*)(int, int), int(int, int)>::adapter f2 = mwg::fun<int(int, int)>(&func1);
+  f2(3, 4);
+
+  // 仮引数の数の反変性
+  mwg::as_fun<int(&)(int), int(int, int)>::adapter f3 = mwg::fun<int(int, int)>(func2);
+  f3(5, 6);
+
+  // 戻り値の有無の共変性
+  mwg::as_fun<int(&)(int, int), void(int, int)>::adapter f4 = mwg::fun<void(int, int)>(func1);
+  f4(7, 8);
+
+  // 仮引数の型の反変性
+  mwg::as_fun<int(&)(X, X), int(int, int)>::adapter f5 = mwg::fun<int(int, int)>(func3);
+  f5(9, 10);
+
+  // 戻り値の型の共変性
+  mwg::as_fun<Y(&)(int, int), int(int, int)>::adapter f6 = mwg::fun<int(int, int)>(func4);
+  f6(11, 12);
+
   managed_test::run_tests();
   return 0;
 }
