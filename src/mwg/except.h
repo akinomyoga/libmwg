@@ -408,6 +408,16 @@ namespace except_detail {
     }
   };
 
+  MWG_ATTRIBUTE_UNUSED
+  static void mwg_printl_(const char* fmt, ...) {
+    va_list arg;
+    va_start(arg, fmt);
+    std::vfprintf(stderr, fmt, arg);
+    va_end(arg);
+    std::putc('\n', stderr);
+    std::fflush(stderr);
+  }
+
   static void mwg_vprintd_(const char* pos, const char* func, const char* fmt, va_list arg) {
     using namespace ::mwg::except_detail;
     dbgput d(stderr);
@@ -568,6 +578,7 @@ namespace except_detail {
  *
  */
 #ifdef MWG_STD_VA_ARGS
+# define mwg_printl(...)                    mwg::except_detail::mwg_printl_("" __VA_ARGS__)
 # define mwg_printd(...)                    mwg::except_detail::mwg_printd_(mwg_assert_position, mwg_assert_funcname, "" __VA_ARGS__)
 # ifdef _MSC_VER
 #  define mwg_check_call(condition, onfail, ...) ((condition) || (onfail(#condition, mwg_assert_position, mwg_assert_funcname, "" __VA_ARGS__), false))
