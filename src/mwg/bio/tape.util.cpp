@@ -159,21 +159,21 @@ int Base64Encode(const byte*& src0,const byte* srcN,byte*& dst0,byte* dstN,void*
 
           *dst++=(byte)Base64EncodeTable[s>>2];
           buff=byte(s<<4);
-          stat=1;
+          stat=1;/*FALL-THROUGH*/
         case 1:
           consume_checkdst;
           consume_readbyte;
 
           *dst++=(byte)Base64EncodeTable[0x3F&(buff|s>>4)];
           buff=byte(s<<2);
-          stat=2;
+          stat=2;/*FALL-THROUGH*/
         case 2:
           consume_checkdst;
           consume_readbyte;
 
           *dst++=(byte)Base64EncodeTable[0x3F&(buff|s>>6)];
           buff=s;
-          stat=3;
+          stat=3;/*FALL-THROUGH*/
         case 3:
           consume_checkdst;
 
@@ -205,11 +205,11 @@ int Base64Encode(const byte*& src0,const byte* srcN,byte*& dst0,byte* dstN,void*
         *dst++=(byte)Base64EncodeTable[0x3F&buff];
         stat=0;
         goto end;
-      trail2:stat=4;
+      trail2:stat=4;/*FALL-THROUGH*/
       case 4:
         consume_checkdst;
         *dst++='=';
-      trail1:stat=5;
+      trail1:stat=5;/*FALL-THROUGH*/
       case 5:
         consume_checkdst;
         *dst++='=';
@@ -267,19 +267,19 @@ int Base64Encode(const byte*& src0,const byte* srcN,byte*& dst0,byte* dstN,void*
         case 0:
           consume_readbyte;
           buff=(byte)(s<<2);
-          stat=1;
+          stat=1;/*FALL-THROUGH*/
         case 1:
           consume_checkdst;
           consume_readbyte;
           *dst++=(byte)(buff|s>>4);
           buff=(byte)(s<<4);
-          stat=2;
+          stat=2;/*FALL-THROUGH*/
         case 2:
           consume_checkdst;
           consume_readbyte;
           *dst++=(byte)(buff|s>>2);
           buff=(byte)(s<<6);
-          stat=3;
+          stat=3;/*FALL-THROUGH*/
         case 3:
           consume_checkdst;
           consume_readbyte;
