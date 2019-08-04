@@ -660,8 +660,8 @@ namespace stdm {
   using ::@fname;
   using ::@fnamel;
   using ::@fnamef;
-  static inline float @fname(float value) {return ::@fnamef(value);}
-  static inline long double @fname(long double value) {return ::@fnamel(value);}
+  // static inline float @fname(float value) {return ::@fnamef(value);}
+  // static inline long double @fname(long double value) {return ::@fnamel(value);}
   template<typename T>
   typename cmath_detail::overload<T>::type @fname(T value) {
     typedef typename cmath_detail::overload<T>::type R;
@@ -672,8 +672,8 @@ namespace stdm {
   using ::@fname;
   using ::@fnamel;
   using ::@fnamef;
-  static inline float @fname(float lhs, float rhs) {return ::@fnamef(lhs, rhs);}
-  static inline long double @fname(long double lhs, long double rhs) {return ::@fnamel(lhs, rhs);}
+  // static inline float @fname(float lhs, float rhs) {return ::@fnamef(lhs, rhs);}
+  // static inline long double @fname(long double lhs, long double rhs) {return ::@fnamel(lhs, rhs);}
   template<typename T, typename U>
   typename cmath_detail::overload<T, U>::type @fname(T lhs, U rhs) {
     typedef typename cmath_detail::overload<T, U>::type R;
@@ -684,8 +684,8 @@ namespace stdm {
   using ::@fname;
   using ::@fnamel;
   using ::@fnamef;
-  static inline float @fname(float x, float y, float z) {return ::@fnamef(x, y, z);}
-  static inline long double @fname(long double x, long double y, long double z) {return ::@fnamel(x, y, z);}
+  // static inline float @fname(float x, float y, float z) {return ::@fnamef(x, y, z);}
+  // static inline long double @fname(long double x, long double y, long double z) {return ::@fnamel(x, y, z);}
   template<typename T, typename U, typename V>
   typename cmath_detail::overload<T, U, V>::type @fname(T x, U y, V z) {
     typedef typename cmath_detail::overload<T, U, V>::type R;
@@ -696,8 +696,8 @@ namespace stdm {
   using ::@fname;
   using ::@fnamel;
   using ::@fnamef;
-  static inline float @fname(float value, @int rhs) {return ::@fnamef(value, rhs);}
-  static inline long double @fname(long double value, @int rhs) {return ::@fnamel(value, rhs);}
+  // static inline float @fname(float value, @int rhs) {return ::@fnamef(value, rhs);}
+  // static inline long double @fname(long double value, @int rhs) {return ::@fnamel(value, rhs);}
   template<typename T>
   typename cmath_detail::overload<T>::type @fname(T value, @int rhs) {
     typedef typename cmath_detail::overload<T>::type R;
@@ -708,8 +708,8 @@ namespace stdm {
   using ::@fname;
   using ::@fnamel;
   using ::@fnamef;
-  static inline float @fname(float lhs, float rhs, @int quo) {return ::@fnamef(lhs, rhs, quo);}
-  static inline long double @fname(long double lhs, long double rhs, @int quo) {return ::@fnamel(lhs, rhs, quo);}
+  // static inline float @fname(float lhs, float rhs, @int quo) {return ::@fnamef(lhs, rhs, quo);}
+  // static inline long double @fname(long double lhs, long double rhs, @int quo) {return ::@fnamel(lhs, rhs, quo);}
   template<typename T, typename U>
   typename cmath_detail::overload<T, U>::type @fname(T lhs, U rhs, @int quo) {
     typedef typename cmath_detail::overload<T, U>::type R;

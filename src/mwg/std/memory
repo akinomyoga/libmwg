@@ -273,7 +273,7 @@ namespace detail {
 
     template<class T2>
     shared_ptr(const shared_ptr<T2>&& sp): ptr(sp.ptr) {
-      shared_count::swap(counter, sp.counter);
+      shared_count::swap(counter, const_cast<shared_count&>(sp.counter));
     }
     template<class T2>
     shared_ptr& operator=(shared_ptr<T2>&& sp) {
