@@ -116,7 +116,7 @@ namespace str_detail {
   struct _strtmp_repeat_policy;
 }
   static const mwg_constexpr std::ptrdiff_t npos
-    =mwg::stdm::numeric_limits<std::ptrdiff_t>::lowest();
+    = mwg::stdm::numeric_limits<std::ptrdiff_t>::lowest();
 
   using str_detail::as_str;
   using str_detail::str;

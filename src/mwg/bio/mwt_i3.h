@@ -57,7 +57,7 @@ namespace mwtfile_detail {
   static mwg_constexpr_const u4t   mwtype_heap      = fourcc('h', 'e', 'a', 'p');
   static mwg_constexpr_const u4t   mwtype_tree      = fourcc('t', 'r', 'e', 'e'); // not yet used
 
-  static_assert(UINT32_MAX <= SIZE_MAX, "size_t too small");
+  mwg_static_assert(UINT32_MAX <= SIZE_MAX, "size_t too small");
 
 
   static mwg_constexpr_const bid_t bid_unused = 0x0000;
@@ -83,7 +83,7 @@ namespace mwtfile_detail {
       this->address = value;
     }
   };
-  static_assert(sizeof(heap_record) == 8, "struct heap_record: unexpected size");
+  mwg_static_assert(sizeof(heap_record) == 8, "struct heap_record: unexpected size");
 
   struct hdata_handle {
     hid_t hid;
