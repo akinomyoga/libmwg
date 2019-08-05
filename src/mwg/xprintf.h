@@ -3,6 +3,7 @@
 #define MWG_XPRINTF_H
 #include <cstdlib>
 #include <cstring>
+#include <mwg/except.h>
 #include <mwg/std/tuple>
 #include <mwg/std/utility>
 #include <mwg/std/type_traits>
