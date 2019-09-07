@@ -365,6 +365,8 @@ namespace except_detail {
     sgr(int value): value(value) {}
   };
 
+  struct nl {};
+
   class dbgput {
     FILE* file;
     bool m_isatty;
@@ -406,6 +408,11 @@ namespace except_detail {
       putsgr(sgrnum.value);
       return *this;
     }
+    dbgput& operator<<(nl) {
+      if (m_isatty) std::putc('\r', file);
+      std::putc('\n', file);
+      return *this;
+    }
   };
 
   MWG_ATTRIBUTE_UNUSED
@@ -414,7 +421,7 @@ namespace except_detail {
     va_start(arg, fmt);
     std::vfprintf(stderr, fmt, arg);
     va_end(arg);
-    std::putc('\n', stderr);
+    dbgput(stderr) << nl();
     std::fflush(stderr);
   }
 
@@ -429,12 +436,12 @@ namespace except_detail {
       d << sgr(0);
       if (func)
         d << " @ " << sgr(32) << '"' << func << '"' << sgr(0);
-      d << '\n';
+      d << nl();
     } else {
       if (func) {
-        d << " mwg_printd @ " << sgr(32) << '"' << func << '"' << sgr(0) << '\n';
+        d << " mwg_printd @ " << sgr(32) << '"' << func << '"' << sgr(0) << nl();
       } else
-        d << " mwg_printd\n";
+        d << " mwg_printd" << nl();
     }
     std::fflush(stderr);
   }
@@ -461,12 +468,12 @@ namespace except_detail {
       std::vfprintf(stderr, fmt, arg);
       d << "\"" << sgr(0);
     }
-    d << '\n';
+    d << nl();
 
     // second line
     d << "  @ " << sgr(4) << pos << sgr(0);
     if (func)
-      d << ':' << func << '\n';
+      d << ':' << func << nl();
 
     std::fflush(stderr);
 
