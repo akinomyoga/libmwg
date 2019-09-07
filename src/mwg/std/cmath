@@ -1142,6 +1142,13 @@ namespace stdm {
   using ::std::hypot;
 #endif
 
+// どちらか一方が定義されていると std の方を被覆してしまうので明示的に using する。
+#if defined(MWGCONF_HAS_STD_HYPOT) || defined(MWGCONF_HAS_STD_HYPOT3)
+# if !defined(MWGCONF_HAS_STD_HYPOT) || !defined(MWGCONF_HAS_STD_HYPOT3)
+  using ::std::hypot;
+# endif
+#endif
+
 #pragma%x begin_test
   void test() {
     mwg_check(mwg::stdm::cbrt(0.0) == 0.0);
