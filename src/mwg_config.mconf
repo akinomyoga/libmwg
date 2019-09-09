@@ -303,7 +303,7 @@ EOF
 declare_feature() {
   local name="$1"
   local value="$2"
-  local defname_old; mwg.uppercase.set defname_old "MWGCONF_STD_$name"
+  local ret; mconf/string#toupper "MWGCONF_STD_$name"; local defname_old=$ret
   local defname=mwg_has_feature_IMPL_cxx_$name
   local m_cond_gcc="${cond_gcc}"
   local m_cond_icc="${cond_icc}"
