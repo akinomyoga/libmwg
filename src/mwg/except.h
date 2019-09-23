@@ -370,18 +370,22 @@ namespace except_detail {
   class dbgput {
     FILE* file;
     bool m_isatty;
+
   public:
+    static bool isatty(std::FILE* file) {
 #if defined(__unix__)
-    dbgput(FILE* file): file(file), m_isatty(isatty(fileno(file))) {}
+      return ::isatty(fileno(file));
 #elif defined(_WIN32)
-    dbgput(FILE* file): file(file), m_isatty(false) {
       const char* envterm = std::getenv("TERM");
-      if (envterm && *envterm)
-        this->m_isatty = true;
-    }
+      return (envterm && *envterm);
 #else
-    dbgput(FILE* file): file(file), m_isatty(false) {}
+      return false;
 #endif
+    }
+
+  public:
+    dbgput(FILE* file): file(file), m_isatty(dbgput::isatty(file)) {}
+
     dbgput& operator<<(const char* str) {
       while (*str) std::putc(*str++, file);
       return *this;
