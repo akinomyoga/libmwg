@@ -23,7 +23,10 @@ MAKEFLAGS += --no-print-directory -O
 
 all check: | $(CFGSTAMP)
 
-clean all check install:
+src/Makefile: src/Makefile.pp
+	mmake/mwg_pp.awk $< > $@
+
+clean all check install: src/Makefile
 	+make -C src $@
 
 distclean:

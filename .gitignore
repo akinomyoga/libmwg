@@ -1,3 +1,5 @@
+# gitignore
+
 # generated files
 /dist
 /out
@@ -31,6 +33,7 @@ __cxxtmp.-.obj
 
 # for edit
 /COMMIT
+*~
 
 # old codes not yet merged
 /src/chkold

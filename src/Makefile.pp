@@ -109,16 +109,16 @@ Makefile: Makefile.pp
 
 $(CPPDIR)/mwg:
 	mkdir -p $(CPPDIR)/mwg
-$(CFGDIR)/include/mwg_config.1.h: mwg_config.mconf
+$(CFGDIR)/include/mwg_config.1.h: mwg_config.mconf | $(CFGDIR)/include
 	$(MWGCXX) +config -o "$@" --cache="$(CFGDIR)/cache" --log="$(CFGDIR)/config.log" $< -- $(CXXFLAGS) $(FLAGS) $(LDFLAGS)
 	@echo 'TRANSFORM $@'; $(MMAKECMD) transform-source $@
 	@echo 'TRANSFORM $(CFGDIR)/include/mwg_config_common.h'; $(MMAKECMD) transform-source $(CFGDIR)/include/mwg_config_common.h
-$(CFGDIR)/include/mwg_config.stamp: $(CFGDIR)/include/mwg_config.1.h $(CFGDIR)/include/mwg_config.2.h
+$(CFGDIR)/include/mwg_config.stamp: $(CFGDIR)/include/mwg_config.1.h $(CFGDIR)/include/mwg_config.2.h | $(CFGDIR)/include
 	mv $(CFGDIR)/include/mwg_config.h $@ || touch $@
 	$(MWGPP) $< > $(CFGDIR)/include/mwg_config.h
 	touch -r $@ $(CFGDIR)/include/mwg_config.h
 	touch $@
-$(CFGDIR)/include/mwg_config_common.h: $(CFGDIR)/include/mwg_config.1.h
+$(CFGDIR)/include/mwg_config_common.h: $(CFGDIR)/include/mwg_config.1.h | $(CFGDIR)/include
 $(CPPDIR)/mwg/config.h: mwg_config.mconf | $(CFGDIR)/include/mwg_config_common.h $(CPPDIR)/mwg
 	cp $(CFGDIR)/include/mwg_config_common.h $@
 source_files+=$(CFGDIR)/include/mwg_config.stamp $(CPPDIR)/mwg/config.h
@@ -168,14 +168,14 @@ else
 endif
 .PHONY: scan-check scan-install scan-all scan-clean scan-clean-all
 scan-check:
-	@$(subst TARGET,check,$(_libmwg_scan_target))
+	+@$(subst TARGET,check,$(_libmwg_scan_target))
 scan-install:
-	@$(subst TARGET,install,$(_libmwg_scan_target))
+	+@$(subst TARGET,install,$(_libmwg_scan_target))
 scan-all:
-	@$(subst TARGET,all,$(_libmwg_scan_target))
+	+@$(subst TARGET,all,$(_libmwg_scan_target))
 scan-clean:
-	@$(subst TARGET,clean,$(_libmwg_scan_target))
+	+@$(subst TARGET,clean,$(_libmwg_scan_target))
 scan-clean-all:
-	@$(subst TARGET,clean-all,$(_libmwg_scan_target))
+	+@$(subst TARGET,clean-all,$(_libmwg_scan_target))
 
 #%x epilogue
