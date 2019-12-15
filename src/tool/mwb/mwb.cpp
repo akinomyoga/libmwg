@@ -1,7 +1,6 @@
 // -*- mode:C++;coding:shift_jis -*-
 #include <cstdlib>
 #include <cstdio>
-#include <mwg/bio/mwb.h>
 #include <mwg/bio/mwb_format.h>
 #include "mwb_dump.h"
 
