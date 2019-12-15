@@ -88,7 +88,7 @@ public:
   }
 
   bool is_alive() const{
-    return file!=nullptr;
+    return file != nullptr && std::ferror(file) == 0;
   }
   //bool is_eof() const{return feof(file);}
   void close(){
