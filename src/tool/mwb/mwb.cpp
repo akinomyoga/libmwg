@@ -6,17 +6,16 @@
 
 //-----------------------------------------------------------------------------
 
-int main(int argc,char** argv){
-  if(argc!=3||argv[1][0]!='t'||std::strlen(argv[2])==0){
-    std::fprintf(stderr,"usage: mwb t <filename>\n");
+int main(int argc, char** argv) {
+  if (argc != 3 || argv[1][0] != 't' || std::strlen(argv[2]) == 0) {
+    std::fprintf(stderr, "usage: mwb t <filename>\n");
     std::exit(EXIT_FAILURE);
   }
 
-  if(std::strcmp(argv[2],"-")==0){
-    mwg::bio::mwb1::dump_mwb(stdout,stdin,mwg::bio::mwb1::dump_mwb_flags::Verbose);
+  if (std::strcmp(argv[2], "-") == 0) {
+    mwg::bio::mwb1::dump_mwb(stdout, stdin, mwg::bio::mwb1::dump_mwb_flags::Verbose);
   }else{
-    mwg::bio::mwb1::dump_mwb(stdout,argv[2],mwg::bio::mwb1::dump_mwb_flags::Verbose);
-    //mwg::bio::mwb1::dump_mwb(stdout,"F:/data/hydrojet/mckln_lhc/harm.etaA.000+001k.mwb",mwg::bio::mwb1::dump_mwb_flags::Verbose);
+    mwg::bio::mwb1::dump_mwb(stdout, argv[2], mwg::bio::mwb1::dump_mwb_flags::Verbose);
   }
   return 0;
 }

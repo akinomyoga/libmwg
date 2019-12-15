@@ -292,13 +292,15 @@ namespace detail {
       up.release();
       return *this;
     }
-
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
     template<class T2>
-    shared_ptr& operator=(auto_ptr <T2>&& ap) {
+    shared_ptr& operator=(auto_ptr<T2>&& ap) {
       ptr = ap.release();
       counter.reset(ptr, default_delete<T2>());
       return *this;
     }
+#pragma GCC diagnostic pop
   private:
     template <class T2, class D>
     shared_ptr& operator=(const unique_ptr< T2, D>& up) mwg_std_deleted;
@@ -336,9 +338,12 @@ namespace detail {
       counter.reset(ptr, default_delete<T2>());
     }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
     template<class T2>
-    shared_ptr(auto_ptr<T2>& ap)
-      :ptr(ap.get()), counter(ap.get(), default_delete<T2>()) {ap.release();}
+    shared_ptr(auto_ptr<T2>& ap):
+      ptr(ap.get()), counter(ap.get(), default_delete<T2>()) {ap.release();}
+#pragma GCC diagnostic pop
 
     template<class T2, class D>
     shared_ptr(T2* ptr, D dtor)
