@@ -295,14 +295,14 @@ namespace mwb1 {
       if (iN) {
         for (int i = 0; i < iN; i++) {
           this->before_print();
-          std::fprintf(this->fout, "/* %d */ ", i);
+          std::fprintf(this->fout, "%d: ", i);
           if (!this->dumpB(node))
             return false;
         }
       } else {
         for (mwg::i8t i = 0; ; i++) {
           this->before_print();
-          std::fprintf(this->fout, "/* %ld */ ", (long) i);
+          std::fprintf(this->fout, "%ld: ", (long) i);
           if (!this->dumpB(node)) break;
         }
       }
