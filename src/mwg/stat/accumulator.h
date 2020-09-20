@@ -1,11 +1,12 @@
 // -*- mode: c++; coding: utf-8 -*-
 #ifndef MWG_STAT_ACCUMULATOR_H
 #define MWG_STAT_ACCUMULATOR_H
+#include <cstddef>
 #include <cmath>
 #include <mwg/std/type_traits>
 #include "errored.h"
-namespace mwg{
-namespace stat{
+namespace mwg {
+namespace stat {
 //NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN
   template<typename T = double>
   class count_accumulator;
