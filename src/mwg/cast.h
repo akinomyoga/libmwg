@@ -8,7 +8,7 @@
 #include <mwg_config.h>
 namespace mwg {
 namespace detail {
-  // TODO: struct lexical_bad_cast:bad_cat{};
+  // TODO: struct lexical_bad_cast: bad_cast {};
 
   template<typename T, typename S, typename F = void>
   struct lexical_cast_impl {};
@@ -30,6 +30,13 @@ namespace detail {
       buff << value;
       return buff.str();
     }
+  };
+
+  // "ambiguous template instantiation" になるので仕方なく
+  template<>
+  struct lexical_cast_impl<std::string, std::string > {
+    typedef std::string return_type;
+    static return_type cast(std::string const& value) { return value; }
   };
 
   template<typename T>
@@ -61,13 +68,13 @@ namespace detail {
   mwg_tmp_define_lexical_cast_by_expr(float, const char*, float(std::atof(value)));
   mwg_tmp_define_lexical_cast_by_expr(int, const char*, std::atoi(value));
   mwg_tmp_define_lexical_cast_by_expr(long, const char*, std::atol(value));
-#if defined(MWGCONF_HAS_LONGLONG)&&defined(MWGCONF_HAS_ATOLL)
+#if defined(MWGCONF_HAS_LONGLONG) && defined(MWGCONF_HAS_ATOLL)
   mwg_tmp_define_lexical_cast_by_expr(long long, const char*, ::atoll(value));
-#elif defined(MWGCONF_HAS_LONGLONG)&&defined(MWGCONF_HAS_STRTOLL)
+#elif defined(MWGCONF_HAS_LONGLONG) && defined(MWGCONF_HAS_STRTOLL)
   mwg_tmp_define_lexical_cast_by_expr(long long, const char*, ::strtoll(value, NULL, 10));
-#elif defined(MWGCONF_HAS_INT64)&&defined(MWGCONF_HAS__ATOI64)
+#elif defined(MWGCONF_HAS_INT64) && defined(MWGCONF_HAS__ATOI64)
   mwg_tmp_define_lexical_cast_by_expr(__int64, const char*, ::_atoi64(value));
-#elif defined(MWGCONF_HAS_INT64)&&defined(MWGCONF_HAS__STRTOI64)
+#elif defined(MWGCONF_HAS_INT64) && defined(MWGCONF_HAS__STRTOI64)
   mwg_tmp_define_lexical_cast_by_expr(__int64, const char*, ::_strtoi64(value, NULL, 10));
 #endif
 
