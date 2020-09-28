@@ -2,15 +2,14 @@
 #ifndef MWG_DEFS_H
 #define MWG_DEFS_H
 
-#include <mwg/config.h>
-
-/* mwg/std/def.h
+/* mwg/std/def.h では以下の物を読み込み・定義している。
  *
- *   mwg_unused
- *   namespace mwg::stdm
- *   C++03/11/14 language features
- *   mwg::identity
- *   mwg::declval
+ * - include <mwg/config.h>
+ * - mwg_unused
+ * - namespace mwg::stdm
+ * - C++03/11/14 language features
+ * - mwg::identity
+ * - mwg::declval
  */
 #include <mwg/std/def.h>
 
