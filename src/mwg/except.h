@@ -33,6 +33,9 @@
 #   define MWG_STD_VA_ARGS
 #  endif
 # endif
+# ifndef mwg_unused
+#  define mwg_unused(param) (void) param
+# endif
 #else
 # include <mwg_config.h>
 # include <mwg/defs.h>
@@ -379,6 +382,7 @@ namespace except_detail {
       const char* envterm = std::getenv("TERM");
       return (envterm && *envterm);
 #else
+      mwg_unused(file);
       return false;
 #endif
     }
@@ -460,7 +464,7 @@ namespace except_detail {
 
   static mwg_noinline int increment_fail_count(int delta = 1) {
     static int fail_nothrow_count = 0;
-    return fail_nothrow_count+=delta; // dummy operation to set break point
+    return fail_nothrow_count += delta; // dummy operation to set break point
   }
   static bool vprint_onfail_impl(const char* expr, const char* pos, const char* func, const char* fmt, va_list arg) {
     using namespace ::mwg::except_detail;
@@ -533,7 +537,7 @@ namespace except_detail {
 #if defined(MWG_DEBUG) || !defined(NDEBUG)
     vprint_onfail_impl(expr, pos, func, fmt, arg1);
 #else
-    (void) arg1;
+    mwg_unused(arg1);
 #endif
     vthrow_onfail_impl(expr, pos, func, fmt, arg2);
 
