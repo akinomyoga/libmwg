@@ -464,11 +464,12 @@ typedef int filter_function_type(const byte*&, const byte*, byte*&, byte*, void*
 #endif
 template<typename F>
 class filter_function_filter: public tag_filter_type {
-  const F& filter_function;
+  const F* filter_function;
 public:
-  filter_function_filter(const F& func): filter_function(func) {}
+  filter_function_filter(): filter_function(nullptr) {}
+  filter_function_filter(const F& func): filter_function(&func) {}
   int operator()(const byte*& s, const byte* sN, byte*& d, byte* dN, void*& state) const {
-    typename mwg::as_functor<F, filter_function_type>::adapter filter(filter_function);
+    typename mwg::as_functor<F, filter_function_type>::adapter filter(*filter_function);
     return filter(s, sN, d, dN, state);
   }
 };
