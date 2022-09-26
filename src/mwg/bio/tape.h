@@ -130,6 +130,7 @@ class tape_head {
   const ITape* m_tape;
 public:
   const ITape* tape() const { return this->m_tape; }
+  void reset(ITape* tape = nullptr) { m_tape = tape; }
 public:
   //tape_head(): m_tape(nullptr) {} // cannot be assigned because m_tape is const
   tape_head(): m_tape(nullptr) {}
