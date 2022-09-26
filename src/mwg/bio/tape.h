@@ -38,8 +38,8 @@ public:
   // tell 戻り値. -1: 失敗 他: 現在位置
 
   virtual ~itape() {}
-  virtual bool is_alive() const {return true;}
-  operator bool() const {return this->is_alive();}
+  virtual bool is_alive() const { return true; }
+  operator bool() const { return this->is_alive(); }
 };
 //TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
 // class memory_tape
@@ -59,10 +59,10 @@ public:
   memory_tape(const void* begin, const void* end)
     :data((byte*) begin), f_write(false), m_size((const byte*) end - (const byte*) end), m_pos(0) {}
 public:
-  virtual bool can_read() const {return true;}
-  virtual bool can_write() const {return f_write;}
-  virtual bool can_seek() const {return true;}
-  virtual bool can_trunc() const {return false;}
+  virtual bool can_read() const { return true; }
+  virtual bool can_write() const { return f_write; }
+  virtual bool can_seek() const { return true; }
+  virtual bool can_trunc() const { return false; }
   virtual int read(void* buff, int size, int n = 1) const {
     int n2 = std::min<int>((m_size - m_pos) / size, n);
     int len = n2 * size;
@@ -100,14 +100,14 @@ public:
       return EINVAL;
     }
   }
-  virtual i8t tell() const {return this->m_pos;}
-  virtual u8t size() const {return this->m_size;}
+  virtual i8t tell() const { return this->m_pos; }
+  virtual u8t size() const { return this->m_size; }
   virtual int trunc(u8t size) const {
     mwg_unused(size);
     mwg_assert(false, "truncation not supported");
     return -1;
   }
-  virtual int flush() const {return 0;}
+  virtual int flush() const { return 0; }
 };
 
 //TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
@@ -129,14 +129,14 @@ template<typename ITape, int RWFlags>
 class tape_head {
   const ITape* m_tape;
 public:
-  const ITape* tape() const {return this->m_tape;}
+  const ITape* tape() const { return this->m_tape; }
 public:
   //tape_head(): m_tape(nullptr) {} // cannot be assigned because m_tape is const
   tape_head(): m_tape(nullptr) {}
   tape_head(const ITape* tape): m_tape(tape) {}
   tape_head(const ITape& tape): m_tape(&tape) {}
 
-  operator bool() const {return m_tape && m_tape->is_alive();}
+  operator bool() const { return m_tape && m_tape->is_alive(); }
 
 public:
   //
@@ -163,10 +163,10 @@ public:
   int flush() const {
     return this->m_tape->flush();
   }
-  bool can_read() const {return this->m_tape->can_read();}
-  bool can_write() const {return this->m_tape->can_write();}
-  bool can_seek() const {return this->m_tape->can_seek();}
-  bool can_trunc() const {return this->m_tape->can_trunc();}
+  bool can_read() const { return this->m_tape->can_read(); }
+  bool can_write() const { return this->m_tape->can_write(); }
+  bool can_seek() const { return this->m_tape->can_seek(); }
+  bool can_trunc() const { return this->m_tape->can_trunc(); }
 
 public:
   //
@@ -306,20 +306,20 @@ public:
   public:
     mark_t(tape_head const& head): head(&head), offset(head->tell()) {}
     mark_t(tape_head const* head): head(head), offset(head->tell()) {}
-    ~mark_t() {head->seek(offset);}
+    ~mark_t() { head->seek(offset); }
   };
-  mark_t mark() const {return mark_t(this);}
+  mark_t mark() const { return mark_t(this); }
 };
 
   template<typename IT>
   typename stdm::enable_if<stdm::is_base_of<itape, IT>::value, tape_head<IT> >::type
-  make_head(const IT& tape) {return tape_head<IT>(tape);}
+  make_head(const IT& tape) { return tape_head<IT>(tape); }
   template<typename IT, int RWF>
   typename stdm::enable_if<stdm::is_base_of<itape, IT>::value, tape_head<IT, RWF> >::type
-  make_head(const IT& tape, mwg_static_flags_cref(rwflags_detail::rwflags_tag, RWF)) {return tape_head<IT, RWF>(tape);}
+  make_head(const IT& tape, mwg_static_flags_cref(rwflags_detail::rwflags_tag, RWF)) { return tape_head<IT, RWF>(tape); }
   template<int RWF, typename IT>
   typename stdm::enable_if<stdm::is_base_of<itape, IT>::value, tape_head<IT, RWF> >::type
-  make_head(const IT& tape) {return tape_head<IT, RWF>(tape);}
+  make_head(const IT& tape) { return tape_head<IT, RWF>(tape); }
 
 namespace rwflags_detail {
 
