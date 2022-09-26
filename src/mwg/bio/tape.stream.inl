@@ -306,43 +306,45 @@ protected:
 //  class basic_tape_stream
 //-----------------------------------------------------------------------------
 
-template<typename ITape,typename Tr>
-class basic_tape_stream:public std::basic_iostream<char,Tr>{
+template<typename ITape, typename Tr>
+class basic_tape_stream: public std::basic_iostream<char, Tr> {
   typedef typename stdm::remove_reference<ITape>::type tape_type;
 public:
-  explicit basic_tape_stream(const tape_type& tape)
-    :std::basic_iostream<char,Tr>(new basic_tape_streambuf<ITape,Tr>(tape)){}
+  explicit basic_tape_stream(const tape_type& tape):
+    std::basic_iostream<char, Tr>(new basic_tape_streambuf<ITape, Tr>(tape)) {}
 };
-template<typename ITape,typename Tr>
-class basic_tape_istream:public std::basic_istream<char,Tr>{
+template<typename ITape, typename Tr>
+class basic_tape_istream: public std::basic_istream<char, Tr> {
   typedef typename stdm::remove_reference<ITape>::type tape_type;
 public:
-  explicit basic_tape_istream(const tape_type& tape)
-    :std::basic_istream<char,Tr>(new basic_tape_streambuf<ITape,Tr>(tape)){}
+  basic_tape_istream() {}
+  explicit basic_tape_istream(const tape_type& tape):
+    std::basic_istream<char, Tr>(new basic_tape_streambuf<ITape, Tr>(tape)) {}
 };
-template<typename ITape,typename Tr>
-class basic_tape_ostream:public std::basic_ostream<char,Tr>{
+template<typename ITape, typename Tr>
+class basic_tape_ostream: public std::basic_ostream<char, Tr> {
   typedef typename stdm::remove_reference<ITape>::type tape_type;
 public:
-  explicit basic_tape_ostream(const tape_type& tape)
-    :std::basic_ostream<char,Tr>(new basic_tape_streambuf<ITape,Tr>(tape)){}
+  basic_tape_ostream() {}
+  explicit basic_tape_ostream(const tape_type& tape):
+    std::basic_ostream<char, Tr>(new basic_tape_streambuf<ITape, Tr>(tape)) {}
 private:
   basic_tape_ostream(const basic_tape_ostream&);
 };
 
 template<typename T>
-class shared_ref{
+class shared_ref {
   stdm::shared_ptr<T> ptr;
   template<class U> friend class shared_ref;
 public:
   template<typename U>
-  shared_ref(U* ptr,typename stdm::enable_if<stdm::is_convertible<U*,T*>::value,mwg::invalid_type*>::type=0):ptr(ptr){}
+  shared_ref(U* ptr, typename stdm::enable_if<stdm::is_convertible<U*, T*>::value, mwg::invalid_type*>::type = 0): ptr(ptr) {}
   template<typename U>
-  explicit shared_ref(const shared_ref<U>& ref,typename stdm::enable_if<stdm::is_convertible<U*,T*>::value,mwg::invalid_type*>::type=0):ptr(ref.ptr){}
+  explicit shared_ref(const shared_ref<U>& ref, typename stdm::enable_if<stdm::is_convertible<U*, T*>::value, mwg::invalid_type*>::type = 0): ptr(ref.ptr) {}
   template<typename U>
-  explicit shared_ref(const U& value):ptr(new T(value)){}
-  operator T&() const{return *this->ptr;}
-  T& get() const{return *this->ptr;}
+  explicit shared_ref(const U& value): ptr(new T(value)) {}
+  operator T&() const { return *this->ptr; }
+  T& get() const { return *this->ptr; }
 };
 
 namespace detail{

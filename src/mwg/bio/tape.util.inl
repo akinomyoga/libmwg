@@ -227,17 +227,18 @@ class filtered_rtape: public itape {
 
   mwg::stdm::shared_ptr<filtered_rtape_buffer> ptr;
 public:
-  filtered_rtape(const BaseTape& tape, const Filter& filter)
-    :ptr(new filtered_rtape_buffer(tape, filter)) {}
+  filtered_rtape() {}
+  filtered_rtape(const BaseTape& tape, const Filter& filter):
+    ptr(new filtered_rtape_buffer(tape, filter)) {}
 public:
   int read(void* buff_, int size, int n = 1) const {
     return ptr->read(buff_, size, n);
   }
 public:
-  bool can_read() const {return true;}
-  bool can_write() const {return false;}
-  bool can_seek() const {return false;}
-  bool can_trunc() const {return false;}
+  bool can_read() const { return true; }
+  bool can_write() const { return false; }
+  bool can_seek() const { return false; }
+  bool can_trunc() const { return false; }
   int write(const void* buff, int size, int n = 1) const {
     mwg_unused(buff);
     mwg_unused(size);
@@ -250,14 +251,14 @@ public:
     errno = EACCES;
     return -1;
   }
-  i8t tell() const {return 0;}
-  u8t size() const {return 0;}
+  i8t tell() const { return 0; }
+  u8t size() const { return 0; }
   int trunc(u8t size) const {
     mwg_unused(size);
     errno = EACCES;
     return -1;
   }
-  int flush() const {return 0;}
+  int flush() const { return 0; }
 };
 
 //-----------------------------------------------------------------------------
