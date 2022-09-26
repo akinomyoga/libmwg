@@ -18,6 +18,7 @@ namespace {
 
   mwg_static_assert(Z_OK == 0, "Z_OK is assumed to be 0, or redefinition of the error codes is required.");
 
+  template<int wbits>
   struct ZlibEncodeData {
     int ret;
     z_stream zstr;
@@ -25,7 +26,9 @@ namespace {
       zstr.zalloc = Z_NULL;
       zstr.zfree  = Z_NULL;
       zstr.opaque = Z_NULL;
-      ret = ::deflateInit(&zstr, Z_DEFAULT_COMPRESSION); // 0-9 [6]
+      ret = ::deflateInit2(
+        &zstr, Z_DEFAULT_COMPRESSION, // 0-9 [6]
+        Z_DEFLATED, wbits, 8, Z_DEFAULT_STRATEGY);
     }
     ~ZlibEncodeData() {
       ::deflateEnd(&zstr);
@@ -55,6 +58,7 @@ namespace {
     }
   };
 
+  template<int wbits>
   struct ZlibDecodeData {
     int ret;
     z_stream zstr;
@@ -62,7 +66,7 @@ namespace {
       zstr.zalloc = Z_NULL;
       zstr.zfree = Z_NULL;
       zstr.opaque = Z_NULL;
-      ret = ::inflateInit(&zstr);
+      ret = ::inflateInit2(&zstr, wbits);
     }
     ~ZlibDecodeData() {
       ::inflateEnd(&zstr);
@@ -100,11 +104,19 @@ namespace {
 }
 
   int zlib_encode(const byte*& src0, const byte* const srcN, byte*& dst0, byte* const dstN, void*& state_) {
-    return filter_with_encoder<ZlibEncodeData>(src0, srcN, dst0, dstN, state_);
+    return filter_with_encoder<ZlibEncodeData<MAX_WBITS> >(src0, srcN, dst0, dstN, state_);
   }
 
   int zlib_decode(const byte*& src0, const byte* const srcN, byte*& dst0, byte* const dstN, void*& state_) {
-    return filter_with_encoder<ZlibDecodeData>(src0, srcN, dst0, dstN, state_);
+    return filter_with_encoder<ZlibDecodeData<MAX_WBITS> >(src0, srcN, dst0, dstN, state_);
+  }
+
+  int gzip_encode(const byte*& src0, const byte* const srcN, byte*& dst0, byte* const dstN, void*& state_) {
+    return filter_with_encoder<ZlibEncodeData<MAX_WBITS + 16> >(src0, srcN, dst0, dstN, state_);
+  }
+
+  int gzip_decode(const byte*& src0, const byte* const srcN, byte*& dst0, byte* const dstN, void*& state_) {
+    return filter_with_encoder<ZlibDecodeData<MAX_WBITS + 16> >(src0, srcN, dst0, dstN, state_);
   }
 
 }

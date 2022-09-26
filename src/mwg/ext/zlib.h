@@ -7,6 +7,8 @@ namespace mwg {
 namespace bio {
   mwg::bio::filter_function_type zlib_decode;
   mwg::bio::filter_function_type zlib_encode;
+  mwg::bio::filter_function_type gzip_decode;
+  mwg::bio::filter_function_type gzip_encode;
 }
 }
 #endif
