@@ -28,17 +28,17 @@ class shared_tape: public itape {
 public:
   shared_tape(const BaseTape* tape): tape(tape) {}
 
-  bool can_read() const {return tape->can_read();}
-  bool can_write() const {return tape->can_write();}
-  bool can_seek() const {return tape->can_seek();}
-  bool can_trunc() const {return tape->can_trunc();}
-  int read(void* buff, int size, int n = 1) const {return tape->read(buff, size, n);}
-  int write(const void* buff, int size, int n = 1) const {return tape->write(buff, size, n);}
-  int seek(i8t offset, int whence = SEEK_SET) const {return tape->seek(offset, whence);}
-  i8t tell() const {return tape->tell();}
-  u8t size() const {return tape->size();}
-  int trunc(u8t size) const {return tape->trunc(size);}
-  int flush() const {return tape->flush();}
+  bool can_read() const { return tape->can_read(); }
+  bool can_write() const { return tape->can_write(); }
+  bool can_seek() const { return tape->can_seek(); }
+  bool can_trunc() const { return tape->can_trunc(); }
+  int read(void* buff, int size, int n = 1) const { return tape->read(buff, size, n); }
+  int write(const void* buff, int size, int n = 1) const { return tape->write(buff, size, n); }
+  int seek(i8t offset, int whence = SEEK_SET) const { return tape->seek(offset, whence); }
+  i8t tell() const { return tape->tell(); }
+  u8t size() const { return tape->size(); }
+  int trunc(u8t size) const { return tape->trunc(size); }
+  int flush() const { return tape->flush(); }
 };
 
 template<typename BaseTape>
@@ -56,10 +56,10 @@ public:
     if (!tape.can_seek())
       throw std::invalid_argument("!tape.can_seek()");
   }
-  bool can_read() const {return this->tape.can_read();}
-  bool can_write() const {return !this->readOnly && this->tape.can_write();}
-  bool can_seek() const {return this->tape.can_seek();}
-  bool can_trunc() const {return false;}
+  bool can_read() const { return this->tape.can_read(); }
+  bool can_write() const { return !this->readOnly && this->tape.can_write(); }
+  bool can_seek() const { return this->tape.can_seek(); }
+  bool can_trunc() const { return false; }
   int read(void* buff, int size, int n = 1) const {
     n = std::min<int>(n, std::min<u8t>((length - position) / size, INT_MAX));
     if (n < 1) return 0;
@@ -102,14 +102,14 @@ public:
     this->position = pos;
     return 0;
   }
-  i8t tell() const {return this->position;}
-  u8t size() const {return this->length;}
+  i8t tell() const { return this->position; }
+  u8t size() const { return this->length; }
   int trunc(u8t size) const {
     mwg_unused(size);
     errno = EACCES;
     return -1;
   }
-  int flush() const {return tape.flush();}
+  int flush() const { return tape.flush(); }
 };
 //FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
 //  operators
@@ -361,11 +361,11 @@ public:
     return 0;
   }
 public:
-  bool can_read() const {return false;}
-  bool can_write() const {return true;}
-  bool can_seek() const {return false;}
-  bool can_trunc() const {return false;}
-  int write(const void* buff, int size, int n = 1) const {return ptr->write(buff, size, n);}
+  bool can_read() const { return false; }
+  bool can_write() const { return true; }
+  bool can_seek() const { return false; }
+  bool can_trunc() const { return false; }
+  int write(const void* buff, int size, int n = 1) const { return ptr->write(buff, size, n); }
   int seek(i8t offset, int whence = SEEK_SET) const {
     mwg_unused(offset);
     mwg_unused(whence);
@@ -373,15 +373,15 @@ public:
     errno = EACCES;
     return -1;
   }
-  i8t tell() const {mwg_check(false); return 0;}
-  u8t size() const {mwg_check(false); return 0;}
+  i8t tell() const {mwg_check(false); return 0; }
+  u8t size() const {mwg_check(false); return 0; }
   int trunc(u8t size) const {
     mwg_unused(size);
     mwg_check(false);
     errno = EACCES;
     return -1;
   }
-  int flush() const {return ptr->flush();}
+  int flush() const { return ptr->flush(); }
 };
 
 #ifdef MWG_CONCEPT_OVERLOAD_FAIL

@@ -6,16 +6,16 @@
 #include <mwg/defs.h>
 #include <mwg/except.h>
 #include <mwg/std/type_traits>
-namespace mwg{
-namespace bio{
+namespace mwg {
+namespace bio {
 //NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN
 
 class readonly_error;
 
-mwg_define_class_error_ex(io_error       ,mwg::except,mwg::ecode::io);
-mwg_define_class_error_ex(nosupport_error,io_error   ,mwg::ecode::ESupport);
-mwg_define_class_error_ex(file_open_error,io_error   ,0);
-mwg_define_class_error_ex(ill_format_error,io_error  ,0);
+mwg_define_class_error_ex(io_error, mwg::except, mwg::ecode::io);
+mwg_define_class_error_ex(nosupport_error, io_error, mwg::ecode::ESupport);
+mwg_define_class_error_ex(file_open_error, io_error, 0);
+mwg_define_class_error_ex(ill_format_error, io_error, 0);
 
 // header files:
 //  three models to access binary data
@@ -45,51 +45,51 @@ class iview;
 # endif
 #endif
 
-namespace detail{
+namespace detail {
 
-  static const int adapter_cast_from_other  =-1;
-  static const int adapter_cast_from_tape   =1;
-  static const int adapter_cast_from_disk   =2;
-  static const int adapter_cast_from_view   =3;
-  static const int adapter_cast_from_stream =10;
-  static const int adapter_cast_from_istream=11;
-  static const int adapter_cast_from_ostream=12;
-  static const int adapter_cast_from_file   =13;
-  template<typename R,typename A>
-  struct adapter_cast_switch{
-    static const int value=
-      stdm::is_base_of<itape,A>::value?adapter_cast_from_tape:
-      stdm::is_base_of<idisk,A>::value?adapter_cast_from_disk:
-      stdm::is_base_of<iview,A>::value?adapter_cast_from_view:
-      stdm::is_base_of<std::iostream,A>::value?adapter_cast_from_stream:
-      stdm::is_base_of<std::istream,A>::value ?adapter_cast_from_istream:
-      stdm::is_base_of<std::ostream,A>::value ?adapter_cast_from_ostream:
-      stdm::is_same<FILE*,A>::value           ?adapter_cast_from_file:
+  static const int adapter_cast_from_other   = -1;
+  static const int adapter_cast_from_tape    = 1;
+  static const int adapter_cast_from_disk    = 2;
+  static const int adapter_cast_from_view    = 3;
+  static const int adapter_cast_from_stream  = 10;
+  static const int adapter_cast_from_istream = 11;
+  static const int adapter_cast_from_ostream = 12;
+  static const int adapter_cast_from_file    = 13;
+  template<typename R, typename A>
+  struct adapter_cast_switch {
+    static const int value =
+      stdm::is_base_of<itape, A>::value ? adapter_cast_from_tape :
+      stdm::is_base_of<idisk, A>::value ? adapter_cast_from_disk :
+      stdm::is_base_of<iview, A>::value ? adapter_cast_from_view :
+      stdm::is_base_of<std::iostream, A>::value ? adapter_cast_from_stream :
+      stdm::is_base_of<std::istream, A>::value  ? adapter_cast_from_istream :
+      stdm::is_base_of<std::ostream, A>::value  ? adapter_cast_from_ostream :
+      stdm::is_same<FILE*, A>::value            ? adapter_cast_from_file :
       adapter_cast_from_other;
   };
 
-  template<typename R,typename A,int I=0>
-  struct adapter_cast_impl{
+  template<typename R, typename A, int I = 0>
+  struct adapter_cast_impl {
     //typedef return_type;
     //static return_type create_adapter(...);
   };
 
-  template<typename R,typename A>
-  struct adapter_cast_impl<R,A>
-    :adapter_cast_impl<R,A,adapter_cast_switch<R,A>::value>{};
+  template<typename R, typename A>
+  struct adapter_cast_impl<R, A>:
+    adapter_cast_impl<R, A, adapter_cast_switch<R, A>::value> {};
 
-  template<typename R,typename A>
-  struct adapter_cast_simple_construct{
+  template<typename R, typename A>
+  struct adapter_cast_simple_construct {
     typedef R return_type;
-    static return_type create_adapter(const A& tape){return return_type(tape);}
+    static return_type create_adapter(const A& tape) { return return_type(tape); }
   };
 }
 
-template<typename R,typename A>
-typename mwg::bio::detail::adapter_cast_impl<R,A>::return_type
+template<typename R, typename A>
+typename mwg::bio::detail::adapter_cast_impl<R, A>::return_type
   adapter_cast(const A& value)
 {
-  return mwg::bio::detail::adapter_cast_impl<R,A>::create_adapter(value);
+  return mwg::bio::detail::adapter_cast_impl<R, A>::create_adapter(value);
 }
 
 //NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN

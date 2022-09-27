@@ -22,7 +22,7 @@
 #include <mwg/except.h>
 #include <mwg/bio/mwt_i3.h>
 std::string outputdir = ".";
-int main(int argc, char** argv){
+int main(int argc, char** argv) {
   if (argc > 0) {
     char* const last = std::strrchr(argv[0], '/');
     if (last) outputdir = std::string(argv[0], last);
