@@ -1,5 +1,13 @@
 // -*- mode: c++; coding: utf-8 -*-
-//?mconf H -t'"xz Library"' -oMWGCONF_LIBRARY_XZ lzma.h
+/*?mconf
+ * case ${USE_LIBLZMA:-auto} in
+ * (yes)
+ *   H -t'"xz Library"' -oMWGCONF_LIBRARY_XZ lzma.h || return 1 ;;
+ * (auto)
+ *   H -t'"xz Library"' -oMWGCONF_LIBRARY_XZ lzma.h ;;
+ * (no) ;;
+ * esac
+ */
 #include <mwg_config.h>
 #ifdef MWGCONF_LIBRARY_XZ
 #include <lzma.h>

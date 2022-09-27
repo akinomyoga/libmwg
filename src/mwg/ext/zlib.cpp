@@ -1,5 +1,13 @@
 // -*- mode: c++; coding: utf-8 -*-
-//?mconf H -t'"zlib Library"' -oMWGCONF_LIBRARY_ZLIB zlib.h
+/*?mconf
+ * case ${USE_ZLIB:-auto} in
+ * (yes)
+ *   H -t'"zlib Library"' -oMWGCONF_LIBRARY_ZLIB zlib.h || return 1 ;;
+ * (auto)
+ *   H -t'"zlib Library"' -oMWGCONF_LIBRARY_ZLIB zlib.h ;;
+ * (no) ;;
+ * esac
+ */
 #include <mwg_config.h>
 #ifdef MWGCONF_LIBRARY_ZLIB
 #include <zlib.h>
@@ -7,10 +15,6 @@
 #include <mwg/except.h>
 #include <mwg/ext/zlib.h>
 #include <mwg/bio/filter.inl>
-//#define DBG20111219
-#ifdef DBG20111219
-# include <cstdio>
-#endif
 //NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN
 namespace mwg {
 namespace bio {
@@ -24,7 +28,7 @@ namespace {
     z_stream zstr;
     ZlibEncodeData() {
       zstr.zalloc = Z_NULL;
-      zstr.zfree  = Z_NULL;
+      zstr.zfree = Z_NULL;
       zstr.opaque = Z_NULL;
       ret = ::deflateInit2(
         &zstr, Z_DEFAULT_COMPRESSION, // 0-9 [6]
@@ -38,7 +42,7 @@ namespace {
       zstr.avail_in = srcN - src0;
       zstr. next_out = dst0;
       zstr.avail_out = dstN - dst0;
-      ret=::deflate(&zstr, Z_NO_FLUSH);
+      ret = ::deflate(&zstr, Z_NO_FLUSH);
       if (ret != Z_OK && ret != Z_STREAM_END) return ret;
 
       src0 = zstr.next_in;
@@ -76,13 +80,7 @@ namespace {
       zstr.avail_in = srcN - src0;
       zstr. next_out = dst0;
       zstr.avail_out = dstN - dst0;
-#ifdef DBG20111219
-      std::fprintf(stderr, "--- input %p %d / output %p %d\n", zstr.next_in, zstr.avail_in, zstr.next_out, zstr.avail_out);
-#endif
       ret = ::inflate(&zstr, Z_NO_FLUSH);
-#ifdef DBG20111219
-      std::fprintf(stderr, "r=%d input %p %d / output %p %d\n", ret, zstr.next_in, zstr.avail_in, zstr.next_out, zstr.avail_out);
-#endif
       if (ret != Z_OK && ret != Z_STREAM_END) return ret;
 
       src0 = zstr.next_in;

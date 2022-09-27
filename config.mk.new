@@ -9,6 +9,13 @@
 #export INSDIR=$(HOME)/local
 
 #
+# @export USE_ZLIB [=auto]
+# @export USE_LIBLZMA [=auto]
+#
+#export USE_ZLIB := yes
+#export USE_LIBLZMA := yes
+
+#
 # @var libmwg_cxxkey_scanlist
 #   ソースディレクトリで make scan-* をした時に
 #   操作の対象とするコンパイラの一覧を指定する。
